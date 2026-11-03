@@ -14,7 +14,7 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE, ma
 ## Estado por módulo
 | Módulo | BD | Backend | Frontend |
 |---|---|---|---|
-| auth / seguridad | listo | login + /me listo (probado) | login + rutas protegidas + menú por permisos (build OK) |
+| auth / seguridad | listo | login admin/cliente + /me separados | portales admin/cliente, menú por permisos y gestión de roles/permisos |
 | inventario | listo | pendiente | pendiente |
 | pos | listo | pendiente | pendiente |
 | caja | listo | pendiente | pendiente |

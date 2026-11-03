@@ -69,6 +69,30 @@ docker compose down
 - **API directa**: http://localhost:3000/api/health
 Usuarios demo (clave `Cambiar123*`): admin, gerente1, cajero1, barista1, bodega1. Datos de ejemplo: `database/demo/02_demo.sql`.
 
+## Migraciones y cuentas demo de portales
+
+El esquema inicial se ejecuta automáticamente solo cuando se crea el volumen de PostgreSQL por primera vez. Si la base ya existe, aplica la migración del portal de clientes y luego el seeder en este orden:
+
+```bash
+# 1. Levantar PostgreSQL
+docker compose up -d db
+
+# 2. Copiar y aplicar la migración de credenciales para clientes
+docker compose cp database/migrations/001_portal_clientes.sql db:/tmp/001_portal_clientes.sql
+docker compose exec -T db psql -U origenes -d origenes -f /tmp/001_portal_clientes.sql
+
+# 3. Crear las cuentas demo (ejecutar después de la migración)
+docker compose cp database/seeders/001_portales_demo.sql db:/tmp/001_portales_demo.sql
+docker compose exec -T db psql -U origenes -d origenes -f /tmp/001_portales_demo.sql
+```
+
+Si modificaste `POSTGRES_USER` o `POSTGRES_DB` en `.env`, reemplaza `origenes` en los comandos por los valores configurados. El seeder es repetible y no duplica las cuentas existentes.
+
+Credenciales de prueba:
+
+- Área administrativa: `admin` / `Cambiar123*` en `/admin/login`.
+- Área cliente: `cliente.demo` / `Cliente123*` en `/cliente/login`.
+
 ## Trabajo con agentes de IA (opencode, Cursor, Antigravity)
 Todos leen `AGENTS.md` (GEMINI.md y `.cursor/rules` solo apuntan a él). Contexto: `docs/ai/`. Cada cambio se registra en `docs/ai/CHANGELOG_AGENTE.md`; el uso de IA se declara en `docs/USO_IA.md`.
 

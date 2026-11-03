@@ -36,7 +36,7 @@ Módulos: auth, seguridad, empresa, inventario, pos, caja, compras, rrhh, report
 - Uso de IA: registra cada uso significativo en `docs/USO_IA.md` (el enunciado exige declararlo; sin comprensión = penalización).
 
 ## Skills (leer solo la que aplique)
-`00-registrar-cambio` · `nuevo-endpoint-rest` · `nueva-pantalla-react` · `cambio-base-datos` · `permisos-rbac` · `usar-funciones-sql`
+`00-registrar-cambio` · `nuevo-endpoint-rest` · `nueva-pantalla-react` · `cambio-base-datos` · `permisos-rbac` · `usar-funciones-sql` · `prompts-significativos`
 Ubicación: `docs/ai/skills/<nombre>.md`
 
 ## Comandos

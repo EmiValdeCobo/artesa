@@ -1,8 +1,8 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
-export default function ProtectedRoute({ permiso, children }) {
-  const { usuario, tiene, cargando } = useAuth();
+export default function ProtectedRoute({ permiso, portal = 'admin', children }) {
+  const { usuario, tipoSesion, tiene, cargando } = useAuth();
 
   if (cargando) {
     return (
@@ -12,8 +12,8 @@ export default function ProtectedRoute({ permiso, children }) {
     );
   }
 
-  if (!usuario) {
-    return <Navigate to="/login" replace />;
+  if (!usuario || tipoSesion !== portal) {
+    return <Navigate to={portal === 'cliente' ? '/cliente/login' : '/admin/login'} replace />;
   }
 
   if (permiso && !tiene(permiso)) {
