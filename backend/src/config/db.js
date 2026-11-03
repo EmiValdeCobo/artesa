@@ -1,27 +1,33 @@
-import pg from 'pg';
+import { QueryTypes, Sequelize } from 'sequelize';
 import { env } from './env.js';
 
-// NUMERIC llega como string (evita errores de punto flotante con dinero)
-export const pool = new pg.Pool({ connectionString: env.databaseUrl });
+const opciones = {
+  dialect: 'postgres',
+  logging: false,
+};
 
-export const query = (texto, params) => pool.query(texto, params);
+export const sequelize = env.database
+  ? new Sequelize({ ...env.database, ...opciones })
+  : new Sequelize(env.databaseUrl, opciones);
+
+export const query = (texto, params = []) => sequelize.query(texto, {
+  bind: params,
+  type: QueryTypes.SELECT,
+});
 
 /**
- * Ejecuta fn(client) dentro de una transacción.
- * Si se pasa userId, queda disponible en la BD como app.user_id (lo usa la bitácora).
+ * Ejecuta fn dentro de una transacción Sequelize.
+ * app.user_id queda disponible para los triggers de bitácora de PostgreSQL.
  */
 export async function withTransaction(fn, userId = null) {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    if (userId) await client.query("SELECT set_config('app.user_id', $1, true)", [userId]);
-    const resultado = await fn(client);
-    await client.query('COMMIT');
-    return resultado;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
+  return sequelize.transaction(async (transaction) => {
+    if (userId) {
+      await sequelize.query("SELECT set_config('app.user_id', $1, true)", {
+        bind: [userId],
+        transaction,
+        type: QueryTypes.SELECT,
+      });
+    }
+    return fn(transaction);
+  });
 }

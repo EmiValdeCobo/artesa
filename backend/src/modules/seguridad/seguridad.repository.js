@@ -1,83 +1,84 @@
-import { query } from '../../config/db.js';
+import { Rol, Sucursal, Usuario, UsuarioSucursal } from '../../models/index.js';
 
-const usuarioSelect = `
-  SELECT u.id_usuario, u.username, u.id_rol, r.nombre AS rol, u.activo,
-         COALESCE(
-           json_agg(json_build_object('id_sucursal', s.id_sucursal, 'nombre', s.nombre)
-             ORDER BY s.id_sucursal) FILTER (WHERE s.id_sucursal IS NOT NULL),
-           '[]'::json
-         ) AS sucursales
-  FROM seguridad.usuarios u
-  JOIN seguridad.roles r ON r.id_rol = u.id_rol
-  LEFT JOIN seguridad.usuario_sucursal us ON us.id_usuario = u.id_usuario
-  LEFT JOIN empresa.sucursales s ON s.id_sucursal = us.id_sucursal
-`;
+function formatearUsuario(usuario) {
+  if (!usuario) return null;
+  const plano = usuario.get({ plain: true });
+  return {
+    id_usuario: plano.id_usuario,
+    username: plano.username,
+    id_rol: plano.id_rol,
+    rol: plano.rol?.nombre,
+    activo: plano.activo,
+    sucursales: (plano.sucursales ?? []).map(({ id_sucursal, nombre }) => ({ id_sucursal, nombre })),
+  };
+}
+
+const incluirUsuario = [
+  { model: Rol, as: 'rol', attributes: ['nombre'] },
+  { model: Sucursal, as: 'sucursales', attributes: ['id_sucursal', 'nombre'], through: { attributes: [] } },
+];
 
 export async function listarUsuarios() {
-  const { rows } = await query(`${usuarioSelect} GROUP BY u.id_usuario, r.nombre ORDER BY u.activo DESC, u.username`);
-  return rows;
+  const usuarios = await Usuario.findAll({
+    attributes: ['id_usuario', 'username', 'id_rol', 'activo'],
+    include: incluirUsuario,
+    order: [['activo', 'DESC'], ['username', 'ASC']],
+  });
+  return usuarios.map(formatearUsuario);
 }
 
-export async function listarRoles() {
-  const { rows } = await query(
-    'SELECT id_rol, nombre, descripcion FROM seguridad.roles WHERE activo ORDER BY nombre',
+export const listarRoles = () => Rol.findAll({
+  attributes: ['id_rol', 'nombre', 'descripcion'],
+  where: { activo: true },
+  order: [['nombre', 'ASC']],
+  raw: true,
+});
+
+export const listarSucursales = () => Sucursal.findAll({
+  attributes: ['id_sucursal', 'nombre', 'codigo_establecimiento'],
+  where: { activa: true },
+  order: [['id_sucursal', 'ASC']],
+  raw: true,
+});
+
+export async function buscarUsuario(idUsuario, transaction = null) {
+  const usuario = await Usuario.findByPk(idUsuario, {
+    attributes: ['id_usuario', 'username', 'id_rol', 'activo'],
+    include: incluirUsuario,
+    transaction,
+  });
+  return formatearUsuario(usuario);
+}
+
+export async function crearUsuario(transaction, { username, passwordHash, idRol }) {
+  const usuario = await Usuario.create({
+    username,
+    password_hash: passwordHash,
+    id_rol: idRol,
+  }, { transaction });
+  return usuario.id_usuario;
+}
+
+export async function asignarSucursales(transaction, idUsuario, sucursales) {
+  await UsuarioSucursal.destroy({ where: { id_usuario: idUsuario }, transaction });
+  await UsuarioSucursal.bulkCreate(
+    sucursales.map((id_sucursal) => ({ id_usuario: idUsuario, id_sucursal })),
+    { transaction },
   );
-  return rows;
 }
 
-export async function listarSucursales() {
-  const { rows } = await query(
-    'SELECT id_sucursal, nombre, codigo_establecimiento FROM empresa.sucursales WHERE activa ORDER BY id_sucursal',
+export async function actualizarUsuario(transaction, idUsuario, { username, passwordHash, idRol }) {
+  const valores = { username, id_rol: idRol };
+  if (passwordHash) valores.password_hash = passwordHash;
+  const [afectados] = await Usuario.update(valores, { where: { id_usuario: idUsuario }, transaction });
+  return afectados;
+}
+
+export async function desactivarUsuario(transaction, idUsuario) {
+  const [afectados] = await Usuario.update(
+    { activo: false },
+    { where: { id_usuario: idUsuario, activo: true }, transaction },
   );
-  return rows;
-}
-
-export async function buscarUsuario(idUsuario, client = null) {
-  const ejecutar = client ?? { query };
-  const { rows } = await ejecutar.query(`${usuarioSelect} WHERE u.id_usuario = $1 GROUP BY u.id_usuario, r.nombre`, [idUsuario]);
-  return rows[0] ?? null;
-}
-
-export async function crearUsuario(client, { username, passwordHash, idRol }) {
-  const { rows } = await client.query(
-    `INSERT INTO seguridad.usuarios(username, password_hash, id_rol)
-     VALUES ($1, $2, $3)
-     RETURNING id_usuario`,
-    [username, passwordHash, idRol],
-  );
-  return rows[0].id_usuario;
-}
-
-export async function asignarSucursales(client, idUsuario, sucursales) {
-  await client.query('DELETE FROM seguridad.usuario_sucursal WHERE id_usuario = $1', [idUsuario]);
-  await client.query(
-    `INSERT INTO seguridad.usuario_sucursal(id_usuario, id_sucursal)
-     SELECT $1, unnest($2::int[])`,
-    [idUsuario, sucursales],
-  );
-}
-
-export async function actualizarUsuario(client, idUsuario, { username, passwordHash, idRol }) {
-  const campos = ['username = $1', 'id_rol = $2'];
-  const valores = [username, idRol, idUsuario];
-  if (passwordHash) {
-    campos.push('password_hash = $3');
-    valores.splice(2, 0, passwordHash);
-  }
-  const indiceId = valores.length;
-  valores[indiceId - 1] = idUsuario;
-  const { rowCount } = await client.query(
-    `UPDATE seguridad.usuarios SET ${campos.join(', ')} WHERE id_usuario = $${indiceId} RETURNING id_usuario`,
-    valores,
-  );
-  return rowCount;
-}
-
-export async function desactivarUsuario(client, idUsuario) {
-  const { rowCount } = await client.query(
-    'UPDATE seguridad.usuarios SET activo = FALSE WHERE id_usuario = $1 AND activo RETURNING id_usuario',
-    [idUsuario],
-  );
-  return rowCount;
+  return afectados;
 }
 

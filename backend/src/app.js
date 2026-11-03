@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { env } from './config/env.js';
-import { query } from './config/db.js';
+import { sequelize } from './config/db.js';
 import routes from './modules/index.js';
 import { notFound, errorHandler } from './middlewares/error.js';
 
@@ -15,7 +15,7 @@ app.use(morgan('dev'));
 
 app.get('/api/health', async (_req, res) => {
   try {
-    await query('SELECT 1');
+    await sequelize.authenticate();
     res.json({ estado: 'ok', baseDeDatos: 'conectada' });
   } catch {
     res.status(503).json({ estado: 'error', baseDeDatos: 'sin conexión' });

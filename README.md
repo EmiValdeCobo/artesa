@@ -43,7 +43,7 @@ Docker Compose levanta y conecta 3 servicios aislados en una misma red virtual i
    - Incluye *healthcheck* (`pg_isready`) para que el backend espere a que la BD esté 100% lista.
 2. **`api` (Backend Express)**:
    - Se construye con `backend/Dockerfile` en una imagen Node 22.
-   - Se conecta internamente a la base de datos usando el hostname `db:5432`.
+   - Se conecta internamente a la base de datos usando `DB_HOST=db` y el puerto `5432`; no reutiliza `localhost` del entorno anfitrión.
    - Expone el puerto `3000`.
 3. **`web` (Frontend React + Nginx)**:
    - Se compila en una fase multi-stage y sirve los archivos estáticos optimizados mediante un servidor web Nginx ligero.
@@ -85,7 +85,7 @@ El error `role "origenes" does not exist` aparece cuando se usa `-U origenes` au
 
 ### Flujo automatizado recomendado
 
-Este proyecto no usa Prisma, Drizzle, TypeORM ni SQLAlchemy. El backend usa `pg` con SQL directo y funciones PL/pgSQL, por lo que las migraciones y seeders se ejecutan con `psql`:
+El backend usa Sequelize con PostgreSQL. Los CRUD de los módulos implementados se realizan con modelos Sequelize; las vistas y funciones PL/pgSQL críticas se invocan con consultas parametrizadas de Sequelize para conservar la lógica atómica de la base. Las migraciones y seeders SQL se ejecutan con `psql`:
 
 ```powershell
 # Desde la raíz del proyecto; toma POSTGRES_USER y POSTGRES_DB del entorno del contenedor
@@ -93,7 +93,7 @@ pnpm db:migrate
 pnpm db:seed
 ```
 
-Los scripts leen todos los archivos `.sql` ordenados por nombre, envían su contenido por stdin y activan `ON_ERROR_STOP=1`. No copian archivos al contenedor y reutilizan las variables `POSTGRES_USER` y `POSTGRES_DB` que Docker ya configuró.
+Los scripts leen todos los archivos `.sql` ordenados por nombre, envían su contenido por stdin y activan `ON_ERROR_STOP=1`. No copian archivos al contenedor y reutilizan las variables `POSTGRES_USER` y `POSTGRES_DB` que Docker ya configuró. No se usa sincronización automática de modelos en producción: el esquema y las funciones críticas continúan versionados como SQL.
 
 ### Flujo manual alternativo
 

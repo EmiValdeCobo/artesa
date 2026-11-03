@@ -24,7 +24,11 @@ services:
     restart: unless-stopped
     environment:
       PORT: ${PORT:-3000}
-      DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-origenes}:${POSTGRES_PASSWORD:-origenes}@db:5432/${POSTGRES_DB:-origenes}}
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-origenes}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-origenes}
+      DB_NAME: ${POSTGRES_DB:-origenes}
       JWT_SECRET: "${JWT_SECRET:?Error: JWT_SECRET debe estar definido en el archivo .env}"
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
