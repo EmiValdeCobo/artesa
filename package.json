@@ -1,0 +1,12 @@
+{
+  "name": "artesa-root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "artesa — ERP + POS para restaurante/cafetería",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "dev:backend": "pnpm --filter artesa-backend dev",
+    "dev:frontend": "pnpm --filter artesa-frontend dev",
+    "build": "pnpm -r build"
+  }
+}
