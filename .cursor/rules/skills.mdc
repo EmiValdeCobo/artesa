@@ -1,0 +1,5 @@
+---
+description: Activación de skills de artesa por palabras clave
+alwaysApply: true
+---
+Antes de actuar lee `AGENTS.md` y `docs/ai/PROTOCOLO_CONTEXTO.md`. Si la petición contiene triggers de una skill (tabla en AGENTS.md), lee solo `docs/ai/skills/<skill>.md`. Entrega solo diffs; no reescribas archivos completos.
