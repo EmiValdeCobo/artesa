@@ -6,6 +6,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [usuario, setUsuario] = useState(null);
   const [permisos, setPermisos] = useState([]);
+  const [tipoSesion, setTipoSesion] = useState(null);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
@@ -14,37 +15,45 @@ export function AuthProvider({ children }) {
       setCargando(false);
       return;
     }
-    api.get('/auth/me')
+    const tipo = localStorage.getItem('tipoSesion') || 'admin';
+    api.get(tipo === 'cliente' ? '/auth/cliente/me' : '/auth/me')
       .then((data) => {
         setUsuario(data.usuario);
         setPermisos(data.permisos || []);
+        setTipoSesion(tipo);
       })
       .catch(() => {
         localStorage.removeItem('token');
         setUsuario(null);
         setPermisos([]);
+        setTipoSesion(null);
       })
       .finally(() => setCargando(false));
   }, []);
 
-  const login = async (username, password) => {
-    const data = await api.post('/auth/login', { username, password });
+  const iniciarSesion = async (username, password, tipo = 'admin') => {
+    const endpoint = tipo === 'cliente' ? '/auth/cliente/login' : '/auth/login';
+    const data = await api.post(endpoint, { username, password });
     localStorage.setItem('token', data.token);
+    localStorage.setItem('tipoSesion', tipo);
     setUsuario(data.usuario);
     setPermisos(data.permisos || []);
+    setTipoSesion(tipo);
     return data;
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('tipoSesion');
     setUsuario(null);
     setPermisos([]);
+    setTipoSesion(null);
   };
 
   const tiene = (permiso) => permisos.includes(permiso);
 
   return (
-    <AuthContext.Provider value={{ usuario, permisos, cargando, login, logout, tiene }}>
+    <AuthContext.Provider value={{ usuario, permisos, tipoSesion, cargando, login: iniciarSesion, logout, tiene }}>
       {children}
     </AuthContext.Provider>
   );

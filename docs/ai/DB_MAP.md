@@ -22,7 +22,7 @@ fn: inventario.fn_mover_stock(suc, insumo, cant±, tipo, ref_tipo, ref_id, usuar
 
 ## pos
 cajas(id_caja, id_sucursal, codigo_punto_venta, nombre_identificador) · turnos_caja(id_turno U, id_caja, id_usuario, monto_apertura, monto_cierre_*, esperado_*, dif_*, estado[ABIERTO|CERRADO]) [1 turno abierto por caja y por usuario]
-movimientos_caja(id_movimiento, id_turno, tipo[INGRESO|EGRESO], concepto, monto, id_usuario) · clientes(id_cliente, nombre_razon_social, tipo_documento, num_documento, nrc, giro_economico, direccion, email, telefono)
+movimientos_caja(id_movimiento, id_turno, tipo[INGRESO|EGRESO], concepto, monto, id_usuario) · clientes(id_cliente, nombre_razon_social, tipo_documento, num_documento, nrc, giro_economico, direccion, email, telefono, username, password_hash, activo)
 series_documento(id_caja, tipo_comprobante, ultimo_numero) · ordenes(id_orden, id_turno, id_cliente, canal, etiqueta, estado) · orden_detalles(id_detalle, id_orden, id_producto, cantidad, precio_unitario, nota)
 ventas(id_venta U, id_turno, id_sucursal, id_usuario, id_cliente, id_orden, tipo_comprobante[FCF|CCF], correlativo, numero_control, codigo_generacion, sello_recepcion, estado_dte, subtotal, descuento, iva, total, estado[EMITIDA|ANULADA], motivo_anulacion)
 venta_detalles(id_detalle, id_venta, id_producto, cantidad, precio_unitario, subtotal_linea, nota) · pagos(id_pago, id_venta, metodo[EFECTIVO|TARJETA|BITCOIN_CHIVO|TRANSFERENCIA], monto, monto_recibido, referencia)

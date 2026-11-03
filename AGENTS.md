@@ -11,7 +11,7 @@ Este archivo lo leen opencode y Cursor; GEMINI.md (Antigravity) y .cursor/rules 
 6. Cierra con un resumen de 3-5 líneas en el chat explicando QUÉ hiciste y POR QUÉ: cada integrante debe poder defenderlo.
 
 ## Stack (decidido, no cambiarlo sin consultar)
-Node.js (ESM, JavaScript puro) + Express · PostgreSQL 16 con SQL directo (`pg`, sin ORM) · React + Vite + React Router + Tailwind (sin Next.js) · Zod · JWT + bcryptjs · Docker Compose.
+Node.js (ESM, JavaScript puro) + Express · PostgreSQL 16 + Sequelize (conductor `pg`) · React + Vite + React Router + Tailwind (sin Next.js) · Zod · JWT + bcryptjs · Docker Compose.
 
 ## Estructura
 ```
@@ -26,8 +26,8 @@ Módulos: auth, seguridad, empresa, inventario, pos, caja, compras, rrhh, report
 - La lógica crítica YA vive en funciones SQL: `pos.fn_registrar_venta`, `pos.fn_anular_venta`, `pos.fn_cerrar_turno`, `compras.fn_registrar_compra`, `inventario.fn_mover_stock`, `inventario.fn_registrar_merma`, `rrhh.fn_calcular_planilla`. Se LLAMAN, no se reimplementan en JS.
 - Capas: routes → controller (HTTP) → service (negocio) → repository (SQL). El controller nunca escribe SQL.
 - Toda ruta protegida lleva `authenticate` y `requirePermiso('CODIGO')`. Los códigos están en `seguridad.permisos`.
-- Escrituras: usa `withTransaction(fn, userId)` (setea `app.user_id` para la bitácora).
-- SQL siempre parametrizado (`$1`), nunca concatenado. Dinero: nunca float en cálculos; `pg` devuelve NUMERIC como string.
+- Escrituras: usa `withTransaction(fn, userId)` de Sequelize (setea `app.user_id` para la bitácora).
+- Usa modelos Sequelize para CRUD. Para vistas y funciones SQL críticas, usa `sequelize.query` con `bind` (`$1`), nunca concatenado. Dinero: nunca float en cálculos; PostgreSQL `NUMERIC` se mantiene como string.
 - Validar entradas con Zod. Errores con `AppError`; en `async` usa `asyncHandler`; en el frontend `try/catch` en cada llamada a la API.
 - API REST: sustantivos en plural, verbos HTTP correctos, códigos 200/201/204/400/401/403/404/409.
 - Idioma: UI y comentarios en español; nombres de dominio en español igual que la BD (ventas, insumos, turnos).
@@ -36,7 +36,7 @@ Módulos: auth, seguridad, empresa, inventario, pos, caja, compras, rrhh, report
 - Uso de IA: registra cada uso significativo en `docs/USO_IA.md` (el enunciado exige declararlo; sin comprensión = penalización).
 
 ## Skills (leer solo la que aplique)
-`00-registrar-cambio` · `nuevo-endpoint-rest` · `nueva-pantalla-react` · `cambio-base-datos` · `permisos-rbac` · `usar-funciones-sql`
+`00-registrar-cambio` · `nuevo-endpoint-rest` · `nueva-pantalla-react` · `cambio-base-datos` · `permisos-rbac` · `usar-funciones-sql` · `prompts-significativos`
 Ubicación: `docs/ai/skills/<nombre>.md`
 
 ## Comandos

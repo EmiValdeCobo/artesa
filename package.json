@@ -7,6 +7,8 @@
     "dev": "pnpm -r --parallel dev",
     "dev:backend": "pnpm --filter artesa-backend dev",
     "dev:frontend": "pnpm --filter artesa-frontend dev",
-    "build": "pnpm -r build"
+    "build": "pnpm -r build",
+    "db:migrate": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/db-migrate.ps1",
+    "db:seed": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/db-seed.ps1"
   }
 }
