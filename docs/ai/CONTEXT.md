@@ -10,6 +10,7 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE, ma
 - Precios incluyen IVA (13%); se desglosa en la factura. (Confirmar con docente si el CCF suma IVA aparte.)
 - Facturación electrónica DTE simulada (número de control, código de generación, sello simulado).
 - RBAC dinámico: roles y permisos en BD; middleware `requirePermiso`.
+- Migraciones y seeders: `pg` + `psql` mediante scripts del proyecto; no se usa ORM.
 
 ## Estado por módulo
 | Módulo | BD | Backend | Frontend |

@@ -71,22 +71,57 @@ Usuarios demo (clave `Cambiar123*`): admin, gerente1, cajero1, barista1, bodega1
 
 ## Migraciones y cuentas demo de portales
 
+### Solución rápida en PowerShell
+
+El usuario de PostgreSQL debe ser el mismo valor de `POSTGRES_USER` en `.env`. Para la configuración indicada (`sa` / `origenes`), ejecuta:
+
+```powershell
+docker compose up -d db
+Get-Content -Raw database/migrations/001_portal_clientes.sql | docker compose exec -T db psql -v ON_ERROR_STOP=1 -U sa -d origenes
+Get-Content -Raw database/seeders/001_portales_demo.sql | docker compose exec -T db psql -v ON_ERROR_STOP=1 -U sa -d origenes
+```
+
+El error `role "origenes" does not exist` aparece cuando se usa `-U origenes` aunque el contenedor fue inicializado con `POSTGRES_USER=sa`. `-U` es el rol de PostgreSQL, no el nombre de la base de datos. Si el volumen ya fue creado con otro usuario, cambiar `.env` no lo modifica: hay que usar el usuario original o recrear el volumen de forma consciente.
+
+### Flujo automatizado recomendado
+
+Este proyecto no usa Prisma, Drizzle, TypeORM ni SQLAlchemy. El backend usa `pg` con SQL directo y funciones PL/pgSQL, por lo que las migraciones y seeders se ejecutan con `psql`:
+
+```powershell
+# Desde la raíz del proyecto; toma POSTGRES_USER y POSTGRES_DB del entorno del contenedor
+pnpm db:migrate
+pnpm db:seed
+```
+
+Los scripts leen todos los archivos `.sql` ordenados por nombre, envían su contenido por stdin y activan `ON_ERROR_STOP=1`. No copian archivos al contenedor y reutilizan las variables `POSTGRES_USER` y `POSTGRES_DB` que Docker ya configuró.
+
+### Flujo manual alternativo
+
 El esquema inicial se ejecuta automáticamente solo cuando se crea el volumen de PostgreSQL por primera vez. Si la base ya existe, aplica la migración del portal de clientes y luego el seeder en este orden:
 
 ```bash
 # 1. Levantar PostgreSQL
 docker compose up -d db
 
-# 2. Copiar y aplicar la migración de credenciales para clientes
-docker compose cp database/migrations/001_portal_clientes.sql db:/tmp/001_portal_clientes.sql
-docker compose exec -T db psql -U origenes -d origenes -f /tmp/001_portal_clientes.sql
+# 2. Aplicar la migración por stdin; reemplaza sa/origenes por los valores de .env
+Get-Content -Raw database/migrations/001_portal_clientes.sql | docker compose exec -T db psql -v ON_ERROR_STOP=1 -U sa -d origenes
 
 # 3. Crear las cuentas demo (ejecutar después de la migración)
-docker compose cp database/seeders/001_portales_demo.sql db:/tmp/001_portales_demo.sql
-docker compose exec -T db psql -U origenes -d origenes -f /tmp/001_portales_demo.sql
+Get-Content -Raw database/seeders/001_portales_demo.sql | docker compose exec -T db psql -v ON_ERROR_STOP=1 -U sa -d origenes
 ```
 
-Si modificaste `POSTGRES_USER` o `POSTGRES_DB` en `.env`, reemplaza `origenes` en los comandos por los valores configurados. El seeder es repetible y no duplica las cuentas existentes.
+Si prefieres conservar el flujo con `docker cp`, usa el mismo usuario correcto:
+
+```powershell
+docker compose cp database/migrations/001_portal_clientes.sql db:/tmp/001_portal_clientes.sql
+docker compose exec -T db psql -v ON_ERROR_STOP=1 -U sa -d origenes -f /tmp/001_portal_clientes.sql
+docker compose cp database/seeders/001_portales_demo.sql db:/tmp/001_portales_demo.sql
+docker compose exec -T db psql -v ON_ERROR_STOP=1 -U sa -d origenes -f /tmp/001_portales_demo.sql
+```
+
+Si modificaste `POSTGRES_USER` o `POSTGRES_DB` en `.env`, reemplaza `sa` y `origenes` en los comandos manuales. El seeder es repetible y no duplica las cuentas existentes.
+
+Para una base nueva, `database/init/01_schema.sql` se ejecuta automáticamente mediante `/docker-entrypoint-initdb.d/`. Para una base existente, usa `pnpm db:migrate` y después `pnpm db:seed`; no edites el schema inicial ni dependas de `docker compose cp`.
 
 Credenciales de prueba:
 

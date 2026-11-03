@@ -12,3 +12,4 @@ Formato: `fecha | integrante | herramienta/modelo | para qué se usó | quién v
 2026-11-03 | (equipo) | Antigravity (Gemini) | Creación de skill de prompts significativos y repositorio de instrucciones de alto impacto | (completar: quién lo revisó)
 2026-11-03 | EmiValdeCobo | Codex | Implementación de la interfaz frontend de gestión de roles y permisos, respetando el catálogo RBAC existente | EmiValdeCobo
 2026-11-03 | EmiValdeCobo | Codex | Implementación del CRUD de usuarios con asignación de roles y sucursales, validación y desactivación lógica | EmiValdeCobo
+2026-11-03 | (equipo) | Codex | Diagnóstico del rol PostgreSQL y automatización reproducible de migraciones y seeders con pg/psql | (completar: quién lo revisó)
