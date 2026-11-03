@@ -52,7 +52,8 @@ Docker Compose levanta y conecta 3 servicios aislados en una misma red virtual i
 
 #### Pasos para ejecutar la Opción 2:
 ```bash
-# 1. Crear el archivo de entorno en la raíz (define claves y contraseñas de BD y JWT)
+# 1. Crear el archivo de entorno en la raíz y reemplazar TODOS los valores CAMBIAR_*.
+#    .env contiene secretos: nunca lo subas a Git.
 cp .env.example .env
 
 # 2. Construir las imágenes y levantar todos los contenedores en segundo plano

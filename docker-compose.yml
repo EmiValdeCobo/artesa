@@ -5,16 +5,16 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-origenes}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-origenes}
-      POSTGRES_DB: ${POSTGRES_DB:-origenes}
+      POSTGRES_USER: "${POSTGRES_USER:?Error: POSTGRES_USER debe estar definido en el archivo .env}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD debe estar definido en el archivo .env}"
+      POSTGRES_DB: "${POSTGRES_DB:?Error: POSTGRES_DB debe estar definido en el archivo .env}"
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d:ro   # ejecuta 01_schema.sql solo la primera vez
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-origenes} -d ${POSTGRES_DB:-origenes}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:?Error} -d ${POSTGRES_DB:?Error}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -26,9 +26,9 @@ services:
       PORT: ${PORT:-3000}
       DB_HOST: db
       DB_PORT: 5432
-      DB_USER: ${POSTGRES_USER:-origenes}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-origenes}
-      DB_NAME: ${POSTGRES_DB:-origenes}
+      DB_USER: "${POSTGRES_USER:?Error: POSTGRES_USER debe estar definido en el archivo .env}"
+      DB_PASSWORD: "${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD debe estar definido en el archivo .env}"
+      DB_NAME: "${POSTGRES_DB:?Error: POSTGRES_DB debe estar definido en el archivo .env}"
       JWT_SECRET: "${JWT_SECRET:?Error: JWT_SECRET debe estar definido en el archivo .env}"
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}

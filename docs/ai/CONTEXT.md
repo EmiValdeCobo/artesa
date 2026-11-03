@@ -11,6 +11,7 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE, ma
 - Facturación electrónica DTE simulada (número de control, código de generación, sello simulado).
 - RBAC dinámico: roles y permisos en BD; middleware `requirePermiso`.
 - CRUD: modelos Sequelize; funciones SQL y vistas con consultas parametrizadas. Migraciones/seeders: `psql` mediante scripts del proyecto.
+- Secretos: Docker exige `POSTGRES_*` y `JWT_SECRET` desde `.env`; los archivos `.env.example` solo contienen marcadores no utilizables.
 
 ## Estado por módulo
 | Módulo | BD | Backend | Frontend |

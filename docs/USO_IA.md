@@ -14,3 +14,4 @@ Formato: `fecha | integrante | herramienta/modelo | para qué se usó | quién v
 2026-11-03 | EmiValdeCobo | Codex | Implementación del CRUD de usuarios con asignación de roles y sucursales, validación y desactivación lógica | EmiValdeCobo
 2026-11-03 | (equipo) | Codex | Diagnóstico del rol PostgreSQL y automatización reproducible de migraciones y seeders con pg/psql | (completar: quién lo revisó)
 2026-11-03 | (equipo) | Codex | Migración de la capa de acceso a datos a Sequelize, preservando transacciones, RBAC y funciones SQL críticas | (completar: quién lo revisó)
+2026-11-03 | (equipo) | Codex | Remediación de secretos detectados por GitGuardian en configuración Docker y archivos de ejemplo | (completar: quién lo revisó)
