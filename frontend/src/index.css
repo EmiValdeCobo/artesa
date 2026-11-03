@@ -1,0 +1,161 @@
+/* ============================================================================
+   artesa · Sistema de diseño (Tailwind CSS v4, configuración CSS-first)
+   Marca: Espresso #321F19 · Terracota #B15C3D · Ocre #E1A651 · Alabastro #F7F5F0
+   Dos capas:  1) paleta cruda (@theme)   2) tokens semánticos (light/dark)
+   En componentes usa SIEMPRE tokens semánticos (bg-background, text-fg, ...),
+   así el modo oscuro funciona sin escribir `dark:` en cada elemento.
+   ============================================================================ */
+@import "@fontsource-variable/montserrat";
+@import "tailwindcss";
+
+/* Modo oscuro por clase: <html class="dark"> */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---- 1. Paleta cruda (genera bg-terracota-500, text-ocre-300, etc.) -------- */
+@theme {
+  --font-sans: "Montserrat Variable", Montserrat, ui-sans-serif, system-ui, sans-serif;
+
+  --color-terracota-50:  #fbf1ec;  --color-terracota-100: #f5ddd2;
+  --color-terracota-200: #ebbca7;  --color-terracota-300: #de9776;
+  --color-terracota-400: #c97752;  --color-terracota-500: #b15c3d; /* marca */
+  --color-terracota-600: #984a2f;  --color-terracota-700: #7b3b27;
+  --color-terracota-800: #5f2e20;  --color-terracota-900: #44211a;
+
+  --color-ocre-50:  #fdf7ea;  --color-ocre-100: #faebc9;
+  --color-ocre-200: #f4d79c;  --color-ocre-300: #edc173;
+  --color-ocre-400: #e8b866;  --color-ocre-500: #e1a651; /* marca */
+  --color-ocre-600: #c58a38;  --color-ocre-700: #9f6c2b;
+  --color-ocre-800: #7a5224;  --color-ocre-900: #583b1d;
+
+  /* Neutros cálidos derivados de Espresso / Alabastro */
+  --color-espresso-50:  #f7f5f0; /* Alabastro */
+  --color-espresso-100: #efebe4;  --color-espresso-200: #ddd6cb;
+  --color-espresso-300: #bfb5a7;  --color-espresso-400: #9a8e7f;
+  --color-espresso-500: #756a5d;  --color-espresso-600: #5a4f45;
+  --color-espresso-700: #44362d;  --color-espresso-800: #36231b;
+  --color-espresso-900: #321f19; /* Espresso (marca) */
+  --color-espresso-950: #1f120e;
+}
+
+/* ---- 2. Tokens semánticos -------------------------------------------------- */
+:root {
+  color-scheme: light;
+  --bg-primary:   #f7f5f0;  /* fondo de página (Alabastro) */
+  --bg-surface:   #ffffff;  /* tarjetas, modales, tablas */
+  --bg-muted:     #efebe4;  /* zonas secundarias, hover de filas */
+  --bg-sidebar:   #321f19;  /* navegación lateral (Espresso) */
+  --text-primary:   #321f19;
+  --text-secondary: #5a4f45;
+  --text-on-sidebar:#f7f5f0;
+  --text-on-accent: #ffffff;
+  --border-color:   #ddd6cb;
+
+  --accent:         #b15c3d;  /* acción principal (Terracota) */
+  --accent-hover:   #984a2f;
+  --accent-soft:    #fbf1ec;  /* fondo de chips/selección */
+  --accent-text:    #984a2f;  /* enlaces y texto de acento sobre fondo claro */
+  --secondary:      #e1a651;  /* acento secundario (Ocre): destacados, badges */
+  --secondary-soft: #fdf7ea;
+  --secondary-text: #7a5224;
+  --ring:           #e1a651;
+
+  --success: #3f7d4e; --success-soft: #e8f3ec;
+  --warning: #9f6c2b; --warning-soft: #fdf7ea;
+  --danger:  #b3261e; --danger-soft:  #fbeae9;
+  --info:    #2f5f94; --info-soft:    #e9f0f8;
+}
+
+.dark {
+  color-scheme: dark;
+  --bg-primary:   #1f120e;
+  --bg-surface:   #2a1a14;
+  --bg-muted:     #36231b;
+  --bg-sidebar:   #170d0a;
+  --text-primary:   #f7f5f0;
+  --text-secondary: #bfb5a7;
+  --text-on-sidebar:#f7f5f0;
+  --text-on-accent: #ffffff;
+  --border-color:   #4a352b;
+
+  --accent:         #b15c3d;  /* mismo botón: blanco sobre #b15c3d = 4.7:1 (AA) */
+  --accent-hover:   #c97752;
+  --accent-soft:    #44211a;
+  --accent-text:    #de9776;  /* texto de acento legible sobre fondo oscuro */
+  --secondary:      #e1a651;
+  --secondary-soft: #3a2b18;
+  --secondary-text: #edc173;
+  --ring:           #e8b866;
+
+  --success: #6bbf86; --success-soft: #1b2e22;
+  --warning: #edc173; --warning-soft: #3a2b18;
+  --danger:  #f2877f; --danger-soft:  #3b1d1a;
+  --info:    #8db6e0; --info-soft:    #1b2836;
+}
+
+/* Expone los tokens como utilidades: bg-background, text-fg, border-line, ... */
+@theme inline {
+  --color-background: var(--bg-primary);
+  --color-surface:    var(--bg-surface);
+  --color-muted:      var(--bg-muted);
+  --color-sidebar:    var(--bg-sidebar);
+  --color-fg:         var(--text-primary);
+  --color-fg-muted:   var(--text-secondary);
+  --color-on-sidebar: var(--text-on-sidebar);
+  --color-on-accent:  var(--text-on-accent);
+  --color-line:       var(--border-color);
+  --color-primary:        var(--accent);
+  --color-primary-hover:  var(--accent-hover);
+  --color-primary-soft:   var(--accent-soft);
+  --color-primary-text:   var(--accent-text);
+  --color-secondary:      var(--secondary);
+  --color-secondary-soft: var(--secondary-soft);
+  --color-secondary-text: var(--secondary-text);
+  --color-success: var(--success); --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning); --color-warning-soft: var(--warning-soft);
+  --color-danger:  var(--danger);  --color-danger-soft:  var(--danger-soft);
+  --color-info:    var(--info);    --color-info-soft:    var(--info-soft);
+  --color-ring:    var(--ring);
+}
+
+/* ---- 3. Base global (único lugar con estilos globales) --------------------- */
+@layer base {
+  html { font-family: var(--font-sans); }
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  ::selection { background: var(--secondary); color: #321f19; }
+}
+
+/* ---- 4. Componentes reutilizables (opcionales, evitan repetir clases) ------- */
+.card { @apply rounded-xl border border-line bg-surface p-5 shadow-sm; }
+.input {
+  @apply w-full rounded-md border border-line bg-surface px-3 py-2 text-fg
+         placeholder:text-fg-muted/70 focus:border-primary focus:outline-none;
+}
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium
+         transition-colors disabled:opacity-60 disabled:pointer-events-none;
+}
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium
+         transition-colors disabled:opacity-60 disabled:pointer-events-none
+         bg-primary text-on-accent hover:bg-primary-hover;
+}
+.btn-secondary {
+  @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium
+         transition-colors disabled:opacity-60 disabled:pointer-events-none
+         bg-secondary text-espresso-900 hover:bg-ocre-400;
+}
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium
+         transition-colors disabled:opacity-60 disabled:pointer-events-none
+         border border-line text-fg hover:bg-muted;
+}
+.btn-danger {
+  @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium
+         transition-colors disabled:opacity-60 disabled:pointer-events-none
+         bg-danger text-white hover:opacity-90;
+}
