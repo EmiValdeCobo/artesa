@@ -1,5 +1,5 @@
 # CONTEXT — estado vivo del proyecto (máx. 60 líneas; actualizar al cerrar tareas)
-Actualizado: 2026-11-02
+Actualizado: 2026-11-03
 
 ## Meta y fechas
 Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE, manual de usuario, doc técnica, flujo de trabajo.
@@ -14,7 +14,7 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE, ma
 ## Estado por módulo
 | Módulo | BD | Backend | Frontend |
 |---|---|---|---|
-| auth / seguridad | listo | login admin/cliente + /me separados | portales admin/cliente, menú por permisos y gestión de roles/permisos |
+| auth / seguridad | listo | login, roles y usuarios con asignación de sucursales | portales admin/cliente, gestión de roles/permisos y CRUD de usuarios |
 | inventario | listo | pendiente | pendiente |
 | pos | listo | pendiente | pendiente |
 | caja | listo | pendiente | pendiente |

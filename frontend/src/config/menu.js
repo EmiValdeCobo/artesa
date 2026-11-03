@@ -1,4 +1,4 @@
-import { LayoutDashboard, ShoppingBag, ChefHat, Wallet, Boxes, Truck, Users, BarChart3, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, ChefHat, Wallet, Boxes, Truck, Users, UserRoundCog, BarChart3, ShieldCheck } from 'lucide-react';
 
 // Menú lateral: cada ítem se muestra solo si el usuario tiene el permiso indicado
 export const menu = [
@@ -11,4 +11,5 @@ export const menu = [
   { ruta: '/rrhh', texto: 'RR. HH. y planilla', permiso: 'RRHH_VER_PLANILLA', icono: Users },
   { ruta: '/reportes', texto: 'Reportes', permiso: 'REP_VER_DASHBOARD', icono: BarChart3 },
   { ruta: '/seguridad', texto: 'Usuarios y roles', permiso: 'SEG_GESTIONAR_ROLES', icono: ShieldCheck },
+  { ruta: '/seguridad/usuarios', texto: 'Usuarios', permiso: 'SEG_GESTIONAR_USUARIOS', icono: UserRoundCog },
 ];

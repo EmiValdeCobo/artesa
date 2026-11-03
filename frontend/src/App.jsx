@@ -6,6 +6,7 @@ import ClienteLoginPage from './pages/ClienteLoginPage.jsx';
 import ClienteHomePage from './pages/ClienteHomePage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import RolesPermisosPage from './modules/seguridad/RolesPermisosPage.jsx';
+import UsuariosPage from './modules/seguridad/UsuariosPage.jsx';
 
 export default function App() {
   return (
@@ -27,6 +28,14 @@ export default function App() {
           element={
             <ProtectedRoute permiso="SEG_GESTIONAR_ROLES">
               <RolesPermisosPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="seguridad/usuarios"
+          element={
+            <ProtectedRoute permiso="SEG_GESTIONAR_USUARIOS">
+              <UsuariosPage />
             </ProtectedRoute>
           }
         />
