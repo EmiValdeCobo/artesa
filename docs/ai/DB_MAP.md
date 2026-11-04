@@ -6,8 +6,8 @@ Conexión: `web_user` es el rol global restringido de la aplicación; `POSTGRES_
 Control operativo: `public.schema_migrations(nombre, aplicado_en, checksum, tipo)` registra migraciones y seeders aplicados por `scripts/db.js`.
 
 ## seguridad
-roles(id_rol, nombre*, descripcion, es_sistema, activo) · permisos(id_permiso, codigo*, modulo, descripcion)
-roles_permisos(id_rol, id_permiso) · usuarios(id_usuario U, id_rol, username*, password_hash, activo, ultimo_login)
+roles(id_rol, nombre*, descripcion, es_sistema, activo, creado_en, modificado_en, deleted_at) · permisos(id_permiso, codigo*, modulo, descripcion)
+roles_permisos(id_rol, id_permiso) · usuarios(id_usuario U, id_rol, username*, password_hash, activo, ultimo_login, creado_en, modificado_en, deleted_at) [soft-delete: deleted_at IS NOT NULL = oculto]
 usuario_sucursal(id_usuario, id_sucursal) · bitacora(id_bitacora, id_usuario, accion, entidad, datos_antes, datos_despues) [trigger en productos, recetas, roles_permisos, usuarios]
 fn: seguridad.fn_tiene_permiso(id_usuario, codigo) → bool
 
