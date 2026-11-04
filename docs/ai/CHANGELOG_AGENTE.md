@@ -15,3 +15,10 @@ Formato: `AAAA-MM-DD | quién (persona/agente) | área | qué cambió | archivos
 2026-11-03 | EmiValdeCobo | seguridad/usuarios | Implementado CRUD de usuarios con asignación de rol, sucursales, bcrypt y desactivación lógica | backend/src/modules/seguridad, frontend/src/modules/seguridad/UsuariosPage.jsx, frontend/src/App.jsx
 2026-11-03 | codex | docs/infra | Corregidos comandos por POSTGRES_USER y automatizados migraciones/seeders con scripts psql | README.md, package.json, scripts/db-migrate.ps1, scripts/db-seed.ps1, docs/ai/CONTEXT.md, docs/USO_IA.md
 2026-11-03 | codex | backend/orm | Migrada la capa de acceso activa a Sequelize con modelos y transacciones compatibles con bitácora; corregida conexión interna Docker | backend/src/config, backend/src/models, backend/src/modules/auth, backend/src/modules/seguridad, docker-compose.yml, AGENTS.md, README.md
+2026-11-03 | codex | seguridad/secretos | Eliminados valores de respaldo y credenciales expuestas; Docker exige secretos desde .env | docker-compose.yml, .env.example, backend/.env.example, README.md, docs/ai/
+2026-11-03 | codex | infra/seguridad | Creado el rol global restringido web_user y configurado Sequelize/Docker para usarlo | database/init/02_create_web_user.sql, database/migrations/002_usuario_web.sql, docker-compose.yml, .env.example, backend/.env.example
+2026-11-03 | codex | frontend/layout | Rediseñado el sidebar con árbol RBAC, submenús, colapso persistente, flyouts y drawer responsive | frontend/src/config/menu.js, frontend/src/layout/Sidebar.jsx, frontend/src/layout/AppLayout.jsx, frontend/src/hooks/useSidebar.js
+2026-11-03 | EmiValdeCobo | seguridad/usuarios | Corregido el alta de usuarios estableciendo activo=true por defecto en el modelo Sequelize | backend/src/models/index.js
+
+2026-11-03 | fix(frontend) | Instal� @fontsource-variable/fraunces@5.3.0 en frontend/ � faltaba el paquete y Vite no pod�a resolver wght.css/wght-italic.css en index.css
+2026-11-03 | codex | seguridad/infra | Cookies httpOnly, revalidación activa, RBAC admin, rate limit, runner Node idempotente, tooling y documentación entregable | backend/src, frontend/src, scripts/db.js, docs, Dockerfiles

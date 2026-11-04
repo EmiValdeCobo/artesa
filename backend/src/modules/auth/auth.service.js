@@ -3,6 +3,15 @@ import jwt from 'jsonwebtoken';
 import { env } from '../../config/env.js';
 import { AppError } from '../../utils/AppError.js';
 import * as repo from './auth.repository.js';
+import crypto from 'node:crypto';
+
+export const opcionesCookie = () => ({
+  httpOnly: true,
+  sameSite: env.cookieSameSite,
+  secure: env.cookieSecure,
+  maxAge: 8 * 60 * 60 * 1000,
+  path: '/',
+});
 
 async function armarSesion(usuario) {
   const [permisos, sucursales] = await Promise.all([repo.listarPermisos(usuario.id_usuario), repo.listarSucursales(usuario.id_usuario)]);
@@ -32,7 +41,7 @@ export async function login(username, password) {
   if (!valido) throw new AppError('Usuario o contraseña incorrectos', 401);
 
   await repo.registrarLogin(usuario.id_usuario);
-  const token = jwt.sign({ id: usuario.id_usuario, rol: usuario.rol, tipo: 'admin' }, env.jwtSecret, { expiresIn: env.jwtExpiresIn });
+  const token = jwt.sign({ id: usuario.id_usuario, rol: usuario.rol, tipo: 'admin', iat: Math.floor(Date.now() / 1000) }, env.jwtSecret, { expiresIn: env.jwtExpiresIn, jwtid: crypto.randomUUID() });
   return { token, ...(await armarSesion(usuario)) };
 }
 
@@ -41,7 +50,7 @@ export async function loginCliente(username, password) {
   const valido = cliente && (await bcrypt.compare(password, cliente.password_hash));
   if (!valido) throw new AppError('Usuario o contraseña incorrectos', 401);
 
-  const token = jwt.sign({ id: cliente.id_cliente, tipo: 'cliente' }, env.jwtSecret, { expiresIn: env.jwtExpiresIn });
+  const token = jwt.sign({ id: cliente.id_cliente, tipo: 'cliente', iat: Math.floor(Date.now() / 1000) }, env.jwtSecret, { expiresIn: env.jwtExpiresIn, jwtid: crypto.randomUUID() });
   return { token, ...(armarSesionCliente(cliente)) };
 }
 

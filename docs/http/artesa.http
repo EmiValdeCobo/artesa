@@ -1,0 +1,37 @@
+@baseUrl = http://localhost:3000/api
+@adminCookie = artesa_session=REEMPLAZAR_CON_COOKIE_ADMIN
+@clienteCookie = artesa_session=REEMPLAZAR_CON_COOKIE_CLIENTE
+
+### Login administrativo (capturar Set-Cookie)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"username":"admin","password":"Cambiar123*"}
+
+### Perfil administrativo
+GET {{baseUrl}}/auth/me
+Cookie: {{adminCookie}}
+
+### Listado protegido
+GET {{baseUrl}}/seguridad/usuarios
+Cookie: {{adminCookie}}
+
+### Caso 401: sin cookie
+GET {{baseUrl}}/seguridad/usuarios
+
+### Caso 403: cookie de cliente en administración
+GET {{baseUrl}}/seguridad/usuarios
+Cookie: {{clienteCookie}}
+
+### Login cliente
+POST {{baseUrl}}/auth/cliente/login
+Content-Type: application/json
+
+{"username":"cliente.demo","password":"Cliente123*"}
+
+### Crear usuario
+POST {{baseUrl}}/seguridad/usuarios
+Cookie: {{adminCookie}}
+Content-Type: application/json
+
+{"username":"prueba.api","password":"Cambiar123*","idRol":1,"sucursales":[1]}

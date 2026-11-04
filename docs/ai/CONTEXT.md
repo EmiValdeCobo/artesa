@@ -11,6 +11,10 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE, ma
 - Facturación electrónica DTE simulada (número de control, código de generación, sello simulado).
 - RBAC dinámico: roles y permisos en BD; middleware `requirePermiso`.
 - CRUD: modelos Sequelize; funciones SQL y vistas con consultas parametrizadas. Migraciones/seeders: `psql` mediante scripts del proyecto.
+- Secretos: Docker exige `POSTGRES_*` y `JWT_SECRET` desde `.env`; los archivos `.env.example` solo contienen marcadores no utilizables.
+- Conexión BD: el backend usa el rol global restringido `web_user`; `POSTGRES_USER` queda reservado para administración y migraciones.
+- Sesiones: JWT en cookie `httpOnly`, `SameSite` configurable y `secure` configurable; el backend revalida `activo=true` en cada request.
+- Migraciones/seeders: `scripts/db.js` registra nombre, checksum, fecha y tipo en `public.schema_migrations`.
 
 ## Estado por módulo
 | Módulo | BD | Backend | Frontend |
