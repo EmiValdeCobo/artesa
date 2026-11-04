@@ -40,4 +40,4 @@ Módulos: auth, seguridad, empresa, inventario, pos, caja, compras, rrhh, report
 Ubicación: `docs/ai/skills/<nombre>.md`
 
 ## Comandos
-`docker compose up -d db` · `cd backend && npm run dev` (puerto 3000) · `cd frontend && npm run dev` (puerto 5173, proxy /api).
+`docker compose up -d db` · `pnpm --filter artesa-backend dev` (puerto 3000) · `pnpm --filter artesa-frontend dev` (puerto 5173, proxy /api).

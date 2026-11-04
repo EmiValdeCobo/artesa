@@ -1,9 +1,11 @@
 FROM node:22-alpine AS build
 WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-RUN npm run build
+RUN corepack enable
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY frontend/package.json frontend/package.json
+RUN pnpm install --filter artesa-frontend --frozen-lockfile
+COPY frontend frontend
+RUN pnpm --filter artesa-frontend build
 
 FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html

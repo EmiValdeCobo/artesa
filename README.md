@@ -72,55 +72,31 @@ Usuarios demo (clave `Cambiar123*`): admin, gerente1, cajero1, barista1, bodega1
 
 ## Migraciones y cuentas demo de portales
 
-### Solución rápida en PowerShell
+### Migraciones multiplataforma
 
-El usuario de PostgreSQL debe ser el mismo valor de `POSTGRES_USER` en `.env`. Para la configuración indicada (`sa` / `origenes`), ejecuta:
+`POSTGRES_USER` es el rol administrador usado por Docker para inicializar/migrar la BD. La aplicación usa el rol global restringido `WEB_DB_USER` (por defecto `web_user`) y su contraseña `WEB_DB_PASSWORD`.
+
+Para una base existente, ejecuta:
 
 ```powershell
 docker compose up -d db
-Get-Content -Raw database/migrations/001_portal_clientes.sql | docker compose exec -T db psql -v ON_ERROR_STOP=1 -U sa -d origenes
-Get-Content -Raw database/seeders/001_portales_demo.sql | docker compose exec -T db psql -v ON_ERROR_STOP=1 -U sa -d origenes
-```
-
-El error `role "origenes" does not exist` aparece cuando se usa `-U origenes` aunque el contenedor fue inicializado con `POSTGRES_USER=sa`. `-U` es el rol de PostgreSQL, no el nombre de la base de datos. Si el volumen ya fue creado con otro usuario, cambiar `.env` no lo modifica: hay que usar el usuario original o recrear el volumen de forma consciente.
-
-### Flujo automatizado recomendado
-
-El backend usa Sequelize con PostgreSQL. Los CRUD de los módulos implementados se realizan con modelos Sequelize; las vistas y funciones PL/pgSQL críticas se invocan con consultas parametrizadas de Sequelize para conservar la lógica atómica de la base. Las migraciones y seeders SQL se ejecutan con `psql`:
-
-```powershell
-# Desde la raíz del proyecto; toma POSTGRES_USER y POSTGRES_DB del entorno del contenedor
 pnpm db:migrate
 pnpm db:seed
 ```
 
-Los scripts leen todos los archivos `.sql` ordenados por nombre, envían su contenido por stdin y activan `ON_ERROR_STOP=1`. No copian archivos al contenedor y reutilizan las variables `POSTGRES_USER` y `POSTGRES_DB` que Docker ya configuró. No se usa sincronización automática de modelos en producción: el esquema y las funciones críticas continúan versionados como SQL.
+El runner se conecta con `DATABASE_URL` o con `POSTGRES_*`, registra cada archivo en `public.schema_migrations` con SHA-256 y no reaplica archivos ya registrados. Si un archivo aplicado cambia, falla para evitar deriva del esquema.
 
-### Flujo manual alternativo
+### Flujo automatizado recomendado
 
-El esquema inicial se ejecuta automáticamente solo cuando se crea el volumen de PostgreSQL por primera vez. Si la base ya existe, aplica la migración del portal de clientes y luego el seeder en este orden:
-
-```bash
-# 1. Levantar PostgreSQL
-docker compose up -d db
-
-# 2. Aplicar la migración por stdin; reemplaza sa/origenes por los valores de .env
-Get-Content -Raw database/migrations/001_portal_clientes.sql | docker compose exec -T db psql -v ON_ERROR_STOP=1 -U sa -d origenes
-
-# 3. Crear las cuentas demo (ejecutar después de la migración)
-Get-Content -Raw database/seeders/001_portales_demo.sql | docker compose exec -T db psql -v ON_ERROR_STOP=1 -U sa -d origenes
-```
-
-Si prefieres conservar el flujo con `docker cp`, usa el mismo usuario correcto:
+El backend usa Sequelize con PostgreSQL. Los CRUD de los módulos implementados se realizan con modelos Sequelize; las vistas y funciones PL/pgSQL críticas se invocan con consultas parametrizadas de Sequelize para conservar la lógica atómica de la base. Las migraciones y seeders SQL se ejecutan con `scripts/db.js`:
 
 ```powershell
-docker compose cp database/migrations/001_portal_clientes.sql db:/tmp/001_portal_clientes.sql
-docker compose exec -T db psql -v ON_ERROR_STOP=1 -U sa -d origenes -f /tmp/001_portal_clientes.sql
-docker compose cp database/seeders/001_portales_demo.sql db:/tmp/001_portales_demo.sql
-docker compose exec -T db psql -v ON_ERROR_STOP=1 -U sa -d origenes -f /tmp/001_portales_demo.sql
+# Desde la raíz del proyecto; toma DATABASE_URL o POSTGRES_* del entorno
+pnpm db:migrate
+pnpm db:seed
 ```
 
-Si modificaste `POSTGRES_USER` o `POSTGRES_DB` en `.env`, reemplaza `sa` y `origenes` en los comandos manuales. El seeder es repetible y no duplica las cuentas existentes.
+Los archivos se leen ordenados por nombre y se ejecutan dentro de transacciones. No se usa sincronización automática de modelos en producción: el esquema y las funciones críticas continúan versionados como SQL.
 
 Para una base nueva, `database/init/01_schema.sql` se ejecuta automáticamente mediante `/docker-entrypoint-initdb.d/`. Para una base existente, usa `pnpm db:migrate` y después `pnpm db:seed`; no edites el schema inicial ni dependas de `docker compose cp`.
 

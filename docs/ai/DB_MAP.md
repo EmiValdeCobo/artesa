@@ -1,6 +1,10 @@
 # DB_MAP — mapa compacto de la BD (para NO leer el schema completo). Fuente real: database/init/01_schema.sql
 PostgreSQL 16. Esquemas: seguridad, empresa, inventario, pos, compras, rrhh, reportes (vistas). PK uuid donde se indica (U).
 
+Conexión: `web_user` es el rol global restringido de la aplicación; `POSTGRES_USER` se reserva para inicialización y migraciones administrativas.
+
+Control operativo: `public.schema_migrations(nombre, aplicado_en, checksum, tipo)` registra migraciones y seeders aplicados por `scripts/db.js`.
+
 ## seguridad
 roles(id_rol, nombre*, descripcion, es_sistema, activo) · permisos(id_permiso, codigo*, modulo, descripcion)
 roles_permisos(id_rol, id_permiso) · usuarios(id_usuario U, id_rol, username*, password_hash, activo, ultimo_login)
