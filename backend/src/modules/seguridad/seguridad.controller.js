@@ -25,3 +25,12 @@ export async function desactivarUsuario(req, res) {
   res.status(204).send();
 }
 
+export async function activarUsuario(req, res) {
+  await service.activarUsuario(req.params.id, req.user.id);
+  res.status(204).send();
+}
+
+export async function eliminarUsuario(req, res) {
+  await service.eliminarUsuario(req.params.id, req.user.id);
+  res.status(204).send();
+}
