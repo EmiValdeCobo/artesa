@@ -24,4 +24,6 @@ export const env = {
   jwtSecret: process.env.JWT_SECRET,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '8h',
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  cookieSecure: process.env.COOKIE_SECURE === 'true',
+  cookieSameSite: process.env.COOKIE_SAMESITE || 'lax',
 };

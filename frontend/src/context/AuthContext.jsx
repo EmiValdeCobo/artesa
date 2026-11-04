@@ -10,11 +10,6 @@ export function AuthProvider({ children }) {
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setCargando(false);
-      return;
-    }
     const tipo = localStorage.getItem('tipoSesion') || 'admin';
     api.get(tipo === 'cliente' ? '/auth/cliente/me' : '/auth/me')
       .then((data) => {
@@ -23,7 +18,6 @@ export function AuthProvider({ children }) {
         setTipoSesion(tipo);
       })
       .catch(() => {
-        localStorage.removeItem('token');
         setUsuario(null);
         setPermisos([]);
         setTipoSesion(null);
@@ -34,7 +28,6 @@ export function AuthProvider({ children }) {
   const iniciarSesion = async (username, password, tipo = 'admin') => {
     const endpoint = tipo === 'cliente' ? '/auth/cliente/login' : '/auth/login';
     const data = await api.post(endpoint, { username, password });
-    localStorage.setItem('token', data.token);
     localStorage.setItem('tipoSesion', tipo);
     setUsuario(data.usuario);
     setPermisos(data.permisos || []);
@@ -43,7 +36,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    api.post('/auth/logout').catch(() => {});
     localStorage.removeItem('tipoSesion');
     setUsuario(null);
     setPermisos([]);

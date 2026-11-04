@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate } from '../../middlewares/auth.js';
+import { authenticate, requireTipo } from '../../middlewares/auth.js';
 import { requirePermiso } from '../../middlewares/permisos.js';
 import { validate } from '../../middlewares/validate.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
@@ -7,7 +7,7 @@ import * as controller from './seguridad.controller.js';
 import { actualizarUsuarioSchema, crearUsuarioSchema } from './seguridad.schemas.js';
 
 const router = Router();
-router.use(authenticate);
+router.use(authenticate, requireTipo('admin'));
 router.get('/usuarios', requirePermiso('SEG_GESTIONAR_USUARIOS'), asyncHandler(controller.listarUsuarios));
 router.get('/roles', requirePermiso('SEG_GESTIONAR_USUARIOS'), asyncHandler(controller.listarRoles));
 router.get('/sucursales', requirePermiso('SEG_GESTIONAR_USUARIOS'), asyncHandler(controller.listarSucursales));

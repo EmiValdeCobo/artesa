@@ -1,22 +1,22 @@
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 async function request(endpoint, options = {}) {
-  const token = localStorage.getItem('token');
   const headers = {
     'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers,
   };
 
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,
     headers,
+    credentials: 'include',
   });
 
   const data = await response.json().catch(() => null);
 
   if (!response.ok) {
-    const errorMsg = data?.error?.message || data?.message || 'Error en la petición';
+    const errorMsg = (typeof data?.error === 'string' ? data.error : data?.error?.message)
+      || data?.message || 'Error en la petición';
     throw new Error(errorMsg);
   }
 
