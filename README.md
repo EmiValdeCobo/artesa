@@ -1,13 +1,13 @@
-# artesa — ERP + POS
-Proyecto de cátedra Programación Web (ciclo 02-2026). Express + PostgreSQL + React (Vite, Tailwind).
+# artesa â€” ERP + POS
+Proyecto de cÃ¡tedra ProgramaciÃ³n Web (ciclo 02-2026). Express + PostgreSQL + React (Vite, Tailwind).
 
 ## Modos de arranque
 
-### Opción 1: Desarrollo local rápido con `pnpm` (Recomendado para programar)
-Permite recarga en caliente (Hot Reload) tanto en backend como frontend, ejecutando únicamente la base de datos dentro de Docker:
+### OpciÃ³n 1: Desarrollo local rÃ¡pido con `pnpm` (Recomendado para programar)
+Permite recarga en caliente (Hot Reload) tanto en backend como frontend, ejecutando Ãºnicamente la base de datos dentro de Docker:
 
 ```bash
-# 0. Asegurarse de tener pnpm instalado (si aún no lo tienes):
+# 0. Asegurarse de tener pnpm instalado (si aÃºn no lo tienes):
 npm install -g pnpm
 
 # 1. Configurar variables de entorno
@@ -18,10 +18,10 @@ cp backend/.env.example backend/.env
 # 2. Levantar la base de datos PostgreSQL con Docker
 docker compose up -d db
 
-# 3. Instalar dependencias en todo el workspace (raíz, backend y frontend)
+# 3. Instalar dependencias en todo el workspace (raÃ­z, backend y frontend)
 pnpm install
 
-# 4. Iniciar backend y frontend simultáneamente en modo desarrollo
+# 4. Iniciar backend y frontend simultÃ¡neamente en modo desarrollo
 pnpm dev
 ```
 - **Frontend (Vite)**: http://localhost:5173
@@ -32,31 +32,31 @@ pnpm dev
 
 ---
 
-### Opción 2: Entorno completo en contenedores con Docker Compose
-Diseñado para probar la aplicación tal y como correrá en producción o para evaluar el sistema sin necesidad de instalar Node ni pnpm en la máquina anfitriona.
+### OpciÃ³n 2: Entorno completo en contenedores con Docker Compose
+DiseÃ±ado para probar la aplicaciÃ³n tal y como correrÃ¡ en producciÃ³n o para evaluar el sistema sin necesidad de instalar Node ni pnpm en la mÃ¡quina anfitriona.
 
-#### ¿Cómo funciona esta arquitectura?
+#### Â¿CÃ³mo funciona esta arquitectura?
 Docker Compose levanta y conecta 3 servicios aislados en una misma red virtual interna:
 1. **`db` (PostgreSQL 16 Alpine)**:
-   - Inicializa automáticamente el esquema de base de datos (`database/init/01_schema.sql`) la primera vez.
+   - Inicializa automÃ¡ticamente el esquema de base de datos (`database/init/01_schema.sql`) la primera vez.
    - Mantiene la persistencia de datos en el volumen Docker `pgdata`.
-   - Incluye *healthcheck* (`pg_isready`) para que el backend espere a que la BD esté 100% lista.
+   - Incluye *healthcheck* (`pg_isready`) para que el backend espere a que la BD estÃ© 100% lista.
 2. **`api` (Backend Express)**:
    - Se construye con `backend/Dockerfile` en una imagen Node 22.
-   - Se conecta internamente a la base de datos usando `DB_HOST=db` y el puerto `5432`; no reutiliza `localhost` del entorno anfitrión.
+   - Se conecta internamente a la base de datos usando `DB_HOST=db` y el puerto `5432`; no reutiliza `localhost` del entorno anfitriÃ³n.
    - Expone el puerto `3000`.
 3. **`web` (Frontend React + Nginx)**:
-   - Se compila en una fase multi-stage y sirve los archivos estáticos optimizados mediante un servidor web Nginx ligero.
-   - Nginx actúa además como **reverse proxy**: redirige las peticiones que van hacia `/api/*` directamente al contenedor `api:3000`.
-   - Expone la aplicación en el puerto `8080`.
+   - Se compila en una fase multi-stage y sirve los archivos estÃ¡ticos optimizados mediante un servidor web Nginx ligero.
+   - Nginx actÃºa ademÃ¡s como **reverse proxy**: redirige las peticiones que van hacia `/api/*` directamente al contenedor `api:3000`.
+   - Expone la aplicaciÃ³n en el puerto `8080`.
 
-#### Pasos para ejecutar la Opción 2:
+#### Pasos para ejecutar la OpciÃ³n 2:
 ```bash
-# 1. Crear el archivo de entorno en la raíz y reemplazar TODOS los valores CAMBIAR_*.
+# 1. Crear el archivo de entorno en la raÃ­z y reemplazar TODOS los valores CAMBIAR_*.
 #    .env contiene secretos: nunca lo subas a Git.
 cp .env.example .env
 
-# 2. Construir las imágenes y levantar todos los contenedores en segundo plano
+# 2. Construir las imÃ¡genes y levantar todos los contenedores en segundo plano
 docker compose up -d --build
 
 # 3. Ver el estado y logs de los servicios
@@ -66,39 +66,68 @@ docker compose logs -f
 # 4. Detener todos los servicios cuando termines
 docker compose down
 ```
-- **Aplicación web lista**: http://localhost:8080
+- **AplicaciÃ³n web lista**: http://localhost:8080
 - **API directa**: http://localhost:3000/api/health
 Usuarios demo (clave `Cambiar123*`): admin, gerente1, cajero1, barista1, bodega1. Datos de ejemplo: `database/demo/02_demo.sql`.
 
-## Migraciones y cuentas demo de portales
+## Base de datos — migraciones y esquema
 
-### Migraciones multiplataforma
+### Clon fresco (modo recomendado)
 
-`POSTGRES_USER` es el rol administrador usado por Docker para inicializar/migrar la BD. La aplicación usa el rol global restringido `WEB_DB_USER` (por defecto `web_user`) y su contraseña `WEB_DB_PASSWORD`.
+Al levantar el contenedor por primera vez con volumen vacío, Docker ejecuta automáticamente **todos** los archivos de `database/init/` en orden alfabético:
 
-Para una base existente, ejecuta:
+| Archivo | Qué hace |
+|---------|----------|
+| `01_schema.sql` | Esquema completo (tablas, funciones, triggers, vistas) |
+| `02_create_web_user.sql` | Rol restringido `web_user` para la aplicación |
+| `03_soft_delete.sql` | Columna `deleted_at` en tablas de catálogos (eliminación visual) |
+| `04_timestamps.sql` | Columna `modificado_en` + triggers `BEFORE UPDATE` automáticos |
+
+```powershell
+# Basta con esto en un clon limpio — todo queda listo:
+docker compose up -d db
+```
+
+> **Importante:** Docker solo ejecuta `database/init/` cuando el volumen `pgdata` está vacío (primera vez). Si ya tienes datos, usa el runner manual (ver abajo).
+
+---
+
+### Base existente — aplicar migraciones manualmente
+
+Si ya tienes el contenedor corriendo con datos previos (volumen `pgdata` existente), las migraciones **NO** se aplican solas. Tienes dos opciones:
+
+#### Opción A — `psql` directo (más simple)
+
+```powershell
+# Levanta la BD si no está corriendo
+docker compose up -d db
+
+# Aplica cada migración pendiente en orden
+docker exec -i artesa-db-1 psql -U $env:POSTGRES_USER -d $env:POSTGRES_DB < database/migrations/003_soft_delete.sql
+docker exec -i artesa-db-1 psql -U $env:POSTGRES_USER -d $env:POSTGRES_DB < database/migrations/004_timestamps.sql
+```
+
+#### Opción B — Runner `scripts/db.js` (registra en `schema_migrations`)
+
+El runner se conecta con `DATABASE_URL` o con `POSTGRES_*` del entorno, registra cada archivo en `public.schema_migrations` con SHA-256 y **no reaplica archivos ya registrados**. Si un archivo aplicado cambia, falla para evitar deriva del esquema.
 
 ```powershell
 docker compose up -d db
-pnpm db:migrate
-pnpm db:seed
+pnpm db:migrate   # aplica database/migrations/ pendientes
+pnpm db:seed      # aplica database/seeders/ pendientes
 ```
 
-El runner se conecta con `DATABASE_URL` o con `POSTGRES_*`, registra cada archivo en `public.schema_migrations` con SHA-256 y no reaplica archivos ya registrados. Si un archivo aplicado cambia, falla para evitar deriva del esquema.
+---
 
-### Flujo automatizado recomendado
+### ¿Cuándo usar cada opción?
 
-El backend usa Sequelize con PostgreSQL. Los CRUD de los módulos implementados se realizan con modelos Sequelize; las vistas y funciones PL/pgSQL críticas se invocan con consultas parametrizadas de Sequelize para conservar la lógica atómica de la base. Las migraciones y seeders SQL se ejecutan con `scripts/db.js`:
+| Situación | Solución |
+|-----------|----------|
+| Cloné el repo y levanto por primera vez | `docker compose up -d` — automático ✅ |
+| Ya tenía datos, llegó una migración nueva | Opción A (`psql`) o Opción B (`pnpm db:migrate`) |
+| Quiero un entorno limpio desde cero | `docker compose down -v && docker compose up -d` |
 
-```powershell
-# Desde la raíz del proyecto; toma DATABASE_URL o POSTGRES_* del entorno
-pnpm db:migrate
-pnpm db:seed
-```
-
-Los archivos se leen ordenados por nombre y se ejecutan dentro de transacciones. No se usa sincronización automática de modelos en producción: el esquema y las funciones críticas continúan versionados como SQL.
-
-Para una base nueva, `database/init/01_schema.sql` se ejecuta automáticamente mediante `/docker-entrypoint-initdb.d/`. Para una base existente, usa `pnpm db:migrate` y después `pnpm db:seed`; no edites el schema inicial ni dependas de `docker compose cp`.
+`POSTGRES_USER` es el rol administrador usado por Docker. La aplicación usa el rol restringido `WEB_DB_USER` (por defecto `web_user`) definido en `.env`.
 
 Credenciales de prueba:
 
