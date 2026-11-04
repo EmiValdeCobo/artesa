@@ -43,7 +43,7 @@ Docker Compose levanta y conecta 3 servicios aislados en una misma red virtual i
    - Incluye *healthcheck* (`pg_isready`) para que el backend espere a que la BD esté 100% lista.
 2. **`api` (Backend Express)**:
    - Se construye con `backend/Dockerfile` en una imagen Node 22.
-   - Se conecta internamente a la base de datos usando el hostname `db:5432`.
+   - Se conecta internamente a la base de datos usando `DB_HOST=db` y el puerto `5432`; no reutiliza `localhost` del entorno anfitrión.
    - Expone el puerto `3000`.
 3. **`web` (Frontend React + Nginx)**:
    - Se compila en una fase multi-stage y sirve los archivos estáticos optimizados mediante un servidor web Nginx ligero.
@@ -52,7 +52,8 @@ Docker Compose levanta y conecta 3 servicios aislados en una misma red virtual i
 
 #### Pasos para ejecutar la Opción 2:
 ```bash
-# 1. Crear el archivo de entorno en la raíz (define claves y contraseñas de BD y JWT)
+# 1. Crear el archivo de entorno en la raíz y reemplazar TODOS los valores CAMBIAR_*.
+#    .env contiene secretos: nunca lo subas a Git.
 cp .env.example .env
 
 # 2. Construir las imágenes y levantar todos los contenedores en segundo plano
@@ -68,6 +69,41 @@ docker compose down
 - **Aplicación web lista**: http://localhost:8080
 - **API directa**: http://localhost:3000/api/health
 Usuarios demo (clave `Cambiar123*`): admin, gerente1, cajero1, barista1, bodega1. Datos de ejemplo: `database/demo/02_demo.sql`.
+
+## Migraciones y cuentas demo de portales
+
+### Migraciones multiplataforma
+
+`POSTGRES_USER` es el rol administrador usado por Docker para inicializar/migrar la BD. La aplicación usa el rol global restringido `WEB_DB_USER` (por defecto `web_user`) y su contraseña `WEB_DB_PASSWORD`.
+
+Para una base existente, ejecuta:
+
+```powershell
+docker compose up -d db
+pnpm db:migrate
+pnpm db:seed
+```
+
+El runner se conecta con `DATABASE_URL` o con `POSTGRES_*`, registra cada archivo en `public.schema_migrations` con SHA-256 y no reaplica archivos ya registrados. Si un archivo aplicado cambia, falla para evitar deriva del esquema.
+
+### Flujo automatizado recomendado
+
+El backend usa Sequelize con PostgreSQL. Los CRUD de los módulos implementados se realizan con modelos Sequelize; las vistas y funciones PL/pgSQL críticas se invocan con consultas parametrizadas de Sequelize para conservar la lógica atómica de la base. Las migraciones y seeders SQL se ejecutan con `scripts/db.js`:
+
+```powershell
+# Desde la raíz del proyecto; toma DATABASE_URL o POSTGRES_* del entorno
+pnpm db:migrate
+pnpm db:seed
+```
+
+Los archivos se leen ordenados por nombre y se ejecutan dentro de transacciones. No se usa sincronización automática de modelos en producción: el esquema y las funciones críticas continúan versionados como SQL.
+
+Para una base nueva, `database/init/01_schema.sql` se ejecuta automáticamente mediante `/docker-entrypoint-initdb.d/`. Para una base existente, usa `pnpm db:migrate` y después `pnpm db:seed`; no edites el schema inicial ni dependas de `docker compose cp`.
+
+Credenciales de prueba:
+
+- Área administrativa: `admin` / `Cambiar123*` en `/admin/login`.
+- Área cliente: `cliente.demo` / `Cliente123*` en `/cliente/login`.
 
 ## Trabajo con agentes de IA (opencode, Cursor, Antigravity)
 Todos leen `AGENTS.md` (GEMINI.md y `.cursor/rules` solo apuntan a él). Contexto: `docs/ai/`. Cada cambio se registra en `docs/ai/CHANGELOG_AGENTE.md`; el uso de IA se declara en `docs/USO_IA.md`.

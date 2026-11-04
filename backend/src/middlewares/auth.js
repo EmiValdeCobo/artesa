@@ -1,17 +1,33 @@
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import { AppError } from '../utils/AppError.js';
+import { Cliente, Usuario } from '../models/index.js';
 
-// Exige header "Authorization: Bearer <token>" y deja req.user = { id, rol }
-export function authenticate(req, _res, next) {
+// Exige cookie httpOnly (o Bearer para clientes externos) y revalida estado en BD.
+export async function authenticate(req, _res, next) {
   const header = req.headers.authorization || '';
   const [tipo, token] = header.split(' ');
-  if (tipo !== 'Bearer' || !token) return next(new AppError('Token requerido', 401));
+  const tokenSesion = req.cookies?.artesa_session || (tipo === 'Bearer' ? token : null);
+  if (!tokenSesion) return next(new AppError('Token requerido', 401));
   try {
-    const payload = jwt.verify(token, env.jwtSecret);
-    req.user = { id: payload.id, rol: payload.rol };
+    const payload = jwt.verify(tokenSesion, env.jwtSecret);
+    if (!payload.id || !payload.tipo || !['admin', 'cliente'].includes(payload.tipo)) {
+      throw new Error('Token sin tipo de sesión');
+    }
+    const modelo = payload.tipo === 'admin' ? Usuario : Cliente;
+    const id = payload.tipo === 'admin' ? payload.id : Number(payload.id);
+    const usuario = await modelo.findOne({ where: { [payload.tipo === 'admin' ? 'id_usuario' : 'id_cliente']: id, activo: true } });
+    if (!usuario) return next(new AppError('Sesión inactiva', 401));
+    req.user = { id, rol: payload.rol, tipo: payload.tipo, jti: payload.jti };
     next();
   } catch {
     next(new AppError('Token inválido o expirado', 401));
   }
+}
+
+export function requireTipo(tipo) {
+  return (req, _res, next) => {
+    if (req.user?.tipo !== tipo) return next(new AppError('Sesión no válida para este portal', 403));
+    next();
+  };
 }

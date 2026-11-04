@@ -1,45 +1,18 @@
-import { NavLink, Outlet } from 'react-router-dom';
-import { LogOut } from 'lucide-react';
-import { useAuth } from '../context/AuthContext.jsx';
-import { menu } from '../config/menu.js';
-import ThemeToggle from '../components/ThemeToggle.jsx';
-import Logo from '../components/Logo.jsx';
+import { Menu } from 'lucide-react';
+import { useState } from 'react';
+import { Outlet } from 'react-router-dom';
+import Sidebar from './Sidebar.jsx';
 
 export default function AppLayout() {
-  const { usuario, tiene, logout } = useAuth();
-  const items = menu.filter((i) => !i.permiso || tiene(i.permiso));
-
-  return (
-    <div className="flex min-h-screen bg-background text-fg">
-      <aside className="flex w-60 flex-col bg-sidebar text-on-sidebar">
-        <div className="flex items-center gap-3 px-5 py-5">
-          <Logo variante="isotipo" tema="oscuro" className="h-9" />
-          <div className="text-xl font-extrabold leading-none tracking-wide">
-            artesa
-            <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.2em] text-on-sidebar/60">ERP &amp; POS</p>
-          </div>
-        </div>
-        <nav className="flex-1 space-y-1 px-3" aria-label="Navegación principal">
-          {items.map(({ ruta, texto, icono: Icono }) => (
-            <NavLink key={ruta} to={ruta} end={ruta === '/'}
-              className={({ isActive }) =>
-                `flex items-center gap-3 rounded-md px-3 py-2 text-sm ${isActive ? 'bg-primary text-on-accent' : 'text-on-sidebar/80 hover:bg-white/10'}`}>
-              <Icono size={18} aria-hidden="true" /> {texto}
-            </NavLink>
-          ))}
-        </nav>
-        <div className="space-y-3 border-t border-white/10 p-4 text-sm">
-          <ThemeToggle />
-          <div>
-            <p className="font-medium">{usuario.username}</p>
-            <p className="text-on-sidebar/60">{usuario.rol}</p>
-          </div>
-          <button onClick={logout} className="flex w-full items-center justify-center gap-2 rounded-md bg-white/10 py-1.5 hover:bg-white/20">
-            <LogOut size={16} aria-hidden="true" /> Cerrar sesión
-          </button>
-        </div>
-      </aside>
-      <main className="flex-1 p-8"><Outlet /></main>
+  const [mobileOpen, setMobileOpen] = useState(false);
+  return <div className="flex min-h-screen bg-background text-fg">
+    <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+    <div className="min-w-0 flex-1">
+      <header className="sticky top-0 z-10 flex h-14 items-center border-b border-line bg-background/95 px-4 backdrop-blur lg:hidden">
+        <button type="button" onClick={() => setMobileOpen(true)} aria-label="Abrir navegación" className="rounded-lg p-2 text-fg hover:bg-muted"><Menu size={21} aria-hidden="true" /></button>
+        <span className="ml-3 text-sm font-semibold">artesa</span>
+      </header>
+      <main className="min-h-[calc(100vh-3.5rem)] p-4 sm:p-6 lg:min-h-screen lg:p-8"><Outlet /></main>
     </div>
-  );
+  </div>;
 }
