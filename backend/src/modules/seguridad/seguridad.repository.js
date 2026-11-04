@@ -9,6 +9,7 @@ function formatearUsuario(usuario) {
     id_rol: plano.id_rol,
     rol: plano.rol?.nombre,
     activo: plano.activo,
+    deleted_at: plano.deleted_at ?? null,
     sucursales: (plano.sucursales ?? []).map(({ id_sucursal, nombre }) => ({ id_sucursal, nombre })),
   };
 }
@@ -20,7 +21,7 @@ const incluirUsuario = [
 
 export async function listarUsuarios() {
   const usuarios = await Usuario.findAll({
-    attributes: ['id_usuario', 'username', 'id_rol', 'activo'],
+    attributes: ['id_usuario', 'username', 'id_rol', 'activo', 'deleted_at'],
     include: incluirUsuario,
     order: [['activo', 'DESC'], ['username', 'ASC']],
   });
@@ -43,7 +44,7 @@ export const listarSucursales = () => Sucursal.findAll({
 
 export async function buscarUsuario(idUsuario, transaction = null) {
   const usuario = await Usuario.findByPk(idUsuario, {
-    attributes: ['id_usuario', 'username', 'id_rol', 'activo'],
+    attributes: ['id_usuario', 'username', 'id_rol', 'activo', 'deleted_at'],
     include: incluirUsuario,
     transaction,
   });
@@ -82,3 +83,16 @@ export async function desactivarUsuario(transaction, idUsuario) {
   return afectados;
 }
 
+export async function activarUsuario(transaction, idUsuario) {
+  const [afectados] = await Usuario.update(
+    { activo: true },
+    { where: { id_usuario: idUsuario, activo: false }, transaction },
+  );
+  return afectados;
+}
+
+export async function eliminarUsuario(transaction, idUsuario) {
+  // Paranoid delete: Sequelize pone deleted_at automaticamente
+  const afectados = await Usuario.destroy({ where: { id_usuario: idUsuario }, transaction });
+  return afectados;
+}
