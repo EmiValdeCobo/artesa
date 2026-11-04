@@ -95,6 +95,18 @@
   --info:    #8db6e0; --info-soft:    #1b2836;
 }
 
+/* ---- Variante de acento del portal de clientes -------------------------------
+   Mismo sistema, otro acento: Ocre en lugar de Terracota. Se activa con la clase
+   .tema-cliente en un contenedor; todo lo que use bg-primary / text-primary-text /
+   ring-primary dentro de él cambia solo. Texto sobre ocre = Espresso (contraste AA). */
+.tema-cliente {
+  --accent: #e1a651; --accent-hover: #c58a38; --accent-soft: #fdf7ea;
+  --accent-text: #7a5224; --text-on-accent: #321f19; --ring: #c58a38;
+}
+.dark .tema-cliente {
+  --accent-soft: #3a2b18; --accent-text: #edc173; --ring: #e8b866;
+}
+
 /* Expone los tokens como utilidades: bg-background, text-fg, border-line, ... */
 @theme inline {
   --color-background: var(--bg-primary);

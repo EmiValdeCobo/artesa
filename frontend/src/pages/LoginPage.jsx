@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { ArrowRight, CircleAlert, UserRound } from 'lucide-react';
+import { ArrowRight, CircleAlert, ShieldCheck, UserRound } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import AuthLayout from '../layout/AuthLayout.jsx';
 import CampoTexto from '../components/CampoTexto.jsx';
@@ -71,6 +71,11 @@ export default function LoginPage() {
           className="btn-primary group mt-6 h-12 w-full rounded-xl text-[15px] shadow-lg shadow-primary/25 ring-1 ring-inset ring-white/10 active:translate-y-px">
           {enviando ? <><HiloSpinner /> Ingresando…</> : <>Ingresar <ArrowRight size={17} aria-hidden="true" className="transition-transform group-hover:translate-x-1" /></>}
         </button>
+
+        <p className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-fg-muted">
+          <ShieldCheck size={15} aria-hidden="true" className="mt-px shrink-0" />
+          Acceso solo para personal autorizado. Los cambios que hagas quedan registrados en la bitácora.
+        </p>
       </form>
     </AuthLayout>
   );
