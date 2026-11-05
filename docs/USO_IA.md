@@ -1,4 +1,3 @@
-# Declaración de uso de IA (exigida por el enunciado; copiar a la bibliografía del IEEE)
 Formato: `fecha | integrante | herramienta/modelo | para qué se usó | quién verificó y entiende el resultado`
 2026-11-02 | (equipo) | Claude | Diseño de la BD, script PostgreSQL y esqueleto del proyecto | (completar: quién lo revisó)
 2026-11-02 | (equipo) | Antigravity (Gemini) | Aseguramiento y parametrización de variables sensibles en Docker y .env | (completar: quién lo revisó)
@@ -19,4 +18,4 @@ Formato: `fecha | integrante | herramienta/modelo | para qué se usó | quién v
 2026-11-03 | (equipo) | Codex | Creación y configuración del rol global restringido web_user para la conexión del backend a PostgreSQL | (completar: quién lo revisó)
 2026-11-03 | (equipo) | Codex | Rediseño del sidebar frontend con navegación por permisos, estados responsive y accesibilidad | (completar: quién lo revisó)
 2026-11-03 | (equipo) | Codex | Aplicación de hallazgos técnicos de seguridad, infraestructura, pruebas y documentación de endpoints | (completar: quién lo revisó)
-2026-11-03 | (equipo) | Antigravity (Gemini) | Creación de skill de convención estricta de commits (Gitmoji + Conventional Commits) | (completar: quién lo revisó)
+2026-11-04 | Andres | Claude | Implementación del backend de turnos (T05) y movimientos de caja (T06) con pruebas contra PostgreSQL | Andres

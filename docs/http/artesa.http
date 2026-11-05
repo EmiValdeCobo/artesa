@@ -35,3 +35,37 @@ Cookie: {{adminCookie}}
 Content-Type: application/json
 
 {"username":"prueba.api","password":"Cambiar123*","idRol":1,"sucursales":[1]}
+
+### Caja: cajas disponibles del usuario (login como cajero1 y usar su cookie)
+GET {{baseUrl}}/cajas
+Cookie: {{adminCookie}}
+
+### Caja: abrir turno
+POST {{baseUrl}}/turnos
+Cookie: {{adminCookie}}
+Content-Type: application/json
+
+{"idCaja":1,"montoApertura":"100.00"}
+
+### Caja: turno actual del usuario
+GET {{baseUrl}}/turnos/actual
+Cookie: {{adminCookie}}
+
+### Caja: registrar ingreso (reemplazar el id del turno)
+POST {{baseUrl}}/turnos/REEMPLAZAR_ID_TURNO/movimientos
+Cookie: {{adminCookie}}
+Content-Type: application/json
+
+{"tipo":"INGRESO","concepto":"Fondo adicional","monto":50}
+
+### Caja: registrar egreso
+POST {{baseUrl}}/turnos/REEMPLAZAR_ID_TURNO/movimientos
+Cookie: {{adminCookie}}
+Content-Type: application/json
+
+{"tipo":"EGRESO","concepto":"Compra de gas","monto":"20.25"}
+
+### Caja: listar movimientos del turno
+GET {{baseUrl}}/turnos/REEMPLAZAR_ID_TURNO/movimientos
+Cookie: {{adminCookie}}
+
