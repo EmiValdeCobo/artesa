@@ -3,7 +3,7 @@ import Marca from './Marca.jsx';
 import { rutaEspiral } from '../components/Espiral.jsx';
 
 /* Panel de marca del ÁREA ADMINISTRATIVA — "abrir el servicio".
-   Espresso, el hilo (la voluta del isotipo) y una lista tipo comanda con puntos guía. */
+   Espresso, el hilo (la voluta del isotipo) y un índice de módulos numerado, tipo comanda. */
 
 const LISTA = [
   ['Punto de venta', 'Cobro y comandas'],
@@ -92,20 +92,16 @@ export function PanelAdmin() {
         >
           De la cocina a la caja, sin perder el <em className="font-medium italic text-ocre-400">hilo</em>.
         </h2>
-        <div className="anim-subir mt-10 max-w-md border-t border-dashed border-white/20 pt-5" style={retardo(260)}>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-on-sidebar/55">
-            Todo el servicio, en un solo lugar
-          </p>
-          <ul className="mt-3">
-            {LISTA.map(([nombre, detalle]) => (
-              <li key={nombre} className="flex items-baseline gap-3 py-1.5 text-sm">
-                <span className="font-medium">{nombre}</span>
-                <span aria-hidden="true" className="h-px flex-1 border-b border-dotted border-white/25" />
-                <span className="text-xs text-ocre-300">{detalle}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <ol className="anim-subir mt-10 max-w-md border-t-2 border-on-sidebar/70" style={retardo(260)}>
+          {LISTA.map(([nombre, detalle], n) => (
+            <li key={nombre} className="flex items-baseline gap-3 border-b border-white/15 py-2.5 text-sm">
+              <span className="w-6 text-xs tabular-nums text-ocre-300">{String(n + 1).padStart(2, '0')}</span>
+              <span className="font-semibold">{nombre}</span>
+              <span aria-hidden="true" className="h-px flex-1 border-b border-dotted border-white/25" />
+              <span className="text-xs text-on-sidebar/65">{detalle}</span>
+            </li>
+          ))}
+        </ol>
       </div>
     </aside>
   );

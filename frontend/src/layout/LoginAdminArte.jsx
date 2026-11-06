@@ -2,12 +2,18 @@
    Todo son formas planas en la paleta de marca. */
 
 // Panel izquierdo: una campana de servicio (cloche) sobre la barra, con el plato de fondo como un sol.
+// La escena ocupa SOLO su propio espacio (debajo del texto) y se escala completa con "meet":
+// nunca se recorta ni se sube detrás del mensaje. La barra se extiende a los lados para llegar a los bordes del panel.
 export function EscenaBarra({ className = '' }) {
   return (
-    <svg viewBox="0 0 560 740" preserveAspectRatio="xMidYMax slice" aria-hidden="true" className={className}>
-      <rect width="560" height="740" fill="#984a2f" />
-      {/* La escena queda más baja y compacta para no competir con el mensaje de bienvenida. */}
-      <g transform="translate(100 92) scale(.72)">
+    <svg
+      viewBox="0 345 560 395"
+      preserveAspectRatio="xMidYMax meet"
+      aria-hidden="true"
+      className={`overflow-visible ${className}`}
+    >
+      {/* El plato (sol) queda medio oculto tras la barra y la campana apoya su base justo sobre la mesa. */}
+      <g transform="translate(100 177) scale(.72)">
         <circle cx="280" cy="470" r="214" fill="#e8b866" />
         <circle cx="280" cy="470" r="176" fill="none" stroke="#c58a38" strokeWidth="2" />
         <circle
@@ -33,10 +39,10 @@ export function EscenaBarra({ className = '' }) {
         <path d="M168 560A116 116 0 0 1 262 450" fill="none" stroke="#ebbca7" strokeWidth="9" strokeLinecap="round" />
         <rect x="96" y="580" width="368" height="16" rx="8" fill="#f7f5f0" />
       </g>
-      {/* barra */}
-      <rect x="0" y="604" width="560" height="136" fill="#321f19" />
-      <rect x="0" y="604" width="560" height="5" fill="#e1a651" />
-      <path d="M0 650H560M0 690H560" stroke="#44362d" strokeWidth="2" />
+      {/* barra (se extiende más allá del viewBox para cubrir todo el ancho del panel) */}
+      <rect x="-2000" y="604" width="4560" height="400" fill="#321f19" />
+      <rect x="-2000" y="604" width="4560" height="5" fill="#e1a651" />
+      <path d="M-2000 650H2560M-2000 690H2560" stroke="#44362d" strokeWidth="2" />
       {/* botella y frasco sobre la barra */}
       <g fill="#321f19" stroke="#e1a651" strokeWidth="2.5" strokeLinejoin="round">
         <rect x="36" y="528" width="34" height="76" rx="5" />
