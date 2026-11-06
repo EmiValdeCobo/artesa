@@ -30,3 +30,5 @@ Formato: `AAAA-MM-DD | quién (persona/agente) | área | qué cambió | archivos
 2026-11-04 | codex | frontend/fix | Corregida la importación de Logo en Marca; el componente vive en components | frontend/src/layout/Marca.jsx
 2026-11-04 | antigravity | infra/db | Priorizada conexión de administración (POSTGRES_*) sobre DATABASE_URL en scripts/db.js para evitar errores de permisos al migrar/sembrar | scripts/db.js
 2026-11-04 | Andres/claude | caja | Backend de turnos (apertura con turno único por caja y cajero) y de movimientos de caja (ingresos/egresos) | backend/src/modules/caja, backend/src/models/pos.js, backend/src/modules/index.js, docs/endpoints.md
+2026-11-05 | codex | frontend/responsive | Ajustado LoginPage para evitar desbordamiento vertical, compactar móvil y limitar la tarjeta al alto disponible en escritorio | frontend/src/pages/LoginPage.jsx
+2026-11-05 | codex | frontend/ui | Reducida y desplazada la ilustración del plato para preservar la legibilidad del texto del panel administrativo | frontend/src/layout/LoginAdminArte.jsx
