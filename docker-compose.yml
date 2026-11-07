@@ -10,7 +10,7 @@ services:
       POSTGRES_DB: "${POSTGRES_DB:?Error: POSTGRES_DB debe estar definido en el archivo .env}"
       WEB_DB_PASSWORD: "${WEB_DB_PASSWORD:?Error: WEB_DB_PASSWORD debe estar definido en el archivo .env}"
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-5437}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d:ro   # ejecuta 01_schema.sql solo la primera vez
@@ -28,7 +28,7 @@ services:
     environment:
       PORT: ${PORT:-3000}
       DB_HOST: db
-      DB_PORT: 5432
+      DB_PORT: 5437
       DB_USER: "${WEB_DB_USER:-web_user}"
       DB_PASSWORD: "${WEB_DB_PASSWORD:?Error: WEB_DB_PASSWORD debe estar definido en el archivo .env}"
       DB_NAME: "${POSTGRES_DB:?Error: POSTGRES_DB debe estar definido en el archivo .env}"

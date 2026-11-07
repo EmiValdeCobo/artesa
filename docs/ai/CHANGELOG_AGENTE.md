@@ -30,3 +30,4 @@ Formato: `AAAA-MM-DD | quién (persona/agente) | área | qué cambió | archivos
 2026-11-04 | codex | frontend/fix | Corregida la importación de Logo en Marca; el componente vive en components | frontend/src/layout/Marca.jsx
 2026-11-04 | antigravity | infra/db | Priorizada conexión de administración (POSTGRES_*) sobre DATABASE_URL en scripts/db.js para evitar errores de permisos al migrar/sembrar | scripts/db.js
 2026-11-04 | Andres/claude | caja | Backend de turnos (apertura con turno único por caja y cajero) y de movimientos de caja (ingresos/egresos) | backend/src/modules/caja, backend/src/models/pos.js, backend/src/modules/index.js, docs/endpoints.md
+2026-11-06 | codex | seguridad/roles-permisos | Implementado CRUD de roles y permisos, asignaciones RBAC transaccionales, autorización y documentación | backend/src/models, backend/src/modules/seguridad, docs/endpoints.md, test/roles-permisos-contracts.test.js

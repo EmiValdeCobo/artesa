@@ -19,3 +19,4 @@ Formato: `fecha | integrante | herramienta/modelo | para qué se usó | quién v
 2026-11-03 | (equipo) | Codex | Rediseño del sidebar frontend con navegación por permisos, estados responsive y accesibilidad | (completar: quién lo revisó)
 2026-11-03 | (equipo) | Codex | Aplicación de hallazgos técnicos de seguridad, infraestructura, pruebas y documentación de endpoints | (completar: quién lo revisó)
 2026-11-04 | Andres | Claude | Implementación del backend de turnos (T05) y movimientos de caja (T06) con pruebas contra PostgreSQL | Andres
+2026-11-06 | (equipo) | Codex | Implementación del CRUD backend de roles, permisos y asignaciones RBAC con validación, transacciones y pruebas contractuales | (completar: quién lo revisó)

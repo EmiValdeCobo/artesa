@@ -10,7 +10,18 @@ Todas las respuestas de error usan `{ "error": "texto" }`, con `detalles` adicio
 | GET | `/api/auth/me` | Cookie JWT + tipo admin | — | — | 200; 401; 403 |
 | GET | `/api/auth/cliente/me` | Cookie JWT + tipo cliente | — | — | 200; 401; 403 |
 | GET | `/api/seguridad/usuarios` | Cookie JWT + tipo admin | `SEG_GESTIONAR_USUARIOS` | — | 200; 401; 403 |
-| GET | `/api/seguridad/roles` | Cookie JWT + tipo admin | `SEG_GESTIONAR_USUARIOS` | — | 200; 401; 403 |
+| GET | `/api/seguridad/roles` | Cookie JWT + tipo admin | `SEG_GESTIONAR_USUARIOS` o `SEG_GESTIONAR_ROLES` | — | 200; 401; 403 |
+| POST | `/api/seguridad/roles` | Cookie JWT + tipo admin | `SEG_GESTIONAR_ROLES` | `{nombre,descripcion?}` | 201; 400; 401; 403; 409 |
+| PUT | `/api/seguridad/roles/:id` | Cookie JWT + tipo admin | `SEG_GESTIONAR_ROLES` | `{nombre,descripcion?}` | 200; 400; 401; 403; 404; 409 |
+| DELETE | `/api/seguridad/roles/:id` | Cookie JWT + tipo admin | `SEG_GESTIONAR_ROLES` | — | 204; 401; 403; 404; 409 |
+| GET | `/api/seguridad/permisos` | Cookie JWT + tipo admin | `SEG_GESTIONAR_ROLES` | — | 200; 401; 403 |
+| POST | `/api/seguridad/permisos` | Cookie JWT + tipo admin | `SEG_GESTIONAR_ROLES` | `{codigo,modulo,descripcion?}` | 201; 400; 401; 403; 409 |
+| PUT | `/api/seguridad/permisos/:id` | Cookie JWT + tipo admin | `SEG_GESTIONAR_ROLES` | `{codigo,modulo,descripcion?}` | 200; 400; 401; 403; 404; 409 |
+| DELETE | `/api/seguridad/permisos/:id` | Cookie JWT + tipo admin | `SEG_GESTIONAR_ROLES` | — | 204; 401; 403; 404; 409 |
+| GET | `/api/seguridad/roles/:id/permisos` | Cookie JWT + tipo admin | `SEG_GESTIONAR_ROLES` | — | 200; 401; 403; 404 |
+| PUT | `/api/seguridad/roles/:id/permisos` | Cookie JWT + tipo admin | `SEG_GESTIONAR_ROLES` | `{idPermisos:number[]}` | 200; 400; 401; 403; 404; 409 |
+| POST | `/api/seguridad/roles/:id/permisos/:idPermiso` | Cookie JWT + tipo admin | `SEG_GESTIONAR_ROLES` | — | 201; 400; 401; 403; 404; 409 |
+| DELETE | `/api/seguridad/roles/:id/permisos/:idPermiso` | Cookie JWT + tipo admin | `SEG_GESTIONAR_ROLES` | — | 204; 401; 403; 404 |
 | GET | `/api/seguridad/sucursales` | Cookie JWT + tipo admin | `SEG_GESTIONAR_USUARIOS` | — | 200; 401; 403 |
 | POST | `/api/seguridad/usuarios` | Cookie JWT + tipo admin | `SEG_GESTIONAR_USUARIOS` | `{username,password,idRol,sucursales[]}` | 201; 400; 401; 403; 409 |
 | PUT | `/api/seguridad/usuarios/:id` | Cookie JWT + tipo admin | `SEG_GESTIONAR_USUARIOS` | `{username,password?,idRol,sucursales[]}` | 200; 400; 401; 403; 404; 409 |
