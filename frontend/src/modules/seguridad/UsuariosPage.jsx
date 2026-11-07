@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Edit3, Plus, Search, ShieldCheck, Trash2, UserCheck, UserRound, UserX, X } from 'lucide-react';
 import { api } from '../../api/client.js';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { useAlert } from '../../components/AlertProvider.jsx';
 
 const formularioInicial = { username: '', password: '', idRol: '', sucursales: [] };
 
@@ -74,6 +76,8 @@ function UsuarioModal({ usuario, roles, sucursales, guardando, error, onClose, o
 }
 
 export default function UsuariosPage() {
+  const { usuario: usuarioSesion } = useAuth();
+  const { confirm } = useAlert();
   const [usuarios, setUsuarios] = useState([]);
   const [roles, setRoles] = useState([]);
   const [sucursales, setSucursales] = useState([]);
@@ -125,7 +129,11 @@ export default function UsuariosPage() {
   };
 
   const desactivar = async (usuario) => {
-    if (!window.confirm(`¿Desactivar al usuario "${usuario.username}"? Podrá reactivarse después.`)) return;
+    if (String(usuario.id_usuario) === String(usuarioSesion?.id)) {
+      setError('No puedes desactivar tu propio usuario.');
+      return;
+    }
+    if (!await confirm(`¿Desactivar al usuario "${usuario.username}"? Podrá reactivarse después.`, { tipo: 'advertencia', titulo: 'Desactivar usuario' })) return;
     try {
       await api.patch(`/seguridad/usuarios/${usuario.id_usuario}/desactivar`);
       setUsuarios((actuales) => actuales.map((item) => item.id_usuario === usuario.id_usuario ? { ...item, activo: false } : item));
@@ -135,7 +143,7 @@ export default function UsuariosPage() {
   };
 
   const activar = async (usuario) => {
-    if (!window.confirm(`¿Reactivar al usuario "${usuario.username}"?`)) return;
+    if (!await confirm(`¿Reactivar al usuario "${usuario.username}"?`, { tipo: 'pregunta', titulo: 'Activar usuario' })) return;
     try {
       await api.patch(`/seguridad/usuarios/${usuario.id_usuario}/activar`);
       setUsuarios((actuales) => actuales.map((item) => item.id_usuario === usuario.id_usuario ? { ...item, activo: true } : item));
@@ -145,7 +153,11 @@ export default function UsuariosPage() {
   };
 
   const eliminar = async (usuario) => {
-    if (!window.confirm(`¿Eliminar permanentemente al usuario "${usuario.username}"? No se mostrará más en el sistema (el registro queda en la base de datos).`)) return;
+    if (String(usuario.id_usuario) === String(usuarioSesion?.id)) {
+      setError('No puedes eliminar tu propio usuario.');
+      return;
+    }
+    if (!await confirm(`¿Eliminar permanentemente al usuario "${usuario.username}"? No se mostrará más en el sistema (el registro queda en la base de datos).`, { tipo: 'error', titulo: 'Eliminar usuario' })) return;
     try {
       await api.delete(`/seguridad/usuarios/${usuario.id_usuario}/eliminar`);
       setUsuarios((actuales) => actuales.filter((item) => item.id_usuario !== usuario.id_usuario));
