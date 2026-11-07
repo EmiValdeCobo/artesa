@@ -19,7 +19,7 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE, ma
 ## Estado por módulo
 | Módulo | BD | Backend | Frontend |
 |---|---|---|---|
-| auth / seguridad | listo | login, roles y usuarios con asignación de sucursales | portales admin/cliente, gestión de roles/permisos y CRUD de usuarios |
+| auth / seguridad | listo | login, CRUD de roles/permisos, asignaciones RBAC y usuarios con sucursales | portales admin/cliente, gestión de roles/permisos y CRUD de usuarios |
 | inventario | listo | pendiente | pendiente |
 | pos | listo | pendiente | pendiente |
 | caja | listo | apertura de turno y movimientos (T05/T06); cierre pendiente | pendiente |
