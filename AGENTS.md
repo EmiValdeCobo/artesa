@@ -32,11 +32,11 @@ Módulos: auth, seguridad, empresa, inventario, pos, caja, compras, rrhh, report
 - API REST: sustantivos en plural, verbos HTTP correctos, códigos 200/201/204/400/401/403/404/409.
 - Idioma: UI y comentarios en español; nombres de dominio en español igual que la BD (ventas, insumos, turnos).
 - BD: no edites `01_schema.sql`; crea `database/migrations/NNN_descripcion.sql`.
-- Secretos solo en `.env` (nunca en git). Ramas `feature/<modulo>-<desc>`, commits tipo `feat(pos): ...`.
+- Secretos solo en `.env` (nunca en git). Ramas `feature/<modulo>-<desc>`, commits estrictos `<emoji> <tipo>(<alcance>): <descripción>` (ver skill `convencion-commits`).
 - Uso de IA: registra cada uso significativo en `docs/USO_IA.md` (el enunciado exige declararlo; sin comprensión = penalización).
 
 ## Skills (leer solo la que aplique)
-`00-registrar-cambio` · `nuevo-endpoint-rest` · `nueva-pantalla-react` · `cambio-base-datos` · `permisos-rbac` · `usar-funciones-sql` · `prompts-significativos`
+`00-registrar-cambio` · `convencion-commits` · `nuevo-endpoint-rest` · `nueva-pantalla-react` · `cambio-base-datos` · `permisos-rbac` · `usar-funciones-sql` · `prompts-significativos`
 Ubicación: `docs/ai/skills/<nombre>.md`
 
 ## Comandos

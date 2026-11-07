@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Edit3, Plus, Search, ShieldCheck, Trash2, UserRound, X } from 'lucide-react';
+import { Edit3, Plus, Search, ShieldCheck, Trash2, UserCheck, UserRound, UserX, X } from 'lucide-react';
 import { api } from '../../api/client.js';
 
 const formularioInicial = { username: '', password: '', idRol: '', sucursales: [] };
@@ -125,10 +125,30 @@ export default function UsuariosPage() {
   };
 
   const desactivar = async (usuario) => {
-    if (!window.confirm(`¿Desactivar al usuario ${usuario.username}?`)) return;
+    if (!window.confirm(`¿Desactivar al usuario "${usuario.username}"? Podrá reactivarse después.`)) return;
     try {
-      await api.delete(`/seguridad/usuarios/${usuario.id_usuario}`);
+      await api.patch(`/seguridad/usuarios/${usuario.id_usuario}/desactivar`);
       setUsuarios((actuales) => actuales.map((item) => item.id_usuario === usuario.id_usuario ? { ...item, activo: false } : item));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const activar = async (usuario) => {
+    if (!window.confirm(`¿Reactivar al usuario "${usuario.username}"?`)) return;
+    try {
+      await api.patch(`/seguridad/usuarios/${usuario.id_usuario}/activar`);
+      setUsuarios((actuales) => actuales.map((item) => item.id_usuario === usuario.id_usuario ? { ...item, activo: true } : item));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const eliminar = async (usuario) => {
+    if (!window.confirm(`¿Eliminar permanentemente al usuario "${usuario.username}"? No se mostrará más en el sistema (el registro queda en la base de datos).`)) return;
+    try {
+      await api.delete(`/seguridad/usuarios/${usuario.id_usuario}/eliminar`);
+      setUsuarios((actuales) => actuales.filter((item) => item.id_usuario !== usuario.id_usuario));
     } catch (err) {
       setError(err.message);
     }
@@ -162,7 +182,16 @@ export default function UsuariosPage() {
                   <td className="px-5 py-4"><span className="inline-flex items-center gap-1.5 rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-primary-text"><ShieldCheck size={13} />{usuario.rol}</span></td>
                   <td className="max-w-xs px-5 py-4 text-xs text-fg-muted">{usuario.sucursales.map((sucursal) => sucursal.nombre).join(', ') || 'Sin asignar'}</td>
                   <td className="px-5 py-4"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${usuario.activo ? 'bg-success-soft text-success' : 'bg-muted text-fg-muted'}`}>{usuario.activo ? 'Activo' : 'Inactivo'}</span></td>
-                  <td className="px-5 py-4"><div className="flex justify-end gap-2"><button type="button" className="btn-ghost !p-2" onClick={() => { setUsuarioEditando(usuario); setModalAbierto(true); }} aria-label={`Editar ${usuario.username}`}><Edit3 size={16} /></button>{usuario.activo && <button type="button" className="btn-danger !p-2" onClick={() => desactivar(usuario)} aria-label={`Desactivar ${usuario.username}`}><Trash2 size={16} /></button>}</div></td>
+                  <td className="px-5 py-4">
+                    <div className="flex justify-end gap-2">
+                      <button type="button" className="btn-ghost !p-2" onClick={() => { setUsuarioEditando(usuario); setModalAbierto(true); }} aria-label={`Editar ${usuario.username}`} title="Editar"><Edit3 size={16} /></button>
+                      {usuario.activo
+                        ? <button type="button" className="btn-ghost !p-2 text-warning" onClick={() => desactivar(usuario)} aria-label={`Desactivar ${usuario.username}`} title="Desactivar"><UserX size={16} /></button>
+                        : <button type="button" className="btn-ghost !p-2 text-success" onClick={() => activar(usuario)} aria-label={`Activar ${usuario.username}`} title="Activar"><UserCheck size={16} /></button>
+                      }
+                      <button type="button" className="btn-danger !p-2" onClick={() => eliminar(usuario)} aria-label={`Eliminar ${usuario.username}`} title="Eliminar definitivamente"><Trash2 size={16} /></button>
+                    </div>
+                  </td>
                 </tr>)}
               </tbody>
             </table>

@@ -13,7 +13,8 @@ router.get('/roles', requirePermiso('SEG_GESTIONAR_USUARIOS'), asyncHandler(cont
 router.get('/sucursales', requirePermiso('SEG_GESTIONAR_USUARIOS'), asyncHandler(controller.listarSucursales));
 router.post('/usuarios', requirePermiso('SEG_GESTIONAR_USUARIOS'), validate(crearUsuarioSchema), asyncHandler(controller.crearUsuario));
 router.put('/usuarios/:id', requirePermiso('SEG_GESTIONAR_USUARIOS'), validate(actualizarUsuarioSchema), asyncHandler(controller.actualizarUsuario));
-router.delete('/usuarios/:id', requirePermiso('SEG_GESTIONAR_USUARIOS'), asyncHandler(controller.desactivarUsuario));
+router.patch('/usuarios/:id/desactivar', requirePermiso('SEG_GESTIONAR_USUARIOS'), asyncHandler(controller.desactivarUsuario));
+router.patch('/usuarios/:id/activar', requirePermiso('SEG_GESTIONAR_USUARIOS'), asyncHandler(controller.activarUsuario));
+router.delete('/usuarios/:id/eliminar', requirePermiso('SEG_GESTIONAR_USUARIOS'), asyncHandler(controller.eliminarUsuario));
 
 export default router;
-

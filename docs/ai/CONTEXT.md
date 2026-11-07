@@ -22,7 +22,7 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE, ma
 | auth / seguridad | listo | login, roles y usuarios con asignación de sucursales | portales admin/cliente, gestión de roles/permisos y CRUD de usuarios |
 | inventario | listo | pendiente | pendiente |
 | pos | listo | pendiente | pendiente |
-| caja | listo | pendiente | pendiente |
+| caja | listo | apertura de turno y movimientos (T05/T06); cierre pendiente | pendiente |
 | compras | listo | pendiente | pendiente |
 | rrhh | listo | pendiente | pendiente |
 | reportes | vistas listas | pendiente | pendiente |

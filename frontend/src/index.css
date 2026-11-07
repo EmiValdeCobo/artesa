@@ -6,6 +6,8 @@
    así el modo oscuro funciona sin escribir `dark:` en cada elemento.
    ============================================================================ */
 @import "@fontsource-variable/montserrat";
+@import "@fontsource-variable/fraunces/wght.css";
+@import "@fontsource-variable/fraunces/wght-italic.css";
 @import "tailwindcss";
 
 /* Modo oscuro por clase: <html class="dark"> */
@@ -14,6 +16,7 @@
 /* ---- 1. Paleta cruda (genera bg-terracota-500, text-ocre-300, etc.) -------- */
 @theme {
   --font-sans: "Montserrat Variable", Montserrat, ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces Variable", Georgia, "Times New Roman", serif; /* titulares con carácter (login) */
 
   --color-terracota-50:  #fbf1ec;  --color-terracota-100: #f5ddd2;
   --color-terracota-200: #ebbca7;  --color-terracota-300: #de9776;
@@ -92,6 +95,18 @@
   --info:    #8db6e0; --info-soft:    #1b2836;
 }
 
+/* ---- Variante de acento del portal de clientes -------------------------------
+   Mismo sistema, otro acento: Ocre en lugar de Terracota. Se activa con la clase
+   .tema-cliente en un contenedor; todo lo que use bg-primary / text-primary-text /
+   ring-primary dentro de él cambia solo. Texto sobre ocre = Espresso (contraste AA). */
+.tema-cliente {
+  --accent: #e1a651; --accent-hover: #c58a38; --accent-soft: #fdf7ea;
+  --accent-text: #7a5224; --text-on-accent: #321f19; --ring: #c58a38;
+}
+.dark .tema-cliente {
+  --accent-soft: #3a2b18; --accent-text: #edc173; --ring: #e8b866;
+}
+
 /* Expone los tokens como utilidades: bg-background, text-fg, border-line, ... */
 @theme inline {
   --color-background: var(--bg-primary);
@@ -130,32 +145,64 @@
 }
 
 /* ---- 4. Componentes reutilizables (opcionales, evitan repetir clases) ------- */
-.card { @apply rounded-xl border border-line bg-surface p-5 shadow-sm; }
-.input {
-  @apply w-full rounded-md border border-line bg-surface px-3 py-2 text-fg
-         placeholder:text-fg-muted/70 focus:border-primary focus:outline-none;
+/* IMPORTANTE: dentro de @layer components. Fuera de una capa, estas clases le ganan a TODAS las
+   utilidades de Tailwind (pl-10, p-8, w-full...) y las anulan. Dentro de la capa, las utilidades
+   sí pueden sobreescribirlas. */
+@layer components {
+  .card { @apply rounded-xl border border-line bg-surface p-5 shadow-sm; }
+  .input {
+    @apply w-full rounded-md border border-line bg-surface px-3 py-2 text-fg
+           placeholder:text-fg-muted/70 focus:border-primary focus:outline-none;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium
+           transition-colors disabled:opacity-60 disabled:pointer-events-none;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium
+           transition-colors disabled:opacity-60 disabled:pointer-events-none
+           bg-primary text-on-accent hover:bg-primary-hover;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium
+           transition-colors disabled:opacity-60 disabled:pointer-events-none
+           bg-secondary text-espresso-900 hover:bg-ocre-400;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium
+           transition-colors disabled:opacity-60 disabled:pointer-events-none
+           border border-line text-fg hover:bg-muted;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium
+           transition-colors disabled:opacity-60 disabled:pointer-events-none
+           bg-danger text-white hover:opacity-90;
+  }
+
+  /* Campo de formulario de las pantallas de acceso (más alto, esquinas amplias, foco con halo) */
+  .input-auth {
+    @apply h-12 rounded-xl bg-surface px-3.5 text-[15px] transition-[border-color,box-shadow] duration-200
+           focus:border-primary focus:ring-4 focus:ring-primary/15
+           aria-invalid:border-danger aria-invalid:ring-4 aria-invalid:ring-danger/15;
+  }
+
+  /* Login administrativo: esquinas rectas, regla gruesa y sombra dura (solo bajo .auth-admin) */
+  .auth-admin .input-auth { @apply rounded-none border-fg/40 focus:ring-0 focus:border-fg focus:shadow-[3px_3px_0_0_var(--accent)]; }
+  .auth-admin .input-auth[aria-invalid='true'] { @apply border-danger shadow-[3px_3px_0_0_var(--danger)]; }
+  .btn-duro { @apply rounded-none shadow-[4px_4px_0_0_var(--text-primary)] transition-[transform,box-shadow] hover:-translate-x-px hover:-translate-y-px hover:shadow-[5px_5px_0_0_var(--text-primary)] active:translate-x-1 active:translate-y-1 active:shadow-none; }
+  .dark .btn-duro { box-shadow: 4px 4px 0 0 var(--secondary); }
+  .dark .btn-duro:hover { box-shadow: 5px 5px 0 0 #e1a651; }
+  .dark .btn-duro:active { box-shadow: none; }
+
+  /* Microinteracciones del login */
+  .anim-subir { animation: subir .7s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--retardo, 0ms); }
+  .anim-sacudir { animation: sacudir .45s ease-in-out; }
+  .hilo-trazo { stroke-dasharray: 1; animation: hilo 3.4s cubic-bezier(.4,0,.2,1) both; }
+  @media (prefers-reduced-motion: reduce) {
+    .anim-subir, .anim-sacudir, .hilo-trazo { animation: none; }
+  }
 }
-.btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium
-         transition-colors disabled:opacity-60 disabled:pointer-events-none;
-}
-.btn-primary {
-  @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium
-         transition-colors disabled:opacity-60 disabled:pointer-events-none
-         bg-primary text-on-accent hover:bg-primary-hover;
-}
-.btn-secondary {
-  @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium
-         transition-colors disabled:opacity-60 disabled:pointer-events-none
-         bg-secondary text-espresso-900 hover:bg-ocre-400;
-}
-.btn-ghost {
-  @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium
-         transition-colors disabled:opacity-60 disabled:pointer-events-none
-         border border-line text-fg hover:bg-muted;
-}
-.btn-danger {
-  @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium
-         transition-colors disabled:opacity-60 disabled:pointer-events-none
-         bg-danger text-white hover:opacity-90;
-}
+
+@keyframes subir { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes sacudir { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
+@keyframes hilo { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }

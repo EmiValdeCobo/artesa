@@ -61,3 +61,20 @@ export async function desactivarUsuario(idUsuario, userId) {
   }
 }
 
+export async function activarUsuario(idUsuario, userId) {
+  try {
+    const resultado = await withTransaction((transaction) => repo.activarUsuario(transaction, idUsuario), userId);
+    if (!resultado) throw new AppError('Usuario no encontrado o ya está activo', 404);
+  } catch (error) {
+    throw traducirError(error);
+  }
+}
+
+export async function eliminarUsuario(idUsuario, userId) {
+  try {
+    const resultado = await withTransaction((transaction) => repo.eliminarUsuario(transaction, idUsuario), userId);
+    if (!resultado) throw new AppError('Usuario no encontrado', 404);
+  } catch (error) {
+    throw traducirError(error);
+  }
+}
