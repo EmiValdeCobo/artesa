@@ -163,6 +163,9 @@ export async function actualizarUsuario(idUsuario, datos, userId) {
 }
 
 export async function desactivarUsuario(idUsuario, userId) {
+  if (String(idUsuario) === String(userId)) {
+    throw new AppError('No puedes desactivar tu propio usuario', 403);
+  }
   try {
     const resultado = await withTransaction((transaction) => repo.desactivarUsuario(transaction, idUsuario), userId);
     if (!resultado) throw new AppError('Usuario no encontrado o ya está inactivo', 404);
@@ -181,6 +184,9 @@ export async function activarUsuario(idUsuario, userId) {
 }
 
 export async function eliminarUsuario(idUsuario, userId) {
+  if (String(idUsuario) === String(userId)) {
+    throw new AppError('No puedes eliminar tu propio usuario', 403);
+  }
   try {
     const resultado = await withTransaction((transaction) => repo.eliminarUsuario(transaction, idUsuario), userId);
     if (!resultado) throw new AppError('Usuario no encontrado', 404);

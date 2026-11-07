@@ -18,7 +18,7 @@ const CONFIG = {
     eyebrow: 'Área administrativa',
     rejilla: 'lg:grid-cols-[1.1fr_1fr]',
     orden: 'lg:order-2', // el formulario va a la derecha
-    tema: '',
+    tema: 'auth-admin',
     pie: { texto: '¿Eres cliente?', enlace: 'Portal de clientes', a: '/cliente/login' },
   },
   cliente: {

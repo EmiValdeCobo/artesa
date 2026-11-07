@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { ArrowRight, CircleAlert, Mail } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
+import { traducirError } from '../errors/traducirError.js';
 import AuthLayout from '../layout/AuthLayout.jsx';
 import CampoTexto from '../components/CampoTexto.jsx';
 import PasswordInput from '../components/PasswordInput.jsx';
@@ -22,8 +23,8 @@ export default function ClienteLoginPage() {
   if (usuario) return <Navigate to={tipoSesion === 'cliente' ? '/cliente' : '/'} replace />;
 
   function fallar(mensaje, campo, ref) {
-    setError(mensaje); setInvalido(campo); setSacudir(true);
-    setTimeout(() => setSacudir(false), 500);
+    setError(mensaje); setInvalido(campo);
+    if (campo) { setSacudir(true); setTimeout(() => setSacudir(false), 500); }
     ref?.current?.focus();
   }
   const limpiar = () => { if (error) { setError(''); setInvalido(null); } };
@@ -38,7 +39,10 @@ export default function ClienteLoginPage() {
       await login(username, password, 'cliente');
       navigate('/cliente');
     } catch (err) {
-      fallar(err.message || 'No se pudo iniciar sesión. Inténtalo de nuevo.', 'ambos', refPassword);
+      // Credenciales incorrectas marcan los campos; un fallo de red o del servidor solo informa (los campos están bien).
+      const u = traducirError(err);
+      const credenciales = u.id === 'CREDENCIALES';
+      fallar(u.mensajeCompleto, credenciales ? 'ambos' : null, credenciales ? refPassword : null);
     } finally {
       setEnviando(false);
     }

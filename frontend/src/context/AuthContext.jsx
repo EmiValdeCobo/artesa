@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { api } from '../api/client.js';
+import { api, EVENTO_SESION_EXPIRADA } from '../api/client.js';
 
 const AuthContext = createContext(null);
 
@@ -25,6 +25,19 @@ export function AuthProvider({ children }) {
       .finally(() => setCargando(false));
   }, []);
 
+  // La sesión venció a mitad de uso: se limpia el estado y ProtectedRoute lleva al login.
+  // El aviso al usuario lo muestra AlertProvider (un solo toast, aunque fallen varias peticiones).
+  useEffect(() => {
+    const alVencer = () => {
+      localStorage.removeItem('tipoSesion');
+      setUsuario(null);
+      setPermisos([]);
+      setTipoSesion(null);
+    };
+    window.addEventListener(EVENTO_SESION_EXPIRADA, alVencer);
+    return () => window.removeEventListener(EVENTO_SESION_EXPIRADA, alVencer);
+  }, []);
+
   const iniciarSesion = async (username, password, tipo = 'admin') => {
     const endpoint = tipo === 'cliente' ? '/auth/cliente/login' : '/auth/login';
     const data = await api.post(endpoint, { username, password });
@@ -46,7 +59,7 @@ export function AuthProvider({ children }) {
   const tiene = (permiso) => permisos.includes(permiso);
 
   return (
-    <AuthContext.Provider value={{ usuario, permisos, tipoSesion, cargando, login: iniciarSesion, logout, tiene }}>
+    <AuthContext.Provider value={{ usuario, tipoSesion, cargando, login: iniciarSesion, logout, tiene }}>
       {children}
     </AuthContext.Provider>
   );

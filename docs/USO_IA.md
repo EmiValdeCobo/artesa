@@ -20,3 +20,6 @@ Formato: `fecha | integrante | herramienta/modelo | para qué se usó | quién v
 2026-11-03 | (equipo) | Codex | Aplicación de hallazgos técnicos de seguridad, infraestructura, pruebas y documentación de endpoints | (completar: quién lo revisó)
 2026-11-04 | Andres | Claude | Implementación del backend de turnos (T05) y movimientos de caja (T06) con pruebas contra PostgreSQL | Andres
 2026-11-06 | (equipo) | Codex | Implementación del CRUD backend de roles, permisos y asignaciones RBAC con validación, transacciones y pruebas contractuales | (completar: quién lo revisó)
+2026-11-05 | EmiValdeCobo | Codex | Ajuste responsive de LoginPage para eliminar scroll vertical y adaptar el formulario en móvil | EmiValdeCobo
+2026-11-05 | EmiValdeCobo | Codex | Ajuste visual de la ilustración del login para evitar solapamiento con el mensaje del panel | EmiValdeCobo
+2026-11-06 | EmiValdeCobo | Codex | Validación de seguridad para impedir que un usuario se desactive o elimine a sí mismo, con aviso en la interfaz y protección en el servicio | EmiValdeCobo
