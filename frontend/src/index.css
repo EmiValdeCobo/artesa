@@ -186,6 +186,14 @@
            aria-invalid:border-danger aria-invalid:ring-4 aria-invalid:ring-danger/15;
   }
 
+  /* Login administrativo: esquinas rectas, regla gruesa y sombra dura (solo bajo .auth-admin) */
+  .auth-admin .input-auth { @apply rounded-none border-fg/40 focus:ring-0 focus:border-fg focus:shadow-[3px_3px_0_0_var(--accent)]; }
+  .auth-admin .input-auth[aria-invalid='true'] { @apply border-danger shadow-[3px_3px_0_0_var(--danger)]; }
+  .btn-duro { @apply rounded-none shadow-[4px_4px_0_0_var(--text-primary)] transition-[transform,box-shadow] hover:-translate-x-px hover:-translate-y-px hover:shadow-[5px_5px_0_0_var(--text-primary)] active:translate-x-1 active:translate-y-1 active:shadow-none; }
+  .dark .btn-duro { box-shadow: 4px 4px 0 0 var(--secondary); }
+  .dark .btn-duro:hover { box-shadow: 5px 5px 0 0 #e1a651; }
+  .dark .btn-duro:active { box-shadow: none; }
+
   /* Microinteracciones del login */
   .anim-subir { animation: subir .7s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--retardo, 0ms); }
   .anim-sacudir { animation: sacudir .45s ease-in-out; }

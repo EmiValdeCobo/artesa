@@ -46,7 +46,7 @@ export function AuthProvider({ children }) {
   const tiene = (permiso) => permisos.includes(permiso);
 
   return (
-    <AuthContext.Provider value={{ usuario, permisos, tipoSesion, cargando, login: iniciarSesion, logout, tiene }}>
+    <AuthContext.Provider value={{ usuario, tipoSesion, cargando, login: iniciarSesion, logout, tiene }}>
       {children}
     </AuthContext.Provider>
   );
