@@ -178,6 +178,8 @@
            transition-colors disabled:opacity-60 disabled:pointer-events-none
            bg-danger text-white hover:opacity-90;
   }
+  /* En modo oscuro --danger es un rojo claro (pensado para texto): el texto del botón debe ser oscuro para cumplir AA. */
+  .dark .btn-danger { color: var(--color-espresso-950); }
 
   /* Campo de formulario de las pantallas de acceso (más alto, esquinas amplias, foco con halo) */
   .input-auth {
@@ -197,12 +199,21 @@
   /* Microinteracciones del login */
   .anim-subir { animation: subir .7s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--retardo, 0ms); }
   .anim-sacudir { animation: sacudir .45s ease-in-out; }
+  /* Diálogos y avisos: entrada breve (hoja desde abajo en móvil, escala en escritorio) */
+  .anim-scrim { animation: scrim .18s ease-out both; }
+  .anim-dialogo { animation: dialogo-movil .22s cubic-bezier(.2,.7,.2,1) both; }
+  .anim-toast { animation: toast .22s cubic-bezier(.2,.7,.2,1) both; }
+  @media (min-width: 40rem) { .anim-dialogo { animation-name: dialogo; } }
   .hilo-trazo { stroke-dasharray: 1; animation: hilo 3.4s cubic-bezier(.4,0,.2,1) both; }
   @media (prefers-reduced-motion: reduce) {
-    .anim-subir, .anim-sacudir, .hilo-trazo { animation: none; }
+    .anim-subir, .anim-sacudir, .hilo-trazo, .anim-scrim, .anim-dialogo, .anim-toast { animation: none; }
   }
 }
 
 @keyframes subir { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 @keyframes sacudir { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
 @keyframes hilo { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes scrim { from { opacity: 0; } to { opacity: 1; } }
+@keyframes dialogo { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes dialogo-movil { from { opacity: .6; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes toast { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
