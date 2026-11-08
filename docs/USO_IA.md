@@ -22,13 +22,9 @@ Formato: `fecha | integrante | herramienta/modelo | para qué se usó | quién v
 2026-11-06 | (equipo) | Codex | Implementación del CRUD backend de roles, permisos y asignaciones RBAC con validación, transacciones y pruebas contractuales | (completar: quién lo revisó)
 2026-11-05 | EmiValdeCobo | Codex | Ajuste responsive de LoginPage para eliminar scroll vertical y adaptar el formulario en móvil | EmiValdeCobo
 2026-11-05 | EmiValdeCobo | Codex | Ajuste visual de la ilustración del login para evitar solapamiento con el mensaje del panel | EmiValdeCobo
-<<<<<<< Updated upstream
-2026-11-06 | EmiValdeCobo | Codex | Validación de seguridad para impedir que un usuario se desactive o elimine a sí mismo, con aviso en la interfaz y protección en el servicio | EmiValdeCobo
-=======
 2026-11-06 | EmiValdeCobo | Codex | Validación de seguridad para impedir que un usuario se desactive o elimine a sí mismo, con aviso en la interfaz y protección en el servicio | EmiValdeCobo
 2026-11-06 | (equipo) | Codex | Creación de un sistema de alertas React accesible con confirmación, entrada, tipos semánticos, modo oscuro y migración de confirmaciones de usuarios | (completar: quién lo revisó)
 2026-11-07 | Codex | Implementación del backend de Inventario conforme al esquema y patrones existentes; el equipo debe revisar permisos, validaciones y funciones SQL antes de defender la integración | backend/src/modules/inventario, backend/src/models/inventario.js
->>>>>>> Stashed changes
 2026-11-07 | Codex | Diagnóstico y corrección del error ESM por exportaciones faltantes en el índice de modelos del backend | backend/src/models/index.js
 2026-11-07 | Codex | Diagnóstico y corrección del export faltante validateQuery usado por las rutas del dashboard | backend/src/middlewares/validate.js
 2026-11-07 | Codex | Diagnóstico y corrección del intento de reasignar req.query, propiedad de solo lectura en Express | backend/src/middlewares/validate.js
@@ -37,4 +33,5 @@ Formato: `fecha | integrante | herramienta/modelo | para qué se usó | quién v
 2026-11-07 | Codex | Implementación asistida del panel de administración de roles y permisos, incluyendo CRUD, asignación RBAC y validaciones de interfaz | frontend/src/modules/seguridad, frontend/src/components
 2026-11-07 | Codex | Diagnóstico y corrección de columna inexistente en el seeder de ventas demo | database/seeders/002_dashboard_demo.sql
 2026-11-07 | Codex | Reorganización segura de componentes reutilizables por función y actualización de rutas de importación | frontend/src/components, frontend/src/pages, frontend/src/layout, frontend/src/modules
+2026-11-08 | Rodri | Codex | Auditoría de T11 y corrección del kardex: visibilidad de costo_unitario por INV_VER_COSTOS y aislamiento por sucursal antes del límite; la implementación original de stock y mermas es preexistente y no se atribuye a Rodri. Se añadieron pruebas contractuales; Rodri revisó el alcance, rutas y permisos; revisar el diff final antes de defender | backend/src/modules/inventario/inventario.repository.js, backend/src/modules/inventario/inventario.service.js, test/inventario-contracts.test.js, docs/endpoints.md, docs/ai/CHANGELOG_AGENTE.md, docs/USO_IA.md | Rodri 
 2026-11-08 | Andres | Claude | Backend de cierre y cuadre de turno (T22), reportes (T23) y cola de preparación (T24) con pruebas contra PostgreSQL | Andres

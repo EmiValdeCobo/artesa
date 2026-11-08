@@ -30,7 +30,46 @@ export const guardarReceta = async (id, componentes, transaction) => {
 };
 export const stockSucursal = (idSucursal = null) => select(`SELECT ss.id_sucursal, s.nombre AS sucursal, ss.id_insumo, i.nombre AS insumo, u.codigo AS unidad, ss.stock_actual, ss.stock_minimo FROM inventario.stock_sucursal ss JOIN empresa.sucursales s USING (id_sucursal) JOIN inventario.insumos i USING (id_insumo) JOIN inventario.unidades_medida u ON u.id_unidad = i.id_unidad_base WHERE ($1::int IS NULL OR ss.id_sucursal = $1) ORDER BY s.nombre, i.nombre`, [idSucursal]);
 export const alertas = (idSucursal = null) => select(`SELECT ss.id_sucursal, a.* FROM reportes.vw_alertas_stock a JOIN empresa.sucursales s ON s.nombre = a.sucursal JOIN inventario.insumos i ON i.nombre = a.insumo JOIN inventario.stock_sucursal ss ON ss.id_sucursal = s.id_sucursal AND ss.id_insumo = i.id_insumo WHERE ($1::int IS NULL OR ss.id_sucursal = $1) ORDER BY a.sucursal, a.insumo`, [idSucursal]);
-export const movimientos = (idSucursal = null, idInsumo = null) => select(`SELECT m.*, i.nombre AS insumo, s.nombre AS sucursal, u.username AS usuario FROM inventario.movimientos_inventario m JOIN inventario.insumos i USING (id_insumo) JOIN empresa.sucursales s USING (id_sucursal) LEFT JOIN seguridad.usuarios u USING (id_usuario) WHERE ($1::int IS NULL OR m.id_sucursal = $1) AND ($2::int IS NULL OR m.id_insumo = $2) ORDER BY m.creado_en DESC, m.id_movimiento DESC LIMIT 500`, [idSucursal, idInsumo]);
+const SQL_MOVIMIENTOS_SIN_COSTO = `
+  SELECT m.id_movimiento, m.id_sucursal, m.id_insumo, i.nombre AS insumo,
+         s.nombre AS sucursal, m.tipo, m.cantidad, m.stock_resultante,
+         m.referencia_tipo, m.referencia_id, m.motivo, m.id_usuario,
+         u.username AS usuario, m.creado_en
+  FROM inventario.movimientos_inventario m
+  JOIN inventario.insumos i USING (id_insumo)
+  JOIN empresa.sucursales s USING (id_sucursal)
+  LEFT JOIN seguridad.usuarios u USING (id_usuario)
+  WHERE EXISTS (
+    SELECT 1 FROM seguridad.usuario_sucursal us
+    WHERE us.id_usuario = $1::uuid AND us.id_sucursal = m.id_sucursal
+  )
+    AND ($2::int IS NULL OR m.id_sucursal = $2::int)
+    AND ($3::int IS NULL OR m.id_insumo = $3::int)
+  ORDER BY m.creado_en DESC, m.id_movimiento DESC
+  LIMIT 500`;
+
+const SQL_MOVIMIENTOS_CON_COSTO = `
+  SELECT m.id_movimiento, m.id_sucursal, m.id_insumo, i.nombre AS insumo,
+         s.nombre AS sucursal, m.tipo, m.cantidad, m.costo_unitario,
+         m.stock_resultante, m.referencia_tipo, m.referencia_id, m.motivo,
+         m.id_usuario, u.username AS usuario, m.creado_en
+  FROM inventario.movimientos_inventario m
+  JOIN inventario.insumos i USING (id_insumo)
+  JOIN empresa.sucursales s USING (id_sucursal)
+  LEFT JOIN seguridad.usuarios u USING (id_usuario)
+  WHERE EXISTS (
+    SELECT 1 FROM seguridad.usuario_sucursal us
+    WHERE us.id_usuario = $1::uuid AND us.id_sucursal = m.id_sucursal
+  )
+    AND ($2::int IS NULL OR m.id_sucursal = $2::int)
+    AND ($3::int IS NULL OR m.id_insumo = $3::int)
+  ORDER BY m.creado_en DESC, m.id_movimiento DESC
+  LIMIT 500`;
+
+export const movimientos = (idUsuario, idSucursal = null, idInsumo = null, verCostos = false) => select(
+  verCostos ? SQL_MOVIMIENTOS_CON_COSTO : SQL_MOVIMIENTOS_SIN_COSTO,
+  [idUsuario, idSucursal, idInsumo],
+);
 export const sucursalAsignada = async (idUsuario, idSucursal, transaction = null) => (await select('SELECT 1 FROM seguridad.usuario_sucursal WHERE id_usuario = $1::uuid AND id_sucursal = $2', [idUsuario, idSucursal], transaction)).length > 0;
 export const sucursalesAsignadas = (idUsuario) => select('SELECT id_sucursal FROM seguridad.usuario_sucursal WHERE id_usuario = $1::uuid', [idUsuario]);
 export const usuarioTienePermiso = async (idUsuario, codigo) => (await select('SELECT seguridad.fn_tiene_permiso($1::uuid,$2) AS tiene', [idUsuario, codigo]))[0]?.tiene === true;
