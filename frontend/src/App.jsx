@@ -7,6 +7,7 @@ import ClienteHomePage from './pages/ClienteHomePage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import RolesPermisosPage from './modules/seguridad/RolesPermisosPage.jsx';
 import UsuariosPage from './modules/seguridad/UsuariosPage.jsx';
+import PosPage from './modules/pos/PosPage.jsx';
 
 export default function App() {
   return (
@@ -36,6 +37,14 @@ export default function App() {
           element={
             <ProtectedRoute permiso="SEG_GESTIONAR_USUARIOS">
               <UsuariosPage />
+            </ProtectedRoute>
+          }
+        />
+                <Route
+          path="pos"
+          element={
+            <ProtectedRoute permiso="POS_COBRAR">
+              <PosPage />
             </ProtectedRoute>
           }
         />
