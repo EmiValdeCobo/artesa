@@ -37,3 +37,9 @@ Formato: `AAAA-MM-DD | quién (persona/agente) | área | qué cambió | archivos
 2026-11-06 | codex | frontend/alertas | Creado proveedor reutilizable de alertas accesibles y migradas las confirmaciones de usuarios | frontend/src/components/AlertProvider.jsx, frontend/src/main.jsx, frontend/src/modules/seguridad/UsuariosPage.jsx
 2026-11-07 | EmiValdeCobo | frontend/errores | Añadidas validación accesible por campo y gestión reutilizable de errores de API en formularios | frontend/src/modules/seguridad/UsuariosPage.jsx, frontend/src/components, frontend/src/errors
 2026-11-07 | Codex | inventario/backend | Implementados endpoints RBAC para catálogos, productos, BOM, stock, mermas, kardex y alertas mediante funciones SQL existentes | backend/src/modules/inventario, backend/src/models/inventario.js, backend/src/modules/index.js
+2026-11-07 | Codex | seguridad/modelos | Reexportados Permiso y RolPermiso desde el índice de modelos para corregir el arranque ESM del backend | backend/src/models/index.js
+2026-11-07 | Codex | dashboard/validacion | Añadido middleware validateQuery para validar y transformar parámetros de consulta del dashboard | backend/src/middlewares/validate.js
+2026-11-07 | Codex | dashboard/validacion | Ajustado validateQuery para mutar el objeto req.query existente porque Express lo expone como solo lectura | backend/src/middlewares/validate.js
+2026-11-07 | Codex | dashboard/controladores | Corregida la lectura de parámetros validados desde req.consulta a req.query | backend/src/modules/dashboard/dashboard.controller.js
+2026-11-07 | Codex | dashboard/demo | Añadido seeder repetible con ventas recientes, producto destacado y alertas visibles para completar el dashboard en desarrollo | database/seeders/002_dashboard_demo.sql
+2026-11-07 | Codex | dashboard/demo | Corregida referencia a id_producto en el detalle de ventas demo usando el alias de productos | database/seeders/002_dashboard_demo.sql

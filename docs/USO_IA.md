@@ -29,3 +29,9 @@ Formato: `fecha | integrante | herramienta/modelo | para qué se usó | quién v
 2026-11-06 | (equipo) | Codex | Creación de un sistema de alertas React accesible con confirmación, entrada, tipos semánticos, modo oscuro y migración de confirmaciones de usuarios | (completar: quién lo revisó)
 2026-11-07 | Codex | Implementación del backend de Inventario conforme al esquema y patrones existentes; el equipo debe revisar permisos, validaciones y funciones SQL antes de defender la integración | backend/src/modules/inventario, backend/src/models/inventario.js
 >>>>>>> Stashed changes
+2026-11-07 | Codex | Diagnóstico y corrección del error ESM por exportaciones faltantes en el índice de modelos del backend | backend/src/models/index.js
+2026-11-07 | Codex | Diagnóstico y corrección del export faltante validateQuery usado por las rutas del dashboard | backend/src/middlewares/validate.js
+2026-11-07 | Codex | Diagnóstico y corrección del intento de reasignar req.query, propiedad de solo lectura en Express | backend/src/middlewares/validate.js
+2026-11-07 | Codex | Diagnóstico y corrección de controladores del dashboard que leían una propiedad inexistente req.consulta | backend/src/modules/dashboard/dashboard.controller.js
+2026-11-07 | Codex | Generación de datos demo para validar visualmente el dashboard con ventas, ranking, stock bajo y pedido en preparación | database/seeders/002_dashboard_demo.sql
+2026-11-07 | Codex | Diagnóstico y corrección de columna inexistente en el seeder de ventas demo | database/seeders/002_dashboard_demo.sql
