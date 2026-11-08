@@ -159,7 +159,7 @@ export default function UsuariosPage() {
         api.get('/seguridad/sucursales'),
       ]);
       setUsuarios(usuariosData);
-      setRoles(rolesData);
+      setRoles(rolesData.filter((rol) => rol.activo)); // el endpoint también devuelve inactivos y no se pueden asignar
       setSucursales(sucursalesData);
     } catch (err) {
       setErrorCarga(traducirError(err));

@@ -34,4 +34,5 @@ Formato: `fecha | integrante | herramienta/modelo | para qué se usó | quién v
 2026-11-07 | Codex | Diagnóstico y corrección del intento de reasignar req.query, propiedad de solo lectura en Express | backend/src/middlewares/validate.js
 2026-11-07 | Codex | Diagnóstico y corrección de controladores del dashboard que leían una propiedad inexistente req.consulta | backend/src/modules/dashboard/dashboard.controller.js
 2026-11-07 | Codex | Generación de datos demo para validar visualmente el dashboard con ventas, ranking, stock bajo y pedido en preparación | database/seeders/002_dashboard_demo.sql
+2026-11-07 | Codex | Implementación asistida del panel de administración de roles y permisos, incluyendo CRUD, asignación RBAC y validaciones de interfaz | frontend/src/modules/seguridad, frontend/src/components
 2026-11-07 | Codex | Diagnóstico y corrección de columna inexistente en el seeder de ventas demo | database/seeders/002_dashboard_demo.sql
