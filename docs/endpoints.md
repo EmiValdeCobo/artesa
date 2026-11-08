@@ -31,6 +31,15 @@ Todas las respuestas de error usan `{ "error": "texto" }`, con `detalles` adicio
 | POST | `/api/turnos` | Cookie JWT + tipo admin | `CAJA_ABRIR_TURNO` | `{idCaja,montoApertura}` | 201; 400; 401; 403; 404; 409 |
 | GET | `/api/turnos/:idTurno/movimientos` | Cookie JWT + tipo admin | `CAJA_MOVIMIENTOS` o `CAJA_VER_CUADRES` | — | 200; 400; 401; 403; 404 |
 | POST | `/api/turnos/:idTurno/movimientos` | Cookie JWT + tipo admin | `CAJA_MOVIMIENTOS` | `{tipo:INGRESO\|EGRESO,concepto,monto}` | 201; 400; 401; 403; 404; 409 |
+| GET | `/api/turnos/cuadres` | Cookie JWT + tipo admin | `CAJA_VER_CUADRES` | query: `estado?,desde?,hasta?,idSucursal?` | 200; 400; 401; 403 |
+| POST | `/api/turnos/:idTurno/cierre` | Cookie JWT + tipo admin | `CAJA_CERRAR_TURNO` | `{efectivo,tarjeta,digital}` | 200; 400; 401; 403; 404; 409 |
+| GET | `/api/turnos/:idTurno/cuadre` | Cookie JWT + tipo admin | `CAJA_CERRAR_TURNO` o `CAJA_VER_CUADRES` | — | 200; 400; 401; 403; 404 |
+| GET | `/api/reportes/ventas-diarias` | Cookie JWT + tipo admin | `REP_VER_DASHBOARD` | query: `desde?,hasta?,idSucursal?` | 200; 400; 401; 403 |
+| GET | `/api/reportes/top-productos` | Cookie JWT + tipo admin | `REP_VER_DASHBOARD` | query: `desde?,hasta?,idSucursal?,limite?` | 200; 400; 401; 403 |
+| GET | `/api/reportes/alertas-stock` | Cookie JWT + tipo admin | `REP_VER_DASHBOARD` | query: `idSucursal?,nivel?` | 200; 400; 401; 403 |
+| GET | `/api/reportes/margen-productos` | Cookie JWT + tipo admin | `REP_VER_DASHBOARD` + `INV_VER_COSTOS` | — | 200; 401; 403 |
+| GET | `/api/preparacion/cola` | Cookie JWT + tipo admin | `POS_VER_COLA_PREPARACION` | query: `idSucursal?` | 200; 400; 401; 403 |
+| PATCH | `/api/preparacion/ordenes/:idOrden/estado` | Cookie JWT + tipo admin | `POS_VER_COLA_PREPARACION` | `{estado: EN_PREPARACION\|LISTA\|ENTREGADA}` | 200; 400; 401; 403; 404; 409 |
 | GET/POST | `/api/inventario/unidades` | Cookie JWT + tipo admin | `INV_GESTIONAR_INSUMOS` | `{codigo,nombre}` | 200/201; 400; 401; 403; 409 |
 | PUT/DELETE | `/api/inventario/unidades/:id` | Cookie JWT + tipo admin | `INV_GESTIONAR_INSUMOS` | PUT `{codigo,nombre}` | 200/204; 400; 401; 403; 404; 409 |
 | GET/POST | `/api/inventario/insumos` | Cookie JWT + tipo admin | `INV_VER_STOCK`, `INV_GESTIONAR_INSUMOS` o `INV_VER_COSTOS` para GET; `INV_GESTIONAR_INSUMOS` para POST | `{nombre,tipoInsumo,idUnidadBase,costoPromedio,activo?}` | 200/201; 400; 401; 403; 409 |
@@ -49,3 +58,4 @@ Caja: un solo turno `ABIERTO` por caja y por cajero (409; lo garantizan los índ
 
 Inventario: cada escritura se ejecuta con `withTransaction` y `app.user_id`; cambios de existencias y mermas llaman las funciones SQL existentes para serializar el stock y dejar kardex. Las consultas operativas filtran sucursales asignadas; el costo promedio se expone solo a quien tiene `INV_VER_COSTOS`. El esquema inicial ya incluye 12 productos elaborados, 3 de reventa y sus recetas.
 
+Cierre de turno: solo el cajero dueño, una vez (409 si ya está cerrado). Llama a `pos.fn_cerrar_turno`; las diferencias son `contado - esperado` (negativo = FALTANTE). Reportes: sin fechas usan los últimos 30 días; rango máximo 366 días; cada usuario ve solo sus sucursales (el rol ADMIN ve todas). Preparación: el estado solo avanza ABIERTA → EN_PREPARACION → LISTA → ENTREGADA.
