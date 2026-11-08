@@ -1,5 +1,5 @@
 import { CircleAlert, RefreshCw, TriangleAlert, X } from 'lucide-react';
-import { enlaceSoporte } from '../errors/soporte.js';
+import { enlaceSoporte } from '../../errors/soporte.js';
 
 // Mensaje de error EN LÍNEA (dentro de la pantalla o del formulario), para errores que no merecen
 // interrumpir: una lista que no cargó, un formulario que no se pudo guardar.

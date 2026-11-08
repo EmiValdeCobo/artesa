@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Minus, Store, TrendingDown, TrendingUp, UserRoundX } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
-import BannerError from '../../components/BannerError.jsx';
+import BannerError from '../../components/feedback/BannerError.jsx';
 import GraficaVentas from './GraficaVentas.jsx';
 import { Cargando, Panel, SelectorPeriodo, Vacio } from './Panel.jsx';
 import { etiquetaDiaLarga, formatoDinero, formatoEntero, horaDe } from './formato.js';

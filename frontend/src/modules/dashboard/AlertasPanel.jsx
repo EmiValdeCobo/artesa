@@ -1,5 +1,5 @@
 import { CircleAlert, CircleCheck, Store, TriangleAlert } from 'lucide-react';
-import BannerError from '../../components/BannerError.jsx';
+import BannerError from '../../components/feedback/BannerError.jsx';
 import { Cargando, Panel, Vacio } from './Panel.jsx';
 import { horaDe } from './formato.js';
 import { useDashboardData } from './useDashboardData.js';

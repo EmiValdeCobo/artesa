@@ -1,7 +1,7 @@
 import { Component } from 'react';
 import { RefreshCw, TriangleAlert } from 'lucide-react';
-import { registrarError } from '../errors/registro.js';
-import { enlaceSoporte } from '../errors/soporte.js';
+import { registrarError } from '../../errors/registro.js';
+import { enlaceSoporte } from '../../errors/soporte.js';
 
 // Última red de seguridad: si un componente falla al renderizar, en lugar de una pantalla en blanco
 // se muestra una página de error neutra. El detalle técnico (mensaje, stack) solo va a la consola/log.

@@ -36,3 +36,4 @@ Formato: `fecha | integrante | herramienta/modelo | para qué se usó | quién v
 2026-11-07 | Codex | Generación de datos demo para validar visualmente el dashboard con ventas, ranking, stock bajo y pedido en preparación | database/seeders/002_dashboard_demo.sql
 2026-11-07 | Codex | Implementación asistida del panel de administración de roles y permisos, incluyendo CRUD, asignación RBAC y validaciones de interfaz | frontend/src/modules/seguridad, frontend/src/components
 2026-11-07 | Codex | Diagnóstico y corrección de columna inexistente en el seeder de ventas demo | database/seeders/002_dashboard_demo.sql
+2026-11-07 | Codex | Reorganización segura de componentes reutilizables por función y actualización de rutas de importación | frontend/src/components, frontend/src/pages, frontend/src/layout, frontend/src/modules

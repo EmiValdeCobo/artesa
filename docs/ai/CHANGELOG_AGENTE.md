@@ -44,3 +44,4 @@ Formato: `AAAA-MM-DD | quién (persona/agente) | área | qué cambió | archivos
 2026-11-07 | Codex | dashboard/demo | Añadido seeder repetible con ventas recientes, producto destacado y alertas visibles para completar el dashboard en desarrollo | database/seeders/002_dashboard_demo.sql
 2026-11-07 | Codex | dashboard/demo | Corregida referencia a id_producto en el detalle de ventas demo usando el alias de productos | database/seeders/002_dashboard_demo.sql
 2026-11-07 | Codex | seguridad/frontend | Modernizado el panel de roles y permisos con CRUD, asignaciones, validaciones y componentes reutilizables | frontend/src/modules/seguridad, frontend/src/components, frontend/src/index.css
+2026-11-07 | Codex | frontend/componentes | Reorganizados los componentes reutilizables por función y actualizadas sus importaciones sin alterar el comportamiento | frontend/src/components, frontend/src/App.jsx, frontend/src/main.jsx

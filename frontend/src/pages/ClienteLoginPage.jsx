@@ -4,9 +4,9 @@ import { ArrowRight, CircleAlert, Mail } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { traducirError } from '../errors/traducirError.js';
 import AuthLayout from '../layout/AuthLayout.jsx';
-import CampoTexto from '../components/CampoTexto.jsx';
-import PasswordInput from '../components/PasswordInput.jsx';
-import { HiloSpinner } from '../components/Espiral.jsx';
+import CampoTexto from '../components/forms/CampoTexto.jsx';
+import PasswordInput from '../components/forms/PasswordInput.jsx';
+import { HiloSpinner } from '../components/branding/Espiral.jsx';
 
 export default function ClienteLoginPage() {
   const { usuario, tipoSesion, login } = useAuth();

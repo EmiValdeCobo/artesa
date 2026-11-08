@@ -1,7 +1,7 @@
 import { useId } from 'react';
 import { ShoppingBag, UserRound } from 'lucide-react';
 import Marca from './Marca.jsx';
-import { rutaEspiral } from '../components/Espiral.jsx';
+import { rutaEspiral } from '../components/branding/Espiral.jsx';
 
 /* Panel de marca del PORTAL DE CLIENTES — "la mesa".
    Terracota con mantel de cuadros y, vista desde arriba, la voluta del isotipo hecha pan dulce sobre un plato.

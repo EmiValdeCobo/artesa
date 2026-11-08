@@ -3,9 +3,9 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { ArrowRight, CircleAlert, ConciergeBell, LockKeyhole, UserRound } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { traducirError } from '../errors/traducirError.js';
-import CampoBorde from '../components/CampoBorde.jsx';
+import CampoBorde from '../components/forms/CampoBorde.jsx';
 import Marca from '../layout/Marca.jsx';
-import { HiloSpinner } from '../components/Espiral.jsx';
+import { HiloSpinner } from '../components/branding/Espiral.jsx';
 import { EscenaBarra, RastroServicio, SiluetaDerecha, SiluetaIzquierda } from '../layout/LoginAdminArte.jsx';
 
 const retardo = (ms) => ({ '--retardo': `${ms}ms` });

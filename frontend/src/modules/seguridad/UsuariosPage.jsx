@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Edit3, Plus, Search, ShieldCheck, Trash2, UserCheck, UserRound, UserX, X } from 'lucide-react';
 import { api } from '../../api/client.js';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { useAlert } from '../../components/AlertProvider.jsx';
-import BannerError from '../../components/BannerError.jsx';
-import CampoError, { idError } from '../../components/CampoError.jsx';
+import { useAlert } from '../../components/feedback/AlertProvider.jsx';
+import BannerError from '../../components/feedback/BannerError.jsx';
+import CampoError, { idError } from '../../components/forms/CampoError.jsx';
 import Dialogo from '../../components/Dialogo.jsx';
 import { traducirError } from '../../errors/traducirError.js';
 

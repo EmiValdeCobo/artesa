@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Lock, X } from 'lucide-react';
 import { api } from '../../api/client.js';
-import BannerError from '../../components/BannerError.jsx';
+import BannerError from '../../components/feedback/BannerError.jsx';
 import Dialogo from '../../components/Dialogo.jsx';
 import { traducirError } from '../../errors/traducirError.js';
-import Insignia from '../../components/Insignia.jsx';
+import Insignia from '../../components/branding/Insignia.jsx';
 import { motivoBloqueoRevocar } from './rbac.js';
 
 // Asigna o quita UN permiso a varios roles. Cada casilla se aplica al instante:

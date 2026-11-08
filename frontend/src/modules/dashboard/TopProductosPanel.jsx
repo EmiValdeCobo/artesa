@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Coffee, Store } from 'lucide-react';
-import BannerError from '../../components/BannerError.jsx';
+import BannerError from '../../components/feedback/BannerError.jsx';
 import { Cargando, Panel, SelectorPeriodo, Vacio } from './Panel.jsx';
 import { formatoDinero, formatoEntero } from './formato.js';
 import { useDashboardData } from './useDashboardData.js';
