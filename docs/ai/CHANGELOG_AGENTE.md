@@ -43,4 +43,3 @@ Formato: `AAAA-MM-DD | quién (persona/agente) | área | qué cambió | archivos
 2026-11-07 | Codex | dashboard/controladores | Corregida la lectura de parámetros validados desde req.consulta a req.query | backend/src/modules/dashboard/dashboard.controller.js
 2026-11-07 | Codex | dashboard/demo | Añadido seeder repetible con ventas recientes, producto destacado y alertas visibles para completar el dashboard en desarrollo | database/seeders/002_dashboard_demo.sql
 2026-11-07 | Codex | dashboard/demo | Corregida referencia a id_producto en el detalle de ventas demo usando el alias de productos | database/seeders/002_dashboard_demo.sql
-2026-11-07 | Codex | seguridad/frontend | Modernizado el panel de roles y permisos con CRUD, asignaciones, validaciones y componentes reutilizables | frontend/src/modules/seguridad, frontend/src/components, frontend/src/index.css
