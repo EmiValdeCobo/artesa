@@ -47,5 +47,5 @@ Un token de cliente nunca alcanza el middleware de permisos de administración: 
 
 Caja: un solo turno `ABIERTO` por caja y por cajero (409; lo garantizan los índices únicos de la BD). Solo el cajero dueño del turno registra movimientos y solo en turnos abiertos; un `EGRESO` mayor al efectivo esperado devuelve 409. Los montos viajan como número o texto con máximo 2 decimales y se devuelven como string.
 
-Inventario: cada escritura se ejecuta con `withTransaction` y `app.user_id`; cambios de existencias y mermas llaman las funciones SQL existentes para serializar el stock y dejar kardex. Las consultas operativas filtran sucursales asignadas; el costo promedio se expone solo a quien tiene `INV_VER_COSTOS`. El esquema inicial ya incluye 12 productos elaborados, 3 de reventa y sus recetas.
+Inventario: cada escritura se ejecuta con `withTransaction` y `app.user_id`; cambios de existencias y mermas llaman las funciones SQL existentes para serializar el stock y dejar kardex. Las consultas operativas filtran sucursales asignadas; el costo promedio y `costo_unitario` del kardex solo se exponen a quien tiene `INV_VER_COSTOS`. `/api/inventario/movimientos` devuelve hasta 500 movimientos recientes después de aplicar el aislamiento por sucursal. El esquema inicial ya incluye 12 productos elaborados, 3 de reventa y sus recetas.
 
