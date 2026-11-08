@@ -1,24 +1,30 @@
 import { useAuth } from '../context/AuthContext.jsx';
+import AlertasPanel from '../modules/dashboard/AlertasPanel.jsx';
+import TopProductosPanel from '../modules/dashboard/TopProductosPanel.jsx';
+import VentasDiariasPanel from '../modules/dashboard/VentasDiariasPanel.jsx';
+import { PERMISOS_ALERTAS, PERMISOS_TOP, PERMISOS_VENTAS } from '../modules/dashboard/permisos.js';
 
-/* Inicio. Rejilla de 12 columnas pensada para crecer: cada gráfica futura es un objeto
-   en PANELES con su título, su componente y cuántas columnas ocupa (de 3 a 12).
-   Ejemplo:  { id: 'ventas-hora', titulo: 'Ventas por hora', cols: 8, Componente: VentasPorHora }
-   Mientras la lista esté vacía, la rejilla muestra un hueco señalizado. */
-const PANELES = [];
+/* Inicio. Rejilla de 12 columnas: cada bloque es un objeto en PANELES con los permisos que lo habilitan.
+   Para sumar una gráfica nueva basta otro objeto con su componente; si el usuario no tiene ninguno de sus
+   permisos, el bloque ni se pide ni se pinta (y el servidor igual respondería 403). */
+const PANELES = [
+  { id: 'ventas', permisos: PERMISOS_VENTAS, Componente: VentasDiariasPanel },
+  { id: 'top', permisos: PERMISOS_TOP, Componente: TopProductosPanel },
+  { id: 'alertas', permisos: PERMISOS_ALERTAS, Componente: AlertasPanel },
+];
 
-const COLUMNAS = { 3: 'lg:col-span-3', 4: 'lg:col-span-4', 6: 'lg:col-span-6', 8: 'lg:col-span-8', 12: 'lg:col-span-12' };
-
-function Panel({ titulo, cols = 6, children }) {
-  return (
-    <section className={`col-span-12 border border-line bg-surface ${COLUMNAS[cols] ?? COLUMNAS[6]}`}>
-      <h2 className="border-b border-line px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-fg-muted">{titulo}</h2>
-      <div className="p-4">{children}</div>
-    </section>
-  );
+// Ancho de cada bloque según cuáles tiene el usuario: sin ventas, las notificaciones pasan al lugar principal.
+function anchos(ids) {
+  const tiene = (id) => ids.includes(id);
+  if (tiene('ventas')) return { ventas: tiene('top') ? 8 : 12, top: 4, alertas: 12 };
+  return { top: tiene('alertas') ? 4 : 12, alertas: tiene('top') ? 8 : 12 };
 }
 
 export default function DashboardPage() {
-  const { usuario } = useAuth();
+  const { usuario, tiene } = useAuth();
+  const visibles = PANELES.filter((p) => p.permisos.some(tiene));
+  const ancho = anchos(visibles.map((p) => p.id));
+  const sinVentas = !visibles.some((p) => p.id === 'ventas');
   const sucursales = usuario.sucursales.map((s) => s.nombre).join(', ') || 'Sin sucursal asignada';
   const fecha = new Date().toLocaleDateString('es-SV', { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -37,9 +43,9 @@ export default function DashboardPage() {
       </header>
 
       <div className="mt-6 grid grid-cols-12 gap-4" data-zona="graficas">
-        {PANELES.length
-          ? PANELES.map(({ id, titulo, cols, Componente }) => <Panel key={id} titulo={titulo} cols={cols}><Componente /></Panel>)
-          : <div className="col-span-12 flex min-h-56 items-center justify-center border border-dashed border-line px-6 text-center text-sm text-fg-muted">Espacio reservado para las gráficas del negocio.</div>}
+        {visibles.length
+          ? visibles.map(({ id, Componente }) => <Componente key={id} cols={ancho[id]} titulo={sinVentas ? 'Notificaciones de tu área' : 'Alertas'} />)
+          : <div className="col-span-12 flex min-h-56 items-center justify-center border border-dashed border-line px-6 text-center text-sm text-fg-muted">Tu rol no tiene bloques asignados en el inicio. Si los necesitas, pídelos a un administrador.</div>}
       </div>
     </div>
   );

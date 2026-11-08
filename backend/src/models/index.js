@@ -11,4 +11,4 @@ Permiso.belongsToMany(Rol, { through: RolPermiso, foreignKey: 'id_permiso', othe
 Usuario.belongsToMany(Sucursal, { through: UsuarioSucursal, foreignKey: 'id_usuario', otherKey: 'id_sucursal', as: 'sucursales' });
 Sucursal.belongsToMany(Usuario, { through: UsuarioSucursal, foreignKey: 'id_sucursal', otherKey: 'id_usuario', as: 'usuarios' });
 
-export { Rol, Usuario, UsuarioSucursal, Sucursal, Cliente, Caja, TurnoCaja, MovimientoCaja, UnidadMedida, Insumo, CategoriaProducto, Producto, Receta };
+export { Permiso, Rol, RolPermiso, Usuario, UsuarioSucursal, Sucursal, Cliente, Caja, TurnoCaja, MovimientoCaja, UnidadMedida, Insumo, CategoriaProducto, Producto, Receta };
