@@ -37,3 +37,4 @@ Formato: `fecha | integrante | herramienta/modelo | para qué se usó | quién v
 2026-11-07 | Codex | Implementación asistida del panel de administración de roles y permisos, incluyendo CRUD, asignación RBAC y validaciones de interfaz | frontend/src/modules/seguridad, frontend/src/components
 2026-11-07 | Codex | Diagnóstico y corrección de columna inexistente en el seeder de ventas demo | database/seeders/002_dashboard_demo.sql
 2026-11-07 | Codex | Reorganización segura de componentes reutilizables por función y actualización de rutas de importación | frontend/src/components, frontend/src/pages, frontend/src/layout, frontend/src/modules
+2026-11-08 | Andres | Claude | Backend de cierre y cuadre de turno (T22), reportes (T23) y cola de preparación (T24) con pruebas contra PostgreSQL | Andres

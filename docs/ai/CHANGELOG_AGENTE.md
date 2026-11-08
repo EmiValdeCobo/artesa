@@ -45,3 +45,6 @@ Formato: `AAAA-MM-DD | quién (persona/agente) | área | qué cambió | archivos
 2026-11-07 | Codex | dashboard/demo | Corregida referencia a id_producto en el detalle de ventas demo usando el alias de productos | database/seeders/002_dashboard_demo.sql
 2026-11-07 | Codex | seguridad/frontend | Modernizado el panel de roles y permisos con CRUD, asignaciones, validaciones y componentes reutilizables | frontend/src/modules/seguridad, frontend/src/components, frontend/src/index.css
 2026-11-07 | Codex | frontend/componentes | Reorganizados los componentes reutilizables por función y actualizadas sus importaciones sin alterar el comportamiento | frontend/src/components, frontend/src/App.jsx, frontend/src/main.jsx
+2026-11-08 | Andres/claude | caja | Cierre de turno con pos.fn_cerrar_turno y cuadre (esperado/contado/diferencia) | backend/src/modules/caja, backend/src/utils/rangoFechas.js
+2026-11-08 | Andres/claude | reportes | GET de ventas diarias, top productos, alertas de stock y margen sobre las vistas reportes.* | backend/src/modules/reportes, backend/src/modules/index.js
+2026-11-08 | Andres/claude | pos | Cola de órdenes y cambio de estado (ABIERTA→EN_PREPARACION→LISTA→ENTREGADA) | backend/src/modules/pos/preparacion.*.js, backend/src/modules/index.js
