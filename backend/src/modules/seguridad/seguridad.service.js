@@ -27,7 +27,7 @@ export const listarPermisos = () => repo.listarPermisos();
 
 function traducirErrorRbac(error) {
   const origen = error.original ?? error.parent ?? error;
-  if (origen.code === '23505' && origen.constraint === 'roles_nombre_key') return new AppError('El nombre del rol ya existe', 409);
+  if (origen.code === '23505' && ['roles_nombre_key', 'uq_roles_nombre_activos'].includes(origen.constraint)) return new AppError('El nombre del rol ya existe entre los roles activos', 409);
   if (origen.code === '23505' && origen.constraint === 'permisos_codigo_key') return new AppError('El código del permiso ya existe', 409);
   if (origen.code === '23505') return new AppError('La asignación ya existe', 409);
   if (origen.code === '23503') return new AppError('El recurso referenciado no existe o está en uso', 409);
@@ -38,6 +38,28 @@ async function validarRolActivo(transaction, idRol) {
   const rol = await repo.buscarRol(idRol, transaction);
   if (!rol || !rol.activo) throw new AppError('El rol no existe o está inactivo', 404);
   return rol;
+}
+
+async function validarRolGestionable(transaction, idRol, userId) {
+  const rol = await validarRolActivo(transaction, idRol);
+  if (rol.es_sistema) throw new AppError('Los roles del sistema no se pueden modificar', 409);
+  const rolDelUsuario = await repo.buscarIdRolUsuario(transaction, userId);
+  if (String(rolDelUsuario) === String(idRol)) {
+    throw new AppError('No puedes modificar los privilegios del rol que estás utilizando', 403);
+  }
+  return rol;
+}
+
+function validarPermisoProtegido(permiso) {
+  if (permiso?.codigo?.startsWith('SEG_')) {
+    throw new AppError('Los permisos SEG_* están protegidos y no se pueden modificar', 403);
+  }
+}
+
+function validarCodigoPermisoProtegido(codigo) {
+  if (codigo?.startsWith('SEG_')) {
+    throw new AppError('Los permisos SEG_* están protegidos y no se pueden crear o renombrar', 403);
+  }
 }
 
 async function validarPermisos(transaction, idsPermisos) {
@@ -54,7 +76,7 @@ export async function crearRol(datos, userId) {
 export async function actualizarRol(idRol, datos, userId) {
   try {
     return await withTransaction(async (transaction) => {
-      await validarRolActivo(transaction, idRol);
+      await validarRolGestionable(transaction, idRol, userId);
       if (!(await repo.actualizarRol(transaction, idRol, datos))) throw new AppError('Rol no encontrado', 404);
       return repo.buscarRol(idRol, transaction);
     }, userId);
@@ -66,20 +88,32 @@ export async function eliminarRol(idRol, userId) {
     await withTransaction(async (transaction) => {
       const rol = await validarRolActivo(transaction, idRol);
       if (rol.es_sistema) throw new AppError('Los roles del sistema no se pueden eliminar', 409);
+      if (String(await repo.buscarIdRolUsuario(transaction, userId)) === String(idRol)) {
+        throw new AppError('No puedes eliminar el rol que estás utilizando', 403);
+      }
+      if (await repo.contarUsuariosPorRol(transaction, idRol)) {
+        throw new AppError('No puedes eliminar un rol que tiene usuarios asignados', 409);
+      }
       if (!(await repo.eliminarRol(transaction, idRol))) throw new AppError('Rol no encontrado', 404);
     }, userId);
   } catch (error) { throw traducirErrorRbac(error); }
 }
 
 export async function crearPermiso(datos, userId) {
-  try { return await withTransaction((transaction) => repo.crearPermiso(transaction, datos), userId); }
+  try {
+    validarCodigoPermisoProtegido(datos.codigo);
+    return await withTransaction((transaction) => repo.crearPermiso(transaction, datos), userId);
+  }
   catch (error) { throw traducirErrorRbac(error); }
 }
 
 export async function actualizarPermiso(idPermiso, datos, userId) {
   try {
     return await withTransaction(async (transaction) => {
-      if (!(await repo.buscarPermiso(idPermiso, transaction))) throw new AppError('Permiso no encontrado', 404);
+      const permiso = await repo.buscarPermiso(idPermiso, transaction);
+      if (!permiso) throw new AppError('Permiso no encontrado', 404);
+      validarPermisoProtegido(permiso);
+      validarCodigoPermisoProtegido(datos.codigo);
       if (!(await repo.actualizarPermiso(transaction, idPermiso, datos))) throw new AppError('Permiso no encontrado', 404);
       return repo.buscarPermiso(idPermiso, transaction);
     }, userId);
@@ -89,13 +123,17 @@ export async function actualizarPermiso(idPermiso, datos, userId) {
 export async function eliminarPermiso(idPermiso, userId) {
   try {
     await withTransaction(async (transaction) => {
-      if (!(await repo.buscarPermiso(idPermiso, transaction))) throw new AppError('Permiso no encontrado', 404);
+      const permiso = await repo.buscarPermiso(idPermiso, transaction);
+      if (!permiso) throw new AppError('Permiso no encontrado', 404);
+      validarPermisoProtegido(permiso);
       await repo.eliminarPermiso(transaction, idPermiso);
     }, userId);
   } catch (error) { throw traducirErrorRbac(error); }
 }
 
 export async function listarPermisosDeRol(idRol) {
+  const rol = await repo.buscarRol(idRol);
+  if (!rol || !rol.activo) throw new AppError('El rol no existe o está inactivo', 404);
   const permisos = await repo.listarPermisosRol(idRol);
   if (!permisos) throw new AppError('Rol no encontrado', 404);
   return permisos;
@@ -104,7 +142,7 @@ export async function listarPermisosDeRol(idRol) {
 export async function reemplazarPermisos(idRol, idsPermisos, userId) {
   try {
     return await withTransaction(async (transaction) => {
-      await validarRolActivo(transaction, idRol);
+      await validarRolGestionable(transaction, idRol, userId);
       await validarPermisos(transaction, idsPermisos);
       await repo.reemplazarPermisos(transaction, idRol, idsPermisos);
       return repo.listarPermisosRol(idRol, transaction);
@@ -115,7 +153,7 @@ export async function reemplazarPermisos(idRol, idsPermisos, userId) {
 export async function asignarPermiso(idRol, idPermiso, userId) {
   try {
     return await withTransaction(async (transaction) => {
-      await validarRolActivo(transaction, idRol);
+      await validarRolGestionable(transaction, idRol, userId);
       await validarPermisos(transaction, [idPermiso]);
       await repo.asignarPermiso(transaction, idRol, idPermiso);
       return repo.listarPermisosRol(idRol, transaction);
@@ -126,7 +164,7 @@ export async function asignarPermiso(idRol, idPermiso, userId) {
 export async function revocarPermiso(idRol, idPermiso, userId) {
   try {
     await withTransaction(async (transaction) => {
-      await validarRolActivo(transaction, idRol);
+      await validarRolGestionable(transaction, idRol, userId);
       const afectados = await repo.revocarPermiso(transaction, idRol, idPermiso);
       if (!afectados) throw new AppError('La asignación no existe', 404);
     }, userId);
@@ -151,6 +189,9 @@ export async function actualizarUsuario(idUsuario, datos, userId) {
   try {
     return await withTransaction(async (transaction) => {
       await validarReferencias(transaction, datos.idRol, datos.sucursales);
+      if (String(idUsuario) === String(userId) && String(await repo.buscarIdRolUsuario(transaction, idUsuario)) !== String(datos.idRol)) {
+        throw new AppError('No puedes cambiarte a otro rol desde tu propia cuenta', 403);
+      }
       const passwordHash = datos.password ? await bcrypt.hash(datos.password, 10) : null;
       const actualizado = await repo.actualizarUsuario(transaction, idUsuario, { ...datos, passwordHash });
       if (!actualizado) throw new AppError('Usuario no encontrado', 404);

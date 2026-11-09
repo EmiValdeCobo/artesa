@@ -11,7 +11,12 @@ export const requirePermiso = (...codigos) => async (req, _res, next) => {
        JOIN seguridad.roles_permisos rp ON rp.id_rol = u.id_rol
        JOIN seguridad.permisos p ON p.id_permiso = rp.id_permiso
        JOIN seguridad.roles r ON r.id_rol = u.id_rol
-       WHERE u.id_usuario = $1::uuid AND u.activo AND r.activo AND p.codigo = ANY($2::text[])`,
+       WHERE u.id_usuario = $1::uuid
+         AND u.activo
+         AND u.deleted_at IS NULL
+         AND r.activo
+         AND r.deleted_at IS NULL
+         AND p.codigo = ANY($2::text[])`,
       [req.user.id, codigos],
     );
     if (rows.length > 0) return next();
