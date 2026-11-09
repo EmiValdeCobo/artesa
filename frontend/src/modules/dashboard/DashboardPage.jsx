@@ -1,10 +1,10 @@
-import { useAuth } from '../context/AuthContext.jsx';
-import AlertasPanel from '../modules/dashboard/AlertasPanel.jsx';
-import TopProductosPanel from '../modules/dashboard/TopProductosPanel.jsx';
-import VentasDiariasPanel from '../modules/dashboard/VentasDiariasPanel.jsx';
-import { fechaNegocio, horaNegocio, saludoPorHora } from '../modules/dashboard/formato.js';
-import { PERMISOS_ALERTAS, PERMISOS_TOP, PERMISOS_VENTAS } from '../modules/dashboard/permisos.js';
-import { useAhora } from '../modules/dashboard/useAhora.js';
+import { useAuth } from '../../context/AuthContext.jsx';
+import AlertasPanel from './paneles/AlertasPanel.jsx';
+import TopProductosPanel from './paneles/TopProductosPanel.jsx';
+import VentasDiariasPanel from './paneles/VentasDiariasPanel.jsx';
+import { fechaNegocio, horaNegocio, saludoPorHora } from '../../utils/formato.js';
+import { PERMISOS_ALERTAS, PERMISOS_TOP, PERMISOS_VENTAS } from './lib/permisos.js';
+import { useAhora } from '../../hooks/useAhora.js';
 
 /* Inicio. Rejilla de 12 columnas: cada bloque es un objeto en PANELES con los permisos que lo habilitan.
    Para sumar una gráfica nueva basta otro objeto con su componente; si el usuario no tiene ninguno de sus

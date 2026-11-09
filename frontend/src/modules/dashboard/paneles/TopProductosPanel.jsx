@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react';
 import { Coffee, Store } from 'lucide-react';
-import AvisoError from './AvisoError.jsx';
-import { Cargando, Panel, SelectorPeriodo, Vacio } from './Panel.jsx';
-import { TooltipContenido, TooltipFlotante } from './Tooltip.jsx';
-import { formatoDinero, formatoEntero } from './formato.js';
-import { useDashboardData } from './useDashboardData.js';
+import AvisoError from '../../../components/feedback/AvisoError.jsx';
+import { Cargando, Panel, SelectorPeriodo, Vacio } from '../components/Panel.jsx';
+import { TooltipContenido, TooltipFlotante } from '../../../components/display/Tooltip.jsx';
+import { formatoDinero, formatoEntero } from '../../../utils/formato.js';
+import { useDashboardData } from '../hooks/useDashboardData.js';
 
 const PERIODOS = [[1, 'Hoy'], [7, '7 días'], [30, '30 días']];
 const textoPeriodo = (dias) => (dias === 1 ? 'hoy' : `últimos ${dias} días`);

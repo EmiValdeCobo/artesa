@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api } from '../../api/client.js';
-import { describirError } from './errores.js';
+import { api } from '../../../api/client.js';
+import { describirError } from '../lib/errores.js';
 
 // Carga un bloque del dashboard con estados explícitos:
 //   cargando  → primera carga (aún no hay datos)

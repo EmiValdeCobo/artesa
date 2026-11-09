@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Minus, Store, TrendingDown, TrendingUp, UserRoundX } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext.jsx';
-import AvisoError from './AvisoError.jsx';
-import GraficaVentas, { LeyendaVentas } from './GraficaVentas.jsx';
-import { Cargando, Panel, SelectorPeriodo, Vacio } from './Panel.jsx';
-import Actualizado from './Actualizado.jsx';
-import { formatoDinero, formatoEntero } from './formato.js';
-import { useDashboardData } from './useDashboardData.js';
+import { useAuth } from '../../../context/AuthContext.jsx';
+import AvisoError from '../../../components/feedback/AvisoError.jsx';
+import GraficaVentas, { LeyendaVentas } from '../components/GraficaVentas.jsx';
+import { Cargando, Panel, SelectorPeriodo, Vacio } from '../components/Panel.jsx';
+import Actualizado from '../../../components/display/Actualizado.jsx';
+import { formatoDinero, formatoEntero } from '../../../utils/formato.js';
+import { useDashboardData } from '../hooks/useDashboardData.js';
 
 const PERIODOS = [[7, '7 días'], [14, '14 días'], [30, '30 días']];
 

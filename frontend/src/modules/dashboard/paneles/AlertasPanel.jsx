@@ -1,8 +1,8 @@
 import { CircleAlert, CircleCheck, Store, TriangleAlert } from 'lucide-react';
-import AvisoError from './AvisoError.jsx';
-import { Cargando, Panel, Vacio } from './Panel.jsx';
-import Actualizado from './Actualizado.jsx';
-import { useDashboardData } from './useDashboardData.js';
+import AvisoError from '../../../components/feedback/AvisoError.jsx';
+import { Cargando, Panel, Vacio } from '../components/Panel.jsx';
+import Actualizado from '../../../components/display/Actualizado.jsx';
+import { useDashboardData } from '../hooks/useDashboardData.js';
 
 const SEVERIDAD = {
   critica: { Icono: CircleAlert, texto: 'Crítica', clase: 'border-danger text-danger' },

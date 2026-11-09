@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { TooltipContenido, TooltipFlotante } from './Tooltip.jsx';
-import { calcularEje, capitalizar, etiquetaDia, etiquetaDiaLarga, formatoDinero, formatoEje, formatoEntero } from './formato.js';
+import { TooltipContenido, TooltipFlotante } from '../../../components/display/Tooltip.jsx';
+import { capitalizar, etiquetaDia, etiquetaDiaLarga, formatoDinero, formatoEntero } from '../../../utils/formato.js';
+import { calcularEje, formatoEje } from '../lib/ejes.js';
 
 // Gráfica de barras en SVG propio (el proyecto no permite añadir librerías de gráficos sin consultar al Tech Lead).
 // Se dibuja en píxeles reales del contenedor (no se escala un viewBox), así el texto siempre mide lo mismo.

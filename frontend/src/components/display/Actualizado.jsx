@@ -1,6 +1,6 @@
 import { RefreshCw } from 'lucide-react';
-import { haceCuanto } from './formato.js';
-import { useAhora } from './useAhora.js';
+import { haceCuanto } from '../../utils/formato.js';
+import { useAhora } from '../../hooks/useAhora.js';
 
 // Pie de cada bloque: cuán reciente es lo que se ve y un botón para refrescar al momento.
 export default function Actualizado({ instante, actualizando, onRecargar }) {
