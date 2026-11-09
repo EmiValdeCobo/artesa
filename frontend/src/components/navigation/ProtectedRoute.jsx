@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 
 export default function ProtectedRoute({ permiso, portal = 'admin', children }) {
   const { usuario, tipoSesion, tiene, cargando } = useAuth();
@@ -21,7 +21,7 @@ export default function ProtectedRoute({ permiso, portal = 'admin', children }) 
       <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
         <h2 className="text-xl font-bold text-danger">Acceso no autorizado</h2>
         <p className="mt-2 text-sm text-fg-muted">
-          No tienes el permiso <code>{permiso}</code> necesario para ver esta pantalla.
+          Esta pantalla no está disponible para tu cuenta. Si la necesitas, pídela a un administrador.
         </p>
       </div>
     );

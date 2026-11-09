@@ -95,6 +95,18 @@
   --info:    #8db6e0; --info-soft:    #1b2836;
 }
 
+/* ---- Variante de acento del portal de clientes -------------------------------
+   Mismo sistema, otro acento: Ocre en lugar de Terracota. Se activa con la clase
+   .tema-cliente en un contenedor; todo lo que use bg-primary / text-primary-text /
+   ring-primary dentro de él cambia solo. Texto sobre ocre = Espresso (contraste AA). */
+.tema-cliente {
+  --accent: #e1a651; --accent-hover: #c58a38; --accent-soft: #fdf7ea;
+  --accent-text: #7a5224; --text-on-accent: #321f19; --ring: #c58a38;
+}
+.dark .tema-cliente {
+  --accent-soft: #3a2b18; --accent-text: #edc173; --ring: #e8b866;
+}
+
 /* Expone los tokens como utilidades: bg-background, text-fg, border-line, ... */
 @theme inline {
   --color-background: var(--bg-primary);
@@ -166,6 +178,8 @@
            transition-colors disabled:opacity-60 disabled:pointer-events-none
            bg-danger text-white hover:opacity-90;
   }
+  /* En modo oscuro --danger es un rojo claro (pensado para texto): el texto del botón debe ser oscuro para cumplir AA. */
+  .dark .btn-danger { color: var(--color-espresso-950); }
 
   /* Campo de formulario de las pantallas de acceso (más alto, esquinas amplias, foco con halo) */
   .input-auth {
@@ -174,15 +188,44 @@
            aria-invalid:border-danger aria-invalid:ring-4 aria-invalid:ring-danger/15;
   }
 
+  /* Login administrativo: esquinas rectas, regla gruesa y sombra dura (solo bajo .auth-admin) */
+  .auth-admin .input-auth { @apply rounded-none border-fg/40 focus:ring-0 focus:border-fg focus:shadow-[3px_3px_0_0_var(--accent)]; }
+  .auth-admin .input-auth[aria-invalid='true'] { @apply border-danger shadow-[3px_3px_0_0_var(--danger)]; }
+  .btn-duro { @apply rounded-none shadow-[4px_4px_0_0_var(--text-primary)] transition-[transform,box-shadow] hover:-translate-x-px hover:-translate-y-px hover:shadow-[5px_5px_0_0_var(--text-primary)] active:translate-x-1 active:translate-y-1 active:shadow-none; }
+  .dark .btn-duro { box-shadow: 4px 4px 0 0 var(--secondary); }
+  .dark .btn-duro:hover { box-shadow: 5px 5px 0 0 #e1a651; }
+  .dark .btn-duro:active { box-shadow: none; }
+  .scroll-fino {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+  .scroll-fino:hover, .scroll-fino:focus-within {
+    scrollbar-color: color-mix(in srgb, var(--text-secondary) 45%, transparent) transparent;
+  }
+  .scroll-fino::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scroll-fino::-webkit-scrollbar-track { background: transparent; }
+  .scroll-fino::-webkit-scrollbar-thumb { background: transparent; border-radius: 9999px; }
+  .scroll-fino:hover::-webkit-scrollbar-thumb, .scroll-fino:focus-within::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text-secondary) 45%, transparent); }
+  .scroll-fino::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+
   /* Microinteracciones del login */
   .anim-subir { animation: subir .7s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--retardo, 0ms); }
   .anim-sacudir { animation: sacudir .45s ease-in-out; }
+  /* Diálogos y avisos: entrada breve (hoja desde abajo en móvil, escala en escritorio) */
+  .anim-scrim { animation: scrim .18s ease-out both; }
+  .anim-dialogo { animation: dialogo-movil .22s cubic-bezier(.2,.7,.2,1) both; }
+  .anim-toast { animation: toast .22s cubic-bezier(.2,.7,.2,1) both; }
+  @media (min-width: 40rem) { .anim-dialogo { animation-name: dialogo; } }
   .hilo-trazo { stroke-dasharray: 1; animation: hilo 3.4s cubic-bezier(.4,0,.2,1) both; }
   @media (prefers-reduced-motion: reduce) {
-    .anim-subir, .anim-sacudir, .hilo-trazo { animation: none; }
+    .anim-subir, .anim-sacudir, .hilo-trazo, .anim-scrim, .anim-dialogo, .anim-toast { animation: none; }
   }
 }
 
 @keyframes subir { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 @keyframes sacudir { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
 @keyframes hilo { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes scrim { from { opacity: 0; } to { opacity: 1; } }
+@keyframes dialogo { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes dialogo-movil { from { opacity: .6; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes toast { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }

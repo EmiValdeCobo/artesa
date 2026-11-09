@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { menu, filtrarMenu } from '../config/menu.js';
 import { useSidebar } from '../hooks/useSidebar.js';
 import { useTheme } from '../hooks/useTheme.js';
-import Logo from '../components/Logo.jsx';
+import Logo from '../components/branding/Logo.jsx';
 
 /* ---------------------------------------------------------------------------
    Sidebar de artesa

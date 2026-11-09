@@ -4,16 +4,28 @@ import { requirePermiso } from '../../middlewares/permisos.js';
 import { validate } from '../../middlewares/validate.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import * as controller from './seguridad.controller.js';
-import { actualizarUsuarioSchema, crearUsuarioSchema } from './seguridad.schemas.js';
+import { actualizarPermisoSchema, actualizarRolSchema, actualizarUsuarioSchema, asignarPermisosSchema, crearPermisoSchema, crearRolSchema, crearUsuarioSchema } from './seguridad.schemas.js';
 
 const router = Router();
 router.use(authenticate, requireTipo('admin'));
 router.get('/usuarios', requirePermiso('SEG_GESTIONAR_USUARIOS'), asyncHandler(controller.listarUsuarios));
-router.get('/roles', requirePermiso('SEG_GESTIONAR_USUARIOS'), asyncHandler(controller.listarRoles));
+router.get('/roles', requirePermiso('SEG_GESTIONAR_USUARIOS', 'SEG_GESTIONAR_ROLES'), asyncHandler(controller.listarRoles));
+router.post('/roles', requirePermiso('SEG_GESTIONAR_ROLES'), validate(crearRolSchema), asyncHandler(controller.crearRol));
+router.put('/roles/:id', requirePermiso('SEG_GESTIONAR_ROLES'), validate(actualizarRolSchema), asyncHandler(controller.actualizarRol));
+router.delete('/roles/:id', requirePermiso('SEG_GESTIONAR_ROLES'), asyncHandler(controller.eliminarRol));
+router.get('/roles/:id/permisos', requirePermiso('SEG_GESTIONAR_ROLES'), asyncHandler(controller.listarPermisosDeRol));
+router.put('/roles/:id/permisos', requirePermiso('SEG_GESTIONAR_ROLES'), validate(asignarPermisosSchema), asyncHandler(controller.reemplazarPermisos));
+router.post('/roles/:id/permisos/:idPermiso', requirePermiso('SEG_GESTIONAR_ROLES'), asyncHandler(controller.asignarPermiso));
+router.delete('/roles/:id/permisos/:idPermiso', requirePermiso('SEG_GESTIONAR_ROLES'), asyncHandler(controller.revocarPermiso));
+router.get('/permisos', requirePermiso('SEG_GESTIONAR_ROLES'), asyncHandler(controller.listarPermisos));
+router.post('/permisos', requirePermiso('SEG_GESTIONAR_ROLES'), validate(crearPermisoSchema), asyncHandler(controller.crearPermiso));
+router.put('/permisos/:id', requirePermiso('SEG_GESTIONAR_ROLES'), validate(actualizarPermisoSchema), asyncHandler(controller.actualizarPermiso));
+router.delete('/permisos/:id', requirePermiso('SEG_GESTIONAR_ROLES'), asyncHandler(controller.eliminarPermiso));
 router.get('/sucursales', requirePermiso('SEG_GESTIONAR_USUARIOS'), asyncHandler(controller.listarSucursales));
 router.post('/usuarios', requirePermiso('SEG_GESTIONAR_USUARIOS'), validate(crearUsuarioSchema), asyncHandler(controller.crearUsuario));
 router.put('/usuarios/:id', requirePermiso('SEG_GESTIONAR_USUARIOS'), validate(actualizarUsuarioSchema), asyncHandler(controller.actualizarUsuario));
-router.delete('/usuarios/:id', requirePermiso('SEG_GESTIONAR_USUARIOS'), asyncHandler(controller.desactivarUsuario));
+router.patch('/usuarios/:id/desactivar', requirePermiso('SEG_GESTIONAR_USUARIOS'), asyncHandler(controller.desactivarUsuario));
+router.patch('/usuarios/:id/activar', requirePermiso('SEG_GESTIONAR_USUARIOS'), asyncHandler(controller.activarUsuario));
+router.delete('/usuarios/:id/eliminar', requirePermiso('SEG_GESTIONAR_USUARIOS'), asyncHandler(controller.eliminarUsuario));
 
 export default router;
-

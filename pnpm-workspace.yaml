@@ -1,5 +1,9 @@
 packages:
-  - 'backend'
-  - 'frontend'
+  - backend
+  - frontend
+
 allowBuilds:
   esbuild: false
+
+ignoredBuiltDependencies:
+  - esbuild

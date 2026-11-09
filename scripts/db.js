@@ -10,8 +10,14 @@ const command = process.argv[2];
 const folder = command === 'seed' ? 'database/seeders' : 'database/migrations';
 if (!['migrate', 'seed'].includes(command)) throw new Error('Uso: node scripts/db.js migrate|seed');
 
-const connectionString = process.env.DATABASE_URL
-  || `postgres://${encodeURIComponent(process.env.POSTGRES_USER)}:${encodeURIComponent(process.env.POSTGRES_PASSWORD)}@localhost:${process.env.POSTGRES_PORT || 5432}/${process.env.POSTGRES_DB}`;
+const adminConnectionString = (process.env.POSTGRES_USER && process.env.POSTGRES_PASSWORD && process.env.POSTGRES_DB)
+  ? `postgres://${encodeURIComponent(process.env.POSTGRES_USER)}:${encodeURIComponent(process.env.POSTGRES_PASSWORD)}@${process.env.POSTGRES_HOST || 'localhost'}:${process.env.POSTGRES_PORT || 5432}/${process.env.POSTGRES_DB}`
+  : null;
+
+const connectionString = process.env.DATABASE_ADMIN_URL
+  || adminConnectionString
+  || process.env.DATABASE_URL;
+
 const client = new pg.Client({ connectionString });
 await client.connect();
 try {
