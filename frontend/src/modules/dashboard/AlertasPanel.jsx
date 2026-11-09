@@ -1,7 +1,7 @@
 import { CircleAlert, CircleCheck, Store, TriangleAlert } from 'lucide-react';
-import BannerError from '../../components/feedback/BannerError.jsx';
+import AvisoError from './AvisoError.jsx';
 import { Cargando, Panel, Vacio } from './Panel.jsx';
-import { horaDe } from './formato.js';
+import Actualizado from './Actualizado.jsx';
 import { useDashboardData } from './useDashboardData.js';
 
 const SEVERIDAD = {
@@ -12,12 +12,12 @@ const SEVERIDAD = {
 const unir = (lista) => (lista.length > 1 ? `${lista.slice(0, -1).join(', ')} y ${lista.at(-1)}` : lista[0] ?? '');
 const REFRESCO_MS = 2 * 60 * 1000;
 
-export default function AlertasPanel({ cols, titulo }) {
-  const { datos, error, cargando, recargar } = useDashboardData('/dashboard/alertas', {}, { intervalo: REFRESCO_MS });
+export default function AlertasPanel({ cols, titulo, orden }) {
+  const { datos, error, cargando, actualizando, recargar } = useDashboardData('/dashboard/alertas', {}, { intervalo: REFRESCO_MS });
 
   let cuerpo;
   if (cargando) cuerpo = <Cargando lineas={4} alto="h-12" />;
-  else if (!datos) cuerpo = <BannerError error={error} onReintentar={recargar} />;
+  else if (!datos) cuerpo = <AvisoError error={error} onReintentar={recargar} />;
   else if (datos.estado === 'sin_sucursal') cuerpo = <Vacio Icono={Store} titulo="Tu usuario no tiene una sucursal asignada" texto="Sin sucursal no hay alertas que calcular. Pide a un administrador que te asigne una." />;
   else {
     cuerpo = (
@@ -32,7 +32,7 @@ export default function AlertasPanel({ cols, titulo }) {
           </div>
         )}
         {datos.alertas.length === 0 ? (
-          <Vacio Icono={CircleCheck} titulo={datos.incompleto ? 'Sin alertas en lo que se pudo revisar' : 'Todo en orden'} texto={`Revisamos ${unir(datos.categorias)} a las ${horaDe(datos.generadoEn)}. No hay nada que atender.`} />
+          <Vacio Icono={CircleCheck} titulo={datos.incompleto ? 'Sin alertas en lo que se pudo revisar' : 'Sin pendientes por ahora'} texto={`Nada urgente en ${unir(datos.categorias)}.`} />
         ) : (
           <>
             <p className="mb-3 text-sm text-fg-muted" aria-live="polite">
@@ -55,16 +55,16 @@ export default function AlertasPanel({ cols, titulo }) {
               })}
             </ul>
             {datos.totalAlertas > datos.alertas.length && <p className="mt-3 text-xs text-fg-muted">Se muestran las {datos.alertas.length} más importantes de {datos.totalAlertas}.</p>}
-            <p className="mt-3 text-xs text-fg-muted">Revisado a las {horaDe(datos.generadoEn)}. Se actualiza solo cada 2 minutos.</p>
           </>
         )}
+        <div className="mt-4 border-t border-line pt-3"><Actualizado instante={datos.generadoEn} actualizando={actualizando} onRecargar={recargar} /></div>
       </>
     );
   }
 
   return (
-    <Panel titulo={titulo} cols={cols}>
-      {datos && error && <BannerError className="mb-4" error={error} onReintentar={recargar} />}
+    <Panel titulo={titulo} cols={cols} orden={orden}>
+      {datos && error && <AvisoError className="mb-4" error={error} onReintentar={recargar} />}
       {cuerpo}
     </Panel>
   );

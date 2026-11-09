@@ -3,14 +3,14 @@ import { Inbox } from 'lucide-react';
 const COLUMNAS = { 3: 'lg:col-span-3', 4: 'lg:col-span-4', 5: 'lg:col-span-5', 6: 'lg:col-span-6', 7: 'lg:col-span-7', 8: 'lg:col-span-8', 12: 'lg:col-span-12' };
 
 // Contenedor de cada bloque: rejilla de 12 columnas, esquinas rectas y regla fina (como el resto del inicio).
-export function Panel({ titulo, cols = 6, acciones = null, children }) {
+export function Panel({ titulo, cols = 6, orden = 0, acciones = null, children }) {
   return (
-    <section aria-label={titulo} className={`col-span-12 min-w-0 border border-line bg-surface ${COLUMNAS[cols] ?? COLUMNAS[6]}`}>
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line px-4 py-2.5">
+    <section aria-label={titulo} style={{ '--retardo': `${orden * 70}ms` }} className={`anim-entrar col-span-12 min-w-0 border border-line bg-surface ${COLUMNAS[cols] ?? COLUMNAS[6]}`}>
+      <div className="flex min-h-12 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line px-5 py-2">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-fg-muted">{titulo}</h2>
         {acciones}
       </div>
-      <div className="p-4">{children}</div>
+      <div className="p-5">{children}</div>
     </section>
   );
 }
@@ -25,7 +25,7 @@ export function SelectorPeriodo({ valor, opciones, onCambiar, etiqueta }) {
           type="button"
           aria-pressed={valor === v}
           onClick={() => onCambiar(v)}
-          className={`px-2.5 py-1 font-medium transition-colors ${valor === v ? 'bg-fg text-background' : 'text-fg-muted hover:bg-muted'}`}
+          className={`whitespace-nowrap px-3 py-1.5 font-medium transition-colors motion-reduce:transition-none ${valor === v ? 'bg-fg text-background' : 'text-fg-muted hover:bg-muted hover:text-fg'}`}
         >
           {texto}
         </button>
