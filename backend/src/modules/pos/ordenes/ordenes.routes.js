@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { authenticate, requireTipo } from '../../middlewares/auth.js';
-import { requirePermiso } from '../../middlewares/permisos.js';
-import { validate } from '../../middlewares/validate.js';
-import { asyncHandler } from '../../utils/asyncHandler.js';
+import { authenticate, requireTipo } from '../../../middlewares/auth.js';
+import { requirePermiso } from '../../../middlewares/permisos.js';
+import { validate } from '../../../middlewares/validate.js';
+import { asyncHandler } from '../../../utils/asyncHandler.js';
 import * as controller from './ordenes.controller.js';
 import { crearOrdenSchema, editarOrdenSchema, cambiarEstadoOrdenSchema } from './ordenes.schemas.js';
 

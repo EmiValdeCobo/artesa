@@ -1,6 +1,6 @@
 import { QueryTypes } from 'sequelize';
-import { sequelize } from '../../config/db.js';
-import { UsuarioSucursal } from '../../models/index.js';
+import { sequelize } from '../../../config/db.js';
+import { UsuarioSucursal } from '../../../models/index.js';
 
 const consultar = (sql, bind, transaction = null) => sequelize.query(sql, { bind, transaction, type: QueryTypes.SELECT });
 

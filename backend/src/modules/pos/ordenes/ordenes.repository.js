@@ -1,5 +1,5 @@
 import { QueryTypes } from 'sequelize';
-import { sequelize } from '../../config/db.js';
+import { sequelize } from '../../../config/db.js';
 
 const sel  = (sql, bind, tx) => sequelize.query(sql, { bind, transaction: tx, type: QueryTypes.SELECT });
 const exec = (sql, bind, tx) => sequelize.query(sql, { bind, transaction: tx, type: QueryTypes.UPDATE });
@@ -21,14 +21,14 @@ export async function obtenerTurnoActivo(idTurno, idUsuario, tx) {
   return turno ?? null;
 }
 
-/** Verifica que todos los id_producto existen y están activos. Devuelve array con precio_venta. */
+/** Verifica que todos los id_producto existen y están activos. Devuelve array con precio_venta.
+ *  Usa unnest($1::int[]) para evitar interpolación de SQL — el array viaja como un solo bind param. */
 export async function obtenerProductosOrden(ids, tx) {
-  const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
   return sel(
     `SELECT id_producto, nombre, precio_venta::text AS precio_unitario
      FROM inventario.productos
-     WHERE id_producto IN (${placeholders}) AND activo = true`,
-    ids,
+     WHERE id_producto = ANY($1::int[]) AND activo = true`,
+    [ids],
     tx,
   );
 }

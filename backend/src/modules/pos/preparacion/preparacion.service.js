@@ -1,5 +1,5 @@
-import { withTransaction } from '../../config/db.js';
-import { AppError } from '../../utils/AppError.js';
+import { withTransaction } from '../../../config/db.js';
+import { AppError } from '../../../utils/AppError.js';
 import * as repo from './preparacion.repository.js';
 
 // Flujo de preparación: ABIERTA → EN_PREPARACION → LISTA → ENTREGADA (solo hacia adelante).

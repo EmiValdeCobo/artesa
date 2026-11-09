@@ -5,8 +5,8 @@ import { cajasRoutes, turnosRoutes } from './caja/caja.routes.js';
 import inventarioRoutes from './inventario/inventario.routes.js';
 import dashboardRoutes from './dashboard/dashboard.routes.js';
 import reportesRoutes from './reportes/reportes.routes.js';
-import preparacionRoutes from './pos/preparacion.routes.js';
-import ordenesRoutes from './pos/ordenes.routes.js';
+import preparacionRoutes from './pos/preparacion/preparacion.routes.js';
+import ordenesRoutes from './pos/ordenes/ordenes.routes.js';
 
 // Cada módulo registra aquí su router bajo /api/<recurso-plural>
 // Ejemplo (cuando exista): router.use('/insumos', insumosRoutes);
