@@ -109,3 +109,46 @@ export async function usuarioTienePermiso(idUsuario, codigo) {
   const [fila] = await consultar('SELECT seguridad.fn_tiene_permiso($1::uuid, $2) AS tiene', [idUsuario, codigo]);
   return fila.tiene === true;
 }
+
+// ---------- Cierre y cuadre ----------
+// Llama la función SQL (no se reimplementa el cuadre en JS). Su jsonb de retorno se ignora a propósito:
+// los montos se leen después de la vista como NUMERIC (string) para no pasar por float.
+export const cerrarTurno = (transaction, { idTurno, efectivo, tarjeta, digital }) => consultar(
+  'SELECT pos.fn_cerrar_turno($1::uuid, $2::numeric, $3::numeric, $4::numeric)',
+  [idTurno, efectivo, tarjeta, digital],
+  transaction,
+);
+
+// Turno + lo esperado (frozen al cerrar, en vivo mientras está abierto) + lo contado + diferencias.
+const SELECT_CUADRE = `
+  SELECT t.id_turno, t.id_caja, c.nombre_identificador AS caja, c.id_sucursal, s.nombre AS sucursal,
+         t.id_usuario, u.username AS cajero, t.estado, t.abierto_en, t.cerrado_en, t.monto_apertura,
+         v.ventas_efectivo, v.ventas_tarjeta, v.ventas_digital, v.ingresos_caja, v.egresos_caja,
+         COALESCE(t.esperado_efectivo, v.esperado_efectivo) AS esperado_efectivo,
+         COALESCE(t.esperado_tarjeta, v.esperado_tarjeta) AS esperado_tarjeta,
+         COALESCE(t.esperado_digital, v.esperado_digital) AS esperado_digital,
+         t.monto_cierre_efectivo AS contado_efectivo, t.monto_cierre_pos_tarjeta AS contado_tarjeta,
+         t.monto_cierre_digital AS contado_digital,
+         t.dif_efectivo, t.dif_tarjeta, t.dif_digital
+  FROM pos.turnos_caja t
+  JOIN pos.cajas c ON c.id_caja = t.id_caja
+  JOIN empresa.sucursales s ON s.id_sucursal = c.id_sucursal
+  JOIN seguridad.usuarios u ON u.id_usuario = t.id_usuario
+  JOIN reportes.vw_cuadre_turno v ON v.id_turno = t.id_turno`;
+
+export async function buscarCuadre(idTurno, transaction) {
+  const [fila] = await consultar(`${SELECT_CUADRE} WHERE t.id_turno = $1::uuid`, [idTurno], transaction);
+  return fila ?? null;
+}
+
+// Cuadres de las sucursales del usuario. Sin fechas: últimos 30 días (por fecha de apertura).
+export const listarCuadres = (idUsuario, { estado, desde, hasta, idSucursal }) => consultar(
+  `${SELECT_CUADRE}
+   WHERE c.id_sucursal IN (SELECT id_sucursal FROM seguridad.usuario_sucursal WHERE id_usuario = $1::uuid)
+     AND ($2::text IS NULL OR t.estado = $2::text)
+     AND ($5::int IS NULL OR c.id_sucursal = $5::int)
+     AND t.abierto_en::date BETWEEN COALESCE($3::date, CURRENT_DATE - 29) AND COALESCE($4::date, CURRENT_DATE)
+   ORDER BY t.abierto_en DESC
+   LIMIT 200`,
+  [idUsuario, estado ?? null, desde ?? null, hasta ?? null, idSucursal ?? null],
+);

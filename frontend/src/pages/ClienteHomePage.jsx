@@ -1,6 +1,6 @@
 import { LogOut, ShoppingBag, UserRound } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
-import Logo from '../components/Logo.jsx';
+import Logo from '../components/branding/Logo.jsx';
 
 export default function ClienteHomePage() {
   const { usuario, logout } = useAuth();

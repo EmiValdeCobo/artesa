@@ -1,10 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { CircleAlert, CircleCheck, CircleHelp, Info, Lightbulb, LifeBuoy, TriangleAlert } from 'lucide-react';
-import Dialogo from './Dialogo.jsx';
+import Dialogo from '../Dialogo.jsx';
 import Toasts from './Toasts.jsx';
-import { EVENTO_SESION_EXPIRADA } from '../api/client.js';
-import { errorUsuarioDeId, traducirError } from '../errors/traducirError.js';
-import { enlaceSoporte } from '../errors/soporte.js';
+import { EVENTO_SESION_EXPIRADA } from '../../api/client.js';
+import { errorUsuarioDeId, traducirError } from '../../errors/traducirError.js';
+import { enlaceSoporte } from '../../errors/soporte.js';
 
 // Sistema único de avisos de la aplicación. Dos canales, con reglas distintas:
 //

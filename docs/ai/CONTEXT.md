@@ -1,5 +1,5 @@
 # CONTEXT — estado vivo del proyecto (máx. 60 líneas; actualizar al cerrar tareas)
-Actualizado: 2026-11-03
+Actualizado: 2026-11-08
 
 ## Meta y fechas
 Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE, manual de usuario, doc técnica, flujo de trabajo.
@@ -20,14 +20,15 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE, ma
 | Módulo | BD | Backend | Frontend |
 |---|---|---|---|
 | auth / seguridad | listo | login, CRUD de roles/permisos, asignaciones RBAC y usuarios con sucursales | portales admin/cliente, gestión de roles/permisos y CRUD de usuarios |
-| inventario | listo | pendiente | pendiente |
-| pos | listo | pendiente | pendiente |
-| caja | listo | apertura de turno y movimientos (T05/T06); cierre pendiente | pendiente |
+| inventario | listo | CRUD de unidades/insumos/productos y recetas, stock, mermas, alertas | pendiente |
+| pos | listo | cola de preparación en /api/preparacion (T24); resto pendiente | pendiente |
+| caja | listo | turnos, movimientos, cierre y cuadre (T05/T06/T22) | pendiente |
 | compras | listo | pendiente | pendiente |
 | rrhh | listo | pendiente | pendiente |
-| reportes | vistas listas | pendiente | pendiente |
+| reportes | vistas listas | ventas diarias, top productos, alertas y margen (T23) | pendiente |
 
 ## Pendientes críticos
 - Verificar tablas de renta/ISSS/AFP vigentes con Hacienda (están en `rrhh.tramos_renta` y `empresa.parametros`).
 - Asignar responsables por módulo (ver README).
 - Cambiar contraseñas semilla (`Cambiar123*`) antes de desplegar.
+

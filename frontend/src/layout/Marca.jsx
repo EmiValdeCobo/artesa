@@ -1,4 +1,4 @@
-import Logo from '../components/Logo.jsx';
+import Logo from '../components/branding/Logo.jsx';
 
 // Marca de artesa: isotipo + nombre + descriptor.
 // tema: 'oscuro' (para fondos oscuros) | 'auto' (sigue el tema claro/oscuro) | 'mono' (todo alabastro, p. ej. sobre terracota)

@@ -69,3 +69,44 @@ Content-Type: application/json
 GET {{baseUrl}}/turnos/REEMPLAZAR_ID_TURNO/movimientos
 Cookie: {{adminCookie}}
 
+### Caja: cerrar turno (reemplazar id; contado por el cajero)
+POST {{baseUrl}}/turnos/REEMPLAZAR_ID_TURNO/cierre
+Cookie: {{adminCookie}}
+Content-Type: application/json
+
+{"efectivo":"120.00","tarjeta":"3.50","digital":"5.00"}
+
+### Caja: cuadre de un turno
+GET {{baseUrl}}/turnos/REEMPLAZAR_ID_TURNO/cuadre
+Cookie: {{adminCookie}}
+
+### Caja: listado de cuadres (gerente/contador)
+GET {{baseUrl}}/turnos/cuadres?estado=CERRADO
+Cookie: {{adminCookie}}
+
+### Reportes: ventas diarias
+GET {{baseUrl}}/reportes/ventas-diarias?desde=2026-11-01&hasta=2026-11-30
+Cookie: {{adminCookie}}
+
+### Reportes: top productos
+GET {{baseUrl}}/reportes/top-productos?limite=5
+Cookie: {{adminCookie}}
+
+### Reportes: alertas de stock
+GET {{baseUrl}}/reportes/alertas-stock?nivel=AGOTADO
+Cookie: {{adminCookie}}
+
+### Reportes: margen por producto
+GET {{baseUrl}}/reportes/margen-productos
+Cookie: {{adminCookie}}
+
+### Preparación: cola de órdenes
+GET {{baseUrl}}/preparacion/cola
+Cookie: {{adminCookie}}
+
+### Preparación: cambiar estado de una orden
+PATCH {{baseUrl}}/preparacion/ordenes/1/estado
+Cookie: {{adminCookie}}
+Content-Type: application/json
+
+{"estado":"EN_PREPARACION"}

@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import Marca from './Marca.jsx';
-import { rutaEspiral } from '../components/Espiral.jsx';
+import { rutaEspiral } from '../components/branding/Espiral.jsx';
 
 /* Panel de marca del ÁREA ADMINISTRATIVA — "abrir el servicio".
    Espresso, el hilo (la voluta del isotipo) y un índice de módulos numerado, tipo comanda. */

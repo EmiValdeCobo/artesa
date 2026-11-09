@@ -1,12 +1,14 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import AppLayout from './layout/AppLayout.jsx';
-import ProtectedRoute from './components/ProtectedRoute.jsx';
+import ProtectedRoute from './components/navigation/ProtectedRoute.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import ClienteLoginPage from './pages/ClienteLoginPage.jsx';
 import ClienteHomePage from './pages/ClienteHomePage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import RolesPermisosPage from './modules/seguridad/RolesPermisosPage.jsx';
 import UsuariosPage from './modules/seguridad/UsuariosPage.jsx';
+import PosPage from './modules/pos/PosPage.jsx';
+import InventarioPage from './modules/inventario/InventarioPage.jsx';
 
 export default function App() {
   return (
@@ -24,6 +26,14 @@ export default function App() {
       >
         <Route index element={<DashboardPage />} />
         <Route
+          path="inventario"
+          element={
+            <ProtectedRoute permiso="INV_VER_STOCK">
+              <InventarioPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="seguridad"
           element={
             <ProtectedRoute permiso="SEG_GESTIONAR_ROLES">
@@ -36,6 +46,14 @@ export default function App() {
           element={
             <ProtectedRoute permiso="SEG_GESTIONAR_USUARIOS">
               <UsuariosPage />
+            </ProtectedRoute>
+          }
+        />
+                <Route
+          path="pos"
+          element={
+            <ProtectedRoute permiso="POS_COBRAR">
+              <PosPage />
             </ProtectedRoute>
           }
         />
