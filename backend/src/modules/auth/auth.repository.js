@@ -6,7 +6,7 @@ export async function buscarUsuarioPorUsername(username) {
   const usuario = await Usuario.findOne({
     attributes: ['id_usuario', 'username', 'password_hash', 'activo'],
     where: { username },
-    include: [{ model: Rol, as: 'rol', attributes: ['nombre'], where: { activo: true } }],
+    include: [{ model: Rol, as: 'rol', attributes: ['nombre'], where: { activo: true }, required: true }],
   });
   if (!usuario) return null;
   return { ...usuario.get({ plain: true }), rol: usuario.rol.nombre };
@@ -32,7 +32,7 @@ export async function buscarUsuarioPorId(idUsuario) {
   const usuario = await Usuario.findOne({
     attributes: ['id_usuario', 'username'],
     where: { id_usuario: idUsuario, activo: true },
-    include: [{ model: Rol, as: 'rol', attributes: ['nombre'] }],
+    include: [{ model: Rol, as: 'rol', attributes: ['nombre'], where: { activo: true }, required: true }],
   });
   if (!usuario) return null;
   return { ...usuario.get({ plain: true }), rol: usuario.rol.nombre };

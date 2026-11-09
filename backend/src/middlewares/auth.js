@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import { AppError } from '../utils/AppError.js';
-import { Cliente, Usuario } from '../models/index.js';
+import { Cliente, Rol, Usuario } from '../models/index.js';
 
 // Exige cookie httpOnly (o Bearer para clientes externos) y revalida estado en BD.
 export async function authenticate(req, _res, next) {
@@ -16,7 +16,12 @@ export async function authenticate(req, _res, next) {
     }
     const modelo = payload.tipo === 'admin' ? Usuario : Cliente;
     const id = payload.tipo === 'admin' ? payload.id : Number(payload.id);
-    const usuario = await modelo.findOne({ where: { [payload.tipo === 'admin' ? 'id_usuario' : 'id_cliente']: id, activo: true } });
+    const usuario = payload.tipo === 'admin'
+      ? await Usuario.findOne({
+        where: { id_usuario: id, activo: true },
+        include: [{ model: Rol, as: 'rol', attributes: ['id_rol'], where: { activo: true }, required: true }],
+      })
+      : await modelo.findOne({ where: { id_cliente: id, activo: true } });
     if (!usuario) return next(new AppError('Sesión inactiva', 401));
     req.user = { id, rol: payload.rol, tipo: payload.tipo, jti: payload.jti };
     next();

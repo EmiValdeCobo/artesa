@@ -23,6 +23,7 @@ Formato: `fecha | integrante | herramienta/modelo | para qué se usó | quién v
 2026-11-05 | EmiValdeCobo | Codex | Ajuste responsive de LoginPage para eliminar scroll vertical y adaptar el formulario en móvil | EmiValdeCobo
 2026-11-05 | EmiValdeCobo | Codex | Ajuste visual de la ilustración del login para evitar solapamiento con el mensaje del panel | EmiValdeCobo
 2026-11-06 | EmiValdeCobo | Codex | Validación de seguridad para impedir que un usuario se desactive o elimine a sí mismo, con aviso en la interfaz y protección en el servicio | EmiValdeCobo
+2026-11-07 | Codex | Seguridad RBAC | Análisis y remediación de integridad, borrado lógico, autorización y protección de privilegios en roles y permisos | backend/src, database/migrations/005_rbac_roles_activos.sql, test/roles-permisos-contracts.test.js
 2026-11-06 | (equipo) | Codex | Creación de un sistema de alertas React accesible con confirmación, entrada, tipos semánticos, modo oscuro y migración de confirmaciones de usuarios | (completar: quién lo revisó)
 2026-11-07 | Codex | Implementación del backend de Inventario conforme al esquema y patrones existentes; el equipo debe revisar permisos, validaciones y funciones SQL antes de defender la integración | backend/src/modules/inventario, backend/src/models/inventario.js
 2026-11-07 | Codex | Diagnóstico y corrección del error ESM por exportaciones faltantes en el índice de modelos del backend | backend/src/models/index.js
