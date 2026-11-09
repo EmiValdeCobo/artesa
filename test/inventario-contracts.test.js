@@ -51,3 +51,32 @@ test('inventario: las mermas conservan transacción, función SQL y manejo de P0
   assert.match(repository, /inventario\.fn_registrar_merma\(\$1,\$2,\$3,\$4,\$5\)/);
   assert.doesNotMatch(repository, /UPDATE\s+inventario\.stock_sucursal\s+SET\s+stock_actual/i);
 });
+
+test('inventario: listar insumos une unidades con id_unidad_base y devuelve tipo_insumo', async () => {
+  const repository = await leer('backend/src/modules/inventario/inventario.repository.js');
+  const consulta = repository.match(/export const listarInsumos = ([^\n]+);/)?.[1];
+  assert.ok(consulta, 'debe existir la consulta de insumos');
+  assert.match(consulta, /i\.tipo_insumo/);
+  assert.match(consulta, /JOIN inventario\.unidades_medida u ON u\.id_unidad = i\.id_unidad_base/);
+  assert.doesNotMatch(consulta, /USING\s*\(id_unidad\)/);
+});
+
+test('inventario: el controller de merma lee el parámetro :id declarado por la ruta', async () => {
+  const [controller, routes] = await Promise.all([
+    leer('backend/src/modules/inventario/inventario.controller.js'),
+    leer('backend/src/modules/inventario/inventario.routes.js'),
+  ]);
+  assert.match(routes, /router\.post\('\/insumos\/:id\/mermas'/);
+  assert.match(controller, /registrarMerma = async \(req, res\) => res\.status\(201\)\.json\(await service\.registrarMerma\(parseId\(req\.params\.id\), req\.body, req\.user\.id\)\)/);
+  assert.doesNotMatch(controller, /registrarMerma[^\n]*req\.params\.idInsumo/);
+});
+
+test('inventario: los chips de T10 usan tipos reales recibidos del endpoint de insumos', async () => {
+  const page = await leer('frontend/src/modules/inventario/InventarioPage.jsx');
+  assert.match(page, /api\.get\('\/inventario\/insumos'\)/);
+  assert.match(page, /insumo\.tipo_insumo/);
+  assert.match(page, /tiposPorInsumo\[String\(fila\.id_insumo\)\] === filtroTipo/);
+  assert.match(page, /valor: 'INGREDIENTE'/);
+  assert.match(page, /valor: 'EMPAQUE'/);
+  assert.match(page, /valor: 'REVENTA'/);
+});
