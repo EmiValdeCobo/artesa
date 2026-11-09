@@ -50,3 +50,4 @@ Formato: `AAAA-MM-DD | quién (persona/agente) | área | qué cambió | archivos
 2026-11-08 | Andres/claude | reportes | GET de ventas diarias, top productos, alertas de stock y margen sobre las vistas reportes.* | backend/src/modules/reportes, backend/src/modules/index.js
 2026-11-08 | Andres/claude | pos | Cola de órdenes y cambio de estado (ABIERTA→EN_PREPARACION→LISTA→ENTREGADA) | backend/src/modules/pos/preparacion.*.js, backend/src/modules/index.js
 2026-11-08 | Codex | frontend/inventario| Añadida pantalla protegida para consultar stock y alertas por sucursal y registrar mermas usando el backend existente | frontend/src/modules/inventario/InventarioPage.jsx, frontend/src/App.jsx, docs/ai/CHANGELOG_AGENTE.md, docs/USO_IA.md
+2026-11-08 | antigravity | pos/T02 | Implementado backend de ordenes: POST crear, GET listar/detalle, PUT editar, PATCH estado con FSM y bloqueo de fila | backend/src/modules/pos/ordenes.{schemas,repository,service,controller,routes}.js
