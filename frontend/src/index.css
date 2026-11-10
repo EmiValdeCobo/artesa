@@ -66,6 +66,13 @@
   --warning: #9f6c2b; --warning-soft: #fdf7ea;
   --danger:  #b3261e; --danger-soft:  #fbeae9;
   --info:    #2f5f94; --info-soft:    #e9f0f8;
+
+    /* Gráficos: el contexto va en neutro y solo lo importante en acento (jerarquía sin saturar).
+     Contraste de no-texto contra --bg-surface (WCAG 1.4.11 pide >= 3:1): neutro 3,2:1 · foco 4,7:1.
+     Lo vigila test/dashboard-graficos.test.js. */
+  --chart-neutral:      #9a8e7f;  /* barras de contexto (días cerrados, resto del ranking) */
+  --chart-focus:        #b15c3d;  /* dato importante: hoy, líder del ranking, elemento bajo el cursor */
+  --chart-focus-strong: #984a2f;  /* foco + cursor encima */
 }
 
 .dark {
@@ -93,6 +100,10 @@
   --warning: #edc173; --warning-soft: #3a2b18;
   --danger:  #f2877f; --danger-soft:  #3b1d1a;
   --info:    #8db6e0; --info-soft:    #1b2836;
+
+  --chart-neutral:      #8a7d6e;  /* 4,2:1 sobre --bg-surface */
+  --chart-focus:        #de9776;  /* 7,0:1: en oscuro el foco tiene que ser MÁS luminoso que el contexto */
+  --chart-focus-strong: #ebbca7;
 }
 
 /* ---- Variante de acento del portal de clientes -------------------------------

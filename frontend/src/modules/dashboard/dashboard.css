@@ -1,0 +1,74 @@
+/* ============================================================================
+   artesa · Tema del Dashboard (inicio)
+   Alcance: SOLO lo que vive dentro de <div class="tema-dashboard">. No toca index.css ni otras pantallas.
+   Marca (sin cambios): Espresso #321F19 · Terracota #B15C3D · Ocre #E1A651 · Alabastro #F7F5F0
+   Se añaden 4 tonos de apoyo derivados del mundo de la panadería/cafetería:
+     Oliva (hierbas, masa madre) · Teal (cerámica, té) · Ciruela (frutos rojos) · Pizarra (menú en pizarrón)
+
+   Roles de color
+     FONDO      --bg-primary (Alabastro) página · --bg-surface (blanco) paneles · --bg-muted zonas/hover
+     TEXTO      --text-primary (Espresso) · --text-secondary (#5a4f45) · --serie-N-texto (versión oscura de cada serie)
+     ACENTO     --serie-1…6 (gráficas, reglas, indicadores). Terracota = dato protagonista
+     CTA        --accent (Terracota) + texto blanco (4.7:1): selector de periodo activo, "Reintentar"
+     ESTADO     --danger / --warning / --success (heredados del sistema, no se redefinen)
+   ============================================================================ */
+@import "@fontsource-variable/playfair-display/wght.css";
+@import "@fontsource-variable/figtree/wght.css";
+
+.tema-dashboard {
+  /* Tipografía: Playfair Display (titulares y cifras) + Figtree (todo lo demás).
+     Tailwind lee estas variables en font-display / font-sans, así que basta con redefinirlas aquí. */
+  --font-display: "Playfair Display Variable", "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-sans: "Figtree Variable", Figtree, ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-sans);
+
+  /* Series de gráficas (contraste >= 3:1 contra --bg-surface, WCAG 1.4.11) */
+  --serie-1: #b15c3d; --serie-1-texto: #984a2f;  /* Terracota (marca) */
+  --serie-2: #c0821f; --serie-2-texto: #7a5224;  /* Ocre intenso (marca, oscurecido para graficar) */
+  --serie-3: #6b7d33; --serie-3-texto: #4d5c22;  /* Oliva */
+  --serie-4: #2c7a7b; --serie-4-texto: #1f5f60;  /* Teal */
+  --serie-5: #a04566; --serie-5-texto: #8a3552;  /* Ciruela */
+  --serie-6: #4a6ea3; --serie-6-texto: #35568a;  /* Pizarra */
+  --serie-hoy-fondo: #fbf1ec;                    /* Terracota 50: resalta el día en curso */
+  --panel-sombra: 0 1px 0 rgb(50 31 25 / .04), 0 6px 18px -12px rgb(50 31 25 / .28);
+}
+
+.dark .tema-dashboard {
+  --serie-1: #de9776; --serie-1-texto: #de9776;
+  --serie-2: #e8b866; --serie-2-texto: #edc173;
+  --serie-3: #a8bd6f; --serie-3-texto: #bfd186;
+  --serie-4: #6cc0bf; --serie-4-texto: #8fd4d3;
+  --serie-5: #e08fae; --serie-5-texto: #eaa9c1;
+  --serie-6: #8fb0e3; --serie-6-texto: #acc6ee;
+  --serie-hoy-fondo: #44211a;
+  --panel-sombra: 0 6px 18px -12px rgb(0 0 0 / .6);
+}
+
+/* Cifras grandes y precios: números "lining" (alineados a la línea base) para que $1,250.00 se lea como cifra, no como texto */
+.tema-dashboard .font-display {
+  font-feature-settings: "lnum" 1, "kern" 1;
+  font-optical-sizing: auto;
+}
+.tema-dashboard h1.font-display { letter-spacing: -0.015em; }
+
+/* Panel: regla de color superior (identidad de cada bloque) y sombra suave */
+.tema-dashboard .panel-dash {
+  border-top: 3px solid var(--panel-acento, var(--serie-1));
+  box-shadow: var(--panel-sombra);
+  border-radius: 0 0 6px 6px;
+}
+
+/* Animaciones del dashboard (las clases ya se usaban en el JSX pero no estaban definidas) */
+@keyframes dash-entrar { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes dash-barra { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes dash-barra-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes dash-tip { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.tema-dashboard .anim-entrar { animation: dash-entrar .5s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--retardo, 0ms); }
+.tema-dashboard .anim-barra { transform-box: fill-box; transform-origin: bottom; animation: dash-barra .6s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--retardo, 0ms); }
+.tema-dashboard .anim-barra-x { transform-origin: left; animation: dash-barra-x .7s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--retardo, 0ms); }
+.tema-dashboard .anim-tip { animation: dash-tip .15s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tema-dashboard .anim-entrar, .tema-dashboard .anim-barra, .tema-dashboard .anim-barra-x, .tema-dashboard .anim-tip { animation: none; }
+}

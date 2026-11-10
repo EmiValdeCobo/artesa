@@ -4,7 +4,7 @@ import ProtectedRoute from './components/navigation/ProtectedRoute.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import ClienteLoginPage from './pages/ClienteLoginPage.jsx';
 import ClienteHomePage from './pages/ClienteHomePage.jsx';
-import DashboardPage from './pages/DashboardPage.jsx';
+import DashboardPage from './modules/dashboard/DashboardPage.jsx';
 import RolesPermisosPage from './modules/seguridad/RolesPermisosPage.jsx';
 import UsuariosPage from './modules/seguridad/UsuariosPage.jsx';
 import PosPage from './modules/pos/PosPage.jsx';
