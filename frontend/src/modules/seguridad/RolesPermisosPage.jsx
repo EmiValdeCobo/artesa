@@ -581,11 +581,11 @@ export default function RolesPermisosPage() {
               </div>
             </div>
           </div>
-          <div className="overflow-x-auto">
+          <div className="max-h-[560px] overflow-x-auto overflow-y-auto scroll-fino">
             <table className="w-full min-w-3xl text-left text-sm">
               <caption className="sr-only">Catálogo de permisos con sus módulos y roles asignados</caption>
-              <thead className="bg-muted text-xs uppercase tracking-wide text-fg-muted">
-                <tr><th scope="col" className="px-5 py-3 font-semibold">Código</th><th scope="col" className="px-5 py-3 font-semibold">Módulo</th><th scope="col" className="px-5 py-3 font-semibold">Descripción</th><th scope="col" className="px-5 py-3 font-semibold">Roles</th><th scope="col" className="px-5 py-3 text-right font-semibold">Acciones</th></tr>
+              <thead className="sticky top-0 z-10 border-b border-line bg-muted text-xs uppercase tracking-wide text-fg-muted shadow-xs">
+                <tr><th scope="col" className="bg-muted px-5 py-3 font-semibold">Código</th><th scope="col" className="bg-muted px-5 py-3 font-semibold">Módulo</th><th scope="col" className="bg-muted px-5 py-3 font-semibold">Descripción</th><th scope="col" className="bg-muted px-5 py-3 font-semibold">Roles</th><th scope="col" className="bg-muted px-5 py-3 text-right font-semibold">Acciones</th></tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {permisosFiltrados.map((permiso) => {
