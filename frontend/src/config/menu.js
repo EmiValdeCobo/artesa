@@ -9,7 +9,7 @@ export const menu = [
     { ruta: '/caja', texto: 'Caja y turnos', permiso: 'CAJA_ABRIR_TURNO', icono: Wallet },
     { id: 'inventario', texto: 'Inventario', icono: Boxes, hijos: [
       { ruta: '/inventario', texto: 'Existencias', permiso: 'INV_VER_STOCK', end: true },
-      { ruta: '/inventario/kardex', texto: 'Kárdex', permiso: 'INV_VER_STOCK' },
+      { ruta: '/inventario/kardex', texto: 'Kárdex', permiso: 'INV_VER_KARDEX' },
     ]},
     { id: 'compras', texto: 'Compras', icono: Truck, hijos: [
       { ruta: '/compras', texto: 'Compras', permiso: 'COM_VER_CXP', end: true },

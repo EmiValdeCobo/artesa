@@ -4,14 +4,30 @@ import { readFile } from 'node:fs/promises';
 
 const leer = (archivo) => readFile(new URL(`../${archivo}`, import.meta.url), 'utf8');
 
-test('inventario: el kardex conserva autenticación admin y permiso INV_VER_STOCK', async () => {
+test('inventario: el kardex conserva autenticación admin y usa INV_VER_KARDEX', async () => {
   const routes = await leer('backend/src/modules/inventario/inventario.routes.js');
   assert.match(routes, /router\.use\(authenticate, requireTipo\('admin'\)\)/);
-  assert.match(routes, /router\.get\('\/movimientos', requirePermiso\('INV_VER_STOCK'\)/);
+  assert.match(routes, /router\.get\('\/movimientos', requirePermiso\('INV_VER_KARDEX'\)/);
+  assert.match(routes, /router\.get\('\/stock', requirePermiso\('INV_VER_STOCK'\)/);
+  assert.match(routes, /router\.get\('\/alertas', requirePermiso\('INV_VER_STOCK'\)/);
 });
 
-test('inventario: el costo unitario solo se selecciona con INV_VER_COSTOS', async () => {
-  const [service, repository] = await Promise.all([
+test('inventario: el seeder asigna el kardex solo a roles autorizados y restringe costos de BODEGUERO', async () => {
+  const seeder = await leer('database/seeders/003_inventario_kardex.sql');
+  assert.match(seeder, /'INV_VER_KARDEX'[\s\S]*ON CONFLICT \(codigo\) DO NOTHING/);
+  assert.match(seeder, /r\.nombre IN \('ADMIN', 'GERENTE_SUCURSAL', 'BODEGUERO'\)/);
+  assert.match(seeder, /ON CONFLICT DO NOTHING/);
+  assert.match(seeder, /r\.nombre NOT IN \('ADMIN', 'GERENTE_SUCURSAL', 'BODEGUERO'\)/);
+  const quitarCostos = seeder.slice(seeder.lastIndexOf('DELETE FROM'));
+  assert.ok(quitarCostos);
+  assert.match(quitarCostos, /p\.codigo = 'INV_VER_COSTOS'/);
+  assert.match(quitarCostos, /r\.nombre = 'BODEGUERO'/);
+  assert.doesNotMatch(quitarCostos, /ADMIN|GERENTE_SUCURSAL|CONTADOR/);
+});
+
+test('inventario: el costo unitario requiere acceso al kardex y permiso INV_VER_COSTOS', async () => {
+  const [routes, service, repository] = await Promise.all([
+    leer('backend/src/modules/inventario/inventario.routes.js'),
     leer('backend/src/modules/inventario/inventario.service.js'),
     leer('backend/src/modules/inventario/inventario.repository.js'),
   ]);
@@ -21,6 +37,7 @@ test('inventario: el costo unitario solo se selecciona con INV_VER_COSTOS', asyn
   assert.ok(conCosto, 'debe existir una consulta para usuarios con permiso de costos');
   assert.doesNotMatch(sinCosto, /costo_unitario/);
   assert.match(conCosto, /m\.costo_unitario/);
+  assert.match(routes, /router\.get\('\/movimientos', requirePermiso\('INV_VER_KARDEX'\)/);
   assert.match(service, /usuarioTienePermiso\(userId, 'INV_VER_COSTOS'\)/);
   assert.match(repository, /verCostos \? SQL_MOVIMIENTOS_CON_COSTO : SQL_MOVIMIENTOS_SIN_COSTO/);
   assert.doesNotMatch(repository, /SELECT\s+m\.\*/i);

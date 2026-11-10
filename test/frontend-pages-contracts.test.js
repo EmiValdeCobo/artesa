@@ -11,7 +11,7 @@ test('frontend rutas: App.jsx protege cada ruta con su permiso RBAC exacto', asy
   const app = await leer('frontend/src/App.jsx');
 
   assert.match(app, /<ProtectedRoute permiso="INV_VER_STOCK">\s*<InventarioPage \/>/);
-  assert.match(app, /<ProtectedRoute permiso="INV_VER_STOCK"><KardexPage \/><\/ProtectedRoute>/);
+  assert.match(app, /<ProtectedRoute permiso="INV_VER_KARDEX"><KardexPage \/><\/ProtectedRoute>/);
   assert.match(app, /<ProtectedRoute permiso="REP_VER_DASHBOARD"><ReportesPage \/><\/ProtectedRoute>/);
   assert.match(app, /<ProtectedRoute permiso="EMP_GESTIONAR_SUCURSALES"><SucursalesPage \/><\/ProtectedRoute>/);
   assert.match(app, /<ProtectedRoute permiso="EMP_EDITAR_PARAMETROS"><ParametrosPage \/><\/ProtectedRoute>/);
