@@ -46,7 +46,7 @@ test('frontend sucursales y parámetros: consumen api/client.js y controlan erro
   const sucursales = await leer('frontend/src/modules/empresa/SucursalesPage.jsx');
   const parametros = await leer('frontend/src/modules/empresa/ParametrosPage.jsx');
 
-  assert.match(sucursales, /api\.get\('\/empresa\/sucursales'\)/);
+  assert.match(sucursales, /api\.get\('\/empresa\/sucursales', \{ signal: controlador\.signal \}\)/);
   assert.match(sucursales, /api\.post\('\/empresa\/sucursales'/);
   assert.match(sucursales, /api\.put\(`\/empresa\/sucursales\//);
   assert.match(sucursales, /<BannerError/);
@@ -63,10 +63,10 @@ test('frontend kardex y reportes: consultas filtradas y exportación CSV con cod
   assert.match(kardex, /api\.get\(`\/inventario\/movimientos\?\$\{q\}`\)/);
   assert.match(kardex, /<Table/);
 
-  assert.match(reportes, /api\.get\(`\/reportes\/ventas-diarias\?\$\{q\}`\)/);
-  assert.match(reportes, /api\.get\(`\/reportes\/top-productos\?\$\{q\}`\)/);
-  assert.match(reportes, /api\.get\(`\/reportes\/alertas-stock/);
-  assert.match(reportes, /api\.get\('\/reportes\/margen-productos'\)/);
+  assert.match(reportes, /api\.get\(`\/reportes\/ventas-diarias\?\$\{query\}`/);
+  assert.match(reportes, /api\.get\(`\/reportes\/top-productos\?\$\{query\}`/);
+  assert.match(reportes, /api\.get\(`\/reportes\/alertas-stock\$\{parametrosStock\}`/);
+  assert.match(reportes, /api\.get\('\/reportes\/margen-productos', \{ signal: controlador\.signal \}\)/);
   // BOM UTF-8 (\ufeff) para compatibilidad con Excel en El Salvador/Latinoamérica
   assert.match(reportes, /\\ufeff/);
   assert.match(reportes, /text\/csv;charset=utf-8/);

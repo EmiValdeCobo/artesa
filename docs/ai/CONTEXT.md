@@ -1,5 +1,5 @@
 # CONTEXT — estado vivo del proyecto (máx. 60 líneas; actualizar al cerrar tareas)
-Actualizado: 2026-11-09
+Actualizado: 2026-11-10
 
 ## Meta y fechas
 Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE, manual de usuario, doc técnica, flujo de trabajo.
@@ -26,10 +26,10 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE, ma
 | caja | listo | turnos, movimientos, cierre y cuadre (T05/T06/T22) | pendiente |
 | compras | listo | pendiente | pantallas pendientes (usan PendienteApiPage) |
 | rrhh | listo | pendiente | pantallas pendientes (usan PendienteApiPage) |
-| reportes | vistas listas | ventas diarias, top productos, alertas y margen (T23) | tablas filtrables, exportación CSV (UTF-8 BOM) y PDF |
+| reportes | vistas listas + consultas de método de pago, cuadre y CxP | ventas diarias, top productos, métodos de pago, alertas, margen, cuadre y CxP; alcance por `id_sucursal` | panel con tendencias, comparativos, tablas paginadas y exportación CSV/PDF |
 | empresa | listo | CRUD sucursales y edición parámetros | sucursales y parámetros |
 
-Pantallas pendientes por falta de endpoints backend: empleados/puestos, proveedores, CxP, compras tipo gasto y planillas.
+Pantallas de gestión pendientes por falta de endpoints backend: empleados/puestos, proveedores, administración de CxP, compras tipo gasto y planillas. El reporte de CxP de solo lectura ya está disponible dentro de Reportes.
 
 ## Pendientes críticos
 - Verificar tablas de renta/ISSS/AFP vigentes con Hacienda (están en `rrhh.tramos_renta` y `empresa.parametros`).
