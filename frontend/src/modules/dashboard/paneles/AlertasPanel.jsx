@@ -5,8 +5,8 @@ import Actualizado from '../../../components/display/Actualizado.jsx';
 import { useDashboardData } from '../hooks/useDashboardData.js';
 
 const SEVERIDAD = {
-  critica: { Icono: CircleAlert, texto: 'Crítica', clase: 'border-danger text-danger' },
-  aviso: { Icono: TriangleAlert, texto: 'Aviso', clase: 'border-warning text-warning' },
+  critica: { Icono: CircleAlert, texto: 'Crítica', clase: 'border-danger text-danger bg-danger-soft/70' },
+  aviso: { Icono: TriangleAlert, texto: 'Aviso', clase: 'border-warning text-warning bg-warning-soft/80' },
 };
 
 const unir = (lista) => (lista.length > 1 ? `${lista.slice(0, -1).join(', ')} y ${lista.at(-1)}` : lista[0] ?? '');
@@ -27,7 +27,7 @@ export default function AlertasPanel({ cols, titulo, orden }) {
             <TriangleAlert size={17} aria-hidden="true" className="mt-0.5 shrink-0 text-warning" />
             <p className="min-w-0 flex-1">
               No se pudieron calcular las alertas de {unir(datos.fallos.map((f) => f.modulo))}. Lo demás está al día.{' '}
-              <button type="button" onClick={recargar} className="font-medium underline underline-offset-2">Reintentar</button>
+              <button type="button" onClick={recargar} className="font-semibold text-primary-text underline underline-offset-2">Reintentar</button>
             </p>
           </div>
         )}
@@ -43,12 +43,12 @@ export default function AlertasPanel({ cols, titulo, orden }) {
               {datos.alertas.map((a) => {
                 const { Icono, texto, clase } = SEVERIDAD[a.severidad];
                 return (
-                  <li key={a.id} className={`flex gap-3 border-l-2 py-2.5 pl-3 ${clase.split(' ')[0]} border-b border-b-line last:border-b-0`}>
+                  <li key={a.id} className={`mb-2 flex gap-3 rounded-r-md border-l-4 py-3 pl-3 pr-3 ${clase.split(' ')[0]} ${clase.split(' ')[2]}`}>
                     <Icono size={18} aria-hidden="true" className={`mt-0.5 shrink-0 ${clase.split(' ')[1]}`} />
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold leading-snug"><span className="sr-only">{texto}: </span>{a.titulo}</p>
+                      <p className="text-base font-bold leading-snug text-fg sm:text-sm"><span className="sr-only">{texto}: </span>{a.titulo}</p>
                       <p className="mt-0.5 text-sm text-fg-muted">{a.detalle}</p>
-                      <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-fg-muted">{a.modulo} · {a.sucursal}</p>
+                      <p className="mt-1.5 text-xs font-medium uppercase tracking-[0.1em] text-fg-muted">{a.modulo} · {a.sucursal}</p>
                     </div>
                   </li>
                 );
@@ -63,7 +63,7 @@ export default function AlertasPanel({ cols, titulo, orden }) {
   }
 
   return (
-    <Panel titulo={titulo} cols={cols} orden={orden}>
+    <Panel titulo={titulo} cols={cols} orden={orden} acento={5}>
       {datos && error && <AvisoError className="mb-4" error={error} onReintentar={recargar} />}
       {cuerpo}
     </Panel>

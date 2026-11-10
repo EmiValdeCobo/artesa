@@ -5,6 +5,7 @@ import VentasDiariasPanel from './paneles/VentasDiariasPanel.jsx';
 import { fechaNegocio, horaNegocio, saludoPorHora } from '../../utils/formato.js';
 import { PERMISOS_ALERTAS, PERMISOS_TOP, PERMISOS_VENTAS } from './lib/permisos.js';
 import { useAhora } from '../../hooks/useAhora.js';
+import './dashboard.css';
 
 /* Inicio. Rejilla de 12 columnas: cada bloque es un objeto en PANELES con los permisos que lo habilitan.
    Para sumar una gráfica nueva basta otro objeto con su componente; si el usuario no tiene ninguno de sus
@@ -32,16 +33,16 @@ export default function DashboardPage() {
   const fecha = fechaNegocio(ahora);
 
   return (
-    <div>
-      <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3 border-b-2 border-fg pb-4">
+    <div className="tema-dashboard">
+      <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 border-b-2 border-fg pb-5">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary-text">Inicio</p>
-          <h1 className="mt-1 font-display text-4xl font-semibold leading-none tracking-tight">{saludoPorHora(horaNegocio(ahora))}, {usuario.username}.</h1>
+          <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-(--serie-1-texto)"><span aria-hidden="true" className="h-0.5 w-6 bg-(--serie-2)" />Inicio</p>
+          <h1 className="mt-2 font-display text-3xl font-bold leading-[1.1] sm:text-4xl">{saludoPorHora(horaNegocio(ahora))}, {usuario.username}.</h1>
         </div>
-        <dl className="flex gap-8 text-sm">
-          <div><dt className="text-[11px] uppercase tracking-[0.18em] text-fg-muted">Usuario</dt><dd className="mt-0.5 font-medium">{usuario.username}</dd></div>
-          <div><dt className="text-[11px] uppercase tracking-[0.18em] text-fg-muted">Sucursal</dt><dd className="mt-0.5 font-medium">{sucursales}</dd></div>
-          <div className="hidden sm:block"><dt className="text-[11px] uppercase tracking-[0.18em] text-fg-muted">Hoy</dt><dd className="mt-0.5 font-medium">{fecha}</dd></div>
+        <dl className="flex flex-wrap gap-x-8 gap-y-3 text-sm">
+          <div><dt className="text-xs uppercase tracking-[0.14em] text-fg-muted">Usuario</dt><dd className="mt-0.5 font-semibold">{usuario.username}</dd></div>
+          <div><dt className="text-xs uppercase tracking-[0.14em] text-fg-muted">Sucursal</dt><dd className="mt-0.5 font-semibold">{sucursales}</dd></div>
+          <div className="hidden sm:block"><dt className="text-xs uppercase tracking-[0.14em] text-fg-muted">Hoy</dt><dd className="mt-0.5 font-semibold">{fecha}</dd></div>
         </dl>
       </header>
 

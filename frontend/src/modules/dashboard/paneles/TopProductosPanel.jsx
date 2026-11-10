@@ -54,16 +54,16 @@ export default function TopProductosPanel({ cols, orden }) {
                 style={{ '--retardo': `${i * 50}ms` }}
                 className={`anim-entrar grid cursor-default grid-cols-[1.75rem_1fr_6rem] items-center gap-x-3 px-2 py-3 outline-offset-0 transition-colors motion-reduce:transition-none ${bajoCursor ? 'bg-muted' : ''}`}
               >
-                <span className={`font-display text-xl font-semibold tabular-nums ${lider ? 'text-primary-text' : 'text-fg-muted'}`}>{prod.posicion}</span>
+                <span className="font-display text-2xl font-bold tabular-nums" style={{ color: `var(--serie-${i + 1}-texto)` }}>{prod.posicion}</span>
                 <div className="min-w-0">
-                  <p className={`truncate text-sm ${lider ? 'font-semibold' : 'font-medium'}`}>{prod.nombre}</p>
-                  <div className="mt-1.5 h-2 bg-line/70" aria-hidden="true">
-                    <div className={`anim-barra-x h-full transition-colors motion-reduce:transition-none ${lider ? (bajoCursor ? 'bg-chart-focus-strong' : 'bg-chart-focus') : (bajoCursor ? 'bg-chart-focus' : 'bg-chart-neutral')}`} style={{ width: `${(prod.unidades / maximo) * 100}%`, '--retardo': `${120 + i * 60}ms` }} />
+                  <p className={`line-clamp-2 text-base sm:text-sm ${lider ? 'font-bold' : 'font-medium'}`}>{prod.nombre}</p>
+                  <div className="mt-1.5 h-2.5 rounded-full bg-line/70" aria-hidden="true">
+                    <div className="anim-barra-x h-full rounded-full transition-[filter] motion-reduce:transition-none" style={{ width: `${(prod.unidades / maximo) * 100}%`, '--retardo': `${120 + i * 60}ms`, background: `var(--serie-${i + 1})`, filter: bajoCursor ? 'brightness(1.12) saturate(1.1)' : undefined }} />
                   </div>
                 </div>
                 <div className="text-right tabular-nums">
-                  <p className="text-sm font-semibold">{formatoEntero(prod.unidades)} <span className="text-xs font-normal text-fg-muted">uds.</span></p>
-                  <p className="text-xs text-fg-muted">{datos.incluyeImportes ? formatoDinero(prod.ingreso) : `${prod.participacionPct} %`}</p>
+                  <p className="text-base font-bold sm:text-sm">{formatoEntero(prod.unidades)} <span className="text-xs font-normal text-fg-muted">uds.</span></p>
+                  <p className="text-sm text-fg-muted sm:text-xs">{datos.incluyeImportes ? formatoDinero(prod.ingreso) : `${prod.participacionPct} %`}</p>
                 </div>
               </li>
             );
@@ -89,7 +89,7 @@ export default function TopProductosPanel({ cols, orden }) {
   }
 
   return (
-    <Panel titulo="Más vendidos" cols={cols} orden={orden} acciones={datos && datos.estado !== 'sin_sucursal' && <SelectorPeriodo etiqueta="Periodo del ranking" valor={dias} opciones={PERIODOS} onCambiar={setDias} />}>
+    <Panel titulo="Más vendidos" cols={cols} orden={orden} acento={3} acciones={datos && datos.estado !== 'sin_sucursal' && <SelectorPeriodo etiqueta="Periodo del ranking" valor={dias} opciones={PERIODOS} onCambiar={setDias} />}>
       {datos && error && <AvisoError className="mb-4" error={error} onReintentar={recargar} />}
       {cuerpo}
       {datos?.estado === 'ok' && <p className="mt-4 border-t border-line pt-3 text-xs text-fg-muted">Ordenado por unidades vendidas, {textoPeriodo(dias)}.</p>}

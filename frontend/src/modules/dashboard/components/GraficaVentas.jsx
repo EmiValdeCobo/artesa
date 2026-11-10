@@ -25,12 +25,12 @@ function useAncho(ref) {
 
 export function LeyendaVentas({ className = '' }) {
   return (
-    <ul className={`flex items-center gap-4 text-xs text-fg-muted ${className}`}>
+    <ul className={`flex flex-wrap items-center gap-4 text-xs font-medium text-fg-muted ${className}`}>
       <li className="flex items-center gap-1.5">
-        <svg width="12" height="12" aria-hidden="true" className="border border-chart-focus"><defs><pattern id="ley-rayas" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" className="fill-chart-focus" fillOpacity=".28" /><rect width="2.5" height="5" className="fill-chart-focus" /></pattern></defs><rect width="12" height="12" fill="url(#ley-rayas)" /></svg>
+        <svg width="12" height="12" aria-hidden="true" className="border border-(--serie-1)"><defs><pattern id="ley-rayas" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" className="fill-(--serie-1)" fillOpacity=".28" /><rect width="2.5" height="5" className="fill-(--serie-1)" /></pattern></defs><rect width="12" height="12" fill="url(#ley-rayas)" /></svg>
         Hoy (en curso)
       </li>
-      <li className="flex items-center gap-1.5"><span aria-hidden="true" className="inline-block h-3 w-3 bg-chart-neutral" />Días cerrados</li>
+      <li className="flex items-center gap-1.5"><span aria-hidden="true" className="inline-block h-3 w-3 bg-(--serie-2)" />Días cerrados</li>
     </ul>
   );
 }
@@ -79,18 +79,19 @@ export default function GraficaVentas({ serie, hoy }) {
         <svg width={ancho} height={ALTO} className="block select-none font-sans" role="group" aria-label={`Ventas de los últimos ${n} días. Recorre los días con las flechas del teclado.`}>
           <defs>
             <pattern id={idRayas} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-              <rect width="6" height="6" className="fill-chart-focus" fillOpacity=".28" />
-              <rect width="3" height="6" className="fill-chart-focus" />
+              <rect width="6" height="6" className="fill-(--serie-1)" fillOpacity=".28" />
+              <rect width="3" height="6" className="fill-(--serie-1)" />
             </pattern>
           </defs>
 
           {eje.marcas.map((marca) => (
             <g key={marca}>
               <line x1={M.izquierda} x2={ancho - M.derecha} y1={yDe(marca)} y2={yDe(marca)} className={marca === 0 ? 'stroke-fg-muted' : 'stroke-line'} strokeWidth="1" strokeDasharray={marca === 0 ? undefined : '2 4'} />
-              <text x={M.izquierda - 10} y={yDe(marca) + 4} textAnchor="end" className="fill-fg-muted tabular-nums" fontSize="11">{formatoEje(marca, eje.paso)}</text>
+              <text x={M.izquierda - 10} y={yDe(marca) + 4} textAnchor="end" className="fill-fg-muted tabular-nums" fontSize="12">{formatoEje(marca, eje.paso)}</text>
             </g>
           ))}
 
+          {indiceHoy >= 0 && <rect x={M.izquierda + paso * indiceHoy} y={M.arriba - 8} width={paso} height={areaAlto + 8} fill="var(--serie-hoy-fondo)" />}
           {activo !== null && <rect x={M.izquierda + paso * activo} y={M.arriba - 8} width={paso} height={areaAlto + 8} className="fill-muted" />}
 
           {serie.map((f, i) => {
@@ -100,15 +101,15 @@ export default function GraficaVentas({ serie, hoy }) {
             const x = xCentro(i) - anchoBarra / 2;
             const esHoy = i === indiceHoy;
             const bajoCursor = i === activo;
-            let relleno = 'fill-chart-neutral';
+            let relleno = 'fill-(--serie-2)';
             if (esHoy) relleno = '';
-            else if (bajoCursor) relleno = 'fill-chart-focus';
+            else if (bajoCursor) relleno = 'fill-(--serie-1)';
             return (
               <g key={f.fecha} opacity={activo !== null && !bajoCursor ? 0.6 : 1}>
                 <rect x={x} y={base - alto} width={anchoBarra} height={alto} className={`anim-barra ${relleno}`} style={{ '--retardo': `${Math.min(i * 22, 400)}ms` }} fill={esHoy ? `url(#${idRayas})` : undefined}
-                  strokeWidth={esHoy ? 1.5 : 0} stroke={esHoy ? (bajoCursor ? 'var(--chart-focus-strong)' : 'var(--chart-focus)') : undefined} />
+                  strokeWidth={esHoy ? 1.5 : 0} stroke={esHoy ? 'var(--serie-1)' : undefined} rx={2} />
                 {(indiceHoy - i) % cadaEtiqueta === 0 && (
-                  <text x={xCentro(i)} y={ALTO - 9} textAnchor="middle" fontSize="11" className={esHoy || bajoCursor ? 'fill-fg font-semibold' : 'fill-fg-muted'}>{etiquetaDia(f.fecha)}</text>
+                  <text x={xCentro(i)} y={ALTO - 9} textAnchor="middle" fontSize="12" className={esHoy ? 'fill-(--serie-1-texto) font-bold' : bajoCursor ? 'fill-fg font-semibold' : 'fill-fg-muted'}>{etiquetaDia(f.fecha)}</text>
                 )}
               </g>
             );
@@ -116,7 +117,7 @@ export default function GraficaVentas({ serie, hoy }) {
 
           {indiceHoy >= 0 && activo === null && (
             <text x={indiceHoy === n - 1 ? xCentro(indiceHoy) + anchoBarra / 2 : xCentro(indiceHoy)} y={yDe(Number(serie[indiceHoy].total)) - 7}
-              textAnchor={indiceHoy === n - 1 ? 'end' : 'middle'} fontSize="12" className="fill-chart-focus font-semibold tabular-nums">{formatoDinero(serie[indiceHoy].total)}</text>
+              textAnchor={indiceHoy === n - 1 ? 'end' : 'middle'} fontSize="13" paintOrder="stroke" stroke="var(--bg-surface)" strokeWidth="4" strokeLinejoin="round" className="fill-(--serie-1-texto) font-bold tabular-nums">{formatoDinero(serie[indiceHoy].total)}</text>
           )}
 
           {serie.map((f, i) => (
