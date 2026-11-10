@@ -31,6 +31,7 @@
   - [Opción 2: entorno completo con Docker Compose](#opción-2-entorno-completo-con-docker-compose)
   - [Resumen de URLs y puertos](#resumen-de-urls-y-puertos)
 - [Base de datos: esquema y migraciones](#base-de-datos-esquema-y-migraciones)
+- [Pruebas y control de calidad (QA)](#pruebas-y-control-de-calidad-qa)
 - [Flujo de uso y casos de ejemplo](#flujo-de-uso-y-casos-de-ejemplo)
 - [Credenciales de prueba](#credenciales-de-prueba)
 - [Trabajo con agentes de IA](#trabajo-con-agentes-de-ia)
@@ -64,6 +65,7 @@ Los negocios de alimentos artesanales (cafeterías, panaderías) suelen llevar s
 | **Compras y proveedores** | Catálogo de proveedores y registro de compras de insumos. |
 | **RR. HH. y planilla** | Gestión de empleados y cálculo de planilla. |
 | **Dashboard y reportes** | Indicadores y reportes del negocio para la toma de decisiones. |
+| **Empresa y sucursales** | Configuración de establecimientos físicos y parámetros operativos/fiscales globales. |
 | **Área cliente** | Acceso separado para clientes en `/cliente/login`. |
 
 ---
@@ -102,6 +104,7 @@ artesa/
 │   ├── seeders/              # Datos iniciales aplicables con `pnpm db:seed`
 │   └── demo/
 │       └── 02_demo.sql       # Datos de ejemplo para demostración
+├── test/                     # Batería de pruebas automatizadas (node --test)
 ├── scripts/
 │   └── db.js                 # Runner de migraciones y seeders (registra SHA-256)
 ├── docs/
@@ -115,6 +118,7 @@ artesa/
 
 | Elemento | Responsabilidad |
 |----------|-----------------|
+| `test/` | Pruebas de contrato de API, validaciones Zod, FSM, seguridad y lógica pura. |
 | `backend/` | Lógica de negocio, autenticación y acceso a datos mediante una API REST. |
 | `frontend/` | Pantallas de administración, POS y área cliente. |
 | `database/init/` | Crea el esquema completo en el primer arranque del contenedor. |
@@ -132,6 +136,7 @@ artesa/
 | Gestor de paquetes | pnpm (workspace) | Un solo `pnpm install` para raíz, backend y frontend. |
 | Contenedores | Docker Compose | Servicios `db`, `api` y `web`. |
 | Servidor web | Nginx | Sirve estáticos y actúa como reverse proxy hacia la API. |
+| Pruebas / QA | Node.js Test Runner (`node --test`) | 119 pruebas automatizadas (unitarias, contratos de API y FSM). |
 
 ---
 
@@ -264,6 +269,8 @@ Al levantar el contenedor con el volumen vacío, Docker ejecuta **todos** los ar
 | `02_create_web_user.sql` | Rol restringido `web_user` para la aplicación. |
 | `03_soft_delete.sql` | Columna `deleted_at` en catálogos (eliminación lógica). |
 | `04_timestamps.sql` | Columna `modificado_en` y triggers `BEFORE UPDATE` automáticos. |
+| `05_dashboard.sql` | Vistas y métricas agregadas del dashboard de negocio. |
+| `05_rbac_roles_activos.sql` | Soporte de borrado lógico e integridad para roles y permisos activos. |
 
 ```bash
 # En un clon limpio basta con esto
@@ -312,6 +319,35 @@ pnpm db:seed      # aplica los seeders pendientes de database/seeders/
 ```
 
 </details>
+
+---
+
+## Pruebas y control de calidad (QA)
+
+El proyecto cuenta con una suite integral de **119 pruebas automatizadas** que se ejecutan utilizando el runner nativo de Node.js (`node:test`) sin necesidad de levantar servicios externos ni base de datos activa:
+
+```bash
+# Ejecutar todas las pruebas del proyecto
+pnpm test
+```
+
+### Estrategia de pruebas
+
+Las pruebas cubren tanto el backend como el frontend bajo una arquitectura por capas:
+
+1. **Contratos de API y Seguridad (Backend):**
+   - **Autenticación y Sesión (`test/auth-contracts.test.js`):** límites de intentos de login (`express-rate-limit`), cookies HTTP-only, validación de estado activo (`activo = true`) y mitigación de enumeración de usuarios.
+   - **Empresa y Sucursales (`test/empresa-contracts.test.js`):** RBAC estricto (`EMP_GESTIONAR_SUCURSALES`, `EMP_EDITAR_PARAMETROS`), validaciones Zod, transacciones (`withTransaction`) y manejo de unicidad (409).
+   - **Dashboard y Políticas (`test/dashboard-contracts.test.js`):** esquemas de consulta estrictos (`strictObject`), aislamiento por sucursal vs. ventas propias, ocultamiento selectivo de importes en ranking según permisos.
+   - **Seguridad y Usuarios (`test/usuarios-contracts.test.js`):** esquemas de alta/edición, hashing seguro con `bcrypt`, transacciones con bitácora y protección anti-bloqueo/auto-eliminación de cuentas activas.
+   - **POS y Preparación (`test/pos-ordenes-t02.test.js`, `test/pos-preparacion-contracts.test.js`):** máquina de estados finitos (FSM) estricta, bloqueos por concurrencia (`FOR UPDATE`) y regla anti-float.
+   - **Caja e Inventario (`test/caja-contracts.test.js`, `test/inventario-contracts.test.js`):** cuadre de turnos, llamado de funciones SQL críticas y kárdex.
+
+2. **Lógica de Negocio y Utilidades (Frontend):**
+   - **Cálculo de Impuestos y POS (`test/frontend-pos-logic.test.js`):** desglose exacto de IVA 13% en precios incluidos y reducer de carrito (límites por stock, agregar, cambiar cantidades, vaciar).
+   - **Formatos y Traducción de Errores (`test/frontend-formatos-errores.test.js`):** formateo monetario sin pérdida de precisión sobre tipos NUMERIC, fechas locales sin desfase horario y traducción amigable de errores HTTP y PostgreSQL (P0001, 23505).
+   - **RBAC y Navegación Dinámica (`test/frontend-rbac-menu.test.js`):** filtrado recursivo de menús por permisos, validación de códigos de permiso en mayúsculas y agrupación por módulos.
+   - **Contratos de Pantallas (`test/frontend-pages-contracts.test.js`):** consumo a través del cliente unificado (`api/client.js`), protección de rutas con `ProtectedRoute` y transparencia mediante `PendienteApiPage` para módulos sin endpoints backend.
 
 ---
 
@@ -404,15 +440,16 @@ git checkout -b feature/<modulo>-<descripcion>
 
 ### Convención de commits
 
-Se usa **Conventional Commits**, en minúsculas y en español:
+El proyecto sigue una convención estricta que combina **Gitmoji** y **Conventional Commits** en formato `<emoji> <tipo>(<alcance>): <descripción>`:
 
-| Prefijo | Uso | Ejemplo |
+| Gitmoji + Prefijo | Uso | Ejemplo |
 |---------|-----|---------|
-| `feat(<modulo>)` | Nueva funcionalidad | `feat(pos): agregar cobro en efectivo` |
-| `fix(<modulo>)` | Corrección de errores | `fix(caja): corregir cierre de turno` |
-| `docs` | Documentación | `docs: actualizar guía de instalación` |
-| `refactor` | Reestructuración sin cambio funcional | `refactor: simplificar servicio de inventario` |
-| `chore` | Tareas de mantenimiento | `chore: actualizar dependencias` |
+| `:sparkles: feat(<modulo>)` | Nueva funcionalidad | `:sparkles: feat(pos): agregar cobro en efectivo` |
+| `:bug: fix(<modulo>)` | Corrección de errores | `:bug: fix(caja): corregir cierre de turno` |
+| `:white_check_mark: test(<modulo>)` | Pruebas unitarias o de contrato | `:white_check_mark: test(empresa): validar RBAC de sucursales` |
+| `:memo: docs(<modulo>)` | Documentación | `:memo: docs(instalacion): actualizar guía de ejecución` |
+| `:recycle: refactor(<modulo>)` | Reestructuración sin cambio funcional | `:recycle: refactor(inventario): simplificar servicio de movimientos` |
+| `:wrench: chore(<modulo>)` | Tareas de mantenimiento y dependencias | `:wrench: chore(deps): actualizar paquetes del workspace` |
 
 ### Integrar los cambios
 
@@ -428,6 +465,7 @@ git push -u origin feature/<modulo>-<descripcion>
 
 | Módulo | Responsables | Rama |
 |--------|--------------|------|
+| Empresa y configuración | | `feature/empresa-*` |
 | Seguridad y roles | | `feature/seguridad-*` |
 | Inventario y recetas | | `feature/inventario-*` |
 | POS y facturación | | `feature/pos-*` |

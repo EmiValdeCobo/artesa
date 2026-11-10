@@ -8,7 +8,7 @@ Control operativo: `public.schema_migrations(nombre, aplicado_en, checksum, tipo
 ## seguridad
 roles(id_rol, nombre*, descripcion, es_sistema, activo, creado_en, modificado_en, deleted_at; unicidad de nombre solo con deleted_at IS NULL) · permisos(id_permiso, codigo*, modulo, descripcion)
 roles_permisos(id_rol, id_permiso) · usuarios(id_usuario U, id_rol, username*, password_hash, activo, ultimo_login, creado_en, modificado_en, deleted_at) [soft-delete: deleted_at IS NOT NULL = oculto]
-usuario_sucursal(id_usuario, id_sucursal) · bitacora(id_bitacora, id_usuario, accion, entidad, datos_antes, datos_despues) [trigger en productos, recetas, roles_permisos, usuarios]
+usuario_sucursal(id_usuario, id_sucursal) · bitacora(id_bitacora, id_usuario, accion, entidad, datos_antes, datos_despues, creado_en, ip_cliente, agente_cliente, severidad) [trigger en productos, recetas, roles_permisos, usuarios; columnas analíticas en migración 006]
 fn: seguridad.fn_tiene_permiso(id_usuario, codigo) → bool
 
 ## empresa
