@@ -125,14 +125,22 @@ test('menu: filtrarMenu preserva submenús hijos cuando se tiene el permiso', ()
 });
 
 test('menu: Kárdex requiere INV_VER_KARDEX de forma independiente del stock', () => {
+  function obtenerRutas(entradas) {
+    return entradas.flatMap((entrada) => [
+      ...(entrada.ruta ? [entrada.ruta] : []),
+      ...obtenerRutas(entrada.items ?? []),
+      ...obtenerRutas(entrada.hijos ?? []),
+    ]);
+  }
+
   const visible = filtrarMenu(menu, (permiso) => permiso === 'INV_VER_KARDEX');
-  const rutas = visible.flatMap((seccion) => seccion.items ?? []).map((item) => item.ruta);
+  const rutas = obtenerRutas(visible);
 
   assert.ok(rutas.includes('/inventario/kardex'));
   assert.ok(!rutas.includes('/inventario'));
 
   const sinKardex = filtrarMenu(menu, (permiso) => permiso === 'INV_VER_STOCK');
-  const rutasSinKardex = sinKardex.flatMap((seccion) => seccion.items ?? []).map((item) => item.ruta);
+  const rutasSinKardex = obtenerRutas(sinKardex);
   assert.ok(rutasSinKardex.includes('/inventario'));
   assert.ok(!rutasSinKardex.includes('/inventario/kardex'));
 });
