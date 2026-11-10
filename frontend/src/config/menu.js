@@ -7,7 +7,7 @@ export const menu = [
     { ruta: '/pos', texto: 'Punto de venta', permiso: 'POS_COBRAR', icono: ShoppingBag },
     { ruta: '/preparacion', texto: 'Preparación', permiso: 'POS_VER_COLA_PREPARACION', icono: ChefHat },
     { ruta: '/caja', texto: 'Caja y turnos', permiso: 'CAJA_ABRIR_TURNO', icono: Wallet },
-    { ruta: '/inventario', texto: 'Inventario', permiso: 'INV_VER_STOCK', icono: Boxes },
+    { ruta: '/inventario', texto: 'Inventario', permiso: 'INV_VER_STOCK', icono: Boxes, end: true },
     { ruta: '/inventario/kardex', texto: 'Kárdex', permiso: 'INV_VER_STOCK', icono: Boxes },
     { ruta: '/compras', texto: 'Compras', permiso: 'COM_VER_CXP', icono: Truck },
   ]},
