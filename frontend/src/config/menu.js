@@ -8,7 +8,7 @@ export const menu = [
     { ruta: '/preparacion', texto: 'Preparación', permiso: 'POS_VER_COLA_PREPARACION', icono: ChefHat },
     { ruta: '/caja', texto: 'Caja y turnos', permiso: 'CAJA_ABRIR_TURNO', icono: Wallet },
     { ruta: '/inventario', texto: 'Inventario', permiso: 'INV_VER_STOCK', icono: Boxes },
-    { ruta: '/inventario/kardex', texto: 'Kárdex', permiso: 'INV_VER_STOCK', icono: Boxes },
+    { ruta: '/inventario/kardex', texto: 'Kárdex', permiso: 'INV_VER_KARDEX', icono: Boxes },
     { ruta: '/compras', texto: 'Compras', permiso: 'COM_VER_CXP', icono: Truck },
   ]},
   { seccion: 'Gestión', items: [

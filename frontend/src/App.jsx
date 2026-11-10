@@ -39,7 +39,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="inventario/kardex" element={<ProtectedRoute permiso="INV_VER_STOCK"><KardexPage /></ProtectedRoute>} />
+        <Route path="inventario/kardex" element={<ProtectedRoute permiso="INV_VER_KARDEX"><KardexPage /></ProtectedRoute>} />
         <Route path="reportes" element={<ProtectedRoute permiso="REP_VER_DASHBOARD"><ReportesPage /></ProtectedRoute>} />
         <Route path="empresa/sucursales" element={<ProtectedRoute permiso="EMP_GESTIONAR_SUCURSALES"><SucursalesPage /></ProtectedRoute>} />
         <Route path="empresa/parametros" element={<ProtectedRoute permiso="EMP_EDITAR_PARAMETROS"><ParametrosPage /></ProtectedRoute>} />
