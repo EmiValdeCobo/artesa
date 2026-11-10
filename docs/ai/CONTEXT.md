@@ -24,7 +24,7 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE, ma
 | pos | listo | cola de preparación en /api/preparacion (T24); resto pendiente | pendiente |
 | caja | listo | turnos, movimientos, cierre y cuadre (T05/T06/T22) | pendiente |
 | compras | listo | pendiente | pendiente |
-| rrhh | listo | pendiente | pendiente |
+| rrhh | listo | CRUD de puestos y empleados, validaciones, permisos y datos de prueba | pendiente |
 | reportes | vistas listas | ventas diarias, top productos, alertas y margen (T23) | pendiente |
 
 ## Pendientes críticos

@@ -42,6 +42,10 @@ Todas las respuestas de error usan `{ "error": "texto" }`, con `detalles` adicio
 | PATCH | `/api/preparacion/ordenes/:idOrden/estado` | Cookie JWT + tipo admin | `POS_VER_COLA_PREPARACION` | `{estado: EN_PREPARACION\|LISTA\|ENTREGADA}` | 200; 400; 401; 403; 404; 409 |
 | GET/POST | `/api/inventario/unidades` | Cookie JWT + tipo admin | `INV_GESTIONAR_INSUMOS` | `{codigo,nombre}` | 200/201; 400; 401; 403; 409 |
 | PUT/DELETE | `/api/inventario/unidades/:id` | Cookie JWT + tipo admin | `INV_GESTIONAR_INSUMOS` | PUT `{codigo,nombre}` | 200/204; 400; 401; 403; 404; 409 |
+| GET/POST | `/api/rrhh/puestos` | Cookie JWT + tipo admin | `RRHH_GESTIONAR_EMPLEADOS` | `{nombre,salarioBase}` para POST | 200/201; 400; 401; 403; 409 |
+| PUT/DELETE/PATCH | `/api/rrhh/puestos/:id` | Cookie JWT + tipo admin | `RRHH_GESTIONAR_EMPLEADOS` | PUT `{nombre,salarioBase}`; PATCH `/activar` | 200/204; 400; 401; 403; 404; 409 |
+| GET/POST | `/api/rrhh/empleados` | Cookie JWT + tipo admin | `RRHH_GESTIONAR_EMPLEADOS` | `{idSucursal,idPuesto,nombres,apellidos,dui,nit?,fechaIngreso,salarioNominal}`; `nit` puede ser `null` si está homologado con DUI | 200/201; 400; 401; 403; 409 |
+| PUT/DELETE/PATCH | `/api/rrhh/empleados/:id` | Cookie JWT + tipo admin | `RRHH_GESTIONAR_EMPLEADOS` | PUT datos del empleado; PATCH `/activar` | 200/204; 400; 401; 403; 404; 409 |
 | GET/POST | `/api/inventario/insumos` | Cookie JWT + tipo admin | `INV_VER_STOCK`, `INV_GESTIONAR_INSUMOS` o `INV_VER_COSTOS` para GET; `INV_GESTIONAR_INSUMOS` para POST | `{nombre,tipoInsumo,idUnidadBase,costoPromedio,activo?}` | 200/201; 400; 401; 403; 409 |
 | PUT/DELETE | `/api/inventario/insumos/:id` | Cookie JWT + tipo admin | `INV_GESTIONAR_INSUMOS` | PUT mismo cuerpo de POST | 200/204; 400; 401; 403; 404; 409 |
 | GET/POST | `/api/inventario/productos` | Cookie JWT + tipo admin | GET `INV_VER_STOCK` o `INV_GESTIONAR_PRODUCTOS`; POST `INV_GESTIONAR_PRODUCTOS` | `{idCategoria?,nombre,codigoBarra?,precioVenta,esElaborado,idInsumoReventa?,activo?}` | 200/201; 400; 401; 403; 409 |
