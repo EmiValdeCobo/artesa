@@ -35,9 +35,17 @@ test('menú POS: el CCF solo se ofrece con POS_EMITIR_CCF y el menú exige INV_V
   assert.match(pos, /<BannerError/);
 });
 
-test('menú lateral: Inventario usa end para no resaltarse junto con Kárdex', () => {
-  const secciones = menu.filter((e) => e.items).flatMap((e) => e.items);
-  assert.equal(secciones.find((i) => i.ruta === '/inventario').end, true);
+test('menú lateral: las rutas padre usan end para no resaltarse junto a sus hijas', () => {
+  const hijos = menu.filter((e) => e.items).flatMap((e) => e.items).flatMap((i) => i.hijos ?? [i]);
+  for (const ruta of ['/inventario', '/compras', '/rrhh', '/seguridad']) {
+    assert.equal(hijos.find((i) => i.ruta === ruta).end, true, ruta);
+  }
+});
+
+test('menú lateral: los grupos de la barra no repiten ícono entre ítems de primer nivel', () => {
+  const primerNivel = menu.filter((e) => e.items).flatMap((e) => e.items);
+  const iconos = primerNivel.map((i) => i.icono);
+  assert.equal(new Set(iconos).size, iconos.length);
 });
 
 test('encabezados: las pantallas de administración usan EncabezadoPagina (sin h1 propios)', async () => {

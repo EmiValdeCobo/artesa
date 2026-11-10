@@ -15,7 +15,7 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE, ma
 - Sesiones: JWT en cookie `httpOnly`, `SameSite` configurable y `secure` configurable; el backend revalida `activo=true` en cada request.
 - Migraciones/seeders: `scripts/db.js` registra nombre, checksum SHA-256, fecha y tipo en `public.schema_migrations`.
 - Bitácora analítica: captura IP/User-Agent en `AsyncLocalStorage` y los propaga a variables PostgreSQL mediante `withTransaction`.
-- QA / Pruebas: suite automatizada en Node.js nativo (`node:test`, 125 pruebas activas) cubriendo contratos de API, FSM, anti-float y lógica frontend.
+- QA / Pruebas: suite automatizada en Node.js nativo (`node:test`, 126 pruebas activas) cubriendo contratos de API, FSM, anti-float y lógica frontend.
 
 ## Estado por módulo
 | Módulo | BD | Backend | Frontend |

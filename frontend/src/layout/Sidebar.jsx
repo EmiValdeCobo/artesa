@@ -3,7 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { NavLink, useLocation } from 'react-router-dom';
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, LogOut, Monitor, Moon, Sun, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
-import { menu, filtrarMenu } from '../config/menu.js';
+import { menu, filtrarMenu, esRutaActiva as esActivo, grupoDeRuta } from '../config/menu.js';
 import { useSidebar } from '../hooks/useSidebar.js';
 import { useTheme } from '../hooks/useTheme.js';
 import Logo from '../components/branding/Logo.jsx';
@@ -21,8 +21,6 @@ const SIN_BARRA = '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
 const ITEM = 'relative flex items-center rounded-lg text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring';
 const ITEM_INACTIVO = 'text-on-sidebar/75 hover:bg-white/10 hover:text-on-sidebar';
 const ITEM_ACTIVO = 'bg-primary text-on-accent shadow-sm';
-
-const esActivo = (ruta, actual, end) => (end ? actual === ruta : actual === ruta || actual.startsWith(`${ruta}/`));
 
 /* ---- Utilidades ---------------------------------------------------------- */
 
@@ -130,17 +128,15 @@ function Enlace({ item, colapsado, onNavigate }) {
   </>;
 }
 
-function Grupo({ item, colapsado, actual, onNavigate }) {
+function Grupo({ item, colapsado, actual, abierto, onToggle, onNavigate }) {
   const Icono = item.icono;
   const activo = item.hijos.some((h) => esActivo(h.ruta, actual, h.end));
-  const [abierto, setAbierto] = useState(activo);
   const ref = useRef(null);
   const fly = useAbrirAlPasar();
-  const idSubmenu = `submenu-${item.texto.replaceAll(' ', '-')}`;
-  useEffect(() => { if (activo) setAbierto(true); }, [activo]);
+  const idSubmenu = `submenu-${item.id}`;
   useCerrarFlotante(fly.abierto, ref, fly.cerrarYa);
 
-  const claseBoton = `${ITEM} h-9 w-full ${activo ? 'bg-white/10 text-on-sidebar' : ITEM_INACTIVO}`;
+  const claseBoton = `${ITEM} h-9 w-full ${activo ? (abierto && !colapsado ? 'bg-white/10 font-semibold text-on-sidebar' : ITEM_ACTIVO) : ITEM_INACTIVO}`;
 
   if (colapsado) {
     return <>
@@ -148,7 +144,7 @@ function Grupo({ item, colapsado, actual, onNavigate }) {
         onClick={() => fly.setAbierto((v) => !v)} onMouseEnter={fly.abrir} onMouseLeave={() => fly.cerrar()}
         className={`${claseBoton} justify-center`}>
         <Icono size={18} strokeWidth={1.8} aria-hidden="true" />
-        {activo && <span aria-hidden="true" className="absolute -right-0.5 top-1.5 h-1.5 w-1.5 rounded-full bg-secondary" />}
+        
       </button>
       {fly.abierto && <Flotante ancla={ref} role="menu" onMouseEnter={fly.abrir} onMouseLeave={() => fly.cerrar()}
         className="min-w-48 rounded-xl border border-line bg-surface p-1.5 text-fg shadow-xl">
@@ -164,7 +160,7 @@ function Grupo({ item, colapsado, actual, onNavigate }) {
   }
 
   return <div>
-    <button type="button" aria-expanded={abierto} aria-controls={idSubmenu} onClick={() => setAbierto((v) => !v)}
+    <button type="button" aria-expanded={abierto} aria-controls={idSubmenu} onClick={onToggle}
       className={`${claseBoton} gap-3 px-3 text-left`}>
       <Icono size={18} strokeWidth={1.8} aria-hidden="true" className="shrink-0" />
       <span className="flex-1 truncate">{item.texto}</span>
@@ -239,6 +235,7 @@ export default function Sidebar({ mobileOpen, onClose }) {
   const items = useMemo(() => filtrarMenu(menu, tiene), [tiene]);
   const { arriba, abajo } = useIndicadoresScroll(navRef);
   const colapsado = !esMovil && !expandido;
+  const [grupoAbierto, setGrupoAbierto] = useState(() => grupoDeRuta(items, pathname));
 
   useEffect(() => {
     const media = window.matchMedia('(max-width: 1023px)');
@@ -254,6 +251,9 @@ export default function Sidebar({ mobileOpen, onClose }) {
     return () => document.removeEventListener('keydown', alTecla);
   }, [mobileOpen, onClose]);
 
+  // Al navegar, se despliega el grupo de la página actual y se pliegan los demás.
+  useEffect(() => { setGrupoAbierto(grupoDeRuta(items, pathname)); }, [pathname, items]);
+
   // Si el ítem activo quedó fuera de la vista, lo trae a la vista.
   useEffect(() => {
     const id = setTimeout(() => navRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest' }), 60);
@@ -264,7 +264,8 @@ export default function Sidebar({ mobileOpen, onClose }) {
   const navegar = () => onClose?.();
 
   const renderItem = (item) => (item.hijos
-    ? <Grupo key={item.texto} item={item} colapsado={colapsado} actual={pathname} onNavigate={navegar} />
+    ? <Grupo key={item.id} item={item} colapsado={colapsado} actual={pathname} abierto={grupoAbierto === item.id}
+      onToggle={() => setGrupoAbierto((g) => (g === item.id ? null : item.id))} onNavigate={navegar} />
     : <Enlace key={item.ruta} item={item} colapsado={colapsado} onNavigate={navegar} />);
 
   const flecha = 'pointer-events-auto flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-on-sidebar/80 hover:bg-white/20 hover:text-on-sidebar';
