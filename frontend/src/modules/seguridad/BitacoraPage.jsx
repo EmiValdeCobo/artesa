@@ -7,6 +7,7 @@ import Dialogo from '../../components/Dialogo.jsx';
 import { Button, Card, Select, Spinner, Table } from '../../components/ui/index.js';
 import BitacoraMetricas from './BitacoraMetricas.jsx';
 import JsonDiffViewer from './JsonDiffViewer.jsx';
+import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 
 const hoyLocal = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 const diasAntes = (cantidad) => { const d = new Date(); d.setDate(d.getDate()-cantidad); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
@@ -70,7 +71,7 @@ export default function BitacoraPage() {
   ];
 
   return <div className="space-y-6 pb-8">
-    <header className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-widest text-primary">Seguridad · Auditoría</p><h1 className="mt-1 text-2xl font-semibold sm:text-3xl">Bitácora de actividad</h1><p className="mt-1 max-w-2xl text-sm text-fg-muted">Rastrea cambios, accesos y patrones operativos. El análisis se calcula en PostgreSQL sobre los filtros elegidos.</p></div><div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-xs text-fg-muted"><span className="h-2 w-2 rounded-full bg-success"/> Auditoría activa</div></header>
+    <EncabezadoPagina seccion="Seguridad · Auditoría" titulo="Bitácora de actividad" descripcion="Rastrea cambios, accesos y patrones operativos. El análisis se calcula en PostgreSQL sobre los filtros elegidos." acciones={<div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-xs text-fg-muted"><span className="h-2 w-2 rounded-full bg-success"/> Auditoría activa</div>} />
     <Card titulo="Filtros" descripcion="Combina período, operador, módulo, evento y texto libre."><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
       <label className="text-xs font-medium text-fg-muted">Desde<input className="input mt-1 text-fg" type="date" value={fechas.startDate} max={fechas.endDate} onChange={e=>{setFechas(f=>({...f,startDate:e.target.value}));setPagina(1);}}/></label>
       <label className="text-xs font-medium text-fg-muted">Hasta<input className="input mt-1 text-fg" type="date" value={fechas.endDate} min={fechas.startDate} max={hoyLocal()} onChange={e=>{setFechas(f=>({...f,endDate:e.target.value}));setPagina(1);}}/></label>

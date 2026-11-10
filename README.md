@@ -136,7 +136,7 @@ artesa/
 | Gestor de paquetes | pnpm (workspace) | Un solo `pnpm install` para raíz, backend y frontend. |
 | Contenedores | Docker Compose | Servicios `db`, `api` y `web`. |
 | Servidor web | Nginx | Sirve estáticos y actúa como reverse proxy hacia la API. |
-| Pruebas / QA | Node.js Test Runner (`node --test`) | 119 pruebas automatizadas (unitarias, contratos de API y FSM). |
+| Pruebas / QA | Node.js Test Runner (`node --test`) | 125 pruebas automatizadas (unitarias, contratos de API y FSM). |
 
 ---
 
@@ -271,6 +271,7 @@ Al levantar el contenedor con el volumen vacío, Docker ejecuta **todos** los ar
 | `04_timestamps.sql` | Columna `modificado_en` y triggers `BEFORE UPDATE` automáticos. |
 | `05_dashboard.sql` | Vistas y métricas agregadas del dashboard de negocio. |
 | `05_rbac_roles_activos.sql` | Soporte de borrado lógico e integridad para roles y permisos activos. |
+| `06_bitacora_analitica.sql` | Auditoría analítica (`ip_cliente`, `agente_cliente`, `severidad`) e índices. |
 
 ```bash
 # En un clon limpio basta con esto
@@ -324,7 +325,7 @@ pnpm db:seed      # aplica los seeders pendientes de database/seeders/
 
 ## Pruebas y control de calidad (QA)
 
-El proyecto cuenta con una suite integral de **119 pruebas automatizadas** que se ejecutan utilizando el runner nativo de Node.js (`node:test`) sin necesidad de levantar servicios externos ni base de datos activa:
+El proyecto cuenta con una suite integral de **125 pruebas automatizadas** que se ejecutan utilizando el runner nativo de Node.js (`node:test`) sin necesidad de levantar servicios externos ni base de datos activa:
 
 ```bash
 # Ejecutar todas las pruebas del proyecto
@@ -347,6 +348,7 @@ Las pruebas cubren tanto el backend como el frontend bajo una arquitectura por c
    - **Cálculo de Impuestos y POS (`test/frontend-pos-logic.test.js`):** desglose exacto de IVA 13% en precios incluidos y reducer de carrito (límites por stock, agregar, cambiar cantidades, vaciar).
    - **Formatos y Traducción de Errores (`test/frontend-formatos-errores.test.js`):** formateo monetario sin pérdida de precisión sobre tipos NUMERIC, fechas locales sin desfase horario y traducción amigable de errores HTTP y PostgreSQL (P0001, 23505).
    - **RBAC y Navegación Dinámica (`test/frontend-rbac-menu.test.js`):** filtrado recursivo de menús por permisos, validación de códigos de permiso en mayúsculas y agrupación por módulos.
+   - **Menú del POS y encabezados (`test/frontend-pos-menu.test.js`):** agrupamiento por categoría sin pérdida de datos, CCF condicionado a `POS_EMITIR_CCF`, menú condicionado a `INV_VER_STOCK` y uso del encabezado compartido.
    - **Contratos de Pantallas (`test/frontend-pages-contracts.test.js`):** consumo a través del cliente unificado (`api/client.js`), protección de rutas con `ProtectedRoute` y transparencia mediante `PendienteApiPage` para módulos sin endpoints backend.
 
 ---

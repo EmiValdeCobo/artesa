@@ -55,6 +55,7 @@ export async function obtenerProductos() {
       id_producto: p.id_producto,
       nombre: p.nombre,
       categoria: p.categoria ?? 'Sin categoría',
+      id_categoria: p.id_categoria ?? null,
       precio: num(p.precio_venta),
     };
     if (p.es_elaborado) {

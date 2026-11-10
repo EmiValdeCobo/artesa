@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Edit3, Plus, Search, ShieldCheck, Trash2, UserCheck, UserRound, UserX, X } from 'lucide-react';
+import { Edit3, Plus, Search, ShieldCheck, Trash2, UserCheck, UserX, X } from 'lucide-react';
 import { api } from '../../api/client.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
@@ -7,6 +7,7 @@ import BannerError from '../../components/feedback/BannerError.jsx';
 import CampoError, { idError } from '../../components/forms/CampoError.jsx';
 import Dialogo from '../../components/Dialogo.jsx';
 import { traducirError } from '../../errors/traducirError.js';
+import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 
 const formularioInicial = { username: '', password: '', idRol: '', sucursales: [] };
 const ORDEN_CAMPOS = ['username', 'password', 'idRol', 'sucursales'];
@@ -247,14 +248,7 @@ export default function UsuariosPage() {
 
   return (
     <div className="mx-auto max-w-7xl">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="mb-3 flex items-center gap-2 text-sm font-medium text-primary-text"><UserRound size={17} aria-hidden="true" /> Seguridad</div>
-          <h1 className="text-2xl font-bold tracking-tight">Usuarios</h1>
-          <p className="mt-1 text-sm text-fg-muted">Administra cuentas, roles y sucursales de operación.</p>
-        </div>
-        <button type="button" className="btn-primary" disabled={Boolean(errorCarga) || cargando} onClick={() => { setUsuarioEditando(null); setModalAbierto(true); }}><Plus size={17} aria-hidden="true" /> Nuevo usuario</button>
-      </div>
+      <EncabezadoPagina seccion="Seguridad" titulo="Usuarios" descripcion="Administra cuentas, roles y sucursales de operación." acciones={<button type="button" className="btn-primary" disabled={Boolean(errorCarga) || cargando} onClick={() => { setUsuarioEditando(null); setModalAbierto(true); }}><Plus size={17} aria-hidden="true" /> Nuevo usuario</button>} />
 
       {errorCarga ? (
         <BannerError className="mt-7" error={errorCarga} onReintentar={cargarDatos} />
