@@ -33,6 +33,12 @@
 - [Base de datos: esquema y migraciones](#base-de-datos-esquema-y-migraciones)
 - [Pruebas y control de calidad (QA)](#pruebas-y-control-de-calidad-qa)
 - [Flujo de uso y casos de ejemplo](#flujo-de-uso-y-casos-de-ejemplo)
+- [Flujos de negocio y lógica operativa](#flujos-de-negocio-y-lógica-operativa)
+  - [1. Ciclo de vida y apertura de una sucursal](#1-ciclo-de-vida-y-apertura-de-una-sucursal)
+  - [2. Flujo integral de inventario y recetas](#2-flujo-integral-de-inventario-y-recetas)
+  - [3. Flujo de pedidos del cliente y preparación KDS](#3-flujo-de-pedidos-del-cliente-y-preparación-kds)
+  - [4. Flujo de abastecimiento y compras a proveedores](#4-flujo-de-abastecimiento-y-compras-a-proveedores)
+  - [5. Flujo de caja, turnos y cuadre](#5-flujo-de-caja-turnos-y-cuadre)
 - [Credenciales de prueba](#credenciales-de-prueba)
 - [Trabajo con agentes de IA](#trabajo-con-agentes-de-ia)
 - [Flujo de trabajo colaborativo (Git Flow)](#flujo-de-trabajo-colaborativo-git-flow)
@@ -392,6 +398,166 @@ Si la API y su conexión funcionan, recibirás una respuesta exitosa. Si falla, 
 
 1. Abre `/cliente/login`.
 2. Inicia sesión con `cliente.demo` / `Cliente123*`.
+
+---
+
+## Flujos de negocio y lógica operativa
+
+Este apartado describe en detalle cómo interactúan los módulos de **artesa** en el día a día operativo, desde la apertura de sucursales hasta el KDS de baristas, el control de inventario y el cuadre de caja.
+
+> **Menú de navegación rápida:**
+> - [1. Ciclo de vida y apertura de una sucursal](#1-ciclo-de-vida-y-apertura-de-una-sucursal)
+> - [2. Flujo integral de inventario y recetas](#2-flujo-integral-de-inventario-y-recetas)
+> - [3. Flujo de pedidos del cliente y preparación KDS](#3-flujo-de-pedidos-del-cliente-y-preparación-kds)
+> - [4. Flujo de abastecimiento y compras a proveedores](#4-flujo-de-abastecimiento-y-compras-a-proveedores)
+> - [5. Flujo de caja, turnos y cuadre](#5-flujo-de-caja-turnos-y-cuadre)
+
+---
+
+### 1. Ciclo de vida y apertura de una sucursal
+
+En **artesa**, el catálogo de productos y recetas es corporativo y centralizado; sin embargo, cada establecimiento físico opera de forma aislada e independiente en cuanto a empleados, cajas registradoras y existencia física de inventario.
+
+```mermaid
+flowchart TD
+    A["1. Registro de Sucursal<br/>(empresa.sucursales)"] --> B["2. Asignación de Usuarios<br/>(seguridad.usuario_sucursal)"]
+    B --> C["3. Configuración de Caja POS<br/>(pos.cajas)"]
+    C --> D["4. Dotación de Stock Inicial / Compra<br/>(inventario.stock_sucursal)"]
+    D --> E["5. Definición de Stock Mínimo<br/>(Umbrales de alerta)"]
+    E --> F["Sucursal Lista para Operar en POS"]
+```
+
+#### Pasos para la puesta en marcha:
+1. **Creación en base de datos (`empresa.sucursales`)**: Se ingresan los datos de establecimiento (código DTE, nombre, dirección y departamento). La sucursal nace sin usuarios ni stock.
+2. **Asignación de personal (`seguridad.usuario_sucursal`)**: Los cajeros, gerentes y baristas deben vincularse a la sucursal. Los middlewares de autenticación impiden que un empleado vea o mueva inventario de sedes no autorizadas.
+3. **Punto de venta físico (`pos.cajas`)**: Se configura la caja registradora asignada a la sucursal con su código de punto de venta y series fiscales.
+4. **Carga de inventario inicial**: Mediante un movimiento de tipo `INVENTARIO_INICIAL` o `TRASLADO_ENTRADA` (o una primera compra), se asignan existencias en `inventario.stock_sucursal`.
+5. **Umbrales preventivos**: Se establece el `stock_minimo` por insumo para disparar alertas automáticas de reabastecimiento en el dashboard.
+
+[↑ Volver al menú de flujos](#flujos-de-negocio-y-lógica-operativa)
+
+---
+
+### 2. Flujo integral de inventario y recetas
+
+El inventario físico vive exclusivamente en la tabla `inventario.stock_sucursal` indexada por `(id_sucursal, id_insumo)`. Todas las alteraciones pasan obligatoriamente por la función con bloqueo transaccional `inventario.fn_mover_stock`.
+
+```mermaid
+flowchart TD
+    subgraph ENTRADAS ["Entradas de Stock (+)"]
+        E1["Compras a Proveedores<br/>(compras.fn_registrar_compra)"]
+        E2["Ajuste Manual / Inicial / Traslado<br/>(POST /api/inventario/insumos/:id/movimientos)"]
+        E3["Anulación de Venta en Caja<br/>(inventario.fn_revertir_stock_venta)"]
+    end
+
+    subgraph STOCK ["Almacén por Sucursal"]
+        S[("inventario.stock_sucursal<br/>PK: id_sucursal, id_insumo<br/>stock_actual | stock_minimo")]
+    end
+
+    subgraph SALIDAS ["Salidas de Stock (-)"]
+        S1["Venta POS con Receta (Elaborado)<br/>(inventario.fn_descontar_stock_por_venta)"]
+        S2["Venta POS Directa (Reventa)<br/>(Descuento de insumo asociado)"]
+        S3["Registro de Mermas / Desperdicio<br/>(inventario.fn_registrar_merma)"]
+    end
+
+    subgraph AUDITORIA ["Kárdex Inmutable"]
+        K[("inventario.movimientos_inventario<br/>tipo, cantidad, costo, stock_resultante, usuario")]
+    end
+
+    E1 & E2 & E3 -->|"fn_mover_stock (+)"| S
+    S -->|"fn_mover_stock (-)"| S1 & S2 & S3
+    S -.->|"Auditoría por movimiento"| K
+```
+
+#### Reglas de negocio y mínimo para operar:
+* **Catálogo central vs. existencias locales**: Las recetas no se duplican por sucursal. La sucursal comparte el recetario global, pero su disponibilidad real depende de su propio stock en bodega.
+* **Cálculo de unidades preparables**: En el punto de venta, la cantidad máxima que se puede preparar de un producto elaborado se calcula dinámicamente según el insumo más escaso de la receta:
+  $$\text{Unidades Preparables} = \min_{i \in \text{Receta}} \left( \left\lfloor \frac{\text{Stock Disponible}_i}{\text{Cantidad Requerida}_i} \right\rfloor \right)$$
+* **Protección contra stock negativo**: Con el parámetro `permitir_stock_negativo = 'false'`, cualquier venta o salida que deje el saldo menor a cero arroja una excepción SQL `P0001 (Stock insuficiente)` y aborta la transacción.
+* **Semáforo de alertas preventivas (`reportes.vw_alertas_stock`)**:
+  * `AGOTADO` (`stock_actual <= 0`): Alerta crítica; venta bloqueada en POS.
+  * `BAJO_MINIMO` (`stock_actual <= stock_minimo`): Advertencia preventiva para reabastecimiento antes de agotar existencias.
+
+[↑ Volver al menú de flujos](#flujos-de-negocio-y-lógica-operativa)
+
+---
+
+### 3. Flujo de pedidos del cliente y preparación KDS
+
+Gestiona el ciclo de vida de las comandas desde que el cliente ordena en mostrador hasta la preparación en barra y su cobro fiscal.
+
+```mermaid
+flowchart LR
+    A["Toma de Comanda<br/>(Cajero en Mostrador/Delivery)<br/><b>ABIERTA</b>"] -->|"Avanza en KDS"| B["Barra / Cocina<br/>(Preparando bebidas)<br/><b>EN_PREPARACION</b>"]
+    B -->|"Terminado"| C["Llamar al Cliente<br/>(Bebida en mostrador)<br/><b>LISTA</b>"]
+    C -->|"Entrega"| D["Cliente servido<br/><b>ENTREGADA</b>"]
+    
+    A -.->|"Cobro en caja"| E["pos.fn_registrar_venta<br/>(Emisión DTE FCF/CCF)"]
+    E -->|"Actualización automática"| F["Orden <b>FACTURADA</b>"]
+    E -->|"Explosión de recetas"| G[("Descuento de Stock<br/>en Sucursal")]
+```
+
+#### Estados de una comanda (`pos.ordenes`):
+| Estado | Responsable | Acción en cafetería |
+|---|---|---|
+| `ABIERTA` | Cajero | Toma de productos, variantes y notas especiales (ej. "sin azúcar", "leche deslactosada"). |
+| `EN_PREPARACION` | Barista | Inicio de preparación en barra visualizada en la pantalla KDS (`/api/pos/preparacion`). |
+| `LISTA` | Barista | Notificación o llamado al cliente para retirar su bebida en el mostrador de entrega. |
+| `ENTREGADA` | Servicio / Barra | El cliente retira sus productos físicamente. |
+| `FACTURADA` | Sistema POS | Registro del pago, emisión del documento tributario electrónico (DTE) y descuento automático de insumos en inventario. |
+| `ANULADA` | Cajero | Cancelación previa al inicio de preparación en barra. |
+
+[↑ Volver al menú de flujos](#flujos-de-negocio-y-lógica-operativa)
+
+---
+
+### 4. Flujo de abastecimiento y compras a proveedores
+
+Describe cómo ingresa la mercadería a las bodegas de la empresa y cómo se gestionan las cuentas por pagar asociadas.
+
+```mermaid
+flowchart TD
+    A["1. Alerta de Stock Bajo / Agotado<br/>(reportes.vw_alertas_stock)"] --> B["2. Emisión y Recepción de Factura Proveedor<br/>(compras.fn_registrar_compra)"]
+    B --> C{"Tipo de Adquisición"}
+    
+    C -->|"Insumo / Mercadería (COSTO)"| D["Trigger compras.fn_trg_detalle_compra"]
+    C -->|"Gasto Operativo (GASTO)"| G["Registro Contable sin Inventario"]
+    
+    D --> E["Recálculo Costo Promedio Ponderado<br/>(inventario.insumos.costo_promedio)"]
+    D --> F["Ingreso Físico de Existencias<br/>(inventario.fn_mover_stock a la Sucursal)"]
+    
+    B --> H["Control de Cuentas por Pagar (CxP)<br/>(Estado PENDIENTE / PARCIAL / PAGADO)"]
+    H --> I["Registro de Abonos / Pagos<br/>(compras.pagos_proveedor)"]
+```
+
+#### Aspectos destacados:
+* **Recálculo de costo promedio**: Cada compra actualiza el costo unitario de los insumos ponderando las existencias previas con las nuevas:
+  $$\text{Costo Nuevo} = \frac{(\text{Stock Previo} \times \text{Costo Previo}) + (\text{Cantidad Nueva} \times \text{Costo Nuevo})}{\text{Stock Previo} + \text{Cantidad Nueva}}$$
+* **Compras tipo Gasto vs. Costo**: Las facturas de energía eléctrica, internet o alquiler se registran como `GASTO` sin afectar existencias ni recetas.
+* **Automatización de CxP**: El trigger `compras.fn_trg_pago_proveedor` actualiza de forma automática el saldo pendiente de las compras al crédito.
+
+[↑ Volver al menú de flujos](#flujos-de-negocio-y-lógica-operativa)
+
+---
+
+### 5. Flujo de caja, turnos y cuadre
+
+Garantiza la conciliación estricta del efectivo y los pagos electrónicos en cada punto de venta físico.
+
+```mermaid
+flowchart LR
+    A["Apertura de Turno<br/>(Monto inicial / fondo de caja)"] --> B["Operación del Turno<br/>(Cobro de ventas, ingresos y egresos)"]
+    B --> C["Cierre Ciego de Turno<br/>(Arqueo físico declarado por el cajero)"]
+    C --> D["Conciliación y Cuadre<br/>(reportes.vw_cuadre_turno)"]
+    D --> E["Diferencias Auditadas<br/>(Sobrantes o faltantes registrados)"]
+```
+
+#### Reglas de control de caja:
+* **Unicidad de turno**: Una caja solo puede tener un turno abierto a la vez por un cajero específico.
+* **Cierre ciego**: El cajero declara el efectivo real en gaveta y los comprobantes físicos de tarjeta sin conocer el saldo teórico calculado por el sistema, previniendo manipulaciones.
+* **Auditoría de diferencias**: El sistema calcula la diferencia (`dif_efectivo`, `dif_tarjeta`) y queda asentada en la bitácora para revisión del gerente o auditor.
+
+[↑ Volver al menú de flujos](#flujos-de-negocio-y-lógica-operativa)
 
 ---
 
