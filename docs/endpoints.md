@@ -59,3 +59,12 @@ Caja: un solo turno `ABIERTO` por caja y por cajero (409; lo garantizan los índ
 Inventario: cada escritura se ejecuta con `withTransaction` y `app.user_id`; cambios de existencias y mermas llaman las funciones SQL existentes para serializar el stock y dejar kardex. Las consultas operativas filtran sucursales asignadas; el costo promedio y `costo_unitario` del kardex solo se exponen a quien tiene `INV_VER_COSTOS`. `/api/inventario/movimientos` devuelve hasta 500 movimientos recientes después de aplicar el aislamiento por sucursal. El esquema inicial ya incluye 12 productos elaborados, 3 de reventa y sus recetas.
 
 Cierre de turno: solo el cajero dueño, una vez (409 si ya está cerrado). Llama a `pos.fn_cerrar_turno`; las diferencias son `contado - esperado` (negativo = FALTANTE). Reportes: sin fechas usan los últimos 30 días; rango máximo 366 días; cada usuario ve solo sus sucursales (el rol ADMIN ve todas). Preparación: el estado solo avanza ABIERTA → EN_PREPARACION → LISTA → ENTREGADA.
+
+## Bitácora y analítica
+
+| Método | Ruta | Autenticación | Permiso | Query params | Respuesta |
+|---|---|---|---|---|---|
+| GET | `/api/bitacora` | Cookie JWT + tipo admin | `SEG_VER_BITACORA` | `page` (1+), `limit` (1–100), `startDate`, `endDate`, `user`, `action` (CREATE/UPDATE/DELETE/LOGIN), `module`, `search` | `{data, pagination}` ordenado por `creado_en DESC, id_bitacora DESC` |
+| GET | `/api/bitacora/metricas` | Cookie JWT + tipo admin | `SEG_VER_BITACORA` | `startDate`, `endDate`, `user`, `module`, `granularity` (hour/day) | `tendencia`, `severidadModulo`, `usuarios`, `heatmap`, `modulos` agrupados en PostgreSQL |
+
+Las fechas deben enviarse juntas y cubren un rango máximo de 366 días; las métricas sin fechas se acotan a los últimos 30 días. El detalle omite `password_hash`, tokens y credenciales históricas. La migración `006_bitacora_analitica.sql` agrega IP, agente y severidad; después debe aplicarse con `pnpm db:migrate`. Los accesos de login fallidos se guardan como `WARNING`; la ventana fuera de horario para analítica es 22:00–05:59, hora de El Salvador.

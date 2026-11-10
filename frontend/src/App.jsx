@@ -14,6 +14,7 @@ import ReportesPage from './modules/reportes/ReportesPage.jsx';
 import SucursalesPage from './modules/empresa/SucursalesPage.jsx';
 import ParametrosPage from './modules/empresa/ParametrosPage.jsx';
 import PendienteApiPage from './modules/PendienteApiPage.jsx';
+import BitacoraPage from './modules/seguridad/BitacoraPage.jsx';
 
 export default function App() {
   return (
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="reportes" element={<ProtectedRoute permiso="REP_VER_DASHBOARD"><ReportesPage /></ProtectedRoute>} />
         <Route path="empresa/sucursales" element={<ProtectedRoute permiso="EMP_GESTIONAR_SUCURSALES"><SucursalesPage /></ProtectedRoute>} />
         <Route path="empresa/parametros" element={<ProtectedRoute permiso="EMP_EDITAR_PARAMETROS"><ParametrosPage /></ProtectedRoute>} />
+        <Route path="seguridad/bitacora" element={<ProtectedRoute permiso="SEG_VER_BITACORA"><BitacoraPage /></ProtectedRoute>} />
         <Route path="rrhh/empleados" element={<ProtectedRoute permiso="RRHH_GESTIONAR_EMPLEADOS"><PendienteApiPage titulo="Empleados" descripcion="Gestión del personal por sucursal." endpoints={["GET/POST /api/empleados (no existe)", "PUT /api/empleados/:id (no existe)"]} /></ProtectedRoute>} />
         <Route path="rrhh/puestos" element={<ProtectedRoute permiso="RRHH_GESTIONAR_EMPLEADOS"><PendienteApiPage titulo="Puestos" descripcion="Catálogo de puestos y salarios base." endpoints={["GET/POST /api/puestos (no existe)", "PUT /api/puestos/:id (no existe)"]} /></ProtectedRoute>} />
         <Route path="rrhh" element={<ProtectedRoute permiso="RRHH_VER_PLANILLA"><PendienteApiPage titulo="RR. HH. y planilla" descripcion="Empleados, períodos y procesamiento de planillas." endpoints={["GET /api/planillas (no existe)", "POST /api/planillas (no existe)"]} /></ProtectedRoute>} />
