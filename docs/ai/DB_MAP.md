@@ -39,7 +39,7 @@ compra_detalles(id_detalle, id_compra, id_insumo?, descripcion, cantidad, costo_
 fn: compras.fn_registrar_compra(id_proveedor, id_sucursal, num_factura, fecha, condicion, items jsonb, id_usuario, tipo_costo) → id_compra   items=[{id_insumo,cantidad,costo_unitario}] ó [{descripcion,cantidad,costo_unitario}] (costo SIN IVA)
 
 ## rrhh
-puestos(id_puesto, nombre, salario_base) · empleados(id_empleado U, id_sucursal, id_puesto, id_usuario?, nombres, apellidos, dui*, nit, fecha_ingreso, salario_nominal[MENSUAL], activo)
+puestos(id_puesto, nombre, salario_base, activo) · empleados(id_empleado U, id_sucursal, id_puesto, id_usuario?, nombres, apellidos, dui*, nit nullable si está homologado con DUI, fecha_ingreso, salario_nominal[MENSUAL], activo) · CRUD REST en `/api/rrhh` protegido por `RRHH_GESTIONAR_EMPLEADOS`
 tramos_renta(tipo_periodo, tramo, desde, hasta, cuota_fija, porcentaje, exceso_sobre) · planillas(id_planilla, id_sucursal, periodo_inicio, periodo_fin, tipo_periodo, procesada) · planilla_detalles(id_planilla, id_empleado, salario_bruto, isss_laboral, afp_laboral, renta_retenida, total_descuentos, salario_neto, *_patronal)
 fn: rrhh.fn_calcular_planilla(id_planilla) → nº empleados (no recalcula si procesada)
 

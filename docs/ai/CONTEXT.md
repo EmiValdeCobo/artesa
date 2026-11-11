@@ -25,6 +25,9 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE, ma
 | inventario | listo | CRUD insumos/productos, stock, mermas, alertas y Kárdex con permiso propio (seeder pendiente de aplicación local) | Inventario, alertas, mermas y Kárdex de movimientos |
 | pos | listo | cola de preparación (/api/preparacion) y órdenes (T02) | catálogo y carrito local; cobro/facturación pendiente |
 | caja | listo | turnos, movimientos, cierre y cuadre (T05/T06/T22) | pendiente |
+| compras | listo | pendiente | pendiente |
+| rrhh | listo | CRUD de puestos y empleados, validaciones, permisos y datos de prueba | pendiente |
+| reportes | vistas listas | ventas diarias, top productos, alertas y margen (T23) | pendiente |
 | compras | listo | pendiente | pantallas pendientes (usan PendienteApiPage) |
 | rrhh | listo | pendiente | pantallas pendientes (usan PendienteApiPage) |
 | reportes | vistas listas + consultas de método de pago, cuadre y CxP | ventas diarias, top productos, métodos de pago, alertas, margen, cuadre y CxP; alcance por `id_sucursal` | panel con tendencias, comparativos, tablas paginadas y exportación CSV/PDF |
