@@ -8,6 +8,8 @@ import reportesRoutes from './reportes/reportes.routes.js';
 import preparacionRoutes from './pos/preparacion/preparacion.routes.js';
 import ordenesRoutes from './pos/ordenes/ordenes.routes.js';
 import rrhhRoutes from './rrhh/rrhh.routes.js';
+import empresaRoutes from './empresa/empresa.routes.js';
+import bitacoraRoutes from './bitacora/bitacora.routes.js';
 
 // Cada módulo registra aquí su router bajo /api/<recurso-plural>
 // Ejemplo (cuando exista): router.use('/insumos', insumosRoutes);
@@ -22,5 +24,7 @@ router.use('/reportes', reportesRoutes);
 router.use('/preparacion', preparacionRoutes);
 router.use('/pos/ordenes', ordenesRoutes);
 router.use('/rrhh', rrhhRoutes);
+router.use('/empresa', empresaRoutes);
+router.use('/bitacora', bitacoraRoutes);
 
 export default router;

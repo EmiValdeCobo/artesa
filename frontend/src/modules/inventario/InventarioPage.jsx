@@ -11,6 +11,7 @@ import { Button, Card, Select, Spinner, Table } from '../../components/ui/index.
 import Metrica from '../../components/display/Metrica.jsx';
 import Pestanas from '../../components/navigation/Pestanas.jsx';
 import { traducirError } from '../../errors/traducirError.js';
+import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 
 const CANTIDAD_VALIDA = /^\d{1,10}(\.\d{1,4})?$/;
 const SUCURSALES_VACIAS = [];
@@ -222,7 +223,7 @@ export default function InventarioPage() {
   if (!sucursales.length) {
     return (
       <div className="space-y-6">
-        <header><h1 className="font-display text-2xl font-semibold">Inventario</h1></header>
+        <EncabezadoPagina seccion="Operación" titulo="Inventario" />
         <Card><EstadoVacio icono={Boxes} titulo="No tienes sucursales asignadas">
           Pide a una persona administradora que te asigne una sucursal para consultar el inventario.
         </EstadoVacio></Card>
@@ -232,13 +233,7 @@ export default function InventarioPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="mb-2 flex items-center gap-2 text-sm font-medium text-primary-text"><Boxes size={17} aria-hidden="true" /> Operación</p>
-          <h1 className="font-display text-2xl font-semibold tracking-tight">Inventario</h1>
-          <p className="mt-1 max-w-2xl text-sm text-fg-muted">Consulta existencias y alertas, y registra mermas de la sucursal seleccionada.</p>
-        </div>
-        <div className="w-full sm:max-w-xs">
+      <EncabezadoPagina seccion="Operación" titulo="Inventario" descripcion="Consulta existencias y alertas, y registra mermas de la sucursal seleccionada." acciones={<div className="w-full sm:max-w-xs">
           <Select
             etiqueta="Sucursal"
             opciones={opcionesSucursal}
@@ -246,8 +241,7 @@ export default function InventarioPage() {
             onChange={cambiarSucursal}
             disabled={enviando}
           />
-        </div>
-      </header>
+        </div>} />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Metrica icono={Boxes} valor={cargandoStock ? '…' : errorStock ? '—' : stock.length} etiqueta="Insumos en sucursal" tono="primario" />

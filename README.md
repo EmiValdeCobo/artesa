@@ -31,7 +31,14 @@
   - [Opción 2: entorno completo con Docker Compose](#opción-2-entorno-completo-con-docker-compose)
   - [Resumen de URLs y puertos](#resumen-de-urls-y-puertos)
 - [Base de datos: esquema y migraciones](#base-de-datos-esquema-y-migraciones)
+- [Pruebas y control de calidad (QA)](#pruebas-y-control-de-calidad-qa)
 - [Flujo de uso y casos de ejemplo](#flujo-de-uso-y-casos-de-ejemplo)
+- [Flujos de negocio y lógica operativa](#flujos-de-negocio-y-lógica-operativa)
+  - [1. Ciclo de vida y apertura de una sucursal](#1-ciclo-de-vida-y-apertura-de-una-sucursal)
+  - [2. Flujo integral de inventario y recetas](#2-flujo-integral-de-inventario-y-recetas)
+  - [3. Flujo de pedidos del cliente y preparación KDS](#3-flujo-de-pedidos-del-cliente-y-preparación-kds)
+  - [4. Flujo de abastecimiento y compras a proveedores](#4-flujo-de-abastecimiento-y-compras-a-proveedores)
+  - [5. Flujo de caja, turnos y cuadre](#5-flujo-de-caja-turnos-y-cuadre)
 - [Credenciales de prueba](#credenciales-de-prueba)
 - [Trabajo con agentes de IA](#trabajo-con-agentes-de-ia)
 - [Flujo de trabajo colaborativo (Git Flow)](#flujo-de-trabajo-colaborativo-git-flow)
@@ -64,6 +71,7 @@ Los negocios de alimentos artesanales (cafeterías, panaderías) suelen llevar s
 | **Compras y proveedores** | Catálogo de proveedores y registro de compras de insumos. |
 | **RR. HH. y planilla** | Gestión de empleados y cálculo de planilla. |
 | **Dashboard y reportes** | Indicadores y reportes del negocio para la toma de decisiones. |
+| **Empresa y sucursales** | Configuración de establecimientos físicos y parámetros operativos/fiscales globales. |
 | **Área cliente** | Acceso separado para clientes en `/cliente/login`. |
 
 ---
@@ -102,6 +110,7 @@ artesa/
 │   ├── seeders/              # Datos iniciales aplicables con `pnpm db:seed`
 │   └── demo/
 │       └── 02_demo.sql       # Datos de ejemplo para demostración
+├── test/                     # Batería de pruebas automatizadas (node --test)
 ├── scripts/
 │   └── db.js                 # Runner de migraciones y seeders (registra SHA-256)
 ├── docs/
@@ -115,6 +124,7 @@ artesa/
 
 | Elemento | Responsabilidad |
 |----------|-----------------|
+| `test/` | Pruebas de contrato de API, validaciones Zod, FSM, seguridad y lógica pura. |
 | `backend/` | Lógica de negocio, autenticación y acceso a datos mediante una API REST. |
 | `frontend/` | Pantallas de administración, POS y área cliente. |
 | `database/init/` | Crea el esquema completo en el primer arranque del contenedor. |
@@ -132,6 +142,7 @@ artesa/
 | Gestor de paquetes | pnpm (workspace) | Un solo `pnpm install` para raíz, backend y frontend. |
 | Contenedores | Docker Compose | Servicios `db`, `api` y `web`. |
 | Servidor web | Nginx | Sirve estáticos y actúa como reverse proxy hacia la API. |
+| Pruebas / QA | Node.js Test Runner (`node --test`) | 125 pruebas automatizadas (unitarias, contratos de API y FSM). |
 
 ---
 
@@ -264,6 +275,9 @@ Al levantar el contenedor con el volumen vacío, Docker ejecuta **todos** los ar
 | `02_create_web_user.sql` | Rol restringido `web_user` para la aplicación. |
 | `03_soft_delete.sql` | Columna `deleted_at` en catálogos (eliminación lógica). |
 | `04_timestamps.sql` | Columna `modificado_en` y triggers `BEFORE UPDATE` automáticos. |
+| `05_dashboard.sql` | Vistas y métricas agregadas del dashboard de negocio. |
+| `05_rbac_roles_activos.sql` | Soporte de borrado lógico e integridad para roles y permisos activos. |
+| `06_bitacora_analitica.sql` | Auditoría analítica (`ip_cliente`, `agente_cliente`, `severidad`) e índices. |
 
 ```bash
 # En un clon limpio basta con esto
@@ -315,6 +329,36 @@ pnpm db:seed      # aplica los seeders pendientes de database/seeders/
 
 ---
 
+## Pruebas y control de calidad (QA)
+
+El proyecto cuenta con una suite integral de **125 pruebas automatizadas** que se ejecutan utilizando el runner nativo de Node.js (`node:test`) sin necesidad de levantar servicios externos ni base de datos activa:
+
+```bash
+# Ejecutar todas las pruebas del proyecto
+pnpm test
+```
+
+### Estrategia de pruebas
+
+Las pruebas cubren tanto el backend como el frontend bajo una arquitectura por capas:
+
+1. **Contratos de API y Seguridad (Backend):**
+   - **Autenticación y Sesión (`test/auth-contracts.test.js`):** límites de intentos de login (`express-rate-limit`), cookies HTTP-only, validación de estado activo (`activo = true`) y mitigación de enumeración de usuarios.
+   - **Empresa y Sucursales (`test/empresa-contracts.test.js`):** RBAC estricto (`EMP_GESTIONAR_SUCURSALES`, `EMP_EDITAR_PARAMETROS`), validaciones Zod, transacciones (`withTransaction`) y manejo de unicidad (409).
+   - **Dashboard y Políticas (`test/dashboard-contracts.test.js`):** esquemas de consulta estrictos (`strictObject`), aislamiento por sucursal vs. ventas propias, ocultamiento selectivo de importes en ranking según permisos.
+   - **Seguridad y Usuarios (`test/usuarios-contracts.test.js`):** esquemas de alta/edición, hashing seguro con `bcrypt`, transacciones con bitácora y protección anti-bloqueo/auto-eliminación de cuentas activas.
+   - **POS y Preparación (`test/pos-ordenes-t02.test.js`, `test/pos-preparacion-contracts.test.js`):** máquina de estados finitos (FSM) estricta, bloqueos por concurrencia (`FOR UPDATE`) y regla anti-float.
+   - **Caja e Inventario (`test/caja-contracts.test.js`, `test/inventario-contracts.test.js`):** cuadre de turnos, llamado de funciones SQL críticas y kárdex.
+
+2. **Lógica de Negocio y Utilidades (Frontend):**
+   - **Cálculo de Impuestos y POS (`test/frontend-pos-logic.test.js`):** desglose exacto de IVA 13% en precios incluidos y reducer de carrito (límites por stock, agregar, cambiar cantidades, vaciar).
+   - **Formatos y Traducción de Errores (`test/frontend-formatos-errores.test.js`):** formateo monetario sin pérdida de precisión sobre tipos NUMERIC, fechas locales sin desfase horario y traducción amigable de errores HTTP y PostgreSQL (P0001, 23505).
+   - **RBAC y Navegación Dinámica (`test/frontend-rbac-menu.test.js`):** filtrado recursivo de menús por permisos, validación de códigos de permiso en mayúsculas y agrupación por módulos.
+   - **Menú del POS y encabezados (`test/frontend-pos-menu.test.js`):** agrupamiento por categoría sin pérdida de datos, CCF condicionado a `POS_EMITIR_CCF`, menú condicionado a `INV_VER_STOCK` y uso del encabezado compartido.
+   - **Contratos de Pantallas (`test/frontend-pages-contracts.test.js`):** consumo a través del cliente unificado (`api/client.js`), protección de rutas con `ProtectedRoute` y transparencia mediante `PendienteApiPage` para módulos sin endpoints backend.
+
+---
+
 ## Flujo de uso y casos de ejemplo
 
 Con la aplicación en marcha (consulta [Guía rápida](#guía-rápida-de-instalación-y-ejecución)), sigue estos recorridos para validar las funciones principales. Las credenciales están en [Credenciales de prueba](#credenciales-de-prueba).
@@ -354,6 +398,166 @@ Si la API y su conexión funcionan, recibirás una respuesta exitosa. Si falla, 
 
 1. Abre `/cliente/login`.
 2. Inicia sesión con `cliente.demo` / `Cliente123*`.
+
+---
+
+## Flujos de negocio y lógica operativa
+
+Este apartado describe en detalle cómo interactúan los módulos de **artesa** en el día a día operativo, desde la apertura de sucursales hasta el KDS de baristas, el control de inventario y el cuadre de caja.
+
+> **Menú de navegación rápida:**
+> - [1. Ciclo de vida y apertura de una sucursal](#1-ciclo-de-vida-y-apertura-de-una-sucursal)
+> - [2. Flujo integral de inventario y recetas](#2-flujo-integral-de-inventario-y-recetas)
+> - [3. Flujo de pedidos del cliente y preparación KDS](#3-flujo-de-pedidos-del-cliente-y-preparación-kds)
+> - [4. Flujo de abastecimiento y compras a proveedores](#4-flujo-de-abastecimiento-y-compras-a-proveedores)
+> - [5. Flujo de caja, turnos y cuadre](#5-flujo-de-caja-turnos-y-cuadre)
+
+---
+
+### 1. Ciclo de vida y apertura de una sucursal
+
+En **artesa**, el catálogo de productos y recetas es corporativo y centralizado; sin embargo, cada establecimiento físico opera de forma aislada e independiente en cuanto a empleados, cajas registradoras y existencia física de inventario.
+
+```mermaid
+flowchart TD
+    A["1. Registro de Sucursal<br/>(empresa.sucursales)"] --> B["2. Asignación de Usuarios<br/>(seguridad.usuario_sucursal)"]
+    B --> C["3. Configuración de Caja POS<br/>(pos.cajas)"]
+    C --> D["4. Dotación de Stock Inicial / Compra<br/>(inventario.stock_sucursal)"]
+    D --> E["5. Definición de Stock Mínimo<br/>(Umbrales de alerta)"]
+    E --> F["Sucursal Lista para Operar en POS"]
+```
+
+#### Pasos para la puesta en marcha:
+1. **Creación en base de datos (`empresa.sucursales`)**: Se ingresan los datos de establecimiento (código DTE, nombre, dirección y departamento). La sucursal nace sin usuarios ni stock.
+2. **Asignación de personal (`seguridad.usuario_sucursal`)**: Los cajeros, gerentes y baristas deben vincularse a la sucursal. Los middlewares de autenticación impiden que un empleado vea o mueva inventario de sedes no autorizadas.
+3. **Punto de venta físico (`pos.cajas`)**: Se configura la caja registradora asignada a la sucursal con su código de punto de venta y series fiscales.
+4. **Carga de inventario inicial**: Mediante un movimiento de tipo `INVENTARIO_INICIAL` o `TRASLADO_ENTRADA` (o una primera compra), se asignan existencias en `inventario.stock_sucursal`.
+5. **Umbrales preventivos**: Se establece el `stock_minimo` por insumo para disparar alertas automáticas de reabastecimiento en el dashboard.
+
+[↑ Volver al menú de flujos](#flujos-de-negocio-y-lógica-operativa)
+
+---
+
+### 2. Flujo integral de inventario y recetas
+
+El inventario físico vive exclusivamente en la tabla `inventario.stock_sucursal` indexada por `(id_sucursal, id_insumo)`. Todas las alteraciones pasan obligatoriamente por la función con bloqueo transaccional `inventario.fn_mover_stock`.
+
+```mermaid
+flowchart TD
+    subgraph ENTRADAS ["Entradas de Stock (+)"]
+        E1["Compras a Proveedores<br/>(compras.fn_registrar_compra)"]
+        E2["Ajuste Manual / Inicial / Traslado<br/>(POST /api/inventario/insumos/:id/movimientos)"]
+        E3["Anulación de Venta en Caja<br/>(inventario.fn_revertir_stock_venta)"]
+    end
+
+    subgraph STOCK ["Almacén por Sucursal"]
+        S[("inventario.stock_sucursal<br/>PK: id_sucursal, id_insumo<br/>stock_actual | stock_minimo")]
+    end
+
+    subgraph SALIDAS ["Salidas de Stock (-)"]
+        S1["Venta POS con Receta (Elaborado)<br/>(inventario.fn_descontar_stock_por_venta)"]
+        S2["Venta POS Directa (Reventa)<br/>(Descuento de insumo asociado)"]
+        S3["Registro de Mermas / Desperdicio<br/>(inventario.fn_registrar_merma)"]
+    end
+
+    subgraph AUDITORIA ["Kárdex Inmutable"]
+        K[("inventario.movimientos_inventario<br/>tipo, cantidad, costo, stock_resultante, usuario")]
+    end
+
+    E1 & E2 & E3 -->|"fn_mover_stock (+)"| S
+    S -->|"fn_mover_stock (-)"| S1 & S2 & S3
+    S -.->|"Auditoría por movimiento"| K
+```
+
+#### Reglas de negocio y mínimo para operar:
+* **Catálogo central vs. existencias locales**: Las recetas no se duplican por sucursal. La sucursal comparte el recetario global, pero su disponibilidad real depende de su propio stock en bodega.
+* **Cálculo de unidades preparables**: En el punto de venta, la cantidad máxima que se puede preparar de un producto elaborado se calcula dinámicamente según el insumo más escaso de la receta:
+  $$\text{Unidades Preparables} = \min_{i \in \text{Receta}} \left( \left\lfloor \frac{\text{Stock Disponible}_i}{\text{Cantidad Requerida}_i} \right\rfloor \right)$$
+* **Protección contra stock negativo**: Con el parámetro `permitir_stock_negativo = 'false'`, cualquier venta o salida que deje el saldo menor a cero arroja una excepción SQL `P0001 (Stock insuficiente)` y aborta la transacción.
+* **Semáforo de alertas preventivas (`reportes.vw_alertas_stock`)**:
+  * `AGOTADO` (`stock_actual <= 0`): Alerta crítica; venta bloqueada en POS.
+  * `BAJO_MINIMO` (`stock_actual <= stock_minimo`): Advertencia preventiva para reabastecimiento antes de agotar existencias.
+
+[↑ Volver al menú de flujos](#flujos-de-negocio-y-lógica-operativa)
+
+---
+
+### 3. Flujo de pedidos del cliente y preparación KDS
+
+Gestiona el ciclo de vida de las comandas desde que el cliente ordena en mostrador hasta la preparación en barra y su cobro fiscal.
+
+```mermaid
+flowchart LR
+    A["Toma de Comanda<br/>(Cajero en Mostrador/Delivery)<br/><b>ABIERTA</b>"] -->|"Avanza en KDS"| B["Barra / Cocina<br/>(Preparando bebidas)<br/><b>EN_PREPARACION</b>"]
+    B -->|"Terminado"| C["Llamar al Cliente<br/>(Bebida en mostrador)<br/><b>LISTA</b>"]
+    C -->|"Entrega"| D["Cliente servido<br/><b>ENTREGADA</b>"]
+    
+    A -.->|"Cobro en caja"| E["pos.fn_registrar_venta<br/>(Emisión DTE FCF/CCF)"]
+    E -->|"Actualización automática"| F["Orden <b>FACTURADA</b>"]
+    E -->|"Explosión de recetas"| G[("Descuento de Stock<br/>en Sucursal")]
+```
+
+#### Estados de una comanda (`pos.ordenes`):
+| Estado | Responsable | Acción en cafetería |
+|---|---|---|
+| `ABIERTA` | Cajero | Toma de productos, variantes y notas especiales (ej. "sin azúcar", "leche deslactosada"). |
+| `EN_PREPARACION` | Barista | Inicio de preparación en barra visualizada en la pantalla KDS (`/api/pos/preparacion`). |
+| `LISTA` | Barista | Notificación o llamado al cliente para retirar su bebida en el mostrador de entrega. |
+| `ENTREGADA` | Servicio / Barra | El cliente retira sus productos físicamente. |
+| `FACTURADA` | Sistema POS | Registro del pago, emisión del documento tributario electrónico (DTE) y descuento automático de insumos en inventario. |
+| `ANULADA` | Cajero | Cancelación previa al inicio de preparación en barra. |
+
+[↑ Volver al menú de flujos](#flujos-de-negocio-y-lógica-operativa)
+
+---
+
+### 4. Flujo de abastecimiento y compras a proveedores
+
+Describe cómo ingresa la mercadería a las bodegas de la empresa y cómo se gestionan las cuentas por pagar asociadas.
+
+```mermaid
+flowchart TD
+    A["1. Alerta de Stock Bajo / Agotado<br/>(reportes.vw_alertas_stock)"] --> B["2. Emisión y Recepción de Factura Proveedor<br/>(compras.fn_registrar_compra)"]
+    B --> C{"Tipo de Adquisición"}
+    
+    C -->|"Insumo / Mercadería (COSTO)"| D["Trigger compras.fn_trg_detalle_compra"]
+    C -->|"Gasto Operativo (GASTO)"| G["Registro Contable sin Inventario"]
+    
+    D --> E["Recálculo Costo Promedio Ponderado<br/>(inventario.insumos.costo_promedio)"]
+    D --> F["Ingreso Físico de Existencias<br/>(inventario.fn_mover_stock a la Sucursal)"]
+    
+    B --> H["Control de Cuentas por Pagar (CxP)<br/>(Estado PENDIENTE / PARCIAL / PAGADO)"]
+    H --> I["Registro de Abonos / Pagos<br/>(compras.pagos_proveedor)"]
+```
+
+#### Aspectos destacados:
+* **Recálculo de costo promedio**: Cada compra actualiza el costo unitario de los insumos ponderando las existencias previas con las nuevas:
+  $$\text{Costo Nuevo} = \frac{(\text{Stock Previo} \times \text{Costo Previo}) + (\text{Cantidad Nueva} \times \text{Costo Nuevo})}{\text{Stock Previo} + \text{Cantidad Nueva}}$$
+* **Compras tipo Gasto vs. Costo**: Las facturas de energía eléctrica, internet o alquiler se registran como `GASTO` sin afectar existencias ni recetas.
+* **Automatización de CxP**: El trigger `compras.fn_trg_pago_proveedor` actualiza de forma automática el saldo pendiente de las compras al crédito.
+
+[↑ Volver al menú de flujos](#flujos-de-negocio-y-lógica-operativa)
+
+---
+
+### 5. Flujo de caja, turnos y cuadre
+
+Garantiza la conciliación estricta del efectivo y los pagos electrónicos en cada punto de venta físico.
+
+```mermaid
+flowchart LR
+    A["Apertura de Turno<br/>(Monto inicial / fondo de caja)"] --> B["Operación del Turno<br/>(Cobro de ventas, ingresos y egresos)"]
+    B --> C["Cierre Ciego de Turno<br/>(Arqueo físico declarado por el cajero)"]
+    C --> D["Conciliación y Cuadre<br/>(reportes.vw_cuadre_turno)"]
+    D --> E["Diferencias Auditadas<br/>(Sobrantes o faltantes registrados)"]
+```
+
+#### Reglas de control de caja:
+* **Unicidad de turno**: Una caja solo puede tener un turno abierto a la vez por un cajero específico.
+* **Cierre ciego**: El cajero declara el efectivo real en gaveta y los comprobantes físicos de tarjeta sin conocer el saldo teórico calculado por el sistema, previniendo manipulaciones.
+* **Auditoría de diferencias**: El sistema calcula la diferencia (`dif_efectivo`, `dif_tarjeta`) y queda asentada en la bitácora para revisión del gerente o auditor.
+
+[↑ Volver al menú de flujos](#flujos-de-negocio-y-lógica-operativa)
 
 ---
 
@@ -404,15 +608,16 @@ git checkout -b feature/<modulo>-<descripcion>
 
 ### Convención de commits
 
-Se usa **Conventional Commits**, en minúsculas y en español:
+El proyecto sigue una convención estricta que combina **Gitmoji** y **Conventional Commits** en formato `<emoji> <tipo>(<alcance>): <descripción>`:
 
-| Prefijo | Uso | Ejemplo |
+| Gitmoji + Prefijo | Uso | Ejemplo |
 |---------|-----|---------|
-| `feat(<modulo>)` | Nueva funcionalidad | `feat(pos): agregar cobro en efectivo` |
-| `fix(<modulo>)` | Corrección de errores | `fix(caja): corregir cierre de turno` |
-| `docs` | Documentación | `docs: actualizar guía de instalación` |
-| `refactor` | Reestructuración sin cambio funcional | `refactor: simplificar servicio de inventario` |
-| `chore` | Tareas de mantenimiento | `chore: actualizar dependencias` |
+| `:sparkles: feat(<modulo>)` | Nueva funcionalidad | `:sparkles: feat(pos): agregar cobro en efectivo` |
+| `:bug: fix(<modulo>)` | Corrección de errores | `:bug: fix(caja): corregir cierre de turno` |
+| `:white_check_mark: test(<modulo>)` | Pruebas unitarias o de contrato | `:white_check_mark: test(empresa): validar RBAC de sucursales` |
+| `:memo: docs(<modulo>)` | Documentación | `:memo: docs(instalacion): actualizar guía de ejecución` |
+| `:recycle: refactor(<modulo>)` | Reestructuración sin cambio funcional | `:recycle: refactor(inventario): simplificar servicio de movimientos` |
+| `:wrench: chore(<modulo>)` | Tareas de mantenimiento y dependencias | `:wrench: chore(deps): actualizar paquetes del workspace` |
 
 ### Integrar los cambios
 
@@ -428,6 +633,7 @@ git push -u origin feature/<modulo>-<descripcion>
 
 | Módulo | Responsables | Rama |
 |--------|--------------|------|
+| Empresa y configuración | | `feature/empresa-*` |
 | Seguridad y roles | | `feature/seguridad-*` |
 | Inventario y recetas | | `feature/inventario-*` |
 | POS y facturación | | `feature/pos-*` |

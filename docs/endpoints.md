@@ -36,8 +36,11 @@ Todas las respuestas de error usan `{ "error": "texto" }`, con `detalles` adicio
 | GET | `/api/turnos/:idTurno/cuadre` | Cookie JWT + tipo admin | `CAJA_CERRAR_TURNO` o `CAJA_VER_CUADRES` | — | 200; 400; 401; 403; 404 |
 | GET | `/api/reportes/ventas-diarias` | Cookie JWT + tipo admin | `REP_VER_DASHBOARD` | query: `desde?,hasta?,idSucursal?` | 200; 400; 401; 403 |
 | GET | `/api/reportes/top-productos` | Cookie JWT + tipo admin | `REP_VER_DASHBOARD` | query: `desde?,hasta?,idSucursal?,limite?` | 200; 400; 401; 403 |
+| GET | `/api/reportes/ventas-por-metodo-pago` | Cookie JWT + tipo admin | `REP_VER_DASHBOARD` | query: `desde?,hasta?,idSucursal?` | 200; 400; 401; 403 |
 | GET | `/api/reportes/alertas-stock` | Cookie JWT + tipo admin | `REP_VER_DASHBOARD` | query: `idSucursal?,nivel?` | 200; 400; 401; 403 |
 | GET | `/api/reportes/margen-productos` | Cookie JWT + tipo admin | `REP_VER_DASHBOARD` + `INV_VER_COSTOS` | — | 200; 401; 403 |
+| GET | `/api/reportes/cuadre-turnos` | Cookie JWT + tipo admin | `REP_VER_DASHBOARD` + `CAJA_VER_CUADRES` | query: `desde?,hasta?,idSucursal?` | 200; 400; 401; 403 |
+| GET | `/api/reportes/cuentas-por-pagar` | Cookie JWT + tipo admin | `REP_VER_DASHBOARD` + `COM_VER_CXP` | query: `desde?,hasta?,idSucursal?` | 200; 400; 401; 403 |
 | GET | `/api/preparacion/cola` | Cookie JWT + tipo admin | `POS_VER_COLA_PREPARACION` | query: `idSucursal?` | 200; 400; 401; 403 |
 | PATCH | `/api/preparacion/ordenes/:idOrden/estado` | Cookie JWT + tipo admin | `POS_VER_COLA_PREPARACION` | `{estado: EN_PREPARACION\|LISTA\|ENTREGADA}` | 200; 400; 401; 403; 404; 409 |
 | GET/POST | `/api/inventario/unidades` | Cookie JWT + tipo admin | `INV_GESTIONAR_INSUMOS` | `{codigo,nombre}` | 200/201; 400; 401; 403; 409 |
@@ -51,7 +54,8 @@ Todas las respuestas de error usan `{ "error": "texto" }`, con `detalles` adicio
 | GET/POST | `/api/inventario/productos` | Cookie JWT + tipo admin | GET `INV_VER_STOCK` o `INV_GESTIONAR_PRODUCTOS`; POST `INV_GESTIONAR_PRODUCTOS` | `{idCategoria?,nombre,codigoBarra?,precioVenta,esElaborado,idInsumoReventa?,activo?}` | 200/201; 400; 401; 403; 409 |
 | PUT/DELETE | `/api/inventario/productos/:id` | Cookie JWT + tipo admin | `INV_GESTIONAR_PRODUCTOS` | PUT mismo cuerpo de POST | 200/204; 400; 401; 403; 404; 409 |
 | GET/PUT | `/api/inventario/productos/:id/receta` | Cookie JWT + tipo admin | GET `INV_VER_STOCK` o `INV_GESTIONAR_RECETAS`; PUT `INV_GESTIONAR_RECETAS` | `{componentes:[{idInsumo,cantidadRequerida}]}` | 200; 400; 401; 403; 404; 409 |
-| GET | `/api/inventario/stock`, `/api/inventario/alertas`, `/api/inventario/movimientos` | Cookie JWT + tipo admin | `INV_VER_STOCK` | Filtros query opcionales `idSucursal`, `idInsumo` | 200; 400; 401; 403 |
+| GET | `/api/inventario/stock`, `/api/inventario/alertas` | Cookie JWT + tipo admin | `INV_VER_STOCK` | Filtro query opcional `idSucursal` | 200; 400; 401; 403 |
+| GET | `/api/inventario/movimientos` | Cookie JWT + tipo admin | `INV_VER_KARDEX`; `costo_unitario` requiere además `INV_VER_COSTOS` | Filtros query opcionales `idSucursal`, `idInsumo`; máximo 500 movimientos | 200; 400; 401; 403 |
 | PATCH | `/api/inventario/insumos/:id/stock-minimo` | Cookie JWT + tipo admin | `INV_GESTIONAR_INSUMOS` | `{idSucursal,stockMinimo}` | 200; 400; 401; 403; 404 |
 | POST | `/api/inventario/insumos/:id/movimientos` | Cookie JWT + tipo admin | `INV_GESTIONAR_INSUMOS` | `{idSucursal,cantidad,tipo,motivo}` | 201; 400; 401; 403; 404; 409 |
 | POST | `/api/inventario/insumos/:id/mermas` | Cookie JWT + tipo admin | `INV_REGISTRAR_MERMA` | `{idSucursal,cantidad,motivo}` | 201; 400; 401; 403; 404; 409 |
@@ -60,6 +64,15 @@ Un token de cliente nunca alcanza el middleware de permisos de administración: 
 
 Caja: un solo turno `ABIERTO` por caja y por cajero (409; lo garantizan los índices únicos de la BD). Solo el cajero dueño del turno registra movimientos y solo en turnos abiertos; un `EGRESO` mayor al efectivo esperado devuelve 409. Los montos viajan como número o texto con máximo 2 decimales y se devuelven como string.
 
-Inventario: cada escritura se ejecuta con `withTransaction` y `app.user_id`; cambios de existencias y mermas llaman las funciones SQL existentes para serializar el stock y dejar kardex. Las consultas operativas filtran sucursales asignadas; el costo promedio y `costo_unitario` del kardex solo se exponen a quien tiene `INV_VER_COSTOS`. `/api/inventario/movimientos` devuelve hasta 500 movimientos recientes después de aplicar el aislamiento por sucursal. El esquema inicial ya incluye 12 productos elaborados, 3 de reventa y sus recetas.
+Inventario: cada escritura se ejecuta con `withTransaction` y `app.user_id`; cambios de existencias y mermas llaman las funciones SQL existentes para serializar el stock y dejar kardex. Las consultas operativas filtran sucursales asignadas. El costo promedio requiere `INV_VER_COSTOS`; `costo_unitario` del Kárdex requiere conjuntamente `INV_VER_KARDEX` y `INV_VER_COSTOS`. `/api/inventario/movimientos` devuelve hasta 500 movimientos recientes después de aplicar el aislamiento por sucursal. El esquema inicial ya incluye 12 productos elaborados, 3 de reventa y sus recetas.
 
 Cierre de turno: solo el cajero dueño, una vez (409 si ya está cerrado). Llama a `pos.fn_cerrar_turno`; las diferencias son `contado - esperado` (negativo = FALTANTE). Reportes: sin fechas usan los últimos 30 días; rango máximo 366 días; cada usuario ve solo sus sucursales (el rol ADMIN ve todas). Preparación: el estado solo avanza ABIERTA → EN_PREPARACION → LISTA → ENTREGADA.
+
+## Bitácora y analítica
+
+| Método | Ruta | Autenticación | Permiso | Query params | Respuesta |
+|---|---|---|---|---|---|
+| GET | `/api/bitacora` | Cookie JWT + tipo admin | `SEG_VER_BITACORA` | `page` (1+), `limit` (1–100), `startDate`, `endDate`, `user`, `action` (CREATE/UPDATE/DELETE/LOGIN), `module`, `search` | `{data, pagination}` ordenado por `creado_en DESC, id_bitacora DESC` |
+| GET | `/api/bitacora/metricas` | Cookie JWT + tipo admin | `SEG_VER_BITACORA` | `startDate`, `endDate`, `user`, `module`, `granularity` (hour/day) | `tendencia`, `severidadModulo`, `usuarios`, `heatmap`, `modulos` agrupados en PostgreSQL |
+
+Las fechas deben enviarse juntas y cubren un rango máximo de 366 días; las métricas sin fechas se acotan a los últimos 30 días. El detalle omite `password_hash`, tokens y credenciales históricas. La migración `006_bitacora_analitica.sql` agrega IP, agente y severidad; después debe aplicarse con `pnpm db:migrate`. Los accesos de login fallidos se guardan como `WARNING`; la ventana fuera de horario para analítica es 22:00–05:59, hora de El Salvador.

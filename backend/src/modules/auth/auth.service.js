@@ -38,7 +38,10 @@ export async function login(username, password) {
   const usuario = await repo.buscarUsuarioPorUsername(username);
   // Mismo mensaje si no existe o la clave es incorrecta (no revelar cuál falló)
   const valido = usuario && usuario.activo && (await bcrypt.compare(password, usuario.password_hash));
-  if (!valido) throw new AppError('Usuario o contraseña incorrectos', 401);
+  if (!valido) {
+    await repo.registrarIntentoLogin(username);
+    throw new AppError('Usuario o contraseña incorrectos', 401);
+  }
 
   await repo.registrarLogin(usuario.id_usuario);
   const token = jwt.sign({ id: usuario.id_usuario, rol: usuario.rol, tipo: 'admin', iat: Math.floor(Date.now() / 1000) }, env.jwtSecret, { expiresIn: env.jwtExpiresIn, jwtid: crypto.randomUUID() });

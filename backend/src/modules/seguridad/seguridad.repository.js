@@ -44,7 +44,7 @@ function formatearRol(rol) {
 }
 
 export async function listarRolesGestion() {
-  const roles = await Rol.findAll({ attributes: ['id_rol', 'nombre', 'descripcion', 'es_sistema', 'activo'], include: [incluirPermisos], order: [['nombre', 'ASC']] });
+  const roles = await Rol.findAll({ attributes: ['id_rol', 'nombre', 'descripcion', 'es_sistema', 'activo'], where: { activo: true }, include: [incluirPermisos], order: [['nombre', 'ASC']] });
   return roles.map(formatearRol);
 }
 
@@ -67,6 +67,12 @@ export async function eliminarRol(transaction, idRol) {
   return Rol.destroy({ where: { id_rol: idRol }, transaction });
 }
 
+export const contarUsuariosPorRol = (transaction, idRol) => Usuario.count({
+  where: { id_rol: idRol },
+  paranoid: false,
+  transaction,
+});
+
 export const listarPermisos = () => Permiso.findAll({ attributes: ['id_permiso', 'codigo', 'modulo', 'descripcion'], order: [['modulo', 'ASC'], ['codigo', 'ASC']], raw: true });
 
 export const buscarPermiso = (idPermiso, transaction = null) => Permiso.findByPk(idPermiso, { attributes: ['id_permiso', 'codigo', 'modulo', 'descripcion'], transaction, raw: true });
@@ -86,6 +92,15 @@ export const eliminarPermiso = (transaction, idPermiso) => Permiso.destroy({ whe
 export const listarPermisosRol = async (idRol, transaction = null) => {
   const rol = await Rol.findByPk(idRol, { attributes: ['id_rol'], include: [incluirPermisos], transaction });
   return rol ? rol.permisos : null;
+};
+
+export const buscarIdRolUsuario = async (transaction, idUsuario) => {
+  const usuario = await Usuario.findByPk(idUsuario, {
+    attributes: ['id_rol'],
+    paranoid: false,
+    transaction,
+  });
+  return usuario?.id_rol ?? null;
 };
 
 export const contarPermisos = (transaction, idsPermisos) => Permiso.count({ where: { id_permiso: idsPermisos }, transaction });

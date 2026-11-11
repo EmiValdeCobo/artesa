@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, CircleAlert, Edit3, Info, KeyRound, Layers, Lock, Plus, Save, Search, ShieldCheck, Trash2, Undo2, Users } from 'lucide-react';
+import { ChevronDown, CircleAlert, Edit3, Info, KeyRound, Layers, Lock, Plus, Save, Search, Trash2, Undo2, Users } from 'lucide-react';
 import { api } from '../../api/client.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
@@ -12,6 +12,7 @@ import { traducirError } from '../../errors/traducirError.js';
 import AsignarPermisoDialogo from './AsignarPermisoDialogo.jsx';
 import PermisoModal from './PermisoModal.jsx';
 import RolModal from './RolModal.jsx';
+import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import {
   agruparPorModulo, coincidePermiso, diferencias, infoModulo, mismosIds, motivoBloqueoEliminarRol,
   motivoBloqueoPermiso, motivoBloqueoRevocar, validarAsignacion,
@@ -428,16 +429,9 @@ export default function RolesPermisosPage() {
 
   return (
     <div className="mx-auto max-w-7xl">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="mb-3 flex items-center gap-2 text-sm font-medium text-primary-text"><ShieldCheck size={17} aria-hidden="true" /> Seguridad</div>
-          <h1 className="text-2xl font-bold tracking-tight">Roles y permisos</h1>
-          <p className="mt-1 max-w-2xl text-sm text-fg-muted">Define qué acciones puede realizar cada rol dentro de artesa.</p>
-        </div>
-        <button type="button" className="btn-primary" disabled={!listo} onClick={() => (pestana === 'roles' ? abrirModalRol() : abrirModalPermiso())}>
+      <EncabezadoPagina seccion="Seguridad" titulo="Roles y permisos" descripcion="Define qué acciones puede realizar cada rol dentro de artesa." acciones={<button type="button" className="btn-primary" disabled={!listo} onClick={() => (pestana === 'roles' ? abrirModalRol() : abrirModalPermiso())}>
           <Plus size={17} aria-hidden="true" /> {pestana === 'roles' ? 'Nuevo rol' : 'Nuevo permiso'}
-        </button>
-      </div>
+        </button>} />
 
       {listo && (
         <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -581,11 +575,11 @@ export default function RolesPermisosPage() {
               </div>
             </div>
           </div>
-          <div className="overflow-x-auto">
+          <div className="max-h-[560px] overflow-x-auto overflow-y-auto scroll-fino">
             <table className="w-full min-w-3xl text-left text-sm">
               <caption className="sr-only">Catálogo de permisos con sus módulos y roles asignados</caption>
-              <thead className="bg-muted text-xs uppercase tracking-wide text-fg-muted">
-                <tr><th scope="col" className="px-5 py-3 font-semibold">Código</th><th scope="col" className="px-5 py-3 font-semibold">Módulo</th><th scope="col" className="px-5 py-3 font-semibold">Descripción</th><th scope="col" className="px-5 py-3 font-semibold">Roles</th><th scope="col" className="px-5 py-3 text-right font-semibold">Acciones</th></tr>
+              <thead className="sticky top-0 z-10 border-b border-line bg-muted text-xs uppercase tracking-wide text-fg-muted shadow-xs">
+                <tr><th scope="col" className="bg-muted px-5 py-3 font-semibold">Código</th><th scope="col" className="bg-muted px-5 py-3 font-semibold">Módulo</th><th scope="col" className="bg-muted px-5 py-3 font-semibold">Descripción</th><th scope="col" className="bg-muted px-5 py-3 font-semibold">Roles</th><th scope="col" className="bg-muted px-5 py-3 text-right font-semibold">Acciones</th></tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {permisosFiltrados.map((permiso) => {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Edit3, Plus, Search, ShieldCheck, Trash2, UserCheck, UserRound, UserX, X } from 'lucide-react';
+import { Edit3, Plus, Search, ShieldCheck, Trash2, UserCheck, UserX, X } from 'lucide-react';
 import { api } from '../../api/client.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
@@ -7,6 +7,7 @@ import BannerError from '../../components/feedback/BannerError.jsx';
 import CampoError, { idError } from '../../components/forms/CampoError.jsx';
 import Dialogo from '../../components/Dialogo.jsx';
 import { traducirError } from '../../errors/traducirError.js';
+import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 
 const formularioInicial = { username: '', password: '', idRol: '', sucursales: [] };
 const ORDEN_CAMPOS = ['username', 'password', 'idRol', 'sucursales'];
@@ -247,14 +248,7 @@ export default function UsuariosPage() {
 
   return (
     <div className="mx-auto max-w-7xl">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="mb-3 flex items-center gap-2 text-sm font-medium text-primary-text"><UserRound size={17} aria-hidden="true" /> Seguridad</div>
-          <h1 className="text-2xl font-bold tracking-tight">Usuarios</h1>
-          <p className="mt-1 text-sm text-fg-muted">Administra cuentas, roles y sucursales de operación.</p>
-        </div>
-        <button type="button" className="btn-primary" disabled={Boolean(errorCarga) || cargando} onClick={() => { setUsuarioEditando(null); setModalAbierto(true); }}><Plus size={17} aria-hidden="true" /> Nuevo usuario</button>
-      </div>
+      <EncabezadoPagina seccion="Seguridad" titulo="Usuarios" descripcion="Administra cuentas, roles y sucursales de operación." acciones={<button type="button" className="btn-primary" disabled={Boolean(errorCarga) || cargando} onClick={() => { setUsuarioEditando(null); setModalAbierto(true); }}><Plus size={17} aria-hidden="true" /> Nuevo usuario</button>} />
 
       {errorCarga ? (
         <BannerError className="mt-7" error={errorCarga} onReintentar={cargarDatos} />
@@ -265,9 +259,9 @@ export default function UsuariosPage() {
             <div className="relative w-full sm:w-72"><Search size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" aria-hidden="true" /><input className="input pl-9" value={filtro} onChange={(event) => setFiltro(event.target.value)} placeholder="Buscar usuario o rol…" aria-label="Buscar usuario" /></div>
           </div>
           {cargando ? <p role="status" className="p-8 text-center text-sm text-fg-muted">Cargando usuarios…</p> : (
-            <div className="overflow-x-auto">
+            <div className="max-h-[560px] overflow-x-auto overflow-y-auto scroll-fino">
               <table className="w-full min-w-[700px] text-left text-sm">
-                <thead className="bg-muted text-xs uppercase tracking-wide text-fg-muted"><tr><th className="px-5 py-3 font-semibold">Usuario</th><th className="px-5 py-3 font-semibold">Rol</th><th className="px-5 py-3 font-semibold">Sucursales</th><th className="px-5 py-3 font-semibold">Estado</th><th className="px-5 py-3 text-right font-semibold">Acciones</th></tr></thead>
+                <thead className="sticky top-0 z-10 border-b border-line bg-muted text-xs uppercase tracking-wide text-fg-muted shadow-xs"><tr><th className="bg-muted px-5 py-3 font-semibold">Usuario</th><th className="bg-muted px-5 py-3 font-semibold">Rol</th><th className="bg-muted px-5 py-3 font-semibold">Sucursales</th><th className="bg-muted px-5 py-3 font-semibold">Estado</th><th className="bg-muted px-5 py-3 text-right font-semibold">Acciones</th></tr></thead>
                 <tbody className="divide-y divide-line">
                   {usuariosFiltrados.map((usuario) => <tr key={usuario.id_usuario} className="hover:bg-muted/60">
                     <td className="px-5 py-4 font-medium">{usuario.username}</td>

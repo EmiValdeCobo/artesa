@@ -25,7 +25,7 @@ router.get('/productos/:id/receta', requirePermiso('INV_VER_STOCK', 'INV_GESTION
 router.put('/productos/:id/receta', requirePermiso('INV_GESTIONAR_RECETAS'), validate(recetaSchema), asyncHandler(c.guardarReceta));
 router.get('/stock', requirePermiso('INV_VER_STOCK'), asyncHandler(c.listarStock));
 router.get('/alertas', requirePermiso('INV_VER_STOCK'), asyncHandler(c.listarAlertas));
-router.get('/movimientos', requirePermiso('INV_VER_STOCK'), asyncHandler(c.listarMovimientos));
+router.get('/movimientos', requirePermiso('INV_VER_KARDEX'), asyncHandler(c.listarMovimientos));
 router.patch('/insumos/:id/stock-minimo', requirePermiso('INV_GESTIONAR_INSUMOS'), validate(minimoSchema), asyncHandler(c.configurarMinimo));
 router.post('/insumos/:id/movimientos', requirePermiso('INV_GESTIONAR_INSUMOS'), validate(stockSchema), asyncHandler(c.ingresarStock));
 router.post('/insumos/:id/mermas', requirePermiso('INV_REGISTRAR_MERMA'), validate(mermaSchema), asyncHandler(c.registrarMerma));
