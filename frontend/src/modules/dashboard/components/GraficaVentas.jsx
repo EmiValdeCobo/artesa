@@ -30,7 +30,7 @@ export function LeyendaVentas({ className = '' }) {
         <svg width="12" height="12" aria-hidden="true" className="border border-(--serie-1)"><defs><pattern id="ley-rayas" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" className="fill-(--serie-1)" fillOpacity=".28" /><rect width="2.5" height="5" className="fill-(--serie-1)" /></pattern></defs><rect width="12" height="12" fill="url(#ley-rayas)" /></svg>
         Hoy (en curso)
       </li>
-      <li className="flex items-center gap-1.5"><span aria-hidden="true" className="inline-block h-3 w-3 bg-(--serie-2)" />Días cerrados</li>
+      <li className="flex items-center gap-1.5"><span aria-hidden="true" className="inline-block h-3 w-3 rounded-sm bg-(--serie-5)" />Días cerrados</li>
     </ul>
   );
 }
@@ -101,13 +101,13 @@ export default function GraficaVentas({ serie, hoy }) {
             const x = xCentro(i) - anchoBarra / 2;
             const esHoy = i === indiceHoy;
             const bajoCursor = i === activo;
-            let relleno = 'fill-(--serie-2)';
+            let relleno = 'fill-(--serie-5)'; // días cerrados: neutro de la paleta; hoy y cursor: Terracota
             if (esHoy) relleno = '';
             else if (bajoCursor) relleno = 'fill-(--serie-1)';
             return (
               <g key={f.fecha} opacity={activo !== null && !bajoCursor ? 0.6 : 1}>
                 <rect x={x} y={base - alto} width={anchoBarra} height={alto} className={`anim-barra ${relleno}`} style={{ '--retardo': `${Math.min(i * 22, 400)}ms` }} fill={esHoy ? `url(#${idRayas})` : undefined}
-                  strokeWidth={esHoy ? 1.5 : 0} stroke={esHoy ? 'var(--serie-1)' : undefined} rx={2} />
+                  strokeWidth={esHoy ? 1.5 : 0} stroke={esHoy ? 'var(--serie-1)' : undefined} rx={Math.min(6, anchoBarra / 2)} />
                 {(indiceHoy - i) % cadaEtiqueta === 0 && (
                   <text x={xCentro(i)} y={ALTO - 9} textAnchor="middle" fontSize="12" className={esHoy ? 'fill-(--serie-1-texto) font-bold' : bajoCursor ? 'fill-fg font-semibold' : 'fill-fg-muted'}>{etiquetaDia(f.fecha)}</text>
                 )}
