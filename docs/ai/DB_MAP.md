@@ -17,7 +17,7 @@ claves: tasa_iva, isss_empleado, isss_patronal, isss_base_maxima_mensual, afp_em
 fn: empresa.fn_param(clave) → text
 
 ## inventario
-unidades_medida(id_unidad, codigo, nombre) · categorias_producto(id_categoria, nombre)
+unidades_medida(id_unidad, codigo*, nombre, factor_conversion, activo, deleted_at, modificado_en) · categorias_producto(id_categoria, nombre)
 insumos(id_insumo, nombre*, tipo_insumo[INGREDIENTE|EMPAQUE|REVENTA], id_unidad_base, costo_promedio, activo)
 stock_sucursal(id_sucursal, id_insumo, stock_actual, stock_minimo)
 productos(id_producto, id_categoria, nombre*, codigo_barra, precio_venta[CON IVA], es_elaborado, id_insumo_reventa, activo)

@@ -2,7 +2,7 @@
 Actualizado: 2026-11-10
 
 ## Meta y fechas
-Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE, manual de usuario, doc técnica, flujo de trabajo.
+Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (listo en docs/Documentacion_IEEE con compilador y visor), manual de usuario, doc técnica, flujo de trabajo.
 
 ## Decisiones tomadas
 - Stack: Express + Sequelize (conductor `pg`) + PostgreSQL 16; React + Vite + Tailwind (sin Next.js); JS puro.
@@ -16,13 +16,14 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE, ma
 - Sesiones: JWT en cookie `httpOnly`, `SameSite` configurable y `secure` configurable; el backend revalida `activo=true` en cada request.
 - Migraciones/seeders: `scripts/db.js` registra nombre, checksum SHA-256, fecha y tipo en `public.schema_migrations`.
 - Bitácora analítica: captura IP/User-Agent en `AsyncLocalStorage` y los propaga a variables PostgreSQL mediante `withTransaction`.
-- QA / Pruebas: suite automatizada en Node.js nativo (`node:test`, 128 pruebas activas) cubriendo contratos de API, FSM, anti-float y lógica frontend.
+- QA / Pruebas: suite automatizada en Node.js nativo (`node:test`, 132 pruebas activas) cubriendo contratos de API, FSM, anti-float y lógica frontend.
+- UI / Dashboard: diseño unificado con tarjetas redondeadas, paleta de marca (Terracota, Ocre, Espresso) y tipografía Montserrat del sistema (sin fuentes externas).
 
 ## Estado por módulo
 | Módulo | BD | Backend | Frontend |
 |---|---|---|---|
 | auth / seguridad | listo | login, CRUD RBAC, usuarios y API /bitacora con métricas | Bitácora con filtros, analítica y gestión de usuarios/roles |
-| inventario | listo | CRUD insumos/productos, stock, mermas, alertas y Kárdex con permiso propio (seeder pendiente de aplicación local) | Inventario, alertas, mermas y Kárdex de movimientos |
+| inventario | listo | CRUD unidades-medida/insumos/productos, stock, mermas, alertas y Kárdex con permiso propio | Existencias, kárdex, catálogo de insumos (tabs + semáforo), catálogo de productos (tabla/grid) y editor de recetas BOM |
 | pos | listo | cola de preparación (/api/preparacion) y órdenes (T02) | catálogo y carrito local; cobro/facturación pendiente |
 | caja | listo | turnos, movimientos, cierre y cuadre (T05/T06/T22) | pendiente |
 | compras | listo | pendiente | pendiente |
