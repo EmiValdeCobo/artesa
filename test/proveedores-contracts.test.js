@@ -48,7 +48,9 @@ test('proveedores: rutas requieren autenticación, tipo admin y permiso en los c
 
 test('proveedores: registro global usa solo la base /api/compras', async () => {
   const index = await leer('backend/src/modules/index.js');
-  assert.match(index, /router\.use\('\/compras', proveedoresRoutes\)/);
+  const compras = await leer('backend/src/modules/compras/compras.routes.js');
+  assert.match(index, /router\.use\('\/compras', comprasRoutes\)/);
+  assert.match(compras, /router\.use\(proveedoresRoutes\)/);
   assert.doesNotMatch(index, /router\.use\('\/proveedores'/);
 });
 
