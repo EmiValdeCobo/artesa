@@ -19,8 +19,8 @@ test('reportes: solo lectura protegida con REP_VER_DASHBOARD y costos sensibles'
 });
 
 test('preparación: solo avanza estados y bloquea la orden', async () => {
-  const service = await leer('backend/src/modules/pos/preparacion.service.js');
-  const repo = await leer('backend/src/modules/pos/preparacion.repository.js');
+  const service = await leer('backend/src/modules/pos/preparacion/preparacion.service.js');
+  const repo = await leer('backend/src/modules/pos/preparacion/preparacion.repository.js');
   assert.match(service, /ABIERTA: \['EN_PREPARACION'\]/);
   assert.match(repo, /FOR UPDATE OF o/);
 });

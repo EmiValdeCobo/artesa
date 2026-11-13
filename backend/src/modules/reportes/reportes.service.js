@@ -5,3 +5,6 @@ export const ventasDiarias = (filtros, userId) => repo.ventasDiarias(userId, fil
 export const topProductos = (filtros, userId) => repo.topProductos(userId, filtros);
 export const alertasStock = (filtros, userId) => repo.alertasStock(userId, filtros);
 export const margenProductos = () => repo.margenProductos();
+export const cuadreTurnos = (filtros, userId) => repo.cuadreTurnos(userId, filtros);
+export const cuentasPorPagar = (filtros, userId) => repo.cuentasPorPagar(userId, filtros);
+export const ventasPorMetodoPago = (filtros, userId) => repo.ventasPorMetodoPago(userId, filtros);

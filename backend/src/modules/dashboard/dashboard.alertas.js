@@ -37,7 +37,7 @@ export const mapearCaidaVentas = (filas) => filas.map((f) => ({
   severidad: Number(f.caida_pct) >= 50 ? CRITICA : AVISO,
   sucursal: f.sucursal,
   titulo: `Ventas ${f.caida_pct} % por debajo de lo habitual`,
-  detalle: `Llevan ${dinero(f.hoy_total)} contra ${dinero(f.base_total)} de promedio a esta hora (últimas ${f.semanas} semanas, mismo día).`,
+  detalle: `Van en ${dinero(f.hoy_total)}; a esta hora un día así suele llevar ${dinero(f.base_total)} (promedio de las últimas ${f.semanas} semanas).`,
   cantidad: null,
 }));
 
@@ -47,7 +47,7 @@ export const mapearCuadres = (filas) => filas.map((f) => ({
   severidad: AVISO,
   sucursal: f.sucursal,
   titulo: plural(f.turnos, 'turno cerrado con diferencia de caja', 'turnos cerrados con diferencia de caja'),
-  detalle: `Últimos 7 días. Diferencia acumulada: ${dinero(f.diferencia_total)}.`,
+  detalle: `En los últimos 7 días suman ${dinero(f.diferencia_total)} de diferencia.`,
   cantidad: f.turnos,
 }));
 
@@ -57,7 +57,7 @@ export const mapearTurnosLargos = (filas) => filas.map((f) => ({
   severidad: AVISO,
   sucursal: f.sucursal,
   titulo: `Turno abierto hace ${f.horas} h`,
-  detalle: `${f.caja}, a cargo de ${f.usuario}.`,
+  detalle: `${f.caja}, a cargo de ${f.usuario}. ¿Se olvidó de cerrar?`,
   cantidad: null,
 }));
 
@@ -68,7 +68,7 @@ export const mapearCuentasPorPagar = (filas, diasAviso) => filas.flatMap((f) => 
     severidad: CRITICA,
     sucursal: f.sucursal,
     titulo: plural(f.vencidas, 'factura de compra vencida', 'facturas de compra vencidas'),
-    detalle: `Saldo pendiente: ${dinero(f.saldo_vencido)}.`,
+    detalle: `Quedan ${dinero(f.saldo_vencido)} por pagar.`,
     cantidad: f.vencidas,
   }] : []),
   ...(f.por_vencer > 0 ? [{
@@ -77,7 +77,7 @@ export const mapearCuentasPorPagar = (filas, diasAviso) => filas.flatMap((f) => 
     severidad: AVISO,
     sucursal: f.sucursal,
     titulo: `${plural(f.por_vencer, 'factura vence', 'facturas vencen')} en ${diasAviso} días o menos`,
-    detalle: `Saldo por pagar: ${dinero(f.saldo_por_vencer)}.`,
+    detalle: `Son ${dinero(f.saldo_por_vencer)} por pagar.`,
     cantidad: f.por_vencer,
   }] : []),
 ]);
@@ -88,7 +88,7 @@ export const mapearAnulaciones = (filas) => filas.map((f) => ({
   severidad: AVISO,
   sucursal: f.sucursal,
   titulo: `${plural(f.anuladas, 'venta anulada', 'ventas anuladas')} hoy`,
-  detalle: `Total anulado: ${dinero(f.monto)}. Conviene revisar los motivos.`,
+  detalle: `Suman ${dinero(f.monto)}. Vale la pena revisar los motivos.`,
   cantidad: f.anuladas,
 }));
 
@@ -98,7 +98,7 @@ export const mapearPreparacion = (filas, minutosMax) => filas.map((f) => ({
   severidad: f.minutos_max >= minutosMax * 2 ? CRITICA : AVISO,
   sucursal: f.sucursal,
   titulo: `${plural(f.pedidos, 'pedido lleva', 'pedidos llevan')} más de ${minutosMax} min en preparación`,
-  detalle: `El más antiguo espera ${f.minutos_max} min.`,
+  detalle: `El más viejo lleva ${f.minutos_max} min esperando.`,
   cantidad: f.pedidos,
 }));
 

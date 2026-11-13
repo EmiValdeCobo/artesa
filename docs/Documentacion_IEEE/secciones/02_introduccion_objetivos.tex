@@ -1,0 +1,26 @@
+\section{Introducción y Objetivo del Sistema}
+\label{sec:introduccion_objetivos}
+
+\subsection{Contextualización de la Problemática}
+En el ecosistema económico de El Salvador, las micro, pequeñas y medianas empresas (MIPYMES) del sector gastronómico, cafeterías de especialidad y panaderías artesanales constituyen un pilar fundamental del empleo y la actividad comercial urbana. No obstante, la mayoría de estos establecimientos operan con una infraestructura administrativa altamente fragmentada.
+
+La práctica operativa habitual se basa en el uso simultáneo de cuadernos de notas para la toma de comandas, hojas de cálculo aisladas para registrar compras y planillas, y terminales de cobro independientes o sistemas de punto de venta desconectados de la contabilidad de costos. Esta desconexión genera fallas críticas:
+\begin{itemize}
+    \item \textbf{Desfase Crítico en Inventarios:} La venta de productos elaborados (por ejemplo, una taza de café cappuccino o un croissant de almendras) no actualiza automáticamente las existencias de leche, granos de café o mantequilla, provocando desabastecimientos imprevistos o sobrecompras de insumos perecederos.
+    \item \textbf{Vulnerabilidad en Arqueos de Caja:} La ausencia de un protocolo formal de arqueo ciego y turnos cerrados dificulta identificar faltantes o sobrantes de efectivo al final de la jornada.
+    \item \textbf{Inexactitud en el Costeo de Productos:} Sin un control riguroso del Costo Promedio Ponderado de cada insumo entrante, los precios de venta al público se fijan por intuición y no con base en márgenes de contribución reales.
+    \item \textbf{Complejidad Tributaria y Laboral:} El cumplimiento de la normativa fiscal salvadoreña (desglose del 13\% de IVA en Factura de Consumidor Final y Comprobante de Crédito Fiscal) y los cálculos laborales (retenciones de ISSS, AFP y tramos de Impuesto sobre la Renta) suelen delegarse en procesos manuales propensos a error humano y sanciones administrativas.
+\end{itemize}
+
+\subsection{Objetivo General}
+Diseñar, desarrollar e implementar \textbf{artesa}, un sistema unificado de Planificación de Recursos Empresariales (ERP) y Punto de Venta (POS) con arquitectura modular web y persistencia relacional en PostgreSQL 16, orientado a optimizar la gestión operativa, el control de inventario basado en recetas y la conformidad fiscal y laboral de cafeterías y panaderías artesanales en El Salvador.
+
+\subsection{Objetivos Específicos}
+\begin{enumerate}
+    \item \textbf{Unificación Transaccional del Inventario:} Automatizar la deducción de existencias en tiempo real mediante funciones PL/pgSQL atómicas que descompongan los productos vendidos en sus insumos elementales según recetas preconfiguradas.
+    \item \textbf{Operación Ágil de Mostrador y Cocina:} Proveer una interfaz de punto de venta reactiva y una pantalla de visualización de comandas en cocina (Kitchen Display System - KDS) para sincronizar pedidos, preparación y despacho.
+    \item \textbf{Blindaje Financiero de Caja:} Implementar una máquina de estados finitos para la gestión de turnos de caja con arqueo ciego, registro de ingresos/egresos extraordinarios y auditoría de discrepancias.
+    \item \textbf{Control de Abastecimiento y Cuentas por Pagar:} Gestionar el catálogo de proveedores locales, registro de facturas de compra con actualización de costo promedio y seguimiento de obligaciones pendientes (CxP).
+    \item \textbf{Cálculo de Planilla Paramétrico:} Automatizar la liquidación de sueldos conforme a los tramos de renta de El Salvador y las tasas legales de cotización de seguridad social (ISSS, AFP, INSAFORP).
+    \item \textbf{Auditoría y Trazabilidad Forense:} Registrar en bitácora inmutable las operaciones críticas del sistema, almacenando el estado anterior y posterior en formato JSON junto con la dirección IP y el agente de usuario del operador.
+\end{enumerate}

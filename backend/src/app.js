@@ -7,6 +7,7 @@ import { env } from './config/env.js';
 import { sequelize } from './config/db.js';
 import routes from './modules/index.js';
 import { notFound, errorHandler } from './middlewares/error.js';
+import { contextoSolicitud } from './utils/requestContext.js';
 
 const app = express();
 app.use(helmet());
@@ -14,6 +15,7 @@ app.use(cors({ origin: env.corsOrigin, credentials: true }));
 app.use(cookieParser());
 app.use(express.json());
 app.use(morgan('dev'));
+app.use(contextoSolicitud);
 
 app.get('/api/health', async (_req, res) => {
   try {

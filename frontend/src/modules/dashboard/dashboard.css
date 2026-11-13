@@ -1,0 +1,67 @@
+/* ============================================================================
+   artesa · Tema del Dashboard (inicio)
+   Alcance: SOLO lo que vive dentro de <div class="tema-dashboard">. No toca index.css ni otras pantallas.
+
+   Tipografía: la MISMA del resto del sistema (Montserrat, definida en index.css). No se importa ninguna
+   fuente adicional; los titulares y cifras (font-display) usan Montserrat para no romper la coherencia.
+
+   Color: SOLO la paleta de marca de index.css (Terracota · Ocre · Espresso · Alabastro); se usan los hex porque Tailwind v4 solo emite las variables que usa.
+   Las series de las gráficas son tonos de esas tres familias; no hay verdes, azules ni morados.
+     --serie-1  Terracota   dato protagonista (hoy, líder del ranking, foco)
+     --serie-2  Ocre        apoyo cálido
+     --serie-3  Espresso    apoyo neutro oscuro
+     --serie-4  Terracota claro · --serie-5 Espresso medio (contexto / días cerrados) · --serie-6 Ocre medio
+   Contraste de no-texto >= 3:1 contra --bg-surface (WCAG 1.4.11); cada serie trae su versión para texto.
+   ============================================================================ */
+
+.tema-dashboard {
+  /* Misma familia tipográfica que el resto de la app: Tailwind lee estas variables en font-display / font-sans */
+  --font-display: var(--font-sans);
+  font-family: var(--font-sans);
+
+  --serie-1: #b15c3d; --serie-1-texto: #984a2f;
+  --serie-2: #9f6c2b;      --serie-2-texto: #7a5224;
+  --serie-3: #756a5d;  --serie-3-texto: #5a4f45;
+  --serie-4: #c97752; --serie-4-texto: #7b3b27;
+  --serie-5: #9a8e7f;  --serie-5-texto: #5a4f45; /* contexto: días cerrados */
+  --serie-6: #c58a38;      --serie-6-texto: #7a5224;
+  --serie-hoy-fondo: #fbf1ec;
+  --ocre-decorativo: #e1a651; /* solo reglas y detalles, nunca dato */
+  --panel-sombra: 0 1px 2px rgb(50 31 25 / .05), 0 10px 24px -16px rgb(50 31 25 / .35);
+}
+
+.dark .tema-dashboard {
+  --serie-1: #de9776; --serie-1-texto: #de9776;
+  --serie-2: #e8b866;      --serie-2-texto: #edc173;
+  --serie-3: #bfb5a7;  --serie-3-texto: #ddd6cb;
+  --serie-4: #c97752; --serie-4-texto: #ebbca7;
+  --serie-5: #9a8e7f;  --serie-5-texto: #bfb5a7;
+  --serie-6: #edc173;      --serie-6-texto: #f4d79c;
+  --serie-hoy-fondo: #44211a;
+  --panel-sombra: 0 10px 24px -16px rgb(0 0 0 / .7);
+}
+
+/* Cifras: alineadas y sin variantes decorativas */
+.tema-dashboard .font-display { font-optical-sizing: auto; }
+.tema-dashboard h1.font-display { letter-spacing: -0.02em; }
+
+/* Tarjeta: esquinas amplias y sombra suave (el color vive en el punto del título, no en una regla) */
+.tema-dashboard .panel-dash {
+  box-shadow: var(--panel-sombra);
+  border-radius: 1.25rem;
+}
+
+/* Animaciones del dashboard (las clases ya se usaban en el JSX pero no estaban definidas) */
+@keyframes dash-entrar { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes dash-barra { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes dash-barra-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes dash-tip { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.tema-dashboard .anim-entrar { animation: dash-entrar .5s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--retardo, 0ms); }
+.tema-dashboard .anim-barra { transform-box: fill-box; transform-origin: bottom; animation: dash-barra .6s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--retardo, 0ms); }
+.tema-dashboard .anim-barra-x { transform-origin: left; animation: dash-barra-x .7s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--retardo, 0ms); }
+.tema-dashboard .anim-tip { animation: dash-tip .15s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tema-dashboard .anim-entrar, .tema-dashboard .anim-barra, .tema-dashboard .anim-barra-x, .tema-dashboard .anim-tip { animation: none; }
+}

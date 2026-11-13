@@ -55,7 +55,7 @@ export default function AsignarPermisoDialogo({ permiso, roles, usuarioSesion, o
 
       <div className="space-y-4 p-5 sm:p-6">
         <BannerError error={error} onCerrar={() => setError(null)} />
-        <ul className="space-y-1.5" aria-label="Roles">
+        <ul className="max-h-72 space-y-1.5 overflow-y-auto pr-1 scroll-fino" aria-label="Roles">
           {roles.map((rol) => {
             const asignado = tiene(rol);
             const ocupado = pendientes.includes(rol.id_rol);

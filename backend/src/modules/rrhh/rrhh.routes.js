@@ -1,0 +1,21 @@
+import { Router } from 'express';
+import { authenticate, requireTipo } from '../../middlewares/auth.js';
+import { requirePermiso } from '../../middlewares/permisos.js';
+import { validate } from '../../middlewares/validate.js';
+import { asyncHandler } from '../../utils/asyncHandler.js';
+import * as controller from './rrhh.controller.js';
+import { empleadoSchema, puestoSchema } from './rrhh.schemas.js';
+
+const router = Router();
+router.use(authenticate, requireTipo('admin'), requirePermiso('RRHH_GESTIONAR_EMPLEADOS'));
+router.get('/puestos', asyncHandler(controller.listarPuestos));
+router.post('/puestos', validate(puestoSchema), asyncHandler(controller.crearPuesto));
+router.put('/puestos/:id', validate(puestoSchema), asyncHandler(controller.actualizarPuesto));
+router.delete('/puestos/:id', asyncHandler(controller.desactivarPuesto));
+router.patch('/puestos/:id/activar', asyncHandler(controller.activarPuesto));
+router.get('/empleados', asyncHandler(controller.listarEmpleados));
+router.post('/empleados', validate(empleadoSchema), asyncHandler(controller.crearEmpleado));
+router.put('/empleados/:id', validate(empleadoSchema), asyncHandler(controller.actualizarEmpleado));
+router.delete('/empleados/:id', asyncHandler(controller.desactivarEmpleado));
+router.patch('/empleados/:id/activar', asyncHandler(controller.activarEmpleado));
+export default router;

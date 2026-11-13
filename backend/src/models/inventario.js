@@ -2,7 +2,13 @@ import { DataTypes } from 'sequelize';
 import { sequelize } from '../config/db.js';
 
 export const UnidadMedida = sequelize.define('UnidadMedida', {
-  id_unidad: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true }, codigo: { type: DataTypes.STRING(10), allowNull: false }, nombre: { type: DataTypes.STRING(50), allowNull: false },
+  id_unidad: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  codigo: { type: DataTypes.STRING(10), allowNull: false },
+  nombre: { type: DataTypes.STRING(50), allowNull: false },
+  factor_conversion: { type: DataTypes.DECIMAL(10, 4), allowNull: false, defaultValue: 1.0000 },
+  activo: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+  deleted_at: { type: DataTypes.DATE, allowNull: true },
+  modificado_en: { type: DataTypes.DATE, allowNull: true },
 }, { tableName: 'unidades_medida', schema: 'inventario', timestamps: false });
 export const Insumo = sequelize.define('Insumo', {
   id_insumo: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true }, nombre: { type: DataTypes.STRING(100), allowNull: false }, tipo_insumo: { type: DataTypes.STRING(15), allowNull: false }, id_unidad_base: { type: DataTypes.INTEGER, allowNull: false }, costo_promedio: { type: DataTypes.DECIMAL(12, 6), allowNull: false }, activo: { type: DataTypes.BOOLEAN, allowNull: false },

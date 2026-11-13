@@ -6,9 +6,9 @@ Conexión: `web_user` es el rol global restringido de la aplicación; `POSTGRES_
 Control operativo: `public.schema_migrations(nombre, aplicado_en, checksum, tipo)` registra migraciones y seeders aplicados por `scripts/db.js`.
 
 ## seguridad
-roles(id_rol, nombre*, descripcion, es_sistema, activo, creado_en, modificado_en, deleted_at) · permisos(id_permiso, codigo*, modulo, descripcion)
+roles(id_rol, nombre*, descripcion, es_sistema, activo, creado_en, modificado_en, deleted_at; unicidad de nombre solo con deleted_at IS NULL) · permisos(id_permiso, codigo*, modulo, descripcion)
 roles_permisos(id_rol, id_permiso) · usuarios(id_usuario U, id_rol, username*, password_hash, activo, ultimo_login, creado_en, modificado_en, deleted_at) [soft-delete: deleted_at IS NOT NULL = oculto]
-usuario_sucursal(id_usuario, id_sucursal) · bitacora(id_bitacora, id_usuario, accion, entidad, datos_antes, datos_despues) [trigger en productos, recetas, roles_permisos, usuarios]
+usuario_sucursal(id_usuario, id_sucursal) · bitacora(id_bitacora, id_usuario, accion, entidad, datos_antes, datos_despues, creado_en, ip_cliente, agente_cliente, severidad) [trigger en productos, recetas, roles_permisos, usuarios; columnas analíticas en migración 006]
 fn: seguridad.fn_tiene_permiso(id_usuario, codigo) → bool
 
 ## empresa
@@ -17,7 +17,7 @@ claves: tasa_iva, isss_empleado, isss_patronal, isss_base_maxima_mensual, afp_em
 fn: empresa.fn_param(clave) → text
 
 ## inventario
-unidades_medida(id_unidad, codigo, nombre) · categorias_producto(id_categoria, nombre)
+unidades_medida(id_unidad, codigo*, nombre, factor_conversion, activo, deleted_at, modificado_en) · categorias_producto(id_categoria, nombre)
 insumos(id_insumo, nombre*, tipo_insumo[INGREDIENTE|EMPAQUE|REVENTA], id_unidad_base, costo_promedio, activo)
 stock_sucursal(id_sucursal, id_insumo, stock_actual, stock_minimo)
 productos(id_producto, id_categoria, nombre*, codigo_barra, precio_venta[CON IVA], es_elaborado, id_insumo_reventa, activo)
@@ -39,7 +39,7 @@ compra_detalles(id_detalle, id_compra, id_insumo?, descripcion, cantidad, costo_
 fn: compras.fn_registrar_compra(id_proveedor, id_sucursal, num_factura, fecha, condicion, items jsonb, id_usuario, tipo_costo) → id_compra   items=[{id_insumo,cantidad,costo_unitario}] ó [{descripcion,cantidad,costo_unitario}] (costo SIN IVA)
 
 ## rrhh
-puestos(id_puesto, nombre, salario_base) · empleados(id_empleado U, id_sucursal, id_puesto, id_usuario?, nombres, apellidos, dui*, nit, fecha_ingreso, salario_nominal[MENSUAL], activo)
+puestos(id_puesto, nombre, salario_base, activo) · empleados(id_empleado U, id_sucursal, id_puesto, id_usuario?, nombres, apellidos, dui*, nit nullable si está homologado con DUI, fecha_ingreso, salario_nominal[MENSUAL], activo) · CRUD REST en `/api/rrhh` protegido por `RRHH_GESTIONAR_EMPLEADOS`
 tramos_renta(tipo_periodo, tramo, desde, hasta, cuota_fija, porcentaje, exceso_sobre) · planillas(id_planilla, id_sucursal, periodo_inicio, periodo_fin, tipo_periodo, procesada) · planilla_detalles(id_planilla, id_empleado, salario_bruto, isss_laboral, afp_laboral, renta_retenida, total_descuentos, salario_neto, *_patronal)
 fn: rrhh.fn_calcular_planilla(id_planilla) → nº empleados (no recalcula si procesada)
 
@@ -47,7 +47,8 @@ fn: rrhh.fn_calcular_planilla(id_planilla) → nº empleados (no recalcula si pr
 vw_alertas_stock · vw_costo_margen_producto · vw_cuadre_turno · vw_ventas_diarias · vw_top_productos · vw_cuentas_por_pagar · vw_permisos_usuario(id_usuario, username, rol, modulo, permiso)
 
 ## Permisos (códigos)
-SEG_GESTIONAR_USUARIOS SEG_GESTIONAR_ROLES SEG_VER_BITACORA · EMP_GESTIONAR_SUCURSALES EMP_EDITAR_PARAMETROS · INV_VER_STOCK INV_GESTIONAR_INSUMOS INV_GESTIONAR_PRODUCTOS INV_GESTIONAR_RECETAS INV_REGISTRAR_MERMA INV_VER_COSTOS
+SEG_GESTIONAR_USUARIOS SEG_GESTIONAR_ROLES SEG_VER_BITACORA · EMP_GESTIONAR_SUCURSALES EMP_EDITAR_PARAMETROS · INV_VER_STOCK INV_VER_KARDEX INV_GESTIONAR_INSUMOS INV_GESTIONAR_PRODUCTOS INV_GESTIONAR_RECETAS INV_REGISTRAR_MERMA INV_VER_COSTOS
 POS_CREAR_ORDEN POS_VER_COLA_PREPARACION POS_COBRAR POS_EMITIR_CCF POS_APLICAR_DESCUENTO POS_ANULAR_VENTA POS_GESTIONAR_CLIENTES · CAJA_ABRIR_TURNO CAJA_CERRAR_TURNO CAJA_MOVIMIENTOS CAJA_VER_CUADRES
 COM_GESTIONAR_PROVEEDORES COM_REGISTRAR_COMPRA COM_PAGAR_PROVEEDOR COM_VER_CXP · RRHH_GESTIONAR_EMPLEADOS RRHH_VER_SALARIOS RRHH_CALCULAR_PLANILLA RRHH_VER_PLANILLA · REP_VER_DASHBOARD
 Roles semilla: ADMIN, GERENTE_SUCURSAL, CAJERO, BARISTA, BODEGUERO, CONTADOR, RRHH. Usuarios demo: admin, gerente1, cajero1, barista1, bodega1 (pass Cambiar123*).
+`INV_VER_KARDEX` se incorpora mediante `database/seeders/003_inventario_kardex.sql` para ADMIN, GERENTE_SUCURSAL y BODEGUERO; el seeder retira `INV_VER_COSTOS` únicamente a BODEGUERO.

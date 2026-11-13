@@ -92,12 +92,24 @@ Cookie: {{adminCookie}}
 GET {{baseUrl}}/reportes/top-productos?limite=5
 Cookie: {{adminCookie}}
 
+### Reportes: ventas por método de pago
+GET {{baseUrl}}/reportes/ventas-por-metodo-pago?desde=2026-11-01&hasta=2026-11-10
+Cookie: {{adminCookie}}
+
 ### Reportes: alertas de stock
 GET {{baseUrl}}/reportes/alertas-stock?nivel=AGOTADO
 Cookie: {{adminCookie}}
 
 ### Reportes: margen por producto
 GET {{baseUrl}}/reportes/margen-productos
+Cookie: {{adminCookie}}
+
+### Reportes: cuadre de turnos
+GET {{baseUrl}}/reportes/cuadre-turnos?desde=2026-11-01&hasta=2026-11-10
+Cookie: {{adminCookie}}
+
+### Reportes: cuentas por pagar
+GET {{baseUrl}}/reportes/cuentas-por-pagar?desde=2026-11-01&hasta=2026-11-10
 Cookie: {{adminCookie}}
 
 ### Preparación: cola de órdenes
