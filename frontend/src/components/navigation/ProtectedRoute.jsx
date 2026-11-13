@@ -16,7 +16,11 @@ export default function ProtectedRoute({ permiso, portal = 'admin', children }) 
     return <Navigate to={portal === 'cliente' ? '/cliente/login' : '/admin/login'} replace />;
   }
 
-  if (permiso && !tiene(permiso)) {
+  const tieneAcceso = permiso
+    ? (Array.isArray(permiso) ? permiso.some((p) => tiene(p)) : tiene(permiso))
+    : true;
+
+  if (!tieneAcceso) {
     return (
       <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
         <h2 className="text-xl font-bold text-danger">Acceso no autorizado</h2>

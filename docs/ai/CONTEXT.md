@@ -25,16 +25,15 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (li
 | auth / seguridad | listo | login, CRUD RBAC, usuarios y API /bitacora con métricas | Bitácora con filtros, analítica y gestión de usuarios/roles |
 | inventario | listo | CRUD unidades-medida/insumos/productos, stock, mermas, alertas y Kárdex con permiso propio; listar productos incluye n_ingredientes | Existencias y kárdex; catálogo insumos sin campos de stock globales; productos señalan recetas pendientes; editor BOM sin fallback mock |
 | pos | listo | cola de preparación (/api/preparacion), órdenes (T02) y ventas/facturación (T17: FCF/CCF, pagos mixtos) | catálogo y carrito local; cobro/facturación pendiente (frontend T19/T46) |
+| inventario | listo | CRUD unidades-medida/insumos/productos, stock, mermas, alertas y Kárdex con permiso propio | Existencias, kárdex, catálogo de insumos (tabs + semáforo), catálogo de productos (tabla/grid) y editor de recetas BOM |
+| pos | listo | cola de preparación, órdenes (T02), ventas (T17), anulación (`fn_anular_venta`) y CRUD clientes CCF (T18-back) | catálogo y carrito local; pantallas de clientes/anulación (T18-front), cobro (T19) y ticket (T46) pendientes |
 | caja | listo | turnos, movimientos, cierre y cuadre (T05/T06/T22) | pendiente |
-| compras | listo | pendiente | pendiente |
+| compras | listo | T30 proveedores; T31 facturas COSTO; T32 pagos/CxP; T33 registro backend GASTO | pantallas de proveedores, compras, CxP y gastos siguen provisionales |
 | rrhh | listo | CRUD de puestos y empleados, validaciones, permisos y datos de prueba | pendiente |
-| reportes | vistas listas | ventas diarias, top productos, alertas y margen (T23) | pendiente |
-| compras | listo | pendiente | pantallas pendientes (usan PendienteApiPage) |
-| rrhh | listo | pendiente | pantallas pendientes (usan PendienteApiPage) |
 | reportes | vistas listas + consultas de método de pago, cuadre y CxP | ventas diarias, top productos, métodos de pago, alertas, margen, cuadre y CxP; alcance por `id_sucursal` | panel con tendencias, comparativos, tablas paginadas y exportación CSV/PDF |
 | empresa | listo | CRUD sucursales y edición parámetros | sucursales y parámetros |
 
-Pantallas de gestión pendientes por falta de endpoints backend: empleados/puestos, proveedores, administración de CxP, compras tipo gasto y planillas. El reporte de CxP de solo lectura ya está disponible dentro de Reportes.
+Pantallas de gestión pendientes por falta de endpoints backend: empleados/puestos y planillas. Proveedores, registro de facturas COSTO/GASTO, pagos y CxP operativa tienen API; falta frontend funcional. El reporte CxP de solo lectura de Reportes se conserva y comparte consulta con la ruta operativa.
 
 ## Pendientes críticos
 - Verificar tablas de renta/ISSS/AFP vigentes con Hacienda (están en `rrhh.tramos_renta` y `empresa.parametros`).

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Package, Ruler, Pencil, Trash2, X, Plus } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -19,6 +20,15 @@ import {
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
 const TIPOS_INSUMO = ['INGREDIENTE', 'EMPAQUE', 'REVENTA'];
+
+// Mensaje local (validación de formulario o de conexión) con la misma forma que
+// espera BannerError, para no mezclar errores de servidor con texto plano.
+const avisoLocal = (mensaje, titulo = 'Revisa la información') => ({
+  titulo,
+  mensaje,
+  accion: '',
+  categoria: 'usuario',
+});
 
 const PESTANAS_DEF = [
   { clave: 'insumos', texto: 'Insumos', icono: Package },
@@ -88,9 +98,9 @@ function DrawerInsumo({ abierto, insumo, unidades, onCerrar, onGuardado }) {
     e.preventDefault();
     setError(null);
 
-    if (!form.nombre.trim()) return setError('El nombre es obligatorio.');
-    if (!form.tipo_insumo) return setError('Selecciona un tipo de insumo.');
-    if (!form.id_unidad_base) return setError('Selecciona una unidad de medida base.');
+    if (!form.nombre.trim()) return setError(avisoLocal('El nombre es obligatorio.'));
+    if (!form.tipo_insumo) return setError(avisoLocal('Selecciona un tipo de insumo.'));
+    if (!form.id_unidad_base) return setError(avisoLocal('Selecciona una unidad de medida base.'));
 
     setCargando(true);
     try {
@@ -119,6 +129,23 @@ function DrawerInsumo({ abierto, insumo, unidades, onCerrar, onGuardado }) {
     }
   };
 
+  useEffect(() => {
+    if (!abierto) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onCerrar();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [abierto, onCerrar]);
+
   if (!abierto) return null;
 
   const opcionesUnidades = unidades.map((u) => ({
@@ -131,42 +158,66 @@ function DrawerInsumo({ abierto, insumo, unidades, onCerrar, onGuardado }) {
     texto: t.charAt(0) + t.slice(1).toLowerCase(),
   }));
 
-  return (
+  return createPortal(
     <>
+      {/* Backdrop con cobertura 100% de pantalla (w-screen, h-dvh) y blur oscuro profundo */}
       <div
-        className="fixed inset-0 bg-espresso-900/60 z-40 transition-opacity"
+        className="fixed inset-0 w-screen h-dvh z-40 bg-[#1C110D]/75 backdrop-blur-[2px] transition-opacity"
         onClick={onCerrar}
         aria-hidden="true"
       />
 
+      {/* Panel lateral (Drawer) en Alabastro cálido, estructura Flex vertical completa */}
       <div
         role="dialog"
         aria-modal="true"
         aria-label={esEdicion ? 'Editar Insumo' : 'Nuevo Insumo'}
-        className="fixed right-0 top-0 h-full w-full max-w-md bg-surface shadow-2xl z-50 flex flex-col"
+        className="fixed right-0 top-0 bottom-0 h-dvh w-full max-w-md bg-[#FAF8F5] dark:bg-[#2A1A14] shadow-2xl z-50 flex flex-col border-l border-line"
       >
-        <div className="px-5 py-4 border-b border-line flex items-center justify-between">
-          <h2 className="text-base font-semibold text-fg">
-            {esEdicion ? 'Editar Insumo' : 'Nuevo Insumo'}
-          </h2>
+        {/* Cabecera fija */}
+        <div className="px-6 py-4 border-b border-line bg-[#FAF8F5] dark:bg-[#2A1A14] flex items-center justify-between shrink-0">
+          <div>
+            <h2 className="text-lg font-semibold text-fg">
+              {esEdicion ? 'Editar Insumo' : 'Nuevo Insumo'}
+            </h2>
+            <p className="text-xs text-fg-muted mt-0.5">
+              {esEdicion ? 'Actualiza los datos del insumo y stock mínimo' : 'Registra un nuevo ingrediente o material de empaque'}
+            </p>
+          </div>
           <button
             type="button"
             onClick={onCerrar}
-            className="btn-ghost !p-1.5 min-h-8"
-            aria-label="Cerrar"
+            className="rounded-lg p-1.5 text-fg-muted hover:text-fg hover:bg-espresso-100 dark:hover:bg-espresso-800 transition-colors"
+            aria-label="Cerrar formulario"
           >
-            <X size={18} />
+            <X size={18} aria-hidden="true" />
           </button>
         </div>
 
-        <form id="form-insumo" onSubmit={handleSubmit} className="flex-1 overflow-y-auto scroll-fino px-5 py-4 space-y-4">
+        {/* Cuerpo con scroll interno */}
+        <form id="form-insumo" onSubmit={handleSubmit} className="flex-1 overflow-y-auto scroll-fino px-6 py-5 space-y-4">
           {error && <BannerError error={error} onCerrar={() => setError(null)} />}
 
           <div>
-            <label htmlFor="insumo-nombre" className="mb-1 block text-sm font-medium text-fg">
-              Nombre del Insumo <span className="text-danger">*</span>
+            <label htmlFor="insumo-sku" className="mb-1 block text-sm font-medium text-fg">
+              Código / SKU
             </label>
-            <CampoTexto
+            <input
+              className="input"
+              id="insumo-sku"
+              placeholder="Ej. INS-001 o código de barras"
+              value={form.codigo_sku}
+              onChange={(e) => set('codigo_sku')(e.target.value)}
+              maxLength={50}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="insumo-nombre" className="mb-1 block text-sm font-medium text-fg">
+              Nombre del Insumo <span className="text-danger ml-0.5 font-semibold">*</span>
+            </label>
+            <input
+              className="input"
               id="insumo-nombre"
               placeholder="Ej. Café molido espresso"
               value={form.nombre}
@@ -179,6 +230,7 @@ function DrawerInsumo({ abierto, insumo, unidades, onCerrar, onGuardado }) {
 
           <Select
             etiqueta="Tipo de insumo"
+            requerido
             opciones={opcionesTipo}
             placeholder="Selecciona un tipo…"
             value={form.tipo_insumo}
@@ -187,18 +239,40 @@ function DrawerInsumo({ abierto, insumo, unidades, onCerrar, onGuardado }) {
 
           <Select
             etiqueta="Unidad de medida base"
+            requerido
             opciones={opcionesUnidades}
             placeholder="Selecciona una unidad…"
             value={form.id_unidad_base}
             onChange={(e) => set('id_unidad_base')(e.target.value)}
+            buscable
           />
+
+          <div>
+            <label htmlFor="insumo-stock-minimo" className="mb-1 block text-sm font-medium text-fg">
+              Stock mínimo preventivo
+            </label>
+            <input
+              className="input"
+              id="insumo-stock-minimo"
+              type="number"
+              placeholder="Ej. 1000.0000"
+              value={form.stock_minimo}
+              onChange={(e) => set('stock_minimo')(e.target.value)}
+              min={0}
+              step="0.0001"
+            />
+            <p className="mt-1 text-xs text-fg-muted">
+              Nivel que activa la alerta preventiva (semáforo en Ocre).
+            </p>
+          </div>
 
           {!esEdicion ? (
             <div>
               <label htmlFor="insumo-costo" className="mb-1 block text-sm font-medium text-fg">
                 Costo inicial / referencia
               </label>
-              <CampoTexto
+              <input
+                className="input"
                 id="insumo-costo"
                 type="number"
                 placeholder="0.0000"
@@ -210,12 +284,14 @@ function DrawerInsumo({ abierto, insumo, unidades, onCerrar, onGuardado }) {
               <p className="mt-1 text-xs text-fg-muted">Costo por {unidades.find((u) => String(u.id_unidad) === String(form.id_unidad_base))?.codigo ?? 'unidad base'}.</p>
             </div>
           ) : (
-            <div className="rounded-lg border border-line bg-muted/40 p-3 space-y-1">
+            <div className="rounded-xl border border-line bg-surface p-4 space-y-1">
               <span className="text-xs font-semibold uppercase tracking-wider text-fg-muted">
                 Costo promedio ponderado actual
               </span>
               <p className="text-sm font-mono font-bold text-fg">
                 {insumo.costo_promedio == null ? <span title="Sin permiso para ver costos">—</span> : `$ ${insumo.costo_promedio}`}
+              <p className="text-base font-mono font-bold text-fg">
+                $ {insumo.costo_promedio ?? '0.0000'}
               </p>
               <p className="text-xs text-fg-muted italic">
                 El costo se actualiza automáticamente con cada factura de compra.
@@ -237,7 +313,8 @@ function DrawerInsumo({ abierto, insumo, unidades, onCerrar, onGuardado }) {
           </div>
         </form>
 
-        <div className="px-5 py-4 border-t border-line flex gap-3 justify-end">
+        {/* Pie de acciones fijo */}
+        <div className="sticky bottom-0 border-t border-line bg-[#FAF8F5] dark:bg-[#2A1A14] px-6 py-4 flex items-center justify-end gap-3 shrink-0">
           <Button variante="ghost" onClick={onCerrar} disabled={cargando}>
             Cancelar
           </Button>
@@ -252,7 +329,8 @@ function DrawerInsumo({ abierto, insumo, unidades, onCerrar, onGuardado }) {
           </Button>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }
 
@@ -285,8 +363,8 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    if (!form.codigo.trim()) return setError('El código / abreviatura es obligatorio.');
-    if (!form.nombre.trim()) return setError('El nombre es obligatorio.');
+    if (!form.codigo.trim()) return setError(avisoLocal('El código / abreviatura es obligatorio.'));
+    if (!form.nombre.trim()) return setError(avisoLocal('El nombre es obligatorio.'));
 
     setCargando(true);
     try {
@@ -311,38 +389,56 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
     }
   };
 
+  useEffect(() => {
+    if (!abierto) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onCerrar();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [abierto, onCerrar]);
+
   if (!abierto) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso-900/60 p-4">
+  return createPortal(
+    <div className="fixed inset-0 w-screen h-dvh z-50 flex items-center justify-center bg-[#1C110D]/75 backdrop-blur-[2px] p-4">
       <div
         role="dialog"
         aria-modal="true"
         aria-label={esEdicion ? 'Editar Unidad' : 'Nueva Unidad'}
-        className="bg-surface rounded-xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden"
+        className="bg-[#FAF8F5] dark:bg-[#2A1A14] rounded-xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden border border-line"
       >
-        <div className="px-5 py-4 border-b border-line flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-line flex items-center justify-between">
           <h2 className="text-base font-semibold text-fg">
             {esEdicion ? 'Editar Unidad' : 'Nueva Unidad de Medida'}
           </h2>
           <button
             type="button"
             onClick={onCerrar}
-            className="btn-ghost !p-1.5 min-h-8"
+            className="rounded-lg p-1.5 text-fg-muted hover:text-fg hover:bg-espresso-100 dark:hover:bg-espresso-800 transition-colors"
             aria-label="Cerrar"
           >
             <X size={18} />
           </button>
         </div>
 
-        <form id="form-unidad" onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
+        <form id="form-unidad" onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
           {error && <BannerError error={error} onCerrar={() => setError(null)} />}
 
           <div>
             <label htmlFor="unidad-codigo" className="mb-1 block text-sm font-medium text-fg">
-              Abreviatura / Símbolo <span className="text-danger">*</span>
+              Abreviatura / Símbolo <span className="text-danger ml-0.5 font-semibold">*</span>
             </label>
-            <CampoTexto
+            <input
+              className="input"
               id="unidad-codigo"
               placeholder="Ej. kg, ml, g, oz, unidad"
               value={form.codigo}
@@ -355,9 +451,10 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
 
           <div>
             <label htmlFor="unidad-nombre" className="mb-1 block text-sm font-medium text-fg">
-              Nombre de la Unidad <span className="text-danger">*</span>
+              Nombre de la Unidad <span className="text-danger ml-0.5 font-semibold">*</span>
             </label>
-            <CampoTexto
+            <input
+              className="input"
               id="unidad-nombre"
               placeholder="Ej. Kilogramo, Mililitro"
               value={form.nombre}
@@ -372,7 +469,8 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
             <label htmlFor="unidad-factor" className="mb-1 block text-sm font-medium text-fg">
               Factor de conversión
             </label>
-            <CampoTexto
+            <input
+              className="input"
               id="unidad-factor"
               type="number"
               placeholder="1.0000"
@@ -387,7 +485,7 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
           </div>
         </form>
 
-        <div className="px-5 py-4 border-t border-line flex gap-3 justify-end">
+        <div className="px-6 py-4 border-t border-line bg-[#FAF8F5] dark:bg-[#2A1A14] flex gap-3 justify-end">
           <Button variante="ghost" onClick={onCerrar} disabled={cargando}>
             Cancelar
           </Button>
@@ -402,7 +500,8 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -432,6 +531,17 @@ function PestanaInsumos({ unidades }) {
     } catch (err) {
       setInsumos([]);
       setErrorBanner(traducirError(err));
+    } catch {
+      const mapa = Object.fromEntries(
+        MOCK_UNIDADES.map((u) => [u.id_unidad, u.codigo]),
+      );
+      const enriquecidos = MOCK_INSUMOS.map((i) => ({
+        ...i,
+        codigo_unidad: i.codigo_unidad ?? mapa[i.id_unidad_base] ?? '—',
+      }));
+      setInsumos(enriquecidos);
+      setEsMock(true);
+      setErrorBanner(avisoLocal('No se pudo conectar con el servidor. Mostrando datos de demostración.', 'Sin conexión'));
     } finally {
       setCargando(false);
     }
@@ -468,13 +578,15 @@ function PestanaInsumos({ unidades }) {
   };
 
   const handleEliminar = async (ins) => {
-    const confirmado = await confirm({
-      titulo: 'Eliminar insumo',
-      mensaje: `¿Deseas dar de baja el insumo "${ins.nombre}"? Si está en uso en recetas o compras, no podrá eliminarse.`,
-      destructivo: true,
-      etiquetaCancelar: 'Cancelar',
-      etiquetaAceptar: 'Eliminar insumo',
-    });
+    const confirmado = await confirm(
+      `¿Deseas dar de baja el insumo "${ins.nombre}"? Si está en uso en recetas o compras, no podrá eliminarse.`,
+      {
+        titulo: 'Eliminar insumo',
+        destructivo: true,
+        etiquetaCancelar: 'Cancelar',
+        etiquetaAceptar: 'Eliminar insumo',
+      },
+    );
     if (!confirmado) return;
 
     try {
@@ -484,7 +596,7 @@ function PestanaInsumos({ unidades }) {
     } catch (err) {
       const status = err?.status;
       if (status === 409) {
-        setErrorBanner('No se puede eliminar: el insumo está vinculado en recetas, compras o movimientos.');
+        setErrorBanner(avisoLocal('No se puede eliminar: el insumo está vinculado en recetas, compras o movimientos.', 'No se puede eliminar'));
       } else {
         setErrorBanner(traducirError(err));
       }
@@ -592,6 +704,14 @@ function PestanaInsumos({ unidades }) {
           aria-label="Buscar insumo por nombre"
         />
         <div className="sm:w-44">
+        <div className="sm:w-52">
+          <Select
+            opciones={FILTRO_STOCK_OPTS}
+            value={filtroStock}
+            onChange={(e) => setFiltroStock(e.target.value)}
+          />
+        </div>
+        <div className="sm:w-48">
           <Select
             opciones={FILTRO_TIPO_OPTS}
             value={filtroTipo}
@@ -647,6 +767,9 @@ function PestanaUnidades() {
     } catch (err) {
       setUnidades([]);
       setErrorBanner(traducirError(err));
+    } catch {
+      setUnidades(MOCK_UNIDADES);
+      setErrorBanner(avisoLocal('No se pudo conectar con el servidor. Mostrando unidades de demostración.', 'Sin conexión'));
     } finally {
       setCargando(false);
     }
@@ -670,13 +793,15 @@ function PestanaUnidades() {
   };
 
   const handleDesactivar = async (u) => {
-    const confirmado = await confirm({
-      titulo: 'Desactivar unidad de medida',
-      mensaje: `¿Desactivar la unidad "${u.nombre}" (${u.codigo})? Los insumos existentes la mantendrán, pero no se sugerirá para nuevos registros.`,
-      destructivo: true,
-      etiquetaCancelar: 'Cancelar',
-      etiquetaAceptar: 'Desactivar',
-    });
+    const confirmado = await confirm(
+      `¿Desactivar la unidad "${u.nombre}" (${u.codigo})? Los insumos existentes la mantendrán, pero no se sugerirá para nuevos registros.`,
+      {
+        titulo: 'Desactivar unidad de medida',
+        destructivo: true,
+        etiquetaCancelar: 'Cancelar',
+        etiquetaAceptar: 'Desactivar',
+      },
+    );
     if (!confirmado) return;
 
     try {
