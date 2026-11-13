@@ -10,6 +10,9 @@ export const menu = [
     { id: 'inventario', texto: 'Inventario', icono: Boxes, hijos: [
       { ruta: '/inventario', texto: 'Existencias', permiso: 'INV_VER_STOCK', end: true },
       { ruta: '/inventario/kardex', texto: 'Kárdex', permiso: 'INV_VER_KARDEX' },
+      { ruta: '/inventario/insumos', texto: 'Catálogo de Insumos', permiso: 'INV_GESTIONAR_INSUMOS' },
+      { ruta: '/inventario/productos', texto: 'Catálogo de Productos', permiso: 'INV_VER_STOCK' },
+      { ruta: '/inventario/recetas', texto: 'Editor de Recetas', permiso: 'INV_GESTIONAR_RECETAS' },
     ]},
     { id: 'compras', texto: 'Compras', icono: Truck, hijos: [
       { ruta: '/compras', texto: 'Compras', permiso: 'COM_VER_CXP', end: true },

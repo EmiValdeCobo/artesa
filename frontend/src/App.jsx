@@ -10,6 +10,9 @@ import UsuariosPage from './modules/seguridad/UsuariosPage.jsx';
 import PosPage from './modules/pos/PosPage.jsx';
 import InventarioPage from './modules/inventario/InventarioPage.jsx';
 import KardexPage from './modules/inventario/KardexPage.jsx';
+import CatalogoInsumosPage from './modules/inventario/CatalogoInsumosPage.jsx';
+import CatalogoProductosPage from './modules/inventario/CatalogoProductosPage.jsx';
+import EditorRecetasPage from './modules/inventario/EditorRecetasPage.jsx';
 import ReportesPage from './modules/reportes/ReportesPage.jsx';
 import SucursalesPage from './modules/empresa/SucursalesPage.jsx';
 import ParametrosPage from './modules/empresa/ParametrosPage.jsx';
@@ -40,6 +43,9 @@ export default function App() {
           }
         />
         <Route path="inventario/kardex" element={<ProtectedRoute permiso="INV_VER_KARDEX"><KardexPage /></ProtectedRoute>} />
+        <Route path="inventario/insumos" element={<ProtectedRoute permiso="INV_GESTIONAR_INSUMOS"><CatalogoInsumosPage /></ProtectedRoute>} />
+        <Route path="inventario/productos" element={<ProtectedRoute permiso="INV_VER_STOCK"><CatalogoProductosPage /></ProtectedRoute>} />
+        <Route path="inventario/recetas" element={<ProtectedRoute permiso="INV_GESTIONAR_RECETAS"><EditorRecetasPage /></ProtectedRoute>} />
         <Route path="reportes" element={<ProtectedRoute permiso="REP_VER_DASHBOARD"><ReportesPage /></ProtectedRoute>} />
         <Route path="empresa/sucursales" element={<ProtectedRoute permiso="EMP_GESTIONAR_SUCURSALES"><SucursalesPage /></ProtectedRoute>} />
         <Route path="empresa/parametros" element={<ProtectedRoute permiso="EMP_EDITAR_PARAMETROS"><ParametrosPage /></ProtectedRoute>} />
