@@ -45,9 +45,7 @@ const camposInsumo = {
   id_unidad_base: id.optional(),
   costoPromedio: decimal(6, 6).optional(),
   costo_promedio: decimal(6, 6).optional(),
-  codigo_sku: z.string().trim().max(50).nullish(),
-  stock_minimo: decimal(10, 4).nullish(),
-  activo: z.boolean().default(true),
+  activo: z.boolean(),
 };
 const normalizarInsumo = (data, incluirCostoPredeterminado) => ({
   nombre: data.nombre,
@@ -59,7 +57,7 @@ const normalizarInsumo = (data, incluirCostoPredeterminado) => ({
 const validarInsumo = (schema) => schema
   .refine((d) => Boolean(d.tipoInsumo), { message: 'El tipo de insumo es obligatorio', path: ['tipoInsumo'] })
   .refine((d) => Boolean(d.idUnidadBase), { message: 'La unidad base es obligatoria', path: ['idUnidadBase'] });
-export const insumoSchema = validarInsumo(z.object(camposInsumo).transform((data) => normalizarInsumo(data, true)));
+export const insumoSchema = validarInsumo(z.object({ ...camposInsumo, activo: z.boolean().default(true) }).transform((data) => normalizarInsumo(data, true)));
 export const actualizarInsumoSchema = validarInsumo(z.object({
   ...camposInsumo,
   activo: z.boolean().optional(),
