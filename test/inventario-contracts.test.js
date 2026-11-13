@@ -97,3 +97,87 @@ test('inventario: los chips de T10 usan tipos reales recibidos del endpoint de i
   assert.match(page, /valor: 'EMPAQUE'/);
   assert.match(page, /valor: 'REVENTA'/);
 });
+
+test('inventario UI: CatalogoInsumosPage, CatalogoProductosPage y EditorRecetasPage cumplen especificación y RBAC', async () => {
+  const [app, menu, insumosPage, productosPage, recetasPage, mockData] = await Promise.all([
+    leer('frontend/src/App.jsx'),
+    leer('frontend/src/config/menu.js'),
+    leer('frontend/src/modules/inventario/CatalogoInsumosPage.jsx'),
+    leer('frontend/src/modules/inventario/CatalogoProductosPage.jsx'),
+    leer('frontend/src/modules/inventario/EditorRecetasPage.jsx'),
+    leer('frontend/src/modules/inventario/mockData.js'),
+  ]);
+
+  // 1. Rutas protegidas en App.jsx
+  assert.match(app, /path="inventario\/insumos" element={<ProtectedRoute permiso="INV_GESTIONAR_INSUMOS"><CatalogoInsumosPage \/><\/ProtectedRoute>}/);
+  assert.match(app, /path="inventario\/productos" element={<ProtectedRoute permiso="INV_VER_STOCK"><CatalogoProductosPage \/><\/ProtectedRoute>}/);
+  assert.match(app, /path="inventario\/recetas" element={<ProtectedRoute permiso="INV_GESTIONAR_RECETAS"><EditorRecetasPage \/><\/ProtectedRoute>}/);
+
+  // 2. Menú lateral en menu.js
+  assert.match(menu, /ruta: '\/inventario\/insumos', texto: 'Catálogo de Insumos', permiso: 'INV_GESTIONAR_INSUMOS'/);
+  assert.match(menu, /ruta: '\/inventario\/productos', texto: 'Catálogo de Productos', permiso: 'INV_VER_STOCK'/);
+  assert.match(menu, /ruta: '\/inventario\/recetas', texto: 'Editor de Recetas', permiso: 'INV_GESTIONAR_RECETAS'/);
+
+  // 3. CatalogoInsumosPage: pestañas, semáforo, filtro de stock y unidades
+  assert.match(insumosPage, /PestanaInsumos/);
+  assert.match(insumosPage, /PestanaUnidades/);
+  assert.match(insumosPage, /SemaforoBadge/);
+  assert.match(insumosPage, /BAJO_MINIMO/);
+  assert.match(insumosPage, /AGOTADO/);
+  assert.match(insumosPage, /NORMAL/);
+  assert.match(insumosPage, /factor_conversion/);
+
+  // 4. CatalogoProductosPage: alternancia de vistas, precio con formato sin pérdida, filtro y botón receta BOM
+  assert.match(productosPage, /vista === 'tabla'/);
+  assert.match(productosPage, /vista === 'cuadricula'/);
+  assert.match(productosPage, /formatoDinero\(p\.precio_venta\)/);
+  assert.match(productosPage, /\/inventario\/recetas\?producto=/);
+  assert.match(productosPage, /Elaborado \(BOM\)/);
+  assert.match(productosPage, /Reventa/);
+
+  // 5. EditorRecetasPage: dos paneles, simulador financiero, simulador de disponibilidad con cuello de botella
+  assert.match(recetasPage, /lg:grid-cols-\[2fr_3fr\]/);
+  assert.match(recetasPage, /Simulador Financiero/);
+  assert.match(recetasPage, /Disponibilidad Operativa/);
+  assert.match(recetasPage, /cuelloDeBotella/);
+  assert.match(recetasPage, /Math\.round\(cant \* costoUnit \* 10000\) \/ 10000/);
+
+  // 6. MockData: al menos 12 productos elaborados y 3 de reventa
+  const matchElab = mockData.match(/es_elaborado:\s*true/g) || [];
+  const matchRev = mockData.match(/es_elaborado:\s*false/g) || [];
+  assert.ok(matchElab.length >= 12, `Debe haber al menos 12 productos elaborados (hay ${matchElab.length})`);
+  assert.ok(matchRev.length >= 3, `Debe haber al menos 3 productos de reventa (hay ${matchRev.length})`);
+});
+
+test('inventario: rutas de unidades-medida soportan endpoints REST completos con RBAC', async () => {
+  const [routes, api] = await Promise.all([
+    leer('backend/src/modules/inventario/inventario.routes.js'),
+    leer('frontend/src/modules/inventario/inventarioApi.js'),
+  ]);
+
+  // Backend expone /unidades-medida en GET, POST, PUT y DELETE
+  assert.match(routes, /router\.get\('\/unidades-medida'/);
+  assert.match(routes, /router\.post\('\/unidades-medida'/);
+  assert.match(routes, /router\.put\('\/unidades-medida\/:id'/);
+  assert.match(routes, /router\.delete\('\/unidades-medida\/:id'/);
+
+  // Frontend consume la ruta exacta sin 404
+  assert.match(api, /api\.get\('\/inventario\/unidades-medida'\)/);
+  assert.match(api, /api\.post\('\/inventario\/unidades-medida'/);
+  assert.match(api, /api\.put\(`\/inventario\/unidades-medida\/\$\{id\}`/);
+  assert.match(api, /api\.delete\(`\/inventario\/unidades-medida\/\$\{id\}`/);
+});
+
+test('inventario: validación de unidad de medida normaliza códigos y factor de conversión', async () => {
+  const { unidadSchema, actualizarUnidadSchema } = await import('../backend/src/modules/inventario/inventario.schemas.js');
+
+  const creada = unidadSchema.parse({ codigo: 'kg', nombre: 'Kilogramo', factor_conversion: '1000.0000' });
+  assert.equal(creada.codigo, 'KG');
+  assert.equal(creada.nombre, 'Kilogramo');
+  assert.equal(creada.factor_conversion, '1000.0000');
+  assert.equal(creada.activo, true);
+
+  const desactivada = actualizarUnidadSchema.parse({ activo: false });
+  assert.equal(desactivada.activo, false);
+});
+
