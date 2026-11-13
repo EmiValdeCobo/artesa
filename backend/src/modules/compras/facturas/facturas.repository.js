@@ -42,11 +42,18 @@ export const buscarInsumos = (idsInsumo, transaction) => select(
 );
 
 export const registrarCompra = async (datos, idUsuario, transaction) => {
-  const items = datos.items.map(({ idInsumo, cantidad, costoUnitario }) => ({
-    id_insumo: idInsumo,
-    cantidad,
-    costo_unitario: costoUnitario,
-  }));
+  const items = datos.items.map((item) => (datos.tipoCosto === 'GASTO'
+    ? {
+      id_insumo: null,
+      descripcion: item.descripcion,
+      cantidad: item.cantidad,
+      costo_unitario: item.costoUnitario,
+    }
+    : {
+      id_insumo: item.idInsumo,
+      cantidad: item.cantidad,
+      costo_unitario: item.costoUnitario,
+    }));
   const rows = await select(
     `SELECT compras.fn_registrar_compra(
        $1::int, $2::int, $3::varchar, $4::date, $5::varchar,

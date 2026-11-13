@@ -39,9 +39,11 @@ export async function registrarCompra(datos, userId) {
     return await withTransaction(async (transaction) => {
       validarProveedor(await repo.buscarProveedor(datos.idProveedor, transaction));
       validarSucursal(await repo.buscarSucursal(datos.idSucursal, transaction));
-      const idsInsumo = [...new Set(datos.items.map((item) => item.idInsumo))].sort((a, b) => a - b);
-      const insumos = await repo.buscarInsumos(idsInsumo, transaction);
-      validarInsumos(insumos, datos.items);
+      if (datos.tipoCosto === 'COSTO') {
+        const idsInsumo = [...new Set(datos.items.map((item) => item.idInsumo))].sort((a, b) => a - b);
+        const insumos = await repo.buscarInsumos(idsInsumo, transaction);
+        validarInsumos(insumos, datos.items);
+      }
       const idCompra = await repo.registrarCompra(datos, userId, transaction);
       if (!idCompra) throw new AppError('La base de datos no devolvió el identificador de la factura', 500);
       return idCompra;

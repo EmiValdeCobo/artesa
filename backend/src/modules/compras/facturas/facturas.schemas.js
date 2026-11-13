@@ -17,18 +17,36 @@ const cantidad = z.string().trim()
 const costoUnitario = z.string().trim()
   .regex(/^\d{1,6}(?:\.\d{1,6})?$/, 'El costo debe tener hasta 6 enteros y 6 decimales');
 
-const itemCompraSchema = z.strictObject({
+const itemCostoSchema = z.strictObject({
   idInsumo: idPositivo,
   cantidad,
   costoUnitario,
 });
 
-export const registrarCompraSchema = z.strictObject({
+const itemGastoSchema = z.strictObject({
+  descripcion: z.string().trim().min(1).max(150),
+  cantidad,
+  costoUnitario,
+});
+
+const compraComun = {
   idProveedor: idPositivo,
   idSucursal: idPositivo,
   numeroFactura: z.string().trim().min(1).max(50),
   fechaEmision: fechaCalendario,
   condicionPago: z.enum(['CONTADO', 'CREDITO']),
+};
+
+const compraCostoSchema = z.strictObject({
+  ...compraComun,
   tipoCosto: z.literal('COSTO').optional().default('COSTO'),
-  items: z.array(itemCompraSchema).min(1),
+  items: z.array(itemCostoSchema).min(1),
 });
+
+const compraGastoSchema = z.strictObject({
+  ...compraComun,
+  tipoCosto: z.literal('GASTO'),
+  items: z.array(itemGastoSchema).min(1),
+});
+
+export const registrarCompraSchema = z.union([compraCostoSchema, compraGastoSchema]);
