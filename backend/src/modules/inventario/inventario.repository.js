@@ -15,8 +15,19 @@ export const buscarInsumo = (id, transaction) => Insumo.findByPk(id, { transacti
 export const crearInsumo = (data, transaction) => Insumo.create({ nombre: data.nombre, tipo_insumo: data.tipoInsumo, id_unidad_base: data.idUnidadBase, costo_promedio: data.costoPromedio, activo: data.activo }, { transaction }).then(plain);
 export const actualizarInsumo = async (id, data, transaction) => { const row = await Insumo.findByPk(id, { transaction }); if (!row) return null; const values = { nombre: data.nombre, tipo_insumo: data.tipoInsumo, id_unidad_base: data.idUnidadBase, activo: data.activo }; if (data.costoPromedio !== undefined) values.costo_promedio = data.costoPromedio; await row.update(values, { transaction }); return plain(row); };
 export const desactivarInsumo = async (id, transaction) => { const row = await Insumo.findByPk(id, { transaction }); if (!row) return false; await row.update({ activo: false }, { transaction }); return true; };
+export const productosQueUsanInsumo = (id, transaction) => select(`
+  SELECT DISTINCT p.nombre
+  FROM inventario.productos p
+  LEFT JOIN inventario.recetas r ON r.id_producto = p.id_producto
+  WHERE p.activo = true AND (r.id_insumo = $1 OR p.id_insumo_reventa = $1)
+  ORDER BY p.nombre
+  LIMIT 6`, [id], transaction);
+export const insumosQueUsanUnidad = (id, transaction) => select(`
+  SELECT nombre FROM inventario.insumos
+  WHERE activo = true AND id_unidad_base = $1
+  ORDER BY nombre LIMIT 6`, [id], transaction);
 export const listarCategorias = () => CategoriaProducto.findAll({ order: [['nombre', 'ASC']] }).then((xs) => xs.map(plain));
-export const listarProductos = () => select(`SELECT p.*, c.nombre AS categoria, i.nombre AS insumo_reventa, CASE WHEN p.es_elaborado THEN (SELECT COUNT(*)::int FROM inventario.recetas r WHERE r.id_producto = p.id_producto) ELSE 0::int END AS n_ingredientes FROM inventario.productos p LEFT JOIN inventario.categorias_producto c USING (id_categoria) LEFT JOIN inventario.insumos i ON i.id_insumo = p.id_insumo_reventa ORDER BY p.nombre`);
+export const listarProductos = (verCostos = false) => select(`SELECT p.*, c.nombre AS categoria, i.nombre AS insumo_reventa, CASE WHEN $1::boolean THEN CASE WHEN p.es_elaborado THEN (SELECT COALESCE(SUM(r.cantidad_requerida * ri.costo_promedio), 0)::numeric(12,4) FROM inventario.recetas r JOIN inventario.insumos ri USING (id_insumo) WHERE r.id_producto = p.id_producto) ELSE i.costo_promedio END ELSE NULL::numeric END AS costo_teorico, CASE WHEN p.es_elaborado THEN (SELECT COUNT(*)::int FROM inventario.recetas r WHERE r.id_producto = p.id_producto) ELSE 0::int END AS n_ingredientes FROM inventario.productos p LEFT JOIN inventario.categorias_producto c USING (id_categoria) LEFT JOIN inventario.insumos i ON i.id_insumo = p.id_insumo_reventa ORDER BY p.nombre`, [verCostos]);
 export const buscarProducto = (id, transaction) => Producto.findByPk(id, { transaction }).then(plain);
 export const escribirProducto = async (data, transaction, id = null) => {
   const values = { id_categoria: data.idCategoria ?? null, nombre: data.nombre, codigo_barra: data.codigoBarra ?? null, precio_venta: data.precioVenta, es_elaborado: data.esElaborado, id_insumo_reventa: data.esElaborado ? null : data.idInsumoReventa, activo: data.activo };
@@ -24,7 +35,7 @@ export const escribirProducto = async (data, transaction, id = null) => {
   return Producto.create(values, { transaction }).then(plain);
 };
 export const desactivarProducto = async (id, transaction) => { const row = await Producto.findByPk(id, { transaction }); if (!row) return false; await row.update({ activo: false }, { transaction }); return true; };
-export const recetaActual = (id, transaction) => select(`SELECT r.id_producto, r.id_insumo, i.nombre AS insumo, i.nombre AS nombre_insumo, r.cantidad_requerida, u.codigo AS unidad, u.codigo AS codigo_unidad, i.costo_promedio FROM inventario.recetas r JOIN inventario.insumos i USING (id_insumo) JOIN inventario.unidades_medida u ON u.id_unidad = i.id_unidad_base WHERE r.id_producto = $1 ORDER BY i.nombre`, [id], transaction);
+export const recetaActual = (id, verCostos = false, transaction = null) => select(`SELECT r.id_producto, r.id_insumo, i.nombre AS insumo, i.nombre AS nombre_insumo, r.cantidad_requerida, u.codigo AS unidad, u.codigo AS codigo_unidad, CASE WHEN $2::boolean THEN i.costo_promedio ELSE NULL::numeric END AS costo_promedio FROM inventario.recetas r JOIN inventario.insumos i USING (id_insumo) JOIN inventario.unidades_medida u ON u.id_unidad = i.id_unidad_base WHERE r.id_producto = $1 ORDER BY i.nombre`, [id, verCostos], transaction);
 export const guardarReceta = async (id, componentes, transaction) => {
   await Receta.destroy({ where: { id_producto: id }, transaction });
   await Receta.bulkCreate(componentes.map((x) => ({ id_producto: id, id_insumo: x.idInsumo, cantidad_requerida: x.cantidadRequerida })), { transaction });

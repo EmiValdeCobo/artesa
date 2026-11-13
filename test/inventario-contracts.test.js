@@ -9,8 +9,81 @@ test('inventario: el kardex conserva autenticación admin y usa INV_VER_KARDEX',
   const routes = await leer('backend/src/modules/inventario/inventario.routes.js');
   assert.match(routes, /router\.use\(authenticate, requireTipo\('admin'\)\)/);
   assert.match(routes, /router\.get\('\/movimientos', requirePermiso\('INV_VER_KARDEX'\)/);
-  assert.match(routes, /router\.get\('\/stock', requirePermiso\('INV_VER_STOCK'\)/);
+  assert.match(routes, /router\.get\('\/stock', requirePermiso\('INV_VER_STOCK', 'INV_GESTIONAR_INSUMOS'\)/);
   assert.match(routes, /router\.get\('\/alertas', requirePermiso\('INV_VER_STOCK'\)/);
+});
+
+test('inventario: desactivar insumo y unidad devuelve 409 con dependencias activas', async () => {
+  const [servicio, repositorio, errores, insumosUi, productosUi] = await Promise.all([
+    leer('backend/src/modules/inventario/inventario.service.js'),
+    leer('backend/src/modules/inventario/inventario.repository.js'),
+    leer('frontend/src/errors/catalogo.js'),
+    leer('frontend/src/modules/inventario/CatalogoInsumosPage.jsx'),
+    leer('frontend/src/modules/inventario/CatalogoProductosPage.jsx'),
+  ]);
+  assert.match(servicio, /No se puede desactivar\. Lo usan: \$\{nombres\.join\(', '\)\}\$\{resto\}/);
+  assert.match(servicio, /No se puede desactivar: la usan \$\{nombres\.join\(', '\)\}/);
+  assert.match(repositorio, /r\.id_insumo = \$1 OR p\.id_insumo_reventa = \$1/);
+  assert.match(repositorio, /FROM inventario\.insumos[\s\S]*activo = true AND id_unidad_base = \$1/);
+  assert.match(errores, /No se puede desactivar\\\. Lo usan:/);
+  assert.match(insumosUi, /Mostrar inactivos/);
+  assert.match(productosUi, /Mostrar inactivos/);
+  assert.match(insumosUi, /Reactivar insumo/);
+  assert.match(productosUi, /Reactivar producto/);
+});
+
+test('inventario: drawer limita reventa a insumos disponibles y muestra su vínculo', async () => {
+  const pagina = await leer('frontend/src/modules/inventario/CatalogoProductosPage.jsx');
+  assert.match(pagina, /i\.tipo_insumo\)\.toUpperCase\(\) === 'REVENTA'/);
+  assert.match(pagina, /!insumosVinculados\.has\(String\(i\.id_insumo\)\)/);
+  assert.match(pagina, /Cada venta descontará 1/);
+  assert.match(pagina, /p\.insumo_reventa/);
+  assert.ok(pagina.indexOf('<SelectorTipoProducto form={form}') < pagina.indexOf('id="producto-nombre"'));
+  assert.ok(pagina.indexOf('id="producto-nombre"') < pagina.indexOf('etiqueta="Categoría del producto"'));
+  assert.ok(pagina.indexOf('id="producto-precio-venta"') < pagina.indexOf('etiqueta="Insumo de reventa"'));
+});
+
+test('inventario: margen usa precio neto de IVA y costo en aritmética entera', async () => {
+  const { calcularMargen, calcularMargenDolares, calcularCostoReceta } = await import('../frontend/src/modules/inventario/costeo.js');
+  assert.equal(calcularMargen('3.50', '2.0000'), 35.4);
+  assert.equal(calcularMargenDolares('3.50', '4.0000'), '-0.9027');
+  assert.equal(calcularCostoReceta([{ cantidad_requerida: '0.5000', costo_promedio: '2.1234' }]), '1.0617');
+});
+
+test('inventario: drawer reutilizable permite alta en producto y receta con permiso', async () => {
+  const [drawer, productos, recetas] = await Promise.all([
+    leer('frontend/src/modules/inventario/InsumoDrawer.jsx'),
+    leer('frontend/src/modules/inventario/CatalogoProductosPage.jsx'),
+    leer('frontend/src/modules/inventario/EditorRecetasPage.jsx'),
+  ]);
+  assert.match(drawer, /valoresIniciales/);
+  assert.match(drawer, /onGuardado\(guardado\)/);
+  assert.match(productos, /getUnidades\(\)/);
+  assert.match(productos, /tiene\('INV_GESTIONAR_INSUMOS'\)[\s\S]*?Crear insumo de reventa/);
+  assert.match(drawer, /z-\[70\]/);
+  assert.match(recetas, /Pide a quien administra insumos que cree/);
+  assert.match(recetas, /handleSeleccionarInsumo\(nuevo, ''\)/);
+  assert.match(recetas, /cantidad-receta-\$\{nuevo\.id_insumo\}/);
+});
+
+test('inventario: diálogo de existencias usa contratos Zod y sucursales asignadas', async () => {
+  const [dialogo, api, routes, controller, inventarioPage, insumosPage] = await Promise.all([
+    leer('frontend/src/modules/inventario/DialogoExistenciasInsumo.jsx'),
+    leer('frontend/src/modules/inventario/inventarioApi.js'),
+    leer('backend/src/modules/inventario/inventario.routes.js'),
+    leer('backend/src/modules/inventario/inventario.controller.js'),
+    leer('frontend/src/modules/inventario/InventarioPage.jsx'),
+    leer('frontend/src/modules/inventario/CatalogoInsumosPage.jsx'),
+  ]);
+  assert.match(dialogo, /idSucursal: Number\(sucursal\)/);
+  assert.match(dialogo, /cantidad: cantidad\.trim\(\), tipo, motivo: motivo\.trim\(\)/);
+  assert.match(dialogo, /stockMinimo: minimo\.trim\(\)/);
+  assert.match(api, /api\.post\(`\/inventario\/insumos\/\$\{idInsumo\}\/movimientos`/);
+  assert.match(api, /api\.patch\(`\/inventario\/insumos\/\$\{idInsumo\}\/stock-minimo`/);
+  assert.match(routes, /router\.get\('\/stock', requirePermiso\('INV_VER_STOCK', 'INV_GESTIONAR_INSUMOS'\)/);
+  assert.match(controller, /configurarMinimo[\s\S]*req\.params\.id\)/);
+  assert.match(inventarioPage, /usuario\?\.sucursales/);
+  assert.match(insumosPage, /tiene\('INV_GESTIONAR_INSUMOS'\).*Existencias/);
 });
 
 test('inventario: el seeder asigna el kardex solo a roles autorizados y restringe costos de BODEGUERO', async () => {

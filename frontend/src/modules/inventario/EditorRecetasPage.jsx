@@ -10,6 +10,7 @@ import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import { Button, Card, Select, Spinner } from '../../components/ui/index.js';
 import { formatoDinero } from '../../utils/formato.js';
 import { traducirError } from '../../errors/traducirError.js';
+import { calcularCostoReceta, calcularMargen, calcularMargenDolares } from './costeo.js';
 
 import {
   getProductos,
@@ -17,17 +18,11 @@ import {
   getReceta,
   saveReceta,
   getStock,
+  getUnidades,
 } from './inventarioApi.js';
+import InsumoDrawer from './InsumoDrawer.jsx';
 
 // ─── Helpers Financieros Anti-Float ──────────────────────────────────────────
-function calcCostoTotal(componentes) {
-  return componentes.reduce((acc, c) => {
-    const cant = Number(c.cantidad_requerida || 0);
-    const costo = Number(c.costo_promedio || 0);
-    return acc + Math.round(cant * costo * 10000) / 10000;
-  }, 0);
-}
-
 // Mensaje local (validación o modo sin conexión) con la misma forma que espera
 // BannerError, para no mezclar errores de servidor con texto plano.
 function avisoLocal(mensaje, titulo = 'Revisa la información') {
@@ -42,6 +37,7 @@ function colorMargenClass(pct) {
 
 export default function EditorRecetasPage() {
   const { tiene } = useAuth();
+  const verCostos = tiene('INV_VER_COSTOS');
   const { confirm, notificar } = useAlert();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -49,6 +45,9 @@ export default function EditorRecetasPage() {
   // ── Estado principal ───────────────────────────────────────────────────────
   const [productos, setProductos] = useState([]);
   const [insumos, setInsumos] = useState([]);
+  const [unidades, setUnidades] = useState([]);
+  const [drawerInsumoAbierto, setDrawerInsumoAbierto] = useState(false);
+  const [valoresInsumo, setValoresInsumo] = useState({});
   const [idProductoSeleccionado, setIdProductoSeleccionado] = useState(
     () => searchParams.get('producto') ?? '',
   );
@@ -88,9 +87,10 @@ export default function EditorRecetasPage() {
       setCargando(true);
       setErrorBase(null);
       try {
-        const [resProductos, resInsumos] = await Promise.allSettled([
+        const [resProductos, resInsumos, resUnidades] = await Promise.allSettled([
           getProductos(),
           getInsumos(),
+          getUnidades(),
         ]);
 
         const listaProdCruda = resProductos.status === 'fulfilled'
@@ -107,6 +107,7 @@ export default function EditorRecetasPage() {
 
         setProductos(listaProductos);
         setInsumos(listaInsCruda);
+        if (resUnidades.status === 'fulfilled') setUnidades(Array.isArray(resUnidades.value) ? resUnidades.value : (resUnidades.value?.data ?? []));
         if (resProductos.status === 'rejected') setErrorBase(traducirError(resProductos.reason));
         if (resInsumos.status === 'rejected') setErrorInsumos(traducirError(resInsumos.reason));
       } catch (err) {
@@ -230,17 +231,18 @@ export default function EditorRecetasPage() {
     });
   }, [insumos, insumosYaEnReceta, busquedaInsumo]);
 
-  function handleSeleccionarInsumo(ins) {
+  function handleSeleccionarInsumo(ins, cantidadRequerida = '1.0000') {
     const nuevo = {
       id_insumo: ins.id_insumo,
       nombre_insumo: ins.nombre,
       codigo_unidad: ins.codigo_unidad ?? ins.unidad?.codigo ?? 'u',
       costo_promedio: String(ins.costo_promedio ?? '0.0000'),
-      cantidad_requerida: '1.0000',
+      cantidad_requerida: cantidadRequerida,
     };
     setRecetaComponentes((prev) => [...prev, nuevo]);
     setBusquedaInsumo('');
     setDropdownAbierto(false);
+    return nuevo;
   }
 
   function handleCambiarCantidad(idInsumo, valor) {
@@ -350,10 +352,9 @@ export default function EditorRecetasPage() {
   }, [stockSucursal, hayComponentes, recetaComponentes]);
 
   // ── Métricas Financieras (Costeo en Tiempo Real) ───────────────────────────
-  const costoTotal = useMemo(() => calcCostoTotal(recetaComponentes), [recetaComponentes]);
-  const precioVentaNum = hayProducto ? Number(productoSeleccionado.precio_venta || 0) : 0;
-  const margenDolares = Math.max(0, Math.round((precioVentaNum - costoTotal) * 10000) / 10000);
-  const margenPorcentaje = precioVentaNum > 0 ? (margenDolares / precioVentaNum) * 100 : 0;
+  const costoTotal = useMemo(() => calcularCostoReceta(recetaComponentes), [recetaComponentes]);
+  const margenDolares = calcularMargenDolares(productoSeleccionado?.precio_venta ?? '0', costoTotal);
+  const margenPorcentaje = calcularMargen(productoSeleccionado?.precio_venta ?? '0', costoTotal) ?? 0;
   const colorMargen = colorMargenClass(margenPorcentaje);
 
   return (
@@ -418,7 +419,7 @@ export default function EditorRecetasPage() {
             </Card>
 
             {/* 2. Tarjeta de Costeo en Tiempo Real */}
-            {hayProducto && hayComponentes ? (
+            {verCostos && hayProducto && hayComponentes ? (
               <Card
                 titulo="Simulador Financiero"
                 descripcion="Costeo teórico de producción basado en costo promedio ponderado"
@@ -434,10 +435,10 @@ export default function EditorRecetasPage() {
                       {formatoDinero(productoSeleccionado.precio_venta)}
                     </dd>
                   </div>
-                  <div className={`flex items-center justify-between rounded-lg p-3 text-sm font-bold ${colorMargen}`}>
-                    <dt>Margen Bruto Estimado</dt>
-                    <dd className="font-mono">
-                      $ {margenDolares.toFixed(2)} ({margenPorcentaje.toFixed(1)}%)
+                  <div className={`flex items-center justify-between rounded-lg p-3 text-sm font-bold ${colorMargen} ${margenPorcentaje < 0 ? 'text-danger' : ''}`}>
+                    <dt>Margen sobre precio sin IVA</dt>
+                    <dd className="font-mono text-right">
+                      $ {Number(margenDolares).toFixed(2)} ({margenPorcentaje.toFixed(1)}%)
                     </dd>
                   </div>
                 </dl>
@@ -549,9 +550,11 @@ export default function EditorRecetasPage() {
                     {dropdownAbierto && busquedaInsumo.trim().length > 0 && (
                       <ul className="absolute left-0 right-0 z-30 mt-1.5 max-h-56 overflow-y-auto rounded-xl border border-line bg-surface shadow-xl scroll-fino p-1.5 space-y-0.5">
                         {insumosFiltrados.length === 0 ? (
-                          <li className="p-3 text-xs text-fg-muted text-center">
-                            No hay insumos disponibles que coincidan o ya están en la receta.
-                          </li>
+                          tiene('INV_GESTIONAR_INSUMOS') ? (
+                            <li role="button" tabIndex={0} className="p-3 text-sm text-primary-text cursor-pointer hover:bg-primary-soft" onMouseDown={() => { setValoresInsumo({ nombre: busquedaInsumo.trim(), tipo_insumo: 'INGREDIENTE', id_unidad_base: String(unidades.find((u) => u.codigo === 'UND')?.id_unidad ?? '') }); setDrawerInsumoAbierto(true); }}>+ Crear insumo «{busquedaInsumo.trim()}»</li>
+                          ) : (
+                            <li className="p-3 text-xs text-fg-muted text-center">Pide a quien administra insumos que cree «{busquedaInsumo.trim()}»</li>
+                          )
                         ) : (
                           insumosFiltrados.map((ins) => (
                             <li
@@ -563,7 +566,7 @@ export default function EditorRecetasPage() {
                                 <span className="font-semibold text-fg">{ins.nombre}</span>
                               </div>
                               <span className="font-mono text-xs font-semibold text-primary-text bg-primary-soft px-2.5 py-0.5 rounded-md">
-                                {ins.codigo_unidad ?? 'u'} · $ {ins.costo_promedio ?? '0.0000'}
+                                {verCostos ? `${ins.codigo_unidad ?? 'u'} · $ ${ins.costo_promedio ?? '—'}` : (ins.codigo_unidad ?? 'u')}
                               </span>
                             </li>
                           ))
@@ -605,6 +608,7 @@ export default function EditorRecetasPage() {
                               <td className="px-3 py-3 text-right">
                                 {tiene('INV_GESTIONAR_RECETAS') ? (
                                   <input
+                                    id={`cantidad-receta-${c.id_insumo}`}
                                     type="number"
                                     min="0.0001"
                                     step="0.0001"
@@ -619,7 +623,7 @@ export default function EditorRecetasPage() {
                                 )}
                               </td>
                               <td className="px-4 py-3 text-right font-mono font-semibold text-fg">
-                                $ {subtotal.toFixed(4)}
+                                {verCostos ? `$ ${subtotal.toFixed(4)}` : '—'}
                               </td>
                               {tiene('INV_GESTIONAR_RECETAS') && (
                                 <td className="px-3 py-3 text-right">
@@ -643,7 +647,7 @@ export default function EditorRecetasPage() {
                             Costo Teórico Total:
                           </td>
                           <td className="px-4 py-3 text-right font-mono font-bold text-primary-text">
-                            $ {costoTotal.toFixed(4)}
+                            {verCostos ? `$ ${Number(costoTotal).toFixed(4)}` : '—'}
                           </td>
                           {tiene('INV_GESTIONAR_RECETAS') && <td />}
                         </tr>
@@ -701,6 +705,27 @@ export default function EditorRecetasPage() {
           </div>
         </div>
       )}
+      <InsumoDrawer
+        abierto={drawerInsumoAbierto}
+        insumo={null}
+        unidades={unidades}
+        valoresIniciales={valoresInsumo}
+        onCerrar={() => setDrawerInsumoAbierto(false)}
+        onGuardado={async (guardado) => {
+          setDrawerInsumoAbierto(false);
+          try {
+            const resultado = await getInsumos();
+            const lista = Array.isArray(resultado) ? resultado : (resultado?.data ?? []);
+            setInsumos(lista);
+            const id = guardado?.id_insumo ?? guardado?.data?.id_insumo;
+            const nuevo = lista.find((i) => String(i.id_insumo) === String(id)) || lista.find((i) => i.nombre === valoresInsumo.nombre);
+            if (nuevo) {
+              handleSeleccionarInsumo(nuevo, '');
+              window.setTimeout(() => document.getElementById(`cantidad-receta-${nuevo.id_insumo}`)?.focus(), 0);
+            }
+          } catch (err) { setErrorInsumos(traducirError(err)); }
+        }}
+      />
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutGrid, List, ChefHat, ShoppingBag, Pencil, Layers, Trash2, Tag, Plus, Search, X,
+  LayoutGrid, List, ChefHat, ShoppingBag, Pencil, Layers, Power, PowerOff, Tag, Plus, Search, X,
 } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -15,9 +15,11 @@ import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import { Button, Card, Select, Spinner, Table } from '../../components/ui/index.js';
 import { formatoDinero } from '../../utils/formato.js';
 import { traducirError } from '../../errors/traducirError.js';
+import { calcularMargen } from './costeo.js';
+import InsumoDrawer from './InsumoDrawer.jsx';
 import {
   getProductos, createProducto, updateProducto, deleteProducto,
-  getCategorias, getInsumos,
+  getCategorias, getInsumos, getUnidades,
 } from './inventarioApi.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -53,6 +55,22 @@ const FORM_VACIO = {
   activo: true,
 };
 
+function SelectorTipoProducto({ form, setForm }) {
+  return <fieldset className="rounded-xl border border-line bg-surface p-4 space-y-3">
+    <legend className="px-1 text-sm font-semibold text-fg">Tipo de producto</legend>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <label className={`flex items-start gap-2.5 p-3 rounded-lg border cursor-pointer ${form.es_elaborado ? 'border-primary bg-primary-soft text-primary-text font-semibold' : 'border-line bg-surface text-fg'}`}>
+        <input type="radio" name="tipo_producto" className="accent-primary mt-1" checked={form.es_elaborado} onChange={() => setForm((f) => ({ ...f, es_elaborado: true, id_insumo_reventa: '' }))} />
+        <span className="text-xs sm:text-sm">Elaborado<small className="block font-normal text-fg-muted">Tras guardar podrás definir su receta; sin receta no se puede vender</small></span>
+      </label>
+      <label className={`flex items-start gap-2.5 p-3 rounded-lg border cursor-pointer ${!form.es_elaborado ? 'border-secondary bg-secondary-soft text-secondary-text font-semibold' : 'border-line bg-surface text-fg'}`}>
+        <input type="radio" name="tipo_producto" className="accent-secondary mt-1" checked={!form.es_elaborado} onChange={() => setForm((f) => ({ ...f, es_elaborado: false }))} />
+        <span className="text-xs sm:text-sm">Reventa<small className="block font-normal text-fg-muted">Se descuenta 1 unidad del insumo por cada venta</small></span>
+      </label>
+    </div>
+  </fieldset>;
+}
+
 export default function CatalogoProductosPage() {
   const navigate = useNavigate();
   const { tiene } = useAuth();
@@ -61,6 +79,7 @@ export default function CatalogoProductosPage() {
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [insumos, setInsumos] = useState([]);
+  const [unidades, setUnidades] = useState([]);
 
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -72,22 +91,26 @@ export default function CatalogoProductosPage() {
   const [filtroTipo, setFiltroTipo] = useState('TODOS');
   const [filtroCategoria, setFiltroCategoria] = useState('TODOS');
   const [filtroReceta, setFiltroReceta] = useState('TODOS');
+  const [mostrarInactivos, setMostrarInactivos] = useState(false);
 
   const [drawerAbierto, setDrawerAbierto] = useState(false);
   const [productoEditando, setProductoEditando] = useState(null);
   const [form, setForm] = useState(FORM_VACIO);
   const [formError, setFormError] = useState(null);
   const [guardando, setGuardando] = useState(false);
+  const [drawerInsumoAbierto, setDrawerInsumoAbierto] = useState(false);
+  const [valoresInsumo, setValoresInsumo] = useState({});
 
   // ── Carga de datos ──────────────────────────────────────────────────────────
   const cargarDatos = useCallback(async () => {
     setCargando(true);
     setError(null);
     try {
-      const [resProductos, resCategorias, resInsumos] = await Promise.allSettled([
+      const [resProductos, resCategorias, resInsumos, resUnidades] = await Promise.allSettled([
         getProductos(),
         getCategorias(),
         getInsumos(),
+        getUnidades(),
       ]);
 
       const lista = (resultado) => resultado.status === 'fulfilled'
@@ -97,6 +120,7 @@ export default function CatalogoProductosPage() {
       setProductos(listaProd);
       setCategorias(lista(resCategorias));
       setInsumos(lista(resInsumos));
+      setUnidades(lista(resUnidades));
       setError(resProductos.status === 'rejected' ? traducirError(resProductos.reason) : null);
       setErrorCategorias(resCategorias.status === 'rejected' ? traducirError(resCategorias.reason) : null);
       setErrorInsumos(resInsumos.status === 'rejected' ? traducirError(resInsumos.reason) : null);
@@ -134,9 +158,9 @@ export default function CatalogoProductosPage() {
 
       const coincideReceta = filtroReceta === 'TODOS' || (filtroReceta === 'SIN_RECETA' ? p.es_elaborado && Number(p.n_ingredientes) === 0 : p.es_elaborado && Number(p.n_ingredientes) > 0);
 
-      return coincideBusqueda && coincideTipo && coincideCategoria && coincideReceta;
+      return coincideBusqueda && coincideTipo && coincideCategoria && coincideReceta && (mostrarInactivos || p.activo !== false);
     });
-  }, [productos, busqueda, filtroTipo, filtroCategoria, filtroReceta]);
+  }, [productos, busqueda, filtroTipo, filtroCategoria, filtroReceta, mostrarInactivos]);
   const pendientesReceta = productos.filter((p) => p.es_elaborado && Number(p.n_ingredientes) === 0);
 
   // ── Drawer Crear / Editar ───────────────────────────────────────────────────
@@ -234,25 +258,29 @@ export default function CatalogoProductosPage() {
     }
   };
 
-  const handleEliminar = async (p) => {
+  const handleDesactivar = async (p) => {
     const confirmado = await confirm(
-      `¿Deseas dar de baja el producto "${p.nombre}"? Si ya cuenta con órdenes o ventas históricas, el sistema aplicará borrado lógico.`,
+      `¿Desactivar "${p.nombre}"? Dejará de aparecer en ventas y selectores. Sus órdenes y ventas históricas se conservarán.`,
       {
-        titulo: 'Eliminar producto',
+        titulo: 'Desactivar producto',
         destructivo: true,
         etiquetaCancelar: 'Cancelar',
-        etiquetaAceptar: 'Eliminar producto',
+        etiquetaAceptar: 'Desactivar producto',
       },
     );
     if (!confirmado) return;
 
     try {
-      await deleteProducto(p.id_producto);
-      notificar.exito('Producto eliminado correctamente.');
-      setProductos((prev) => prev.filter((item) => item.id_producto !== p.id_producto));
+      await updateProducto(p.id_producto, { nombre: p.nombre, id_categoria: p.id_categoria, codigo_barra: p.codigo_barra, precio_venta: String(p.precio_venta), es_elaborado: p.es_elaborado, id_insumo_reventa: p.id_insumo_reventa, activo: false });
+      notificar.exito('Producto desactivado.');
+      await cargarDatos();
     } catch (err) {
       notificar.error(traducirError(err));
     }
+  };
+  const reactivarProducto = async (p) => {
+    try { await updateProducto(p.id_producto, { nombre: p.nombre, id_categoria: p.id_categoria, codigo_barra: p.codigo_barra, precio_venta: String(p.precio_venta), es_elaborado: p.es_elaborado, id_insumo_reventa: p.id_insumo_reventa, activo: true }); notificar.exito('Producto reactivado.'); await cargarDatos(); }
+    catch (err) { notificar.error(traducirError(err)); }
   };
 
   // ── Opciones para selectores ────────────────────────────────────────────────
@@ -278,12 +306,12 @@ export default function CatalogoProductosPage() {
     { valor: 'CON_RECETA', texto: 'Con receta' },
   ];
 
-  const insumosReventa = insumos.filter(
-    (i) => String(i.tipo_insumo).toUpperCase() === 'REVENTA' || String(i.tipo_insumo).toUpperCase() === 'EMPAQUE',
-  );
+  const insumosVinculados = new Set(productos.filter((p) => p.activo !== false && p.id_producto !== productoEditando?.id_producto && p.id_insumo_reventa != null).map((p) => String(p.id_insumo_reventa)));
+  const insumosReventa = insumos.filter((i) => String(i.tipo_insumo).toUpperCase() === 'REVENTA' && (!insumosVinculados.has(String(i.id_insumo)) || String(i.id_insumo) === String(productoEditando?.id_insumo_reventa)));
+  const insumoReventaSeleccionado = insumosReventa.find((i) => String(i.id_insumo) === String(form.id_insumo_reventa));
   const opcionesInsumosReventa = [
     { valor: '', texto: 'Selecciona un insumo de reventa…' },
-    ...insumosReventa.map((i) => ({ valor: String(i.id_insumo), texto: `${i.nombre} (${i.codigo_unidad ?? 'u'})` })),
+    ...insumosReventa.map((i) => ({ valor: String(i.id_insumo), texto: i.nombre })),
   ];
   const errorNombre = formError?.campos?.nombre || (formError?.id === 'DUPLICADO' ? 'Ya existe un producto con ese nombre. Cambia el nombre o el código.' : null);
 
@@ -296,6 +324,7 @@ export default function CatalogoProductosPage() {
         <div>
           <span className="font-semibold text-fg">{p.nombre}</span>
           {p.es_elaborado && <span title={Number(p.n_ingredientes) === 0 ? 'No se puede vender hasta que tenga al menos un ingrediente' : `${p.n_ingredientes} ingredientes`} className={`ml-2 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${Number(p.n_ingredientes) === 0 ? 'bg-warning-soft text-warning' : 'bg-success-soft text-success'}`}>{Number(p.n_ingredientes) === 0 ? 'Sin receta' : `${p.n_ingredientes} ingredientes`}</span>}
+          {!p.es_elaborado && <p className="text-xs text-fg-muted">Insumo: {p.insumo_reventa ?? '—'}</p>}
           {p.codigo_barra && (
             <p className="font-mono text-xs text-fg-muted">{p.codigo_barra}</p>
           )}
@@ -315,7 +344,7 @@ export default function CatalogoProductosPage() {
     {
       clave: 'tipo',
       titulo: 'Tipo',
-      render: (p) => <BadgeTipo esElaborado={p.es_elaborado} />,
+      render: (p) => <div><BadgeTipo esElaborado={p.es_elaborado} />{!p.es_elaborado && <p className="mt-1 text-xs text-fg-muted">{p.insumo_reventa ?? '—'}</p>}</div>,
     },
     {
       clave: 'precio_venta',
@@ -327,6 +356,8 @@ export default function CatalogoProductosPage() {
         </span>
       ),
     },
+    { clave: 'costo_teorico', titulo: 'Costo', alinear: 'right', render: (p) => p.costo_teorico == null ? '—' : `$ ${p.costo_teorico}` },
+    { clave: 'margen', titulo: 'Margen sobre precio sin IVA', alinear: 'right', render: (p) => p.costo_teorico == null ? '—' : `${calcularMargen(p.precio_venta, p.costo_teorico)?.toFixed(1) ?? '—'}%` },
     {
       clave: 'estado',
       titulo: 'Estado',
@@ -367,10 +398,10 @@ export default function CatalogoProductosPage() {
             <button
               type="button"
               className="btn-ghost !p-1.5 min-h-8 text-danger"
-              title="Eliminar producto"
-              onClick={() => handleEliminar(p)}
+              title={p.activo === false ? 'Reactivar producto' : 'Desactivar producto'}
+              onClick={() => p.activo === false ? reactivarProducto(p) : handleDesactivar(p)}
             >
-              <Trash2 size={15} aria-hidden="true" />
+              {p.activo === false ? <Power size={15} aria-hidden="true" /> : <PowerOff size={15} aria-hidden="true" />}
             </button>
           )}
         </div>
@@ -465,6 +496,7 @@ export default function CatalogoProductosPage() {
       <p className="text-sm text-fg-muted" aria-live="polite">
         {productosFiltrados.length} {productosFiltrados.length === 1 ? 'producto encontrado' : 'productos encontrados'}
       </p>
+      <label className="inline-flex items-center gap-2 text-sm text-fg-muted"><input type="checkbox" checked={mostrarInactivos} onChange={(e) => setMostrarInactivos(e.target.checked)} />Mostrar inactivos</label>
 
       {/* Renderizado de Catálogo */}
       {cargando ? (
@@ -503,6 +535,7 @@ export default function CatalogoProductosPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <h3 className="font-semibold text-fg text-base leading-snug">{p.nombre}</h3>
+                      {!p.es_elaborado && <p className="text-xs text-fg-muted">Insumo: {p.insumo_reventa ?? '—'}</p>}
                       {p.es_elaborado && <span title={Number(p.n_ingredientes) === 0 ? 'No se puede vender hasta que tenga al menos un ingrediente' : `${p.n_ingredientes} ingredientes`} className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${Number(p.n_ingredientes) === 0 ? 'bg-warning-soft text-warning' : 'bg-success-soft text-success'}`}>{Number(p.n_ingredientes) === 0 ? 'Sin receta' : `${p.n_ingredientes} ingredientes`}</span>}
                       {p.codigo_barra && (
                         <p className="font-mono text-xs text-fg-muted mt-0.5">{p.codigo_barra}</p>
@@ -552,10 +585,10 @@ export default function CatalogoProductosPage() {
                       <button
                         type="button"
                         className="btn-ghost !p-1.5 min-h-8 text-danger"
-                        title="Eliminar producto"
-                        onClick={() => handleEliminar(p)}
+                        title={p.activo === false ? 'Reactivar producto' : 'Desactivar producto'}
+                        onClick={() => p.activo === false ? reactivarProducto(p) : handleDesactivar(p)}
                       >
-                        <Trash2 size={15} aria-hidden="true" />
+                        {p.activo === false ? <Power size={15} aria-hidden="true" /> : <PowerOff size={15} aria-hidden="true" />}
                       </button>
                     )}
                   </div>
@@ -613,6 +646,7 @@ export default function CatalogoProductosPage() {
                 className="flex flex-col gap-4 flex-1 overflow-y-auto px-6 py-5 scroll-fino"
               >
                 {formError && <BannerError error={formError} onCerrar={() => setFormError(null)} />}
+                <SelectorTipoProducto form={form} setForm={setForm} />
                 <div>
                   <label htmlFor="producto-nombre" className="mb-1 block text-sm font-medium text-fg">
                     Nombre del Producto <span className="text-danger ml-0.5 font-semibold">*</span>
@@ -679,61 +713,11 @@ export default function CatalogoProductosPage() {
                   </p>
                 </div>
 
-                {/* Selección de Tipo: Elaborado vs Reventa */}
-                <div className="rounded-xl border border-line bg-surface p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="block text-sm font-semibold text-fg">Tipo de Producto</span>
-                    <span className="text-xs text-fg-muted">Manejo de inventario</span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <label
-                      className={`flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors ${form.es_elaborado ? 'border-primary bg-primary-soft text-primary-text font-semibold' : 'border-line bg-surface text-fg'}`}
-                    >
-                      <input
-                        type="radio"
-                        name="tipo_producto"
-                        className="accent-primary"
-                        checked={form.es_elaborado === true}
-                        onChange={() => setForm((f) => ({ ...f, es_elaborado: true, id_insumo_reventa: '' }))}
-                      />
-                      <ChefHat size={16} aria-hidden="true" />
-                      <span className="text-xs sm:text-sm">Elaborado con receta</span>
-                    </label>
-
-                    <label
-                      className={`flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors ${!form.es_elaborado ? 'border-secondary bg-secondary-soft text-secondary-text font-semibold' : 'border-line bg-surface text-fg'}`}
-                    >
-                      <input
-                        type="radio"
-                        name="tipo_producto"
-                        className="accent-secondary"
-                        checked={form.es_elaborado === false}
-                        onChange={() => setForm((f) => ({ ...f, es_elaborado: false }))}
-                      />
-                      <ShoppingBag size={16} aria-hidden="true" />
-                      <span className="text-xs sm:text-sm">Reventa / Empacado</span>
-                    </label>
-                  </div>
-
-                  {/* Si es reventa: asociar insumo */}
-                  {!form.es_elaborado && (
-                    <div className="pt-2">
-                      <Select
-                        etiqueta="Insumo asociado para descuento 1:1 en POS"
-                        requerido
-                        opciones={opcionesInsumosReventa}
-                        value={String(form.id_insumo_reventa)}
-                        onChange={(e) => setForm((f) => ({ ...f, id_insumo_reventa: e.target.value }))}
-                        placeholder="Seleccionar insumo de reventa…"
-                        buscable
-                      />
-                      <p className="mt-1 text-xs text-fg-muted">
-                        Al vender este producto en POS, se descontará automáticamente 1 unidad del insumo seleccionado.
-                      </p>
-                    </div>
-                  )}
-                </div>
-
+                {!form.es_elaborado && <div className="rounded-xl border border-line bg-surface p-4 space-y-2">
+                  <Select etiqueta="Insumo de reventa" requerido opciones={opcionesInsumosReventa} value={String(form.id_insumo_reventa)} onChange={(e) => setForm((f) => ({ ...f, id_insumo_reventa: e.target.value }))} placeholder="Selecciona un insumo de reventa…" buscable />
+                  {tiene('INV_GESTIONAR_INSUMOS') && <Button type="button" variante="ghost" icono={Plus} onClick={() => { setValoresInsumo({ tipo_insumo: 'REVENTA', id_unidad_base: String(unidades.find((u) => u.codigo === 'UND')?.id_unidad ?? '') }); setDrawerInsumoAbierto(true); }}>+ Crear insumo de reventa</Button>}
+                  {insumoReventaSeleccionado && <p className="text-xs text-fg-muted">Unidad: {insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad ?? 'UND'}{String(insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad ?? 'UND').toUpperCase() !== 'UND' && <span className="ml-1 text-warning">Cada venta descontará 1 {insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad}</span>}</p>}
+                </div>}
                 <div className="flex items-center gap-3 pt-1">
                   <input
                     id="producto-activo"
@@ -767,6 +751,24 @@ export default function CatalogoProductosPage() {
           </>,
           document.body
         )}
+      <InsumoDrawer
+        abierto={drawerInsumoAbierto}
+        insumo={null}
+        unidades={unidades}
+        valoresIniciales={valoresInsumo}
+        onCerrar={() => setDrawerInsumoAbierto(false)}
+        onGuardado={async (guardado) => {
+          setDrawerInsumoAbierto(false);
+          try {
+            const resultado = await getInsumos();
+            const lista = Array.isArray(resultado) ? resultado : (resultado?.data ?? []);
+            setInsumos(lista);
+            const id = guardado?.id_insumo ?? guardado?.data?.id_insumo;
+            if (id) setForm((actual) => ({ ...actual, id_insumo_reventa: String(id) }));
+          } catch (err) { setErrorInsumos(traducirError(err)); }
+        }}
+      />
     </div>
   );
 }
+
