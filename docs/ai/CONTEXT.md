@@ -18,6 +18,7 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (li
 - Bitácora analítica: captura IP/User-Agent en `AsyncLocalStorage` y los propaga a variables PostgreSQL mediante `withTransaction`.
 - QA / Pruebas: suite automatizada en Node.js nativo (`node:test`, 132 pruebas activas) cubriendo contratos de API, FSM, anti-float y lógica frontend.
 - UI / Dashboard: diseño unificado con tarjetas redondeadas, paleta de marca (Terracota, Ocre, Espresso) y tipografía Montserrat del sistema (sin fuentes externas).
+- UX inventario fase 4: Catálogo y Recetas usan lenguaje de receta/costo promedio, formulario de insumos consistente y pestañas/buscador accesibles; sin cambios de lógica ni permisos.
 
 ## Estado por módulo
 | Módulo | BD | Backend | Frontend |

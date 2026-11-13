@@ -278,7 +278,7 @@ export default function EditorRecetasPage() {
       setRecetaOriginal(JSON.parse(JSON.stringify(recetaComponentes)));
       setProductos((actuales) => actuales.map((p) => String(p.id_producto) === String(idProductoSeleccionado) ? { ...p, n_ingredientes: recetaComponentes.length } : p));
       notificar.exito('Receta guardada exitosamente.', {
-        mensaje: 'La explosión de insumos en POS y el simulador de costos se han actualizado.',
+        mensaje: 'La receta en POS y el simulador de costos se han actualizado.',
       });
       const siguiente = productos.find((p) => String(p.id_producto) !== String(idProductoSeleccionado) && Number(p.n_ingredientes) === 0);
       if (siguiente) {
@@ -361,8 +361,8 @@ export default function EditorRecetasPage() {
     <div className="space-y-6">
       <EncabezadoPagina
         seccion="Inventario & Catálogo"
-        titulo="Editor de Recetas (BOM)"
-        descripcion="Configura los componentes de producción (Bill of Materials) para costeo exacto y descuento automático en POS."
+        titulo="Editor de recetas"
+        descripcion="Configura los componentes de producción para costeo exacto y descuento automático en POS."
         acciones={
           <Button
             variante="ghost"
@@ -422,7 +422,7 @@ export default function EditorRecetasPage() {
             {verCostos && hayProducto && hayComponentes ? (
               <Card
                 titulo="Simulador Financiero"
-                descripcion="Costeo teórico de producción basado en costo promedio ponderado"
+                descripcion="Costeo teórico de producción basado en costo promedio"
               >
                 <dl className="space-y-3">
                   <div className="flex items-center justify-between text-sm py-1 border-b border-line/60">
@@ -501,7 +501,7 @@ export default function EditorRecetasPage() {
                 <h2 className="text-lg font-semibold text-fg">
                   {productoSeleccionado?.nombre ?? 'Selecciona un producto'}
                 </h2>
-                <p className="text-xs text-fg-muted">Constructor interactivo de Bill of Materials</p>
+                <p className="text-xs text-fg-muted">Constructor interactivo de receta</p>
               </div>
               {hayProducto && (
                 <span className="rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-primary-text">
@@ -674,7 +674,7 @@ export default function EditorRecetasPage() {
                         onClick={handleGuardar}
                         icono={Check}
                       >
-                        Guardar Receta
+                        Guardar receta
                       </Button>
                       <Button
                         variante="ghost"
@@ -699,7 +699,7 @@ export default function EditorRecetasPage() {
                 icono={ChefHat}
                 titulo="Ningún producto seleccionado"
               >
-                Selecciona un producto elaborado en el panel izquierdo para ver, simular o modificar su receta (BOM).
+                Selecciona un producto elaborado en el panel izquierdo para ver, simular o modificar su receta.
               </EstadoVacio>
             )}
           </div>

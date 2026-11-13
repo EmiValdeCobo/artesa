@@ -27,7 +27,7 @@ const BadgeTipo = ({ esElaborado }) =>
   esElaborado ? (
     <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-primary-soft text-primary-text">
       <ChefHat size={12} aria-hidden="true" />
-      Elaborado (BOM)
+      Elaborado (Receta)
     </span>
   ) : (
     <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-secondary-soft text-secondary-text">
@@ -297,7 +297,7 @@ export default function CatalogoProductosPage() {
 
   const opcionesTipo = [
     { valor: 'TODOS', texto: 'Todos los tipos' },
-    { valor: 'ELABORADO', texto: 'Elaborados con Receta (BOM)' },
+    { valor: 'ELABORADO', texto: 'Elaborados con receta' },
     { valor: 'REVENTA', texto: 'Reventa / Empacados' },
   ];
   const opcionesReceta = [
@@ -414,11 +414,11 @@ export default function CatalogoProductosPage() {
       <EncabezadoPagina
         seccion="Inventario & Catálogo"
         titulo="Catálogo de Productos"
-        descripcion="Administración de productos elaborados (con receta BOM) y artículos de reventa empaquetados"
+        descripcion="Administración de productos elaborados con receta y artículos de reventa empaquetados"
         acciones={
           tiene('INV_GESTIONAR_PRODUCTOS') && (
             <Button variante="primary" icono={Plus} onClick={abrirCrear}>
-              Nuevo Producto
+              Nuevo producto
             </Button>
           )
         }

@@ -209,12 +209,12 @@ test('inventario UI: CatalogoInsumosPage, CatalogoProductosPage y EditorRecetasP
   assert.doesNotMatch(insumosPage, /codigo_sku|stock_minimo/);
   assert.match(insumosPage, /factor_conversion/);
 
-  // 4. CatalogoProductosPage: alternancia de vistas, precio con formato sin pérdida, filtro y botón receta BOM
+  // 4. CatalogoProductosPage: alternancia de vistas, precio con formato sin pérdida, filtro y botón de receta
   assert.match(productosPage, /vista === 'tabla'/);
   assert.match(productosPage, /vista === 'cuadricula'/);
   assert.match(productosPage, /formatoDinero\(p\.precio_venta\)/);
   assert.match(productosPage, /\/inventario\/recetas\?producto=/);
-  assert.match(productosPage, /Elaborado \(BOM\)/);
+  assert.match(productosPage, /Elaborado \(Receta\)/);
   assert.match(productosPage, /Reventa/);
 
   // 5. EditorRecetasPage: dos paneles, simulador financiero, simulador de disponibilidad con cuello de botella

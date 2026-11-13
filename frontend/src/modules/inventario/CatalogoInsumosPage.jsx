@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Package, Ruler, Pencil, Power, PowerOff, X, Plus, Boxes } from 'lucide-react';
+import { Package, Ruler, Pencil, Power, PowerOff, X, Plus, Boxes, Search } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
@@ -31,7 +31,7 @@ const avisoLocal = (mensaje, titulo = 'Revisa la información') => ({
 
 const PESTANAS_DEF = [
   { clave: 'insumos', texto: 'Insumos', icono: Package },
-  { clave: 'unidades', texto: 'Unidades de Medida', icono: Ruler },
+  { clave: 'unidades', texto: 'Unidades de medida', icono: Ruler },
 ];
 
 const FILTRO_TIPO_OPTS = [
@@ -161,7 +161,7 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
             <input
               className="input"
               id="unidad-codigo"
-              placeholder="Ej. kg, ml, g, oz, unidad"
+              placeholder="Ej. KG, ML, G, OZ, UNIDAD"
               value={form.codigo}
               onChange={set('codigo')}
               maxLength={10}
@@ -228,7 +228,7 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
 }
 
 // ─── PESTAÑA 1: Insumos ───────────────────────────────────────────────────────
-function PestanaInsumos({ unidades }) {
+function PestanaInsumos({ unidades, onTotal }) {
   const { tiene, usuario } = useAuth();
   const { confirm, notificar } = useAlert();
   const puedeGestionar = tiene('INV_GESTIONAR_INSUMOS');
@@ -263,6 +263,8 @@ function PestanaInsumos({ unidades }) {
   useEffect(() => {
     cargar();
   }, [cargar]);
+
+  useEffect(() => onTotal?.(insumos.length), [insumos.length, onTotal]);
 
   const insumosFiltrados = useMemo(() => {
     return insumos.filter((ins) => {
@@ -391,7 +393,7 @@ function PestanaInsumos({ unidades }) {
         acciones={
           puedeGestionar && (
             <Button variante="primary" icono={Plus} onClick={abrirCrear}>
-              Nuevo Insumo
+              Nuevo insumo
             </Button>
           )
         }
@@ -408,15 +410,16 @@ function PestanaInsumos({ unidades }) {
       )}
 
       {/* Controles y barra superior */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <input
-          type="search"
-          placeholder="Buscar por nombre…"
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          className="input flex-1"
-          aria-label="Buscar insumo por nombre"
-        />
+      <div className="flex flex-col gap-2">
+        <div className="flex items-end gap-3">
+          <div className="relative flex-1">
+            <label htmlFor="buscar-insumo" className="mb-1 block text-sm font-medium text-fg">Buscar insumo</label>
+            <Search size={16} className="pointer-events-none absolute left-3 top-[2.35rem] -translate-y-1/2 text-fg-muted" aria-hidden="true" />
+            <input id="buscar-insumo" type="search" placeholder="Buscar por nombre…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="input pl-9" aria-label="Buscar insumo por nombre" />
+          </div>
+          <span className="mb-2 text-sm text-fg-muted" aria-live="polite">{insumosFiltrados.length} encontrados</span>
+          {busqueda && <Button variante="ghost" onClick={() => setBusqueda('')}>Limpiar</Button>}
+        </div>
         <div className="sm:w-48">
           <Select
             opciones={FILTRO_TIPO_OPTS}
@@ -454,7 +457,7 @@ function PestanaInsumos({ unidades }) {
 }
 
 // ─── PESTAÑA 2: Unidades de Medida ───────────────────────────────────────────
-function PestanaUnidades() {
+function PestanaUnidades({ onTotal }) {
   const { tiene } = useAuth();
   const { confirm, notificar } = useAlert();
   const puedeGestionar = tiene('INV_GESTIONAR_INSUMOS');
@@ -484,6 +487,8 @@ function PestanaUnidades() {
   useEffect(() => {
     cargar();
   }, [cargar]);
+
+  useEffect(() => onTotal?.(unidades.length), [unidades.length, onTotal]);
 
   const abrirCrear = () => {
     setUnidadActual(null);
@@ -630,6 +635,7 @@ function PestanaUnidades() {
 // ─── PÁGINA PRINCIPAL ─────────────────────────────────────────────────────────
 export default function CatalogoInsumosPage() {
   const [pestanaActiva, setPestanaActiva] = useState('insumos');
+  const [totales, setTotales] = useState({ insumos: 0, unidades: 0 });
 
   const [unidades, setUnidades] = useState([]);
   const [errorUnidades, setErrorUnidades] = useState(null);
@@ -650,7 +656,7 @@ export default function CatalogoInsumosPage() {
   return (
     <div className="space-y-6">
       <Pestanas
-        pestanas={PESTANAS_DEF}
+        pestanas={PESTANAS_DEF.map((pestana) => ({ ...pestana, total: totales[pestana.clave] }))}
         activa={pestanaActiva}
         onCambiar={setPestanaActiva}
         etiqueta="Secciones de catálogo"
@@ -658,8 +664,8 @@ export default function CatalogoInsumosPage() {
 
       {pestanaActiva === 'unidades' && errorUnidades && <BannerError error={errorUnidades} onReintentar={cargarUnidades} onCerrar={() => setErrorUnidades(null)} />}
 
-      {pestanaActiva === 'insumos' && <PestanaInsumos unidades={unidades} />}
-      {pestanaActiva === 'unidades' && <PestanaUnidades />}
+      {pestanaActiva === 'insumos' && <section id="panel-insumos" role="tabpanel" aria-labelledby="tab-insumos"><PestanaInsumos unidades={unidades} onTotal={(total) => setTotales((actual) => ({ ...actual, insumos: total }))} /></section>}
+      {pestanaActiva === 'unidades' && <section id="panel-unidades" role="tabpanel" aria-labelledby="tab-unidades"><PestanaUnidades onTotal={(total) => setTotales((actual) => ({ ...actual, unidades: total }))} /></section>}
     </div>
   );
 }

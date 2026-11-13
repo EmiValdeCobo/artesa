@@ -117,17 +117,17 @@ export default function InsumoDrawer({ abierto, insumo, unidades, valoresInicial
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={esEdicion ? 'Editar Insumo' : 'Nuevo Insumo'}
+        aria-label={esEdicion ? 'Editar insumo' : 'Nuevo insumo'}
         className="fixed right-0 top-0 bottom-0 h-dvh w-full max-w-md bg-[#FAF8F5] dark:bg-[#2A1A14] shadow-2xl z-[70] flex flex-col border-l border-line"
       >
         {/* Cabecera fija */}
         <div className="px-6 py-4 border-b border-line bg-[#FAF8F5] dark:bg-[#2A1A14] flex items-center justify-between shrink-0">
           <div>
             <h2 className="text-lg font-semibold text-fg">
-              {esEdicion ? 'Editar Insumo' : 'Nuevo Insumo'}
+              {esEdicion ? 'Editar insumo' : 'Nuevo insumo'}
             </h2>
             <p className="text-xs text-fg-muted mt-0.5">
-              {esEdicion ? 'Actualiza los datos del insumo y stock mínimo' : 'Registra un nuevo ingrediente o material de empaque'}
+              {esEdicion ? 'Actualiza los datos del insumo y stock mínimo' : 'Registra un ingrediente, empaque o artículo de reventa'}
             </p>
           </div>
           <button
@@ -146,7 +146,7 @@ export default function InsumoDrawer({ abierto, insumo, unidades, valoresInicial
 
           <div>
             <label htmlFor="insumo-nombre" className="mb-1 block text-sm font-medium text-fg">
-              Nombre del Insumo <span className="text-danger ml-0.5 font-semibold">*</span>
+              Nombre <span className="text-danger ml-0.5 font-semibold">*</span>
             </label>
             <input
               className="input"
@@ -161,16 +161,16 @@ export default function InsumoDrawer({ abierto, insumo, unidades, valoresInicial
           </div>
 
           <Select
-            etiqueta="Tipo de insumo"
+            etiqueta="Tipo"
             requerido
             opciones={opcionesTipo}
-            placeholder="Selecciona un tipo…"
+            placeholder="Ingrediente, empaque o reventa…"
             value={form.tipo_insumo}
             onChange={(e) => set('tipo_insumo')(e.target.value)}
           />
 
           <Select
-            etiqueta="Unidad de medida base"
+            etiqueta="Unidad"
             requerido
             opciones={opcionesUnidades}
             placeholder="Selecciona una unidad…"
@@ -182,7 +182,7 @@ export default function InsumoDrawer({ abierto, insumo, unidades, valoresInicial
           {!esEdicion ? (
             <div>
               <label htmlFor="insumo-costo" className="mb-1 block text-sm font-medium text-fg">
-                Costo inicial / referencia
+                Costo
               </label>
               <input
                 className="input"
@@ -199,7 +199,7 @@ export default function InsumoDrawer({ abierto, insumo, unidades, valoresInicial
           ) : (
             <div className="rounded-xl border border-line bg-surface p-4 space-y-1">
               <span className="text-xs font-semibold uppercase tracking-wider text-fg-muted">
-                Costo promedio ponderado actual
+                <span title="Promedio del costo de las compras registradas, ponderado por la cantidad comprada.">Costo promedio</span>
               </span>
               <p className="text-sm font-mono font-bold text-fg">
                 {insumo.costo_promedio == null ? <span title="Sin permiso para ver costos">—</span> : `$ ${insumo.costo_promedio}`}
@@ -210,7 +210,7 @@ export default function InsumoDrawer({ abierto, insumo, unidades, valoresInicial
             </div>
           )}
 
-          <div className="flex items-center gap-3 pt-2">
+          {esEdicion && <div className="flex items-center gap-3 pt-2">
             <input
               id="insumo-activo"
               type="checkbox"
@@ -221,13 +221,13 @@ export default function InsumoDrawer({ abierto, insumo, unidades, valoresInicial
             <label htmlFor="insumo-activo" className="text-sm text-fg select-none">
               Insumo habilitado para operaciones
             </label>
-          </div>
+          </div>}
         </form>
 
         {/* Pie de acciones fijo */}
         <div className="sticky bottom-0 border-t border-line bg-[#FAF8F5] dark:bg-[#2A1A14] px-6 py-4 flex items-center justify-end gap-3 shrink-0">
           <Button variante="ghost" onClick={onCerrar} disabled={cargando}>
-            Cancelar
+            Descartar cambios
           </Button>
           <Button
             variante="primary"
@@ -236,7 +236,7 @@ export default function InsumoDrawer({ abierto, insumo, unidades, valoresInicial
             cargando={cargando}
             disabled={cargando}
           >
-            {esEdicion ? 'Guardar cambios' : 'Crear insumo'}
+            {esEdicion ? 'Guardar cambios' : 'Guardar insumo'}
           </Button>
         </div>
       </div>
