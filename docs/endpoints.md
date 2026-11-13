@@ -49,6 +49,8 @@ Todas las respuestas de error usan `{ "error": "texto" }`, con `detalles` adicio
 | PUT/DELETE/PATCH | `/api/rrhh/puestos/:id` | Cookie JWT + tipo admin | `RRHH_GESTIONAR_EMPLEADOS` | PUT `{nombre,salarioBase}`; PATCH `/activar` | 200/204; 400; 401; 403; 404; 409 |
 | GET/POST | `/api/rrhh/empleados` | Cookie JWT + tipo admin | `RRHH_GESTIONAR_EMPLEADOS` | `{idSucursal,idPuesto,nombres,apellidos,dui,nit?,fechaIngreso,salarioNominal}`; `nit` puede ser `null` si está homologado con DUI | 200/201; 400; 401; 403; 409 |
 | PUT/DELETE/PATCH | `/api/rrhh/empleados/:id` | Cookie JWT + tipo admin | `RRHH_GESTIONAR_EMPLEADOS` | PUT datos del empleado; PATCH `/activar` | 200/204; 400; 401; 403; 404; 409 |
+| GET/POST | `/api/compras/proveedores` | Cookie JWT + tipo admin | `COM_GESTIONAR_PROVEEDORES` | GET `?activo=true\|false`; POST `{razonSocial,nrc,nit,contacto?,telefono?,diasCredito}` | 200/201; 400; 401; 403 |
+| PUT/DELETE | `/api/compras/proveedores/:id` | Cookie JWT + tipo admin | `COM_GESTIONAR_PROVEEDORES` | PUT mismo body del POST; DELETE desactiva (`activo=false`) | 200/204; 400; 401; 403; 404; 409 |
 | GET/POST | `/api/inventario/insumos` | Cookie JWT + tipo admin | `INV_VER_STOCK`, `INV_GESTIONAR_INSUMOS` o `INV_VER_COSTOS` para GET; `INV_GESTIONAR_INSUMOS` para POST | `{nombre,tipoInsumo,idUnidadBase,costoPromedio,activo?}` | 200/201; 400; 401; 403; 409 |
 | PUT/DELETE | `/api/inventario/insumos/:id` | Cookie JWT + tipo admin | `INV_GESTIONAR_INSUMOS` | PUT mismo cuerpo de POST | 200/204; 400; 401; 403; 404; 409 |
 | GET/POST | `/api/inventario/productos` | Cookie JWT + tipo admin | GET `INV_VER_STOCK` o `INV_GESTIONAR_PRODUCTOS`; POST `INV_GESTIONAR_PRODUCTOS` | `{idCategoria?,nombre,codigoBarra?,precioVenta,esElaborado,idInsumoReventa?,activo?}` | 200/201; 400; 401; 403; 409 |
@@ -65,6 +67,23 @@ Un token de cliente nunca alcanza el middleware de permisos de administración: 
 Caja: un solo turno `ABIERTO` por caja y por cajero (409; lo garantizan los índices únicos de la BD). Solo el cajero dueño del turno registra movimientos y solo en turnos abiertos; un `EGRESO` mayor al efectivo esperado devuelve 409. Los montos viajan como número o texto con máximo 2 decimales y se devuelven como string.
 
 Inventario: cada escritura se ejecuta con `withTransaction` y `app.user_id`; cambios de existencias y mermas llaman las funciones SQL existentes para serializar el stock y dejar kardex. Las consultas operativas filtran sucursales asignadas. El costo promedio requiere `INV_VER_COSTOS`; `costo_unitario` del Kárdex requiere conjuntamente `INV_VER_KARDEX` y `INV_VER_COSTOS`. `/api/inventario/movimientos` devuelve hasta 500 movimientos recientes después de aplicar el aislamiento por sucursal. El esquema inicial ya incluye 12 productos elaborados, 3 de reventa y sus recetas.
+
+Proveedores: los bodies y filtros inválidos responden 400; la edición y desactivación de IDs inexistentes responden 404, y desactivar uno ya inactivo responde 409. El listado excluye `deleted_at` y devuelve activos e inactivos salvo filtro `activo`; no se impone unicidad a NRC/NIT porque la BD no la define. No hay endpoint de reactivación en T30; desactivar conserva filas y referencias de facturas. Las altas, ediciones y desactivaciones dejan bitácora cuando se aplica `008_compras_bitacora_proveedores.sql`. El frontend de proveedores sigue siendo provisional.
+
+El body de alta y edición usa `razonSocial` (1–150 caracteres), `nrc` y `nit` (1–20), `contacto` (opcional, hasta 100), `telefono` (opcional, hasta 20) y `diasCredito` (entero >= 0). Ejemplo:
+
+```json
+{
+  "razonSocial": "Distribuidora La Central",
+  "nrc": "123456-7",
+  "nit": "0614-123456-123-1",
+  "contacto": "Ana López",
+  "telefono": "2222-3333",
+  "diasCredito": 30
+}
+```
+
+GET devuelve un arreglo de objetos con `id_proveedor`, `razon_social`, `nrc`, `nit`, `contacto`, `telefono`, `dias_credito`, `activo` y `modificado_en`; POST devuelve ese mismo objeto con HTTP 201 y PUT con HTTP 200. DELETE responde 204 sin cuerpo y solo cambia `activo`. No hay endpoint de reactivación. Errores: 400 para body, query o ID inválidos; 401 sin sesión; 403 sin tipo admin o permiso; 404 para proveedor inexistente o eliminado; 409 al desactivar uno ya inactivo. NRC/NIT duplicados se aceptan mientras el esquema no establezca restricciones.
 
 Cierre de turno: solo el cajero dueño, una vez (409 si ya está cerrado). Llama a `pos.fn_cerrar_turno`; las diferencias son `contado - esperado` (negativo = FALTANTE). Reportes: sin fechas usan los últimos 30 días; rango máximo 366 días; cada usuario ve solo sus sucursales (el rol ADMIN ve todas). Preparación: el estado solo avanza ABIERTA → EN_PREPARACION → LISTA → ENTREGADA.
 

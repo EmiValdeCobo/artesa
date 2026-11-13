@@ -26,7 +26,7 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (li
 | inventario | listo | CRUD unidades-medida/insumos/productos, stock, mermas, alertas y Kárdex con permiso propio | Existencias, kárdex, catálogo de insumos (tabs + semáforo), catálogo de productos (tabla/grid) y editor de recetas BOM |
 | pos | listo | cola de preparación (/api/preparacion), órdenes (T02) y ventas/facturación (T17: FCF/CCF, pagos mixtos) | catálogo y carrito local; cobro/facturación pendiente (frontend T19/T46) |
 | caja | listo | turnos, movimientos, cierre y cuadre (T05/T06/T22) | pendiente |
-| compras | listo | pendiente | pendiente |
+| compras | listo | CRUD proveedores con permiso, transacciones y bitácora (migración 008 pendiente de aplicación) | CRUD proveedores pendiente de integración; demás pantallas usan PendienteApiPage |
 | rrhh | listo | CRUD de puestos y empleados, validaciones, permisos y datos de prueba | pendiente |
 | reportes | vistas listas | ventas diarias, top productos, alertas y margen (T23) | pendiente |
 | compras | listo | pendiente | pantallas pendientes (usan PendienteApiPage) |
@@ -34,7 +34,7 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (li
 | reportes | vistas listas + consultas de método de pago, cuadre y CxP | ventas diarias, top productos, métodos de pago, alertas, margen, cuadre y CxP; alcance por `id_sucursal` | panel con tendencias, comparativos, tablas paginadas y exportación CSV/PDF |
 | empresa | listo | CRUD sucursales y edición parámetros | sucursales y parámetros |
 
-Pantallas de gestión pendientes por falta de endpoints backend: empleados/puestos, proveedores, administración de CxP, compras tipo gasto y planillas. El reporte de CxP de solo lectura ya está disponible dentro de Reportes.
+Pantallas de gestión pendientes por falta de endpoints backend: empleados/puestos, administración de CxP, compras tipo gasto y planillas. Proveedores ya tiene API; falta frontend funcional. El reporte de CxP de solo lectura ya está disponible dentro de Reportes.
 
 ## Pendientes críticos
 - Verificar tablas de renta/ISSS/AFP vigentes con Hacienda (están en `rrhh.tramos_renta` y `empresa.parametros`).
