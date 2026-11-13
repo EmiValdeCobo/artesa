@@ -4,7 +4,6 @@ import { requirePermiso } from '../../../middlewares/permisos.js';
 import { validate } from '../../../middlewares/validate.js';
 import { asyncHandler } from '../../../utils/asyncHandler.js';
 import * as controller from './ventas.controller.js';
-import { registrarVentaSchema } from './ventas.schemas.js';
 import { registrarVentaSchema, anularVentaSchema } from './ventas.schemas.js';
 
 
