@@ -51,6 +51,7 @@ Todas las respuestas de error usan `{ "error": "texto" }`, con `detalles` adicio
 | PUT/DELETE/PATCH | `/api/rrhh/empleados/:id` | Cookie JWT + tipo admin | `RRHH_GESTIONAR_EMPLEADOS` | PUT datos del empleado; PATCH `/activar` | 200/204; 400; 401; 403; 404; 409 |
 | GET/POST | `/api/compras/proveedores` | Cookie JWT + tipo admin | `COM_GESTIONAR_PROVEEDORES` | GET `?activo=true\|false`; POST `{razonSocial,nrc,nit,contacto?,telefono?,diasCredito}` | 200/201; 400; 401; 403 |
 | PUT/DELETE | `/api/compras/proveedores/:id` | Cookie JWT + tipo admin | `COM_GESTIONAR_PROVEEDORES` | PUT mismo body del POST; DELETE desactiva (`activo=false`) | 200/204; 400; 401; 403; 404; 409 |
+| POST | `/api/compras` | Cookie JWT + tipo admin | `COM_REGISTRAR_COMPRA` | `{idProveedor,idSucursal,numeroFactura,fechaEmision,condicionPago,tipoCosto?,items:[{idInsumo,cantidad,costoUnitario}]}`; solo COSTO | 201; 400; 401; 403; 404; 409 |
 | GET/POST | `/api/inventario/insumos` | Cookie JWT + tipo admin | `INV_VER_STOCK`, `INV_GESTIONAR_INSUMOS` o `INV_VER_COSTOS` para GET; `INV_GESTIONAR_INSUMOS` para POST | `{nombre,tipoInsumo,idUnidadBase,costoPromedio,activo?}` | 200/201; 400; 401; 403; 409 |
 | PUT/DELETE | `/api/inventario/insumos/:id` | Cookie JWT + tipo admin | `INV_GESTIONAR_INSUMOS` | PUT mismo cuerpo de POST | 200/204; 400; 401; 403; 404; 409 |
 | GET/POST | `/api/inventario/productos` | Cookie JWT + tipo admin | GET `INV_VER_STOCK` o `INV_GESTIONAR_PRODUCTOS`; POST `INV_GESTIONAR_PRODUCTOS` | `{idCategoria?,nombre,codigoBarra?,precioVenta,esElaborado,idInsumoReventa?,activo?}` | 200/201; 400; 401; 403; 409 |
@@ -69,6 +70,24 @@ Caja: un solo turno `ABIERTO` por caja y por cajero (409; lo garantizan los índ
 Inventario: cada escritura se ejecuta con `withTransaction` y `app.user_id`; cambios de existencias y mermas llaman las funciones SQL existentes para serializar el stock y dejar kardex. Las consultas operativas filtran sucursales asignadas. El costo promedio requiere `INV_VER_COSTOS`; `costo_unitario` del Kárdex requiere conjuntamente `INV_VER_KARDEX` y `INV_VER_COSTOS`. `/api/inventario/movimientos` devuelve hasta 500 movimientos recientes después de aplicar el aislamiento por sucursal. El esquema inicial ya incluye 12 productos elaborados, 3 de reventa y sus recetas.
 
 Proveedores: los bodies y filtros inválidos responden 400; la edición y desactivación de IDs inexistentes responden 404, y desactivar uno ya inactivo responde 409. El listado excluye `deleted_at` y devuelve activos e inactivos salvo filtro `activo`; no se impone unicidad a NRC/NIT porque la BD no la define. No hay endpoint de reactivación en T30; desactivar conserva filas y referencias de facturas. Las altas, ediciones y desactivaciones dejan bitácora cuando se aplica `008_compras_bitacora_proveedores.sql`. El frontend de proveedores sigue siendo provisional.
+
+Registro de factura de compra (T31): `POST /api/compras` exige permiso `COM_REGISTRAR_COMPRA` y acepta únicamente COSTO. `idProveedor` e `idSucursal` son enteros positivos; `numeroFactura` admite hasta 50 caracteres; `fechaEmision` debe ser una fecha calendario `AAAA-MM-DD`; `condicionPago` es `CONTADO` o `CREDITO`; `tipoCosto` se puede omitir (se asume `COSTO`) o enviar como `COSTO`. `items` no puede estar vacío y cada renglón lleva `idInsumo` entero positivo, `cantidad` string decimal positiva (hasta 8 enteros y 4 decimales) y `costoUnitario` string decimal no negativo (hasta 6 enteros y 6 decimales). Ejemplo:
+
+```json
+{
+  "idProveedor": 1,
+  "idSucursal": 1,
+  "numeroFactura": "FAC-001-2026",
+  "fechaEmision": "2026-11-12",
+  "condicionPago": "CREDITO",
+  "tipoCosto": "COSTO",
+  "items": [
+    { "idInsumo": 3, "cantidad": "50.0000", "costoUnitario": "1.250000" }
+  ]
+}
+```
+
+Con éxito devuelve `201` y JSON directo `{ "id_compra": "<UUID>" }`. Devuelve `400` para validación o regla SQL, `401` sin sesión, `403` sin tipo admin o permiso, `404` si proveedor/sucursal/insumo no existe o está eliminado, `409` si una referencia está inactiva o el número de factura ya existe para ese proveedor. El service comprueba las referencias activas dentro de la transacción. Para `CONTADO`, PostgreSQL fija el vencimiento a la fecha de emisión; para `CREDITO`, suma los días de crédito del proveedor. PostgreSQL calcula importes y vencimiento; el trigger de detalle actualiza costo promedio y stock/Kárdex para cada insumo. T31 no registra bitácora de factura/detalles y no incluye pagos, CxP, GASTO ni frontend funcional.
 
 El body de alta y edición usa `razonSocial` (1–150 caracteres), `nrc` y `nit` (1–20), `contacto` (opcional, hasta 100), `telefono` (opcional, hasta 20) y `diasCredito` (entero >= 0). Ejemplo:
 
