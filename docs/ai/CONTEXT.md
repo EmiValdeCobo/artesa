@@ -1,5 +1,5 @@
 # CONTEXT — estado vivo del proyecto (máx. 60 líneas; actualizar al cerrar tareas)
-Actualizado: 2026-11-10
+Actualizado: 2026-11-13
 
 ## Meta y fechas
 Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (listo en docs/Documentacion_IEEE con compilador y visor), manual de usuario, doc técnica, flujo de trabajo.
@@ -23,7 +23,7 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (li
 | Módulo | BD | Backend | Frontend |
 |---|---|---|---|
 | auth / seguridad | listo | login, CRUD RBAC, usuarios y API /bitacora con métricas | Bitácora con filtros, analítica y gestión de usuarios/roles |
-| inventario | listo | CRUD unidades-medida/insumos/productos, stock, mermas, alertas y Kárdex con permiso propio | Existencias, kárdex, catálogo de insumos (tabs + semáforo), catálogo de productos (tabla/grid) y editor de recetas BOM |
+| inventario | listo | CRUD unidades-medida/insumos/productos, stock, mermas, alertas y Kárdex con permiso propio; listar productos incluye n_ingredientes | Existencias y kárdex; catálogo insumos sin campos de stock globales; productos señalan recetas pendientes; editor BOM sin fallback mock |
 | pos | listo | cola de preparación (/api/preparacion), órdenes (T02) y ventas/facturación (T17: FCF/CCF, pagos mixtos) | catálogo y carrito local; cobro/facturación pendiente (frontend T19/T46) |
 | caja | listo | turnos, movimientos, cierre y cuadre (T05/T06/T22) | pendiente |
 | compras | listo | pendiente | pendiente |
