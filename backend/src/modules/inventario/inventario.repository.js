@@ -4,7 +4,7 @@ import { CategoriaProducto, Insumo, Producto, Receta, UnidadMedida } from '../..
 
 const select = (sql, bind = [], transaction = null) => sequelize.query(sql, { bind, transaction, type: QueryTypes.SELECT });
 const plain = (model) => model?.get({ plain: true }) ?? null;
-export const listarUnidades = () => select(`SELECT id_unidad, codigo, nombre, factor_conversion, activo, deleted_at, modificado_en FROM inventario.unidades_medida WHERE deleted_at IS NULL ORDER BY nombre ASC`);
+export const listarUnidades = () => select(`SELECT id_unidad, codigo, nombre, factor_conversion, activo, deleted_at, modificado_en FROM inventario.unidades_medida ORDER BY nombre ASC`);
 export const buscarUnidad = (id, transaction) => select(`SELECT id_unidad, codigo, nombre, factor_conversion, activo, deleted_at, modificado_en FROM inventario.unidades_medida WHERE id_unidad = $1`, [id], transaction).then((xs) => xs[0] ?? null);
 export const crearUnidad = (data, transaction) => UnidadMedida.create({ codigo: data.codigo, nombre: data.nombre, factor_conversion: data.factor_conversion ?? data.factorConversion ?? '1.0000', activo: data.activo ?? true }, { transaction }).then(plain);
 export const actualizarUnidad = async (id, data, transaction) => { const row = await UnidadMedida.findByPk(id, { transaction }); if (!row) return null; const values = {}; if (data.codigo !== undefined) values.codigo = data.codigo; if (data.nombre !== undefined) values.nombre = data.nombre; if (data.factor_conversion !== undefined || data.factorConversion !== undefined) values.factor_conversion = data.factor_conversion ?? data.factorConversion; if (data.activo !== undefined) values.activo = data.activo; await row.update(values, { transaction }); return plain(row); };
@@ -15,6 +15,17 @@ export const buscarInsumo = (id, transaction) => Insumo.findByPk(id, { transacti
 export const crearInsumo = (data, transaction) => Insumo.create({ nombre: data.nombre, tipo_insumo: data.tipoInsumo, id_unidad_base: data.idUnidadBase, costo_promedio: data.costoPromedio, activo: data.activo }, { transaction }).then(plain);
 export const actualizarInsumo = async (id, data, transaction) => { const row = await Insumo.findByPk(id, { transaction }); if (!row) return null; const values = { nombre: data.nombre, tipo_insumo: data.tipoInsumo, id_unidad_base: data.idUnidadBase, activo: data.activo }; if (data.costoPromedio !== undefined) values.costo_promedio = data.costoPromedio; await row.update(values, { transaction }); return plain(row); };
 export const desactivarInsumo = async (id, transaction) => { const row = await Insumo.findByPk(id, { transaction }); if (!row) return false; await row.update({ activo: false }, { transaction }); return true; };
+export const productosQueUsanInsumo = (id, transaction) => select(`
+  SELECT DISTINCT p.nombre
+  FROM inventario.productos p
+  LEFT JOIN inventario.recetas r ON r.id_producto = p.id_producto
+  WHERE p.activo = true AND (r.id_insumo = $1 OR p.id_insumo_reventa = $1)
+  ORDER BY p.nombre
+  LIMIT 6`, [id], transaction);
+export const insumosQueUsanUnidad = (id, transaction) => select(`
+  SELECT nombre FROM inventario.insumos
+  WHERE activo = true AND id_unidad_base = $1
+  ORDER BY nombre LIMIT 6`, [id], transaction);
 export const listarCategorias = () => CategoriaProducto.findAll({ order: [['nombre', 'ASC']] }).then((xs) => xs.map(plain));
 export const listarProductos = () => select(`SELECT p.*, c.nombre AS categoria, i.nombre AS insumo_reventa, CASE WHEN p.es_elaborado THEN (SELECT COUNT(*)::int FROM inventario.recetas r WHERE r.id_producto = p.id_producto) ELSE 0::int END AS n_ingredientes FROM inventario.productos p LEFT JOIN inventario.categorias_producto c USING (id_categoria) LEFT JOIN inventario.insumos i ON i.id_insumo = p.id_insumo_reventa ORDER BY p.nombre`);
 export const buscarProducto = (id, transaction) => Producto.findByPk(id, { transaction }).then(plain);

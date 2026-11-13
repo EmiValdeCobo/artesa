@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutGrid, List, ChefHat, ShoppingBag, Pencil, Layers, Trash2, Tag, Plus, Search, X,
+  LayoutGrid, List, ChefHat, ShoppingBag, Pencil, Layers, Power, PowerOff, Tag, Plus, Search, X,
 } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -72,6 +72,7 @@ export default function CatalogoProductosPage() {
   const [filtroTipo, setFiltroTipo] = useState('TODOS');
   const [filtroCategoria, setFiltroCategoria] = useState('TODOS');
   const [filtroReceta, setFiltroReceta] = useState('TODOS');
+  const [mostrarInactivos, setMostrarInactivos] = useState(false);
 
   const [drawerAbierto, setDrawerAbierto] = useState(false);
   const [productoEditando, setProductoEditando] = useState(null);
@@ -134,9 +135,9 @@ export default function CatalogoProductosPage() {
 
       const coincideReceta = filtroReceta === 'TODOS' || (filtroReceta === 'SIN_RECETA' ? p.es_elaborado && Number(p.n_ingredientes) === 0 : p.es_elaborado && Number(p.n_ingredientes) > 0);
 
-      return coincideBusqueda && coincideTipo && coincideCategoria && coincideReceta;
+      return coincideBusqueda && coincideTipo && coincideCategoria && coincideReceta && (mostrarInactivos || p.activo !== false);
     });
-  }, [productos, busqueda, filtroTipo, filtroCategoria, filtroReceta]);
+  }, [productos, busqueda, filtroTipo, filtroCategoria, filtroReceta, mostrarInactivos]);
   const pendientesReceta = productos.filter((p) => p.es_elaborado && Number(p.n_ingredientes) === 0);
 
   // ── Drawer Crear / Editar ───────────────────────────────────────────────────
@@ -234,25 +235,29 @@ export default function CatalogoProductosPage() {
     }
   };
 
-  const handleEliminar = async (p) => {
+  const handleDesactivar = async (p) => {
     const confirmado = await confirm(
-      `¿Deseas dar de baja el producto "${p.nombre}"? Si ya cuenta con órdenes o ventas históricas, el sistema aplicará borrado lógico.`,
+      `¿Desactivar "${p.nombre}"? Dejará de aparecer en ventas y selectores. Sus órdenes y ventas históricas se conservarán.`,
       {
-        titulo: 'Eliminar producto',
+        titulo: 'Desactivar producto',
         destructivo: true,
         etiquetaCancelar: 'Cancelar',
-        etiquetaAceptar: 'Eliminar producto',
+        etiquetaAceptar: 'Desactivar producto',
       },
     );
     if (!confirmado) return;
 
     try {
-      await deleteProducto(p.id_producto);
-      notificar.exito('Producto eliminado correctamente.');
-      setProductos((prev) => prev.filter((item) => item.id_producto !== p.id_producto));
+      await updateProducto(p.id_producto, { nombre: p.nombre, id_categoria: p.id_categoria, codigo_barra: p.codigo_barra, precio_venta: String(p.precio_venta), es_elaborado: p.es_elaborado, id_insumo_reventa: p.id_insumo_reventa, activo: false });
+      notificar.exito('Producto desactivado.');
+      await cargarDatos();
     } catch (err) {
       notificar.error(traducirError(err));
     }
+  };
+  const reactivarProducto = async (p) => {
+    try { await updateProducto(p.id_producto, { nombre: p.nombre, id_categoria: p.id_categoria, codigo_barra: p.codigo_barra, precio_venta: String(p.precio_venta), es_elaborado: p.es_elaborado, id_insumo_reventa: p.id_insumo_reventa, activo: true }); notificar.exito('Producto reactivado.'); await cargarDatos(); }
+    catch (err) { notificar.error(traducirError(err)); }
   };
 
   // ── Opciones para selectores ────────────────────────────────────────────────
@@ -367,10 +372,10 @@ export default function CatalogoProductosPage() {
             <button
               type="button"
               className="btn-ghost !p-1.5 min-h-8 text-danger"
-              title="Eliminar producto"
-              onClick={() => handleEliminar(p)}
+              title={p.activo === false ? 'Reactivar producto' : 'Desactivar producto'}
+              onClick={() => p.activo === false ? reactivarProducto(p) : handleDesactivar(p)}
             >
-              <Trash2 size={15} aria-hidden="true" />
+              {p.activo === false ? <Power size={15} aria-hidden="true" /> : <PowerOff size={15} aria-hidden="true" />}
             </button>
           )}
         </div>
@@ -465,6 +470,7 @@ export default function CatalogoProductosPage() {
       <p className="text-sm text-fg-muted" aria-live="polite">
         {productosFiltrados.length} {productosFiltrados.length === 1 ? 'producto encontrado' : 'productos encontrados'}
       </p>
+      <label className="inline-flex items-center gap-2 text-sm text-fg-muted"><input type="checkbox" checked={mostrarInactivos} onChange={(e) => setMostrarInactivos(e.target.checked)} />Mostrar inactivos</label>
 
       {/* Renderizado de Catálogo */}
       {cargando ? (
@@ -552,10 +558,10 @@ export default function CatalogoProductosPage() {
                       <button
                         type="button"
                         className="btn-ghost !p-1.5 min-h-8 text-danger"
-                        title="Eliminar producto"
-                        onClick={() => handleEliminar(p)}
+                        title={p.activo === false ? 'Reactivar producto' : 'Desactivar producto'}
+                        onClick={() => p.activo === false ? reactivarProducto(p) : handleDesactivar(p)}
                       >
-                        <Trash2 size={15} aria-hidden="true" />
+                        {p.activo === false ? <Power size={15} aria-hidden="true" /> : <PowerOff size={15} aria-hidden="true" />}
                       </button>
                     )}
                   </div>

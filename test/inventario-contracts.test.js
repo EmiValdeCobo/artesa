@@ -13,6 +13,25 @@ test('inventario: el kardex conserva autenticación admin y usa INV_VER_KARDEX',
   assert.match(routes, /router\.get\('\/alertas', requirePermiso\('INV_VER_STOCK'\)/);
 });
 
+test('inventario: desactivar insumo y unidad devuelve 409 con dependencias activas', async () => {
+  const [servicio, repositorio, errores, insumosUi, productosUi] = await Promise.all([
+    leer('backend/src/modules/inventario/inventario.service.js'),
+    leer('backend/src/modules/inventario/inventario.repository.js'),
+    leer('frontend/src/errors/catalogo.js'),
+    leer('frontend/src/modules/inventario/CatalogoInsumosPage.jsx'),
+    leer('frontend/src/modules/inventario/CatalogoProductosPage.jsx'),
+  ]);
+  assert.match(servicio, /No se puede desactivar\. Lo usan: \$\{nombres\.join\(', '\)\}\$\{resto\}/);
+  assert.match(servicio, /No se puede desactivar: la usan \$\{nombres\.join\(', '\)\}/);
+  assert.match(repositorio, /r\.id_insumo = \$1 OR p\.id_insumo_reventa = \$1/);
+  assert.match(repositorio, /FROM inventario\.insumos[\s\S]*activo = true AND id_unidad_base = \$1/);
+  assert.match(errores, /No se puede desactivar\\\. Lo usan:/);
+  assert.match(insumosUi, /Mostrar inactivos/);
+  assert.match(productosUi, /Mostrar inactivos/);
+  assert.match(insumosUi, /Reactivar insumo/);
+  assert.match(productosUi, /Reactivar producto/);
+});
+
 test('inventario: el seeder asigna el kardex solo a roles autorizados y restringe costos de BODEGUERO', async () => {
   const seeder = await leer('database/seeders/003_inventario_kardex.sql');
   assert.match(seeder, /'INV_VER_KARDEX'[\s\S]*ON CONFLICT \(codigo\) DO NOTHING/);

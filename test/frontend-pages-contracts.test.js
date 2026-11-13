@@ -106,7 +106,7 @@ test('frontend inventario: catalogo de insumos, productos y recetas protegen ico
 
   // CatalogoProductosPage importa X y usa confirm(mensaje, opciones)
   assert.match(productos, /import\s*\{[^}]*\bX\b[^}]*\}\s*from\s*['"]lucide-react['"]/);
-  assert.match(productos, /await\s+confirm\(\s*`¿Deseas dar de baja/);
+  assert.match(productos, /await\s+confirm\(\s*`¿Desactivar/);
   assert.match(productos, /const\s+avisoLocal\s*=/);
 
   // EditorRecetasPage importa Package, valida cantidad > 0 y blinda nombre de insumo

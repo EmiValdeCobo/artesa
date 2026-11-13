@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Package, Ruler, Pencil, Trash2, X, Plus } from 'lucide-react';
+import { Package, Ruler, Pencil, Power, PowerOff, X, Plus } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
@@ -147,7 +147,7 @@ function DrawerInsumo({ abierto, insumo, unidades, onCerrar, onGuardado }) {
 
   if (!abierto) return null;
 
-  const opcionesUnidades = unidades.map((u) => ({
+  const opcionesUnidades = unidades.filter((u) => u.activo !== false || String(u.id_unidad) === String(insumo?.id_unidad_base)).map((u) => ({
     valor: String(u.id_unidad),
     texto: `${u.codigo} — ${u.nombre}`,
   }));
@@ -303,7 +303,7 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
   const { notificar } = useAlert();
   const esEdicion = Boolean(unidad?.id_unidad);
 
-  const [form, setForm] = useState({ codigo: '', nombre: '', factor_conversion: '1.0000' });
+  const [form, setForm] = useState({ codigo: '', nombre: '', factor_conversion: '1.0000', activo: true });
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
 
@@ -316,8 +316,9 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
               codigo: unidad.codigo ?? '',
               nombre: unidad.nombre ?? '',
               factor_conversion: unidad.factor_conversion ?? '1.0000',
+              activo: unidad.activo !== false,
             }
-          : { codigo: '', nombre: '', factor_conversion: '1.0000' },
+          : { codigo: '', nombre: '', factor_conversion: '1.0000', activo: true },
       );
     }
   }, [abierto, unidad, esEdicion]);
@@ -336,6 +337,7 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
         codigo: form.codigo.trim(),
         nombre: form.nombre.trim(),
         factor_conversion: form.factor_conversion?.trim() || '1.0000',
+        activo: form.activo,
       };
       if (esEdicion) {
         await updateUnidad(unidad.id_unidad, payload);
@@ -412,6 +414,7 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
             />
             <CampoError id="unidad-codigo" mensaje={error?.campos?.codigo} />
           </div>
+          {esEdicion && <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={form.activo} onChange={(e) => setForm((f) => ({ ...f, activo: e.target.checked }))} />Activa</label>}
 
           <div>
             <label htmlFor="unidad-nombre" className="mb-1 block text-sm font-medium text-fg">
@@ -481,6 +484,7 @@ function PestanaInsumos({ unidades }) {
 
   const [busqueda, setBusqueda] = useState('');
   const [filtroTipo, setFiltroTipo] = useState('TODOS');
+  const [mostrarInactivos, setMostrarInactivos] = useState(false);
 
   const [drawerAbierto, setDrawerAbierto] = useState(false);
   const [insumoActual, setInsumoActual] = useState(null);
@@ -513,9 +517,9 @@ function PestanaInsumos({ unidades }) {
 
       const coincideTipo = filtroTipo === 'TODOS' || ins.tipo_insumo === filtroTipo;
 
-      return coincideBusqueda && coincideTipo;
+      return coincideBusqueda && coincideTipo && (mostrarInactivos || ins.activo !== false);
     });
-  }, [insumos, busqueda, filtroTipo]);
+  }, [insumos, busqueda, filtroTipo, mostrarInactivos]);
 
   const abrirCrear = () => {
     setInsumoActual(null);
@@ -530,30 +534,30 @@ function PestanaInsumos({ unidades }) {
     setInsumoActual(null);
   };
 
-  const handleEliminar = async (ins) => {
+  const handleDesactivar = async (ins) => {
     const confirmado = await confirm(
-      `¿Deseas dar de baja el insumo "${ins.nombre}"? Si está en uso en recetas o compras, no podrá eliminarse.`,
+      `¿Desactivar "${ins.nombre}"? No aparecerá en nuevos selectores ni se podrá usar en recetas. Si un producto activo lo usa, el sistema impedirá la acción y te mostrará cuáles.`,
       {
-        titulo: 'Eliminar insumo',
+        titulo: 'Desactivar insumo',
         destructivo: true,
         etiquetaCancelar: 'Cancelar',
-        etiquetaAceptar: 'Eliminar insumo',
+        etiquetaAceptar: 'Desactivar insumo',
       },
     );
     if (!confirmado) return;
 
     try {
       await deleteInsumo(ins.id_insumo);
-      notificar.exito('Insumo eliminado correctamente.');
-      setInsumos((prev) => prev.filter((i) => i.id_insumo !== ins.id_insumo));
+      notificar.exito('Insumo desactivado correctamente.');
+      await cargar();
     } catch (err) {
-      const status = err?.status;
-      if (status === 409) {
-        setErrorBanner(avisoLocal('No se puede eliminar: el insumo está vinculado en recetas, compras o movimientos.', 'No se puede eliminar'));
-      } else {
-        setErrorBanner(traducirError(err));
-      }
+      setErrorBanner(traducirError(err));
     }
+  };
+
+  const handleReactivar = async (ins) => {
+    try { await updateInsumo(ins.id_insumo, { nombre: ins.nombre, tipo_insumo: ins.tipo_insumo, id_unidad_base: ins.id_unidad_base, activo: true }); notificar.exito('Insumo reactivado.'); await cargar(); }
+    catch (err) { setErrorBanner(traducirError(err)); }
   };
 
   const columnas = [
@@ -609,10 +613,10 @@ function PestanaInsumos({ unidades }) {
                 <button
                   type="button"
                   className="btn-ghost !p-1.5 min-h-8 text-danger"
-                  title="Eliminar insumo"
-                  onClick={() => handleEliminar(fila)}
+                  title={fila.activo === false ? 'Reactivar insumo' : 'Desactivar insumo'}
+                  onClick={() => fila.activo === false ? handleReactivar(fila) : handleDesactivar(fila)}
                 >
-                  <Trash2 size={15} />
+                  {fila.activo === false ? <Power size={15} /> : <PowerOff size={15} />}
                 </button>
               </div>
             ),
@@ -663,6 +667,7 @@ function PestanaInsumos({ unidades }) {
             onChange={(e) => setFiltroTipo(e.target.value)}
           />
         </div>
+        <label className="inline-flex items-center gap-2 text-sm text-fg-muted"><input type="checkbox" checked={mostrarInactivos} onChange={(e) => setMostrarInactivos(e.target.checked)} />Mostrar inactivos</label>
       </div>
 
       {/* Tabla de Insumos */}
@@ -701,6 +706,7 @@ function PestanaUnidades() {
   const [errorBanner, setErrorBanner] = useState(null);
 
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [mostrarInactivas, setMostrarInactivas] = useState(false);
   const [unidadActual, setUnidadActual] = useState(null);
 
   const cargar = useCallback(async () => {
@@ -736,7 +742,7 @@ function PestanaUnidades() {
 
   const handleDesactivar = async (u) => {
     const confirmado = await confirm(
-      `¿Desactivar la unidad "${u.nombre}" (${u.codigo})? Los insumos existentes la mantendrán, pero no se sugerirá para nuevos registros.`,
+      `¿Desactivar la unidad "${u.nombre}" (${u.codigo})? No aparecerá al crear o editar insumos. Los insumos activos que la usan impedirán la acción.`,
       {
         titulo: 'Desactivar unidad de medida',
         destructivo: true,
@@ -754,6 +760,8 @@ function PestanaUnidades() {
       setErrorBanner(traducirError(err));
     }
   };
+  const reactivar = async (u) => { try { await updateUnidad(u.id_unidad, { activo: true }); notificar.exito('Unidad de medida reactivada.'); await cargar(); } catch (err) { setErrorBanner(traducirError(err)); } };
+  const unidadesVisibles = unidades.filter((u) => mostrarInactivas || u.activo !== false);
 
   const columnas = [
     {
@@ -800,10 +808,10 @@ function PestanaUnidades() {
                 <button
                   type="button"
                   className="btn-ghost !p-1.5 min-h-8 text-danger"
-                  title="Desactivar unidad"
-                  onClick={() => handleDesactivar(fila)}
+                  title={fila.activo === false ? 'Reactivar unidad' : 'Desactivar unidad'}
+                  onClick={() => fila.activo === false ? reactivar(fila) : handleDesactivar(fila)}
                 >
-                  <Trash2 size={15} />
+                  {fila.activo === false ? <Power size={15} /> : <PowerOff size={15} />}
                 </button>
               </div>
             ),
@@ -836,10 +844,12 @@ function PestanaUnidades() {
         />
       )}
 
+      <label className="inline-flex items-center gap-2 text-sm text-fg-muted"><input type="checkbox" checked={mostrarInactivas} onChange={(e) => setMostrarInactivas(e.target.checked)} />Mostrar inactivas</label>
+
       <Card sinPadding>
         <Table
           columnas={columnas}
-          filas={unidades}
+          filas={unidadesVisibles}
           idFila="id_unidad"
           cargando={cargando}
           vacio={<EstadoVacio icono={Ruler} titulo="Sin unidades registradas">No hay unidades de medida disponibles.</EstadoVacio>}
