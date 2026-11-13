@@ -654,21 +654,6 @@ export default function CatalogoProductosPage() {
                   />
                 </div>
 
-                {/* Si es reventa: asociar insumo */}
-                {!form.es_elaborado && (
-                  <div className="pt-2">
-                    <Select
-                      etiqueta="Insumo asociado para descuento 1:1 en POS *"
-                      opciones={opcionesInsumosReventa}
-                      value={String(form.id_insumo_reventa)}
-                      onChange={(e) => setForm((f) => ({ ...f, id_insumo_reventa: e.target.value }))}
-                      disabled={Boolean(errorInsumos)}
-                    />
-                    {errorInsumos && <p className="mt-1 text-xs text-warning">No se pudieron cargar los insumos; reintenta antes de registrar un producto de reventa.</p>}
-                    {errorCategorias && <p className="mt-1 text-xs text-warning">No se pudieron cargar las categorías; puedes guardar el producto sin categoría.</p>}
-                    <p className="mt-1 text-xs text-fg-muted">
-                      Al vender este producto en POS, se descontará automáticamente 1 unidad del insumo seleccionado.
-                    </p>
                 <div>
                   <label htmlFor="producto-precio-venta" className="mb-1 block text-sm font-medium text-fg">
                     Precio de venta al público (incluye IVA 13%) <span className="text-danger ml-0.5 font-semibold">*</span>
