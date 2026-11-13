@@ -55,6 +55,22 @@ const FORM_VACIO = {
   activo: true,
 };
 
+function SelectorTipoProducto({ form, setForm }) {
+  return <fieldset className="rounded-xl border border-line bg-surface p-4 space-y-3">
+    <legend className="px-1 text-sm font-semibold text-fg">Tipo de producto</legend>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <label className={`flex items-start gap-2.5 p-3 rounded-lg border cursor-pointer ${form.es_elaborado ? 'border-primary bg-primary-soft text-primary-text font-semibold' : 'border-line bg-surface text-fg'}`}>
+        <input type="radio" name="tipo_producto" className="accent-primary mt-1" checked={form.es_elaborado} onChange={() => setForm((f) => ({ ...f, es_elaborado: true, id_insumo_reventa: '' }))} />
+        <span className="text-xs sm:text-sm">Elaborado<small className="block font-normal text-fg-muted">Tras guardar podrás definir su receta; sin receta no se puede vender</small></span>
+      </label>
+      <label className={`flex items-start gap-2.5 p-3 rounded-lg border cursor-pointer ${!form.es_elaborado ? 'border-secondary bg-secondary-soft text-secondary-text font-semibold' : 'border-line bg-surface text-fg'}`}>
+        <input type="radio" name="tipo_producto" className="accent-secondary mt-1" checked={!form.es_elaborado} onChange={() => setForm((f) => ({ ...f, es_elaborado: false }))} />
+        <span className="text-xs sm:text-sm">Reventa<small className="block font-normal text-fg-muted">Se descuenta 1 unidad del insumo por cada venta</small></span>
+      </label>
+    </div>
+  </fieldset>;
+}
+
 export default function CatalogoProductosPage() {
   const navigate = useNavigate();
   const { tiene } = useAuth();
@@ -630,6 +646,7 @@ export default function CatalogoProductosPage() {
                 className="flex flex-col gap-4 flex-1 overflow-y-auto px-6 py-5 scroll-fino"
               >
                 {formError && <BannerError error={formError} onCerrar={() => setFormError(null)} />}
+                <SelectorTipoProducto form={form} setForm={setForm} />
                 <div>
                   <label htmlFor="producto-nombre" className="mb-1 block text-sm font-medium text-fg">
                     Nombre del Producto <span className="text-danger ml-0.5 font-semibold">*</span>
@@ -696,60 +713,11 @@ export default function CatalogoProductosPage() {
                   </p>
                 </div>
 
-                {/* Selección de Tipo: Elaborado vs Reventa */}
-                <div className="rounded-xl border border-line bg-surface p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="block text-sm font-semibold text-fg">Tipo de Producto</span>
-                    <span className="text-xs text-fg-muted">Manejo de inventario</span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <label
-                      className={`flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors ${form.es_elaborado ? 'border-primary bg-primary-soft text-primary-text font-semibold' : 'border-line bg-surface text-fg'}`}
-                    >
-                      <input
-                        type="radio"
-                        name="tipo_producto"
-                        className="accent-primary"
-                        checked={form.es_elaborado === true}
-                        onChange={() => setForm((f) => ({ ...f, es_elaborado: true, id_insumo_reventa: '' }))}
-                      />
-                      <ChefHat size={16} aria-hidden="true" />
-                      <span className="text-xs sm:text-sm">Elaborado con receta<p className="font-normal text-fg-muted">Tras guardar podrás definir su receta; sin receta no se puede vender</p></span>
-                    </label>
-
-                    <label
-                      className={`flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors ${!form.es_elaborado ? 'border-secondary bg-secondary-soft text-secondary-text font-semibold' : 'border-line bg-surface text-fg'}`}
-                    >
-                      <input
-                        type="radio"
-                        name="tipo_producto"
-                        className="accent-secondary"
-                        checked={form.es_elaborado === false}
-                        onChange={() => setForm((f) => ({ ...f, es_elaborado: false }))}
-                      />
-                      <ShoppingBag size={16} aria-hidden="true" />
-                      <span className="text-xs sm:text-sm">Reventa<p className="font-normal text-fg-muted">Se descuenta 1 unidad del insumo por cada venta</p></span>
-                    </label>
-                  </div>
-
-                  {/* Si es reventa: asociar insumo */}
-                  {!form.es_elaborado && (
-                    <div className="pt-2">
-                      <Select
-                        etiqueta="Insumo asociado para descuento 1:1 en POS"
-                        requerido
-                        opciones={opcionesInsumosReventa}
-                        value={String(form.id_insumo_reventa)}
-                        onChange={(e) => setForm((f) => ({ ...f, id_insumo_reventa: e.target.value }))}
-                        placeholder="Seleccionar insumo de reventa…"
-                        buscable
-                      />
-                      {tiene('INV_GESTIONAR_INSUMOS') && <Button variante="ghost" icono={Plus} onClick={() => { setValoresInsumo({ tipo_insumo: 'REVENTA', id_unidad_base: String(unidades.find((u) => u.codigo === 'UND')?.id_unidad ?? '') }); setDrawerInsumoAbierto(true); }}>+ Crear insumo de reventa</Button>}
-                      {insumoReventaSeleccionado && <p className="mt-1 text-xs text-fg-muted">Unidad: {insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad ?? 'UND'}{String(insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad ?? 'UND').toUpperCase() !== 'UND' && <span className="ml-1 text-warning">Cada venta descontará 1 {insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad}</span>}</p>}
-                    </div>
-                  )}
-                </div>
-
+                {!form.es_elaborado && <div className="rounded-xl border border-line bg-surface p-4 space-y-2">
+                  <Select etiqueta="Insumo de reventa" requerido opciones={opcionesInsumosReventa} value={String(form.id_insumo_reventa)} onChange={(e) => setForm((f) => ({ ...f, id_insumo_reventa: e.target.value }))} placeholder="Selecciona un insumo de reventa…" buscable />
+                  {tiene('INV_GESTIONAR_INSUMOS') && <Button type="button" variante="ghost" icono={Plus} onClick={() => { setValoresInsumo({ tipo_insumo: 'REVENTA', id_unidad_base: String(unidades.find((u) => u.codigo === 'UND')?.id_unidad ?? '') }); setDrawerInsumoAbierto(true); }}>+ Crear insumo de reventa</Button>}
+                  {insumoReventaSeleccionado && <p className="text-xs text-fg-muted">Unidad: {insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad ?? 'UND'}{String(insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad ?? 'UND').toUpperCase() !== 'UND' && <span className="ml-1 text-warning">Cada venta descontará 1 {insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad}</span>}</p>}
+                </div>}
                 <div className="flex items-center gap-3 pt-1">
                   <input
                     id="producto-activo"
@@ -803,3 +771,4 @@ export default function CatalogoProductosPage() {
     </div>
   );
 }
+

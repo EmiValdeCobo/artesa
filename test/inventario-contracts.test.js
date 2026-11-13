@@ -38,6 +38,9 @@ test('inventario: drawer limita reventa a insumos disponibles y muestra su vínc
   assert.match(pagina, /!insumosVinculados\.has\(String\(i\.id_insumo\)\)/);
   assert.match(pagina, /Cada venta descontará 1/);
   assert.match(pagina, /p\.insumo_reventa/);
+  assert.ok(pagina.indexOf('<SelectorTipoProducto form={form}') < pagina.indexOf('id="producto-nombre"'));
+  assert.ok(pagina.indexOf('id="producto-nombre"') < pagina.indexOf('etiqueta="Categoría del producto"'));
+  assert.ok(pagina.indexOf('id="producto-precio-venta"') < pagina.indexOf('etiqueta="Insumo de reventa"'));
 });
 
 test('inventario: margen usa precio neto de IVA y costo en aritmética entera', async () => {
@@ -56,7 +59,7 @@ test('inventario: drawer reutilizable permite alta en producto y receta con perm
   assert.match(drawer, /valoresIniciales/);
   assert.match(drawer, /onGuardado\(guardado\)/);
   assert.match(productos, /getUnidades\(\)/);
-  assert.match(productos, /tiene\('INV_GESTIONAR_INSUMOS'\).*Crear insumo de reventa/);
+  assert.match(productos, /tiene\('INV_GESTIONAR_INSUMOS'\)[\s\S]*?Crear insumo de reventa/);
   assert.match(drawer, /z-\[70\]/);
   assert.match(recetas, /Pide a quien administra insumos que cree/);
   assert.match(recetas, /handleSeleccionarInsumo\(nuevo, ''\)/);
