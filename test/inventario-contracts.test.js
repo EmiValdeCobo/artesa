@@ -129,8 +129,11 @@ test('inventario UI: CatalogoInsumosPage, CatalogoProductosPage y EditorRecetasP
   // 3. CatalogoInsumosPage: pestañas y unidades; stock se consulta por sucursal en Existencias
   assert.match(insumosPage, /PestanaInsumos/);
   assert.match(insumosPage, /PestanaUnidades/);
+  assert.match(insumosPage, /CampoError/);
   assert.doesNotMatch(insumosPage, /SemaforoBadge|calcularEstadoStock|BAJO_MINIMO|AGOTADO/);
   assert.match(insumosPage, /Inventario.*Existencias/);
+  assert.match(insumosPage, /onReintentar=\{cargar\}/);
+  assert.doesNotMatch(insumosPage, /codigo_sku|stock_minimo/);
   assert.match(insumosPage, /factor_conversion/);
 
   // 4. CatalogoProductosPage: alternancia de vistas, precio con formato sin pérdida, filtro y botón receta BOM
@@ -152,6 +155,7 @@ test('inventario UI: CatalogoInsumosPage, CatalogoProductosPage y EditorRecetasP
   for (const pagina of [insumosPage, productosPage, recetasPage]) assert.doesNotMatch(pagina, /mockData/);
   assert.match(productosPage, /Sin receta/);
   assert.match(productosPage, /filtroReceta/);
+  assert.match(productosPage, /n_ingredientes/);
 });
 
 test('inventario: rutas de unidades-medida soportan endpoints REST completos con RBAC', async () => {

@@ -10,12 +10,12 @@ import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import Pestanas from '../../components/navigation/Pestanas.jsx';
 import { Button, Card, Select, Spinner, Table } from '../../components/ui/index.js';
 import CampoTexto from '../../components/forms/CampoTexto.jsx';
+import CampoError from '../../components/forms/CampoError.jsx';
 import { traducirError } from '../../errors/traducirError.js';
 import {
   getInsumos, createInsumo, updateInsumo, deleteInsumo,
   getUnidades, createUnidad, updateUnidad, deleteUnidad,
 } from './inventarioApi.js';
-import { MOCK_INSUMOS, MOCK_UNIDADES } from './mockData.js';
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
 const TIPOS_INSUMO = ['INGREDIENTE', 'EMPAQUE', 'REVENTA'];
@@ -25,51 +25,12 @@ const PESTANAS_DEF = [
   { clave: 'unidades', texto: 'Unidades de Medida', icono: Ruler },
 ];
 
-const FILTRO_STOCK_OPTS = [
-  { valor: 'TODOS', texto: 'Todos los estados' },
-  { valor: 'NORMAL', texto: 'Normal' },
-  { valor: 'BAJO_MINIMO', texto: 'Bajo Mínimo' },
-  { valor: 'AGOTADO', texto: 'Agotado' },
-];
-
 const FILTRO_TIPO_OPTS = [
   { valor: 'TODOS', texto: 'Todos los tipos' },
   { valor: 'INGREDIENTE', texto: 'Ingrediente' },
   { valor: 'EMPAQUE', texto: 'Empaque' },
   { valor: 'REVENTA', texto: 'Reventa' },
 ];
-
-// ─── Helpers: Semáforo y Tipo ────────────────────────────────────────────────
-function calcularEstadoStock(insumo) {
-  const stockActual = Number(insumo.stock_actual ?? 0);
-  const stockMinimo = Number(insumo.stock_minimo ?? 0);
-  if (stockMinimo > 0 && stockActual <= 0) return 'AGOTADO';
-  if (stockMinimo > 0 && stockActual <= stockMinimo) return 'BAJO_MINIMO';
-  return 'NORMAL';
-}
-
-function SemaforoBadge({ insumo }) {
-  const estado = calcularEstadoStock(insumo);
-  if (estado === 'AGOTADO') {
-    return (
-      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-danger-soft text-danger">
-        Agotado
-      </span>
-    );
-  }
-  if (estado === 'BAJO_MINIMO') {
-    return (
-      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-secondary-soft text-secondary-text">
-        Bajo Mínimo
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-success-soft text-success">
-      Normal
-    </span>
-  );
-}
 
 function TipoBadge({ tipo }) {
   if (tipo === 'REVENTA') {
@@ -90,10 +51,8 @@ function DrawerInsumo({ abierto, insumo, unidades, onCerrar, onGuardado }) {
 
   const [form, setForm] = useState({
     nombre: '',
-    codigo_sku: '',
     tipo_insumo: 'INGREDIENTE',
     id_unidad_base: '',
-    stock_minimo: '',
     costo_promedio: '',
     activo: true,
   });
@@ -106,20 +65,16 @@ function DrawerInsumo({ abierto, insumo, unidades, onCerrar, onGuardado }) {
       if (esEdicion) {
         setForm({
           nombre: insumo.nombre ?? '',
-          codigo_sku: insumo.codigo_sku ?? insumo.sku ?? '',
           tipo_insumo: insumo.tipo_insumo ?? 'INGREDIENTE',
           id_unidad_base: String(insumo.id_unidad_base ?? ''),
-          stock_minimo: insumo.stock_minimo != null ? String(insumo.stock_minimo) : '',
           costo_promedio: insumo.costo_promedio ?? '',
           activo: insumo.activo ?? true,
         });
       } else {
         setForm({
           nombre: '',
-          codigo_sku: '',
           tipo_insumo: 'INGREDIENTE',
           id_unidad_base: '',
-          stock_minimo: '0.0000',
           costo_promedio: '0.0000',
           activo: true,
         });
@@ -141,10 +96,8 @@ function DrawerInsumo({ abierto, insumo, unidades, onCerrar, onGuardado }) {
     try {
       const payload = {
         nombre: form.nombre.trim(),
-        codigo_sku: form.codigo_sku?.trim() || null,
         tipo_insumo: form.tipo_insumo,
         id_unidad_base: Number(form.id_unidad_base),
-        stock_minimo: form.stock_minimo ? String(form.stock_minimo).trim() : '0.0000',
         activo: form.activo,
         ...(!esEdicion && { costo_promedio: form.costo_promedio || '0.0000' }),
       };
@@ -158,7 +111,9 @@ function DrawerInsumo({ abierto, insumo, unidades, onCerrar, onGuardado }) {
       notificar.exito(esEdicion ? 'Insumo actualizado correctamente.' : 'Insumo creado correctamente.');
       onGuardado();
     } catch (err) {
-      setError(traducirError(err));
+      const traducido = traducirError(err);
+      if (traducido.id === 'DUPLICADO') traducido.campos = { nombre: traducido.mensaje };
+      setError(traducido);
     } finally {
       setCargando(false);
     }
@@ -208,19 +163,6 @@ function DrawerInsumo({ abierto, insumo, unidades, onCerrar, onGuardado }) {
           {error && <BannerError error={error} onCerrar={() => setError(null)} />}
 
           <div>
-            <label htmlFor="insumo-sku" className="mb-1 block text-sm font-medium text-fg">
-              Código / SKU
-            </label>
-            <CampoTexto
-              id="insumo-sku"
-              placeholder="Ej. INS-001 o código de barras"
-              value={form.codigo_sku}
-              onChange={(e) => set('codigo_sku')(e.target.value)}
-              maxLength={50}
-            />
-          </div>
-
-          <div>
             <label htmlFor="insumo-nombre" className="mb-1 block text-sm font-medium text-fg">
               Nombre del Insumo <span className="text-danger">*</span>
             </label>
@@ -229,9 +171,10 @@ function DrawerInsumo({ abierto, insumo, unidades, onCerrar, onGuardado }) {
               placeholder="Ej. Café molido espresso"
               value={form.nombre}
               onChange={(e) => set('nombre')(e.target.value)}
-              maxLength={150}
+              maxLength={100}
               required
             />
+            <CampoError id="insumo-nombre" mensaje={error?.campos?.nombre} />
           </div>
 
           <Select
@@ -250,24 +193,6 @@ function DrawerInsumo({ abierto, insumo, unidades, onCerrar, onGuardado }) {
             onChange={(e) => set('id_unidad_base')(e.target.value)}
           />
 
-          <div>
-            <label htmlFor="insumo-stock-minimo" className="mb-1 block text-sm font-medium text-fg">
-              Stock mínimo preventivo
-            </label>
-            <CampoTexto
-              id="insumo-stock-minimo"
-              type="number"
-              placeholder="Ej. 1000.0000"
-              value={form.stock_minimo}
-              onChange={(e) => set('stock_minimo')(e.target.value)}
-              min={0}
-              step="0.0001"
-            />
-            <p className="mt-1 text-xs text-fg-muted">
-              Nivel que activa la alerta preventiva (semáforo en Ocre).
-            </p>
-          </div>
-
           {!esEdicion ? (
             <div>
               <label htmlFor="insumo-costo" className="mb-1 block text-sm font-medium text-fg">
@@ -282,6 +207,7 @@ function DrawerInsumo({ abierto, insumo, unidades, onCerrar, onGuardado }) {
                 min={0}
                 step="0.0001"
               />
+              <p className="mt-1 text-xs text-fg-muted">Costo por {unidades.find((u) => String(u.id_unidad) === String(form.id_unidad_base))?.codigo ?? 'unidad base'}.</p>
             </div>
           ) : (
             <div className="rounded-lg border border-line bg-muted/40 p-3 space-y-1">
@@ -289,7 +215,7 @@ function DrawerInsumo({ abierto, insumo, unidades, onCerrar, onGuardado }) {
                 Costo promedio ponderado actual
               </span>
               <p className="text-sm font-mono font-bold text-fg">
-                $ {insumo.costo_promedio ?? '0.0000'}
+                {insumo.costo_promedio == null ? <span title="Sin permiso para ver costos">—</span> : `$ ${insumo.costo_promedio}`}
               </p>
               <p className="text-xs text-fg-muted italic">
                 El costo se actualiza automáticamente con cada factura de compra.
@@ -377,7 +303,9 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
       notificar.exito(esEdicion ? 'Unidad actualizada correctamente.' : 'Unidad creada correctamente.');
       onGuardado();
     } catch (err) {
-      setError(traducirError(err));
+      const traducido = traducirError(err);
+      if (traducido.id === 'DUPLICADO') traducido.campos = { nombre: traducido.mensaje };
+      setError(traducido);
     } finally {
       setCargando(false);
     }
@@ -422,6 +350,7 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
               maxLength={10}
               required
             />
+            <CampoError id="unidad-codigo" mensaje={error?.campos?.codigo} />
           </div>
 
           <div>
@@ -436,6 +365,7 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
               maxLength={50}
               required
             />
+            <CampoError id="unidad-nombre" mensaje={error?.campos?.nombre} />
           </div>
 
           <div>
@@ -485,10 +415,8 @@ function PestanaInsumos({ unidades }) {
   const [insumos, setInsumos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [errorBanner, setErrorBanner] = useState(null);
-  const [esMock, setEsMock] = useState(false);
 
   const [busqueda, setBusqueda] = useState('');
-  const [filtroStock, setFiltroStock] = useState('TODOS');
   const [filtroTipo, setFiltroTipo] = useState('TODOS');
 
   const [drawerAbierto, setDrawerAbierto] = useState(false);
@@ -496,23 +424,14 @@ function PestanaInsumos({ unidades }) {
 
   const cargar = useCallback(async () => {
     setCargando(true);
-    setEsMock(false);
     try {
       const data = await getInsumos();
       const lista = Array.isArray(data) ? data : (data?.data ?? []);
       setInsumos(lista);
       setErrorBanner(null);
-    } catch {
-      const mapa = Object.fromEntries(
-        MOCK_UNIDADES.map((u) => [u.id_unidad, u.codigo]),
-      );
-      const enriquecidos = MOCK_INSUMOS.map((i) => ({
-        ...i,
-        codigo_unidad: i.codigo_unidad ?? mapa[i.id_unidad_base] ?? '—',
-      }));
-      setInsumos(enriquecidos);
-      setEsMock(true);
-      setErrorBanner('No se pudo conectar con el servidor. Mostrando datos de demostración.');
+    } catch (err) {
+      setInsumos([]);
+      setErrorBanner(traducirError(err));
     } finally {
       setCargando(false);
     }
@@ -527,18 +446,13 @@ function PestanaInsumos({ unidades }) {
       const termino = busqueda.toLowerCase().trim();
       const coincideBusqueda =
         !termino ||
-        ins.nombre?.toLowerCase().includes(termino) ||
-        ins.codigo_sku?.toLowerCase().includes(termino) ||
-        ins.sku?.toLowerCase().includes(termino);
+        ins.nombre?.toLowerCase().includes(termino);
 
       const coincideTipo = filtroTipo === 'TODOS' || ins.tipo_insumo === filtroTipo;
 
-      const estadoStock = calcularEstadoStock(ins);
-      const coincideStock = filtroStock === 'TODOS' || estadoStock === filtroStock;
-
-      return coincideBusqueda && coincideTipo && coincideStock;
+      return coincideBusqueda && coincideTipo;
     });
-  }, [insumos, busqueda, filtroTipo, filtroStock]);
+  }, [insumos, busqueda, filtroTipo]);
 
   const abrirCrear = () => {
     setInsumoActual(null);
@@ -579,25 +493,9 @@ function PestanaInsumos({ unidades }) {
 
   const columnas = [
     {
-      clave: 'codigo_sku',
-      titulo: 'Código/SKU',
-      render: (fila) => (
-        <span className="font-mono text-xs font-semibold text-fg-muted">
-          {fila.codigo_sku || fila.sku || `INS-${String(fila.id_insumo).padStart(3, '0')}`}
-        </span>
-      ),
-    },
-    {
       clave: 'nombre',
-      titulo: 'Nombre del insumo',
-      render: (fila) => (
-        <div>
-          <span className="font-medium text-fg">{fila.nombre}</span>
-          <div className="mt-0.5">
-            <TipoBadge tipo={fila.tipo_insumo} />
-          </div>
-        </div>
-      ),
+      titulo: 'Nombre',
+      render: (fila) => <div><span className="font-medium text-fg">{fila.nombre}</span><div className="mt-0.5"><TipoBadge tipo={fila.tipo_insumo} /></div></div>,
     },
     {
       clave: 'codigo_unidad',
@@ -614,25 +512,9 @@ function PestanaInsumos({ unidades }) {
       alinear: 'right',
       render: (fila) => (
         <span className="text-sm font-mono font-medium text-fg">
-          $ {fila.costo_promedio ?? '0.0000'}
+          {fila.costo_promedio == null ? <span title="Sin permiso para ver costos">—</span> : `$ ${fila.costo_promedio}`}
         </span>
       ),
-    },
-    {
-      clave: 'stock_minimo',
-      titulo: 'Stock mín.',
-      alinear: 'right',
-      render: (fila) =>
-        fila.stock_minimo != null ? (
-          <span className="text-sm font-mono text-fg-muted">{fila.stock_minimo}</span>
-        ) : (
-          <span className="text-xs text-fg-muted">—</span>
-        ),
-    },
-    {
-      clave: 'semaforo',
-      titulo: 'Semáforo',
-      render: (fila) => <SemaforoBadge insumo={fila} />,
     },
     {
       clave: 'activo',
@@ -679,7 +561,7 @@ function PestanaInsumos({ unidades }) {
       <EncabezadoPagina
         seccion="Inventario"
         titulo="Catálogo de Insumos"
-        descripcion="Gestión de materias primas, empaques y artículos de reventa con control de stock y costeo"
+        descripcion="Gestión de materias primas, empaques y artículos de reventa"
         acciones={
           puedeGestionar && (
             <Button variante="primary" icono={Plus} onClick={abrirCrear}>
@@ -688,6 +570,8 @@ function PestanaInsumos({ unidades }) {
           )
         }
       />
+
+      <p className="text-sm text-fg-muted">El stock y las alertas por sucursal se consultan en Inventario › {tiene('INV_VER_STOCK') ? <a className="font-medium text-primary-text underline" href="/inventario/existencias">Existencias</a> : 'Existencias'}.</p>
 
       {errorBanner && (
         <BannerError
@@ -701,19 +585,12 @@ function PestanaInsumos({ unidades }) {
       <div className="flex flex-col sm:flex-row gap-3">
         <input
           type="search"
-          placeholder="Buscar por nombre o código/SKU…"
+          placeholder="Buscar por nombre…"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           className="input flex-1"
-          aria-label="Buscar insumo por nombre o código"
+          aria-label="Buscar insumo por nombre"
         />
-        <div className="sm:w-48">
-          <Select
-            opciones={FILTRO_STOCK_OPTS}
-            value={filtroStock}
-            onChange={(e) => setFiltroStock(e.target.value)}
-          />
-        </div>
         <div className="sm:w-44">
           <Select
             opciones={FILTRO_TIPO_OPTS}
@@ -730,15 +607,9 @@ function PestanaInsumos({ unidades }) {
           filas={insumosFiltrados}
           idFila="id_insumo"
           cargando={cargando}
-          vacio="Sin insumos registrados para los criterios seleccionados."
+          vacio={<EstadoVacio icono={Package} titulo="Sin insumos registrados">No hay insumos para los criterios seleccionados.</EstadoVacio>}
         />
       </Card>
-
-      {esMock && (
-        <p className="text-xs text-fg-muted text-center">
-          Mostrando datos de demostración. Conecta con la base de datos para sincronizar en tiempo real.
-        </p>
-      )}
 
       <DrawerInsumo
         abierto={drawerAbierto}
@@ -773,9 +644,9 @@ function PestanaUnidades() {
       const data = await getUnidades();
       setUnidades(Array.isArray(data) ? data : (data?.data ?? []));
       setErrorBanner(null);
-    } catch {
-      setUnidades(MOCK_UNIDADES);
-      setErrorBanner('No se pudo conectar con el servidor. Mostrando unidades de demostración.');
+    } catch (err) {
+      setUnidades([]);
+      setErrorBanner(traducirError(err));
     } finally {
       setCargando(false);
     }
@@ -904,7 +775,7 @@ function PestanaUnidades() {
           filas={unidades}
           idFila="id_unidad"
           cargando={cargando}
-          vacio="Sin unidades de medida registradas."
+          vacio={<EstadoVacio icono={Ruler} titulo="Sin unidades registradas">No hay unidades de medida disponibles.</EstadoVacio>}
         />
       </Card>
 
@@ -926,11 +797,20 @@ export default function CatalogoInsumosPage() {
   const [pestanaActiva, setPestanaActiva] = useState('insumos');
 
   const [unidades, setUnidades] = useState([]);
-  useEffect(() => {
-    getUnidades()
-      .then((data) => setUnidades(Array.isArray(data) ? data : (data?.data ?? [])))
-      .catch(() => setUnidades(MOCK_UNIDADES));
+  const [errorUnidades, setErrorUnidades] = useState(null);
+  const cargarUnidades = useCallback(async () => {
+    try {
+      const data = await getUnidades();
+      setUnidades(Array.isArray(data) ? data : (data?.data ?? []));
+      setErrorUnidades(null);
+    } catch (err) {
+      setUnidades([]);
+      setErrorUnidades(traducirError(err));
+    }
   }, []);
+  useEffect(() => {
+    cargarUnidades();
+  }, [cargarUnidades]);
 
   return (
     <div className="space-y-6">
@@ -940,6 +820,8 @@ export default function CatalogoInsumosPage() {
         onCambiar={setPestanaActiva}
         etiqueta="Secciones de catálogo"
       />
+
+      {pestanaActiva === 'unidades' && errorUnidades && <BannerError error={errorUnidades} onReintentar={cargarUnidades} onCerrar={() => setErrorUnidades(null)} />}
 
       {pestanaActiva === 'insumos' && <PestanaInsumos unidades={unidades} />}
       {pestanaActiva === 'unidades' && <PestanaUnidades />}
