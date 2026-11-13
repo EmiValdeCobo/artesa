@@ -1,4 +1,4 @@
-﻿# Registro de cambios (una línea por cambio; añadir AL FINAL; leer solo `tail -n 15`)
+# Registro de cambios (una línea por cambio; añadir AL FINAL; leer solo `tail -n 15`)
 Formato: `AAAA-MM-DD | quién (persona/agente) | área | qué cambió | archivos`
 2026-11-02 | claude | base | Estructura inicial, reglas de agentes, esqueleto backend (auth) y frontend (login/rutas) | AGENTS.md, backend/, frontend/, docs/ai/
 2026-11-02 | claude | frontend/infra | Frontend (login, rutas protegidas por permiso, layout), docker-compose, README; backend auth probado contra BD real | frontend/, docker-compose.yml, README.md
@@ -96,6 +96,12 @@ Formato: `AAAA-MM-DD | quién (persona/agente) | área | qué cambió | archivos
 
 2026-11-12 | Emiliano/Antigravity | rrhh | Corregida definicion de z.uuid() a z.string().uuid() en idEmpleadoSchema y empleadoSchema para evitar TypeError en validaciones Zod | backend/src/modules/rrhh/rrhh.schemas.js
 2026-11-12 | Ortiz/antigravity | pos/T17 | Implementado backend de ventas: registrarVentaSchema (Zod, FCF/CCF, pagos mixtos, montos string), repository que llama pos.fn_registrar_venta con ::jsonb, service con withTransaction y mapeo P0001?AppError, controller JSend, routes con POS_COBRAR; 25/25 tests pasan | backend/src/modules/pos/ventas/ventas.{schemas,repository,service,controller,routes}.js, backend/src/modules/index.js, test/pos-ventas-t17.test.js
+2026-11-13 | Codex | inventario T1 + base T4 | Separado esquema PUT para preservar costo promedio ausente; el listado de productos expone n_ingredientes | backend/src/modules/inventario/{inventario.schemas,inventario.routes,inventario.repository}.js, test/inventario-contracts.test.js
+2026-11-13 | Codex | inventario T2 | Eliminado mockData y los fallbacks; errores de catálogo traducidos y reintentables, existencias fallidas sin cifras | frontend/src/modules/inventario/{CatalogoInsumosPage,CatalogoProductosPage,EditorRecetasPage}.jsx
+2026-11-13 | Codex | inventario T3 | Retirados SKU, stock mínimo y semáforo inventados; catálogo informa la ruta de Existencias y protege costos | frontend/src/modules/inventario/CatalogoInsumosPage.jsx
+2026-11-13 | Codex | inventario T4 | Productos muestran ingredientes y pendientes sin receta; alta y editor proponen configurar la siguiente receta | backend/src/modules/inventario/inventario.repository.js, frontend/src/modules/inventario/{CatalogoProductosPage,EditorRecetasPage}.jsx
+2026-11-13 | Codex | inventario T5 | Errores de duplicado orientan el cambio de nombre/código y se muestran bajo campos con límites alineados a Zod | frontend/src/errors/catalogo.js, frontend/src/modules/inventario/{CatalogoInsumosPage,CatalogoProductosPage}.jsx
+
 
 2026-11-12 | Rodri/Codex | compras/T30 | Implementado CRUD backend de proveedores con RBAC, validacion, transacciones, migracion de bitacora, contrato y pruebas | backend/src/modules/compras/proveedores/*, backend/src/modules/index.js, database/migrations/008_compras_bitacora_proveedores.sql, docs/endpoints.md, test/proveedores-contracts.test.js
 
@@ -108,3 +114,5 @@ Formato: `AAAA-MM-DD | quién (persona/agente) | área | qué cambió | archivos
 2026-11-13 | Rodri/Codex | compras/T32 | Implementados pagos transaccionales con bloqueo de factura, consulta operativa CxP compartida con Reportes, pruebas de contrato y documentación; sin cambios de esquema ni bitácora | backend/src/modules/compras/{pagos,cuentas-por-pagar}/*, backend/src/modules/reportes/reportes.repository.js, test/compras-pagos-t32.test.js, docs/endpoints.md
 
 2026-11-13 | Rodri/Codex | compras/T33 | Extendida la ruta POST /api/compras con validacion discriminada GASTO/COSTO, transformacion de gastos con insumo nulo, pruebas y documentacion sin cambios de esquema ni auditoria | backend/src/modules/compras/facturas/{facturas.schemas,facturas.service,facturas.repository}.js, test/compras-facturas-t31.test.js, docs/endpoints.md
+2026-11-13 | Codex | integracion | Integrados cambios remotos de develop con mejoras locales de inventario; skill creada y conflictos unificados conservando ambos lados | docs/ai/skills/sincronizar-rama.md, frontend/src/modules/inventario/*, docs/ai/*
+2026-11-13 | Codex | sincronizacion de rama | Resueltos conflictos del pull divergente incorporando el merge remoto repetido, restaurando la skill y corrigiendo el contexto POS/caja | docs/ai/skills/sincronizar-rama.md, docs/ai/CONTEXT.md, docs/USO_IA.md, frontend/src/modules/inventario/*

@@ -18,12 +18,6 @@ import {
   saveReceta,
   getStock,
 } from './inventarioApi.js';
-import {
-  MOCK_PRODUCTOS,
-  MOCK_INSUMOS,
-  MOCK_STOCK_SUCURSAL,
-  mockRecetaPorProducto,
-} from './mockData.js';
 
 // ─── Helpers Financieros Anti-Float ──────────────────────────────────────────
 function calcCostoTotal(componentes) {
@@ -61,11 +55,13 @@ export default function EditorRecetasPage() {
   const [recetaComponentes, setRecetaComponentes] = useState([]);
   const [recetaOriginal, setRecetaOriginal] = useState([]);
   const [stockSucursal, setStockSucursal] = useState(null);
+  const [errorStock, setErrorStock] = useState(false);
 
   const [cargando, setCargando] = useState(true);
   const [cargandoReceta, setCargandoReceta] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [errorBase, setErrorBase] = useState(null);
+  const [errorInsumos, setErrorInsumos] = useState(null);
   const [errorReceta, setErrorReceta] = useState(null);
   const [errorGuardar, setErrorGuardar] = useState(null);
 
@@ -80,6 +76,8 @@ export default function EditorRecetasPage() {
 
   const hayComponentes = recetaComponentes.length > 0;
   const hayProducto = Boolean(productoSeleccionado);
+  const pendientesReceta = useMemo(() => productos.filter((p) => Number(p.n_ingredientes) === 0), [productos]);
+  const productosConReceta = useMemo(() => productos.slice().sort((a, b) => Number(a.n_ingredientes) - Number(b.n_ingredientes)), [productos]);
   const hayCambios = useMemo(() => {
     return JSON.stringify(recetaComponentes) !== JSON.stringify(recetaOriginal);
   }, [recetaComponentes, recetaOriginal]);
@@ -97,25 +95,24 @@ export default function EditorRecetasPage() {
 
         const listaProdCruda = resProductos.status === 'fulfilled'
           ? (Array.isArray(resProductos.value) ? resProductos.value : resProductos.value?.data ?? [])
-          : MOCK_PRODUCTOS;
+          : [];
 
         const listaProductos = listaProdCruda
-          .filter((p) => p.es_elaborado === true);
+          .filter((p) => p.es_elaborado === true)
+          .sort((a, b) => Number(a.n_ingredientes) - Number(b.n_ingredientes));
 
         const listaInsCruda = resInsumos.status === 'fulfilled'
           ? (Array.isArray(resInsumos.value) ? resInsumos.value : resInsumos.value?.data ?? [])
-          : MOCK_INSUMOS;
+          : [];
 
-        setProductos(listaProductos.length ? listaProductos : MOCK_PRODUCTOS.filter((p) => p.es_elaborado));
-        setInsumos(listaInsCruda.length ? listaInsCruda : MOCK_INSUMOS);
-
-        if (resProductos.status === 'rejected') {
-          setErrorBase(avisoLocal('Usando catálogo local (sin conexión al backend).', 'Sin conexión'));
-        }
-      } catch {
-        setProductos(MOCK_PRODUCTOS.filter((p) => p.es_elaborado));
-        setInsumos(MOCK_INSUMOS);
-        setErrorBase(avisoLocal('Modo demostración activo.', 'Sin conexión'));
+        setProductos(listaProductos);
+        setInsumos(listaInsCruda);
+        if (resProductos.status === 'rejected') setErrorBase(traducirError(resProductos.reason));
+        if (resInsumos.status === 'rejected') setErrorInsumos(traducirError(resInsumos.reason));
+      } catch (err) {
+        setProductos([]);
+        setInsumos([]);
+        setErrorBase(traducirError(err));
       } finally {
         setCargando(false);
       }
@@ -129,9 +126,11 @@ export default function EditorRecetasPage() {
       try {
         const res = await getStock();
         const data = Array.isArray(res) ? res : (res?.data ?? null);
-        setStockSucursal(data ?? MOCK_STOCK_SUCURSAL);
+        setStockSucursal(data ?? []);
+        setErrorStock(false);
       } catch {
-        setStockSucursal(MOCK_STOCK_SUCURSAL);
+        setStockSucursal(null);
+        setErrorStock(true);
       }
     }
     cargarStock();
@@ -162,16 +161,14 @@ export default function EditorRecetasPage() {
       }));
       setRecetaComponentes(componentes);
       setRecetaOriginal(JSON.parse(JSON.stringify(componentes)));
-    } catch {
-      const mock = mockRecetaPorProducto(Number(id));
-      const componentes = mock?.componentes ?? [];
-      setRecetaComponentes(componentes);
-      setRecetaOriginal(JSON.parse(JSON.stringify(componentes)));
-      setErrorReceta(avisoLocal('Receta cargada desde catálogo de respaldo.', 'Sin conexión'));
+    } catch (err) {
+      setRecetaComponentes([]);
+      setRecetaOriginal([]);
+      setErrorReceta(traducirError(err));
     } finally {
       setCargandoReceta(false);
     }
-  }, []);
+  }, [insumos]);
 
   useEffect(() => {
     if (idProductoSeleccionado && productos.length > 0) {
@@ -228,7 +225,7 @@ export default function EditorRecetasPage() {
       const coincide =
         !termino ||
         (ins.nombre ?? '').toLowerCase().includes(termino) ||
-        (ins.codigo_sku && ins.codigo_sku.toLowerCase().includes(termino));
+        false;
       return !yaExiste && coincide;
     });
   }, [insumos, insumosYaEnReceta, busquedaInsumo]);
@@ -277,9 +274,18 @@ export default function EditorRecetasPage() {
       }));
       await saveReceta(idProductoSeleccionado, { componentes });
       setRecetaOriginal(JSON.parse(JSON.stringify(recetaComponentes)));
+      setProductos((actuales) => actuales.map((p) => String(p.id_producto) === String(idProductoSeleccionado) ? { ...p, n_ingredientes: recetaComponentes.length } : p));
       notificar.exito('Receta guardada exitosamente.', {
         mensaje: 'La explosión de insumos en POS y el simulador de costos se han actualizado.',
       });
+      const siguiente = productos.find((p) => String(p.id_producto) !== String(idProductoSeleccionado) && Number(p.n_ingredientes) === 0);
+      if (siguiente) {
+        const irSiguiente = await confirm({ titulo: 'Receta guardada', mensaje: 'Receta guardada. ¿Ir al siguiente producto sin receta?', etiquetaCancelar: 'Quedarme aquí', etiquetaAceptar: 'Siguiente pendiente' });
+        if (irSiguiente) {
+          setIdProductoSeleccionado(String(siguiente.id_producto));
+          navigate(`?producto=${siguiente.id_producto}`, { replace: true });
+        }
+      }
     } catch (err) {
       setErrorGuardar(traducirError(err));
     } finally {
@@ -367,7 +373,7 @@ export default function EditorRecetasPage() {
         }
       />
 
-      {errorBase && <BannerError error={errorBase} onCerrar={() => setErrorBase(null)} />}
+      {errorBase && <BannerError error={errorBase} onReintentar={() => globalThis.location?.reload()} onCerrar={() => setErrorBase(null)} />}
 
       {cargando ? (
         <div className="flex items-center justify-center py-20">
@@ -387,9 +393,9 @@ export default function EditorRecetasPage() {
                   placeholder="— Selecciona un producto elaborado —"
                   value={idProductoSeleccionado}
                   onChange={(e) => handleCambiarProducto(e.target.value)}
-                  opciones={productos.map((p) => ({
+                  opciones={productosConReceta.map((p) => ({
                     valor: String(p.id_producto),
-                    texto: `${p.nombre} (${formatoDinero(p.precio_venta)})`,
+                    texto: `${p.nombre}${Number(p.n_ingredientes) === 0 ? ' · sin receta' : ''} (${formatoDinero(p.precio_venta)})`,
                   }))}
                   buscable
                 />
@@ -447,7 +453,9 @@ export default function EditorRecetasPage() {
                 titulo="Disponibilidad Operativa"
                 descripcion="Capacidad máxima de preparación según stock en sucursal"
               >
-                {unidadesSimuladas !== null ? (
+              {errorStock ? (
+                <p className="py-6 text-center text-sm text-fg-muted">No se pudo consultar existencias</p>
+              ) : unidadesSimuladas !== null ? (
                   <div className="space-y-3 text-center py-2">
                     <p className="text-5xl font-black font-mono text-primary-text">
                       {unidadesSimuladas}
@@ -502,7 +510,7 @@ export default function EditorRecetasPage() {
             </div>
 
             {errorReceta && (
-              <BannerError error={errorReceta} onCerrar={() => setErrorReceta(null)} />
+              <BannerError error={errorReceta} onReintentar={() => idProductoSeleccionado && cargarReceta(idProductoSeleccionado)} onCerrar={() => setErrorReceta(null)} />
             )}
             {errorGuardar && (
               <BannerError error={errorGuardar} onCerrar={() => setErrorGuardar(null)} />
@@ -522,11 +530,12 @@ export default function EditorRecetasPage() {
                     </label>
                     <div className="relative">
                       <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" aria-hidden="true" />
-                      <input
+                        <input
                         id="agregar-insumo-receta"
                         type="text"
-                        className="input pl-9 h-10 rounded-lg focus:ring-2 focus:ring-[#B15C3D]/30 focus:border-[#B15C3D]"
-                        placeholder="Buscar insumo disponible por nombre o código…"
+                        className="input pl-9"
+                        placeholder="Buscar insumo disponible por nombre…"
+                        disabled={Boolean(errorInsumos)}
                         value={busquedaInsumo}
                         onChange={(e) => {
                           setBusquedaInsumo(e.target.value);
@@ -536,6 +545,7 @@ export default function EditorRecetasPage() {
                       />
                     </div>
 
+                    {errorInsumos && <BannerError error={errorInsumos} onReintentar={() => globalThis.location?.reload()} />}
                     {dropdownAbierto && busquedaInsumo.trim().length > 0 && (
                       <ul className="absolute left-0 right-0 z-30 mt-1.5 max-h-56 overflow-y-auto rounded-xl border border-line bg-surface shadow-xl scroll-fino p-1.5 space-y-0.5">
                         {insumosFiltrados.length === 0 ? (
@@ -551,11 +561,6 @@ export default function EditorRecetasPage() {
                             >
                               <div>
                                 <span className="font-semibold text-fg">{ins.nombre}</span>
-                                {ins.codigo_sku && (
-                                  <span className="ml-2 font-mono text-xs text-fg-muted">
-                                    {ins.codigo_sku}
-                                  </span>
-                                )}
                               </div>
                               <span className="font-mono text-xs font-semibold text-primary-text bg-primary-soft px-2.5 py-0.5 rounded-md">
                                 {ins.codigo_unidad ?? 'u'} · $ {ins.costo_promedio ?? '0.0000'}

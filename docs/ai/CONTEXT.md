@@ -23,9 +23,9 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (li
 | Módulo | BD | Backend | Frontend |
 |---|---|---|---|
 | auth / seguridad | listo | login, CRUD RBAC, usuarios y API /bitacora con métricas | Bitácora con filtros, analítica y gestión de usuarios/roles |
-| inventario | listo | CRUD unidades-medida/insumos/productos, stock, mermas, alertas y Kárdex con permiso propio | Existencias, kárdex, catálogo de insumos (tabs + semáforo), catálogo de productos (tabla/grid) y editor de recetas BOM |
+| inventario | listo | CRUD unidades-medida/insumos/productos, stock, mermas, alertas y Kárdex con permiso propio; listado expone n_ingredientes | Existencias/kárdex por sucursal; catálogos con selectores buscables y drawers mejorados, sin stock global inventado ni fallback mock; productos señalan recetas pendientes |
 | pos | listo | cola de preparación, órdenes (T02), ventas (T17), anulación (`fn_anular_venta`) y CRUD clientes CCF (T18-back) | catálogo y carrito local; pantallas de clientes/anulación (T18-front), cobro (T19) y ticket (T46) pendientes |
-| caja | listo | turnos, movimientos, cierre y cuadre (T05/T06/T22) | pendiente |
+| caja | listo | turnos, movimientos, cierre y cuadre (T05/T06/T22) | pantalla de caja integrada desde develop |
 | compras | listo | T30 proveedores; T31 facturas COSTO; T32 pagos/CxP; T33 registro backend GASTO | pantallas de proveedores, compras, CxP y gastos siguen provisionales |
 | rrhh | listo | CRUD de puestos y empleados, validaciones, permisos y datos de prueba | pendiente |
 | reportes | vistas listas + consultas de método de pago, cuadre y CxP | ventas diarias, top productos, métodos de pago, alertas, margen, cuadre y CxP; alcance por `id_sucursal` | panel con tendencias, comparativos, tablas paginadas y exportación CSV/PDF |

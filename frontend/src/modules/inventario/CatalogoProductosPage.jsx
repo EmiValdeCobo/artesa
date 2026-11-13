@@ -10,6 +10,7 @@ import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
 import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
+import CampoError from '../../components/forms/CampoError.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import { Button, Card, Select, Spinner, Table } from '../../components/ui/index.js';
 import { formatoDinero } from '../../utils/formato.js';
@@ -18,9 +19,6 @@ import {
   getProductos, createProducto, updateProducto, deleteProducto,
   getCategorias, getInsumos,
 } from './inventarioApi.js';
-import {
-  MOCK_PRODUCTOS, MOCK_CATEGORIAS, MOCK_INSUMOS,
-} from './mockData.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const BadgeTipo = ({ esElaborado }) =>
@@ -66,11 +64,14 @@ export default function CatalogoProductosPage() {
 
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
+  const [errorCategorias, setErrorCategorias] = useState(null);
+  const [errorInsumos, setErrorInsumos] = useState(null);
   const [vista, setVista] = useState('tabla'); // 'tabla' | 'cuadricula'
 
   const [busqueda, setBusqueda] = useState('');
   const [filtroTipo, setFiltroTipo] = useState('TODOS');
   const [filtroCategoria, setFiltroCategoria] = useState('TODOS');
+  const [filtroReceta, setFiltroReceta] = useState('TODOS');
 
   const [drawerAbierto, setDrawerAbierto] = useState(false);
   const [productoEditando, setProductoEditando] = useState(null);
@@ -89,28 +90,21 @@ export default function CatalogoProductosPage() {
         getInsumos(),
       ]);
 
-      const listaProd = resProductos.status === 'fulfilled'
-        ? (Array.isArray(resProductos.value) ? resProductos.value : resProductos.value?.data ?? [])
-        : MOCK_PRODUCTOS;
-      const listaCat = resCategorias.status === 'fulfilled'
-        ? (Array.isArray(resCategorias.value) ? resCategorias.value : resCategorias.value?.data ?? [])
-        : MOCK_CATEGORIAS;
-      const listaIns = resInsumos.status === 'fulfilled'
-        ? (Array.isArray(resInsumos.value) ? resInsumos.value : resInsumos.value?.data ?? [])
-        : MOCK_INSUMOS;
-
-      setProductos(listaProd.length ? listaProd : MOCK_PRODUCTOS);
-      setCategorias(listaCat.length ? listaCat : MOCK_CATEGORIAS);
-      setInsumos(listaIns.length ? listaIns : MOCK_INSUMOS);
-
-      if (resProductos.status === 'rejected') {
-        setError(avisoLocal('No se pudo conectar con el servidor. Mostrando catálogo de demostración.', 'Sin conexión'));
-      }
-    } catch {
-      setProductos(MOCK_PRODUCTOS);
-      setCategorias(MOCK_CATEGORIAS);
-      setInsumos(MOCK_INSUMOS);
-      setError(avisoLocal('Mostrando catálogo de demostración (modo sin conexión).', 'Sin conexión'));
+      const lista = (resultado) => resultado.status === 'fulfilled'
+        ? (Array.isArray(resultado.value) ? resultado.value : resultado.value?.data ?? [])
+        : [];
+      const listaProd = lista(resProductos);
+      setProductos(listaProd);
+      setCategorias(lista(resCategorias));
+      setInsumos(lista(resInsumos));
+      setError(resProductos.status === 'rejected' ? traducirError(resProductos.reason) : null);
+      setErrorCategorias(resCategorias.status === 'rejected' ? traducirError(resCategorias.reason) : null);
+      setErrorInsumos(resInsumos.status === 'rejected' ? traducirError(resInsumos.reason) : null);
+    } catch (err) {
+      setProductos([]);
+      setCategorias([]);
+      setInsumos([]);
+      setError(traducirError(err));
     } finally {
       setCargando(false);
     }
@@ -138,9 +132,12 @@ export default function CatalogoProductosPage() {
         filtroCategoria === 'TODOS' ||
         String(p.id_categoria) === String(filtroCategoria);
 
-      return coincideBusqueda && coincideTipo && coincideCategoria;
+      const coincideReceta = filtroReceta === 'TODOS' || (filtroReceta === 'SIN_RECETA' ? p.es_elaborado && Number(p.n_ingredientes) === 0 : p.es_elaborado && Number(p.n_ingredientes) > 0);
+
+      return coincideBusqueda && coincideTipo && coincideCategoria && coincideReceta;
     });
-  }, [productos, busqueda, filtroTipo, filtroCategoria]);
+  }, [productos, busqueda, filtroTipo, filtroCategoria, filtroReceta]);
+  const pendientesReceta = productos.filter((p) => p.es_elaborado && Number(p.n_ingredientes) === 0);
 
   // ── Drawer Crear / Editar ───────────────────────────────────────────────────
   const abrirCrear = () => {
@@ -216,14 +213,22 @@ export default function CatalogoProductosPage() {
         await updateProducto(productoEditando.id_producto, payload);
         notificar.exito('Producto actualizado correctamente.');
       } else {
-        await createProducto(payload);
-        notificar.exito('Producto creado correctamente.');
+        const creado = await createProducto(payload);
+        const idCreado = creado?.id_producto ?? creado?.data?.id_producto;
+        if (form.es_elaborado && tiene('INV_GESTIONAR_RECETAS')) {
+          const configurar = await confirm({ titulo: 'Producto creado', mensaje: 'Producto creado. No se podrá vender hasta tener receta. ¿Configurarla ahora?', etiquetaCancelar: 'Más tarde', etiquetaAceptar: 'Configurar receta' });
+          if (configurar && idCreado) navigate(`/inventario/recetas?producto=${idCreado}`);
+        } else if (form.es_elaborado) {
+          notificar.advertencia('Producto creado. No se podrá vender hasta tener receta. Configúrala cuando tengas el permiso INV_GESTIONAR_RECETAS.');
+        } else notificar.exito('Producto creado correctamente.');
       }
 
       cerrarDrawer();
       await cargarDatos();
     } catch (err) {
-      setFormError(traducirError(err));
+      const traducido = traducirError(err);
+      if (traducido.id === 'DUPLICADO') traducido.campos = { nombre: traducido.mensaje };
+      setFormError(traducido);
     } finally {
       setGuardando(false);
     }
@@ -260,11 +265,17 @@ export default function CatalogoProductosPage() {
     { valor: '', texto: 'Sin categoría' },
     ...categorias.map((c) => ({ valor: String(c.id_categoria), texto: c.nombre })),
   ];
+  const categoriasForm = errorCategorias ? [{ valor: '', texto: 'Categoría no disponible' }] : opcionesCategoriaForm;
 
   const opcionesTipo = [
     { valor: 'TODOS', texto: 'Todos los tipos' },
     { valor: 'ELABORADO', texto: 'Elaborados con Receta (BOM)' },
     { valor: 'REVENTA', texto: 'Reventa / Empacados' },
+  ];
+  const opcionesReceta = [
+    { valor: 'TODOS', texto: 'Todos' },
+    { valor: 'SIN_RECETA', texto: 'Sin receta' },
+    { valor: 'CON_RECETA', texto: 'Con receta' },
   ];
 
   const insumosReventa = insumos.filter(
@@ -274,6 +285,7 @@ export default function CatalogoProductosPage() {
     { valor: '', texto: 'Selecciona un insumo de reventa…' },
     ...insumosReventa.map((i) => ({ valor: String(i.id_insumo), texto: `${i.nombre} (${i.codigo_unidad ?? 'u'})` })),
   ];
+  const errorNombre = formError?.campos?.nombre || (formError?.id === 'DUPLICADO' ? 'Ya existe un producto con ese nombre. Cambia el nombre o el código.' : null);
 
   // ── Columnas de la tabla ────────────────────────────────────────────────────
   const columnas = [
@@ -283,6 +295,7 @@ export default function CatalogoProductosPage() {
       render: (p) => (
         <div>
           <span className="font-semibold text-fg">{p.nombre}</span>
+          {p.es_elaborado && <span title={Number(p.n_ingredientes) === 0 ? 'No se puede vender hasta que tenga al menos un ingrediente' : `${p.n_ingredientes} ingredientes`} className={`ml-2 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${Number(p.n_ingredientes) === 0 ? 'bg-warning-soft text-warning' : 'bg-success-soft text-success'}`}>{Number(p.n_ingredientes) === 0 ? 'Sin receta' : `${p.n_ingredientes} ingredientes`}</span>}
           {p.codigo_barra && (
             <p className="font-mono text-xs text-fg-muted">{p.codigo_barra}</p>
           )}
@@ -333,11 +346,11 @@ export default function CatalogoProductosPage() {
             <button
               type="button"
               className="btn-ghost !px-2.5 !py-1 text-xs font-semibold text-primary-text hover:bg-primary-soft"
-              title="Configurar Receta (BOM)"
+              title={Number(p.n_ingredientes) === 0 ? 'Crear receta' : 'Editar receta'}
               onClick={() => navigate(`/inventario/recetas?producto=${p.id_producto}`)}
             >
               <Layers size={14} className="mr-1 inline" aria-hidden="true" />
-              Receta BOM
+              {Number(p.n_ingredientes) === 0 ? 'Crear receta' : 'Editar receta'}
             </button>
           )}
           {tiene('INV_GESTIONAR_PRODUCTOS') && (
@@ -382,6 +395,11 @@ export default function CatalogoProductosPage() {
 
       {error && <BannerError error={error} onCerrar={() => setError(null)} />}
 
+      {errorCategorias && <BannerError error={errorCategorias} onReintentar={cargarDatos} />}
+      {errorInsumos && <BannerError error={errorInsumos} onReintentar={cargarDatos} />}
+
+      {pendientesReceta.length > 0 && <div className="flex items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning-soft px-4 py-3 text-sm"><span>{pendientesReceta.length} productos elaborados aún no tienen receta y no se pueden vender</span><Button variante="ghost" onClick={() => setFiltroReceta('SIN_RECETA')}>Ver pendientes</Button></div>}
+
       {/* Barra de Filtros y Controles */}
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
         <div className="flex-1 min-w-56">
@@ -409,6 +427,8 @@ export default function CatalogoProductosPage() {
             onChange={(e) => setFiltroTipo(e.target.value)}
           />
         </div>
+
+        <div className="min-w-48"><Select etiqueta="Receta" opciones={opcionesReceta} value={filtroReceta} onChange={(e) => setFiltroReceta(e.target.value)} /></div>
 
         <div className="min-w-48">
           <Select
@@ -483,6 +503,7 @@ export default function CatalogoProductosPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <h3 className="font-semibold text-fg text-base leading-snug">{p.nombre}</h3>
+                      {p.es_elaborado && <span title={Number(p.n_ingredientes) === 0 ? 'No se puede vender hasta que tenga al menos un ingrediente' : `${p.n_ingredientes} ingredientes`} className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${Number(p.n_ingredientes) === 0 ? 'bg-warning-soft text-warning' : 'bg-success-soft text-success'}`}>{Number(p.n_ingredientes) === 0 ? 'Sin receta' : `${p.n_ingredientes} ingredientes`}</span>}
                       {p.codigo_barra && (
                         <p className="font-mono text-xs text-fg-muted mt-0.5">{p.codigo_barra}</p>
                       )}
@@ -514,7 +535,7 @@ export default function CatalogoProductosPage() {
                         onClick={() => navigate(`/inventario/recetas?producto=${p.id_producto}`)}
                         icono={Layers}
                       >
-                        Receta BOM
+                        {Number(p.n_ingredientes) === 0 ? 'Crear receta' : 'Editar receta'}
                       </Button>
                     )}
                     {tiene('INV_GESTIONAR_PRODUCTOS') && (
@@ -592,7 +613,6 @@ export default function CatalogoProductosPage() {
                 className="flex flex-col gap-4 flex-1 overflow-y-auto px-6 py-5 scroll-fino"
               >
                 {formError && <BannerError error={formError} onCerrar={() => setFormError(null)} />}
-
                 <div>
                   <label htmlFor="producto-nombre" className="mb-1 block text-sm font-medium text-fg">
                     Nombre del Producto <span className="text-danger ml-0.5 font-semibold">*</span>
@@ -607,13 +627,15 @@ export default function CatalogoProductosPage() {
                     value={form.nombre}
                     onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
                   />
+                  <CampoError id="producto-nombre" mensaje={errorNombre} />
                 </div>
 
                 <Select
                   etiqueta="Categoría del producto"
-                  opciones={opcionesCategoriaForm}
+                  opciones={categoriasForm}
                   value={String(form.id_categoria)}
                   onChange={(e) => setForm((f) => ({ ...f, id_categoria: e.target.value }))}
+                  disabled={Boolean(errorCategorias)}
                   buscable
                 />
 
@@ -632,6 +654,21 @@ export default function CatalogoProductosPage() {
                   />
                 </div>
 
+                {/* Si es reventa: asociar insumo */}
+                {!form.es_elaborado && (
+                  <div className="pt-2">
+                    <Select
+                      etiqueta="Insumo asociado para descuento 1:1 en POS *"
+                      opciones={opcionesInsumosReventa}
+                      value={String(form.id_insumo_reventa)}
+                      onChange={(e) => setForm((f) => ({ ...f, id_insumo_reventa: e.target.value }))}
+                      disabled={Boolean(errorInsumos)}
+                    />
+                    {errorInsumos && <p className="mt-1 text-xs text-warning">No se pudieron cargar los insumos; reintenta antes de registrar un producto de reventa.</p>}
+                    {errorCategorias && <p className="mt-1 text-xs text-warning">No se pudieron cargar las categorías; puedes guardar el producto sin categoría.</p>}
+                    <p className="mt-1 text-xs text-fg-muted">
+                      Al vender este producto en POS, se descontará automáticamente 1 unidad del insumo seleccionado.
+                    </p>
                 <div>
                   <label htmlFor="producto-precio-venta" className="mb-1 block text-sm font-medium text-fg">
                     Precio de venta al público (incluye IVA 13%) <span className="text-danger ml-0.5 font-semibold">*</span>
