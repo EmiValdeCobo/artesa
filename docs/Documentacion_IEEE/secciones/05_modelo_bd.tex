@@ -1,0 +1,95 @@
+\section{Modelo de Base de Datos y Diagrama Entidad-Relación}
+\label{sec:modelo_bd}
+
+El modelo de datos de \textbf{artesa} está implementado en **PostgreSQL 16** bajo un diseño altamente normalizado (Tercera Forma Normal - 3NF en tablas maestras), organizado lógicamente en esquemas de base de datos (\textit{schemas}) que delimitan claramente los límites de dominio del negocio.
+
+\subsection{Esquemas Relacionales del Sistema}
+
+\subsubsection{Esquema \texttt{seguridad}}
+Gestiona la identidad, roles y permisos de los operadores:
+\begin{itemize}
+    \item \texttt{roles} y \texttt{permisos}: Implementan el catálogo dinámico RBAC. La tabla asociativa \texttt{roles\_permisos} define los privilegios granulares.
+    \item \texttt{usuarios}: Almacena los operadores con clave primaria UUID, hash bcrypt y soporte de borrado lógico (\texttt{deleted\_at IS NULL}).
+    \item \texttt{bitacora}: Registra cada mutación de datos con columnas analíticas (\texttt{accion}, \texttt{entidad}, \texttt{datos\_antes}, \texttt{datos\_despues}, \texttt{ip\_cliente}, \texttt{agente\_cliente}, \texttt{severidad}).
+\end{itemize}
+
+\subsubsection{Esquema \texttt{empresa}}
+Centraliza la estructura organizativa y las constantes fiscales:
+\begin{itemize}
+    \item \texttt{sucursales}: Establecimientos comerciales físicos aislados operacionalmente pero consolidados financieramente.
+    \item \texttt{parametros}: Tabla llave-valor tipada (\texttt{tasa\_iva}, cotizaciones patronales y laborales de ISSS, AFP e INSAFORP).
+\end{itemize}
+
+\subsubsection{Esquema \texttt{inventario}}
+Administra insumos, productos terminados y control de existencias:
+\begin{itemize}
+    \item \texttt{insumos}: Materias primas catalogadas por tipo (\texttt{INGREDIENTE}, \texttt{EMPAQUE}, \texttt{REVENTA}) con unidad de medida base y costo promedio móvil.
+    \item \texttt{productos}: Bienes ofrecidos al público con precio de venta con IVA incluido, indicando si son elaborados internamente o de reventa directa.
+    \item \texttt{recetas}: Define la relación muchos a muchos entre \texttt{productos} e \texttt{insumos}, especificando la cantidad requerida por unidad elaborada.
+    \item \texttt{stock\_sucursal} y \texttt{movimientos\_inventario}: Kárdex permanente donde cada movimiento actualiza el saldo resultante con estricto seguimiento de costos unitarios.
+\end{itemize}
+
+\subsubsection{Esquema \texttt{pos}}
+Controla la operación del mostrador, comandas y facturación:
+\begin{itemize}
+    \item \texttt{cajas} y \texttt{turnos\_caja}: Control de sesiones por punto de venta con estado (\texttt{ABIERTO}, \texttt{CERRADO}) y montos ciegos de arqueo.
+    \item \texttt{ordenes} y \texttt{orden\_detalles}: Registro de pedidos y comanda KDS con canal de atención y estado de preparación.
+    \item \texttt{ventas}, \texttt{venta\_detalles} y \texttt{pagos}: Documento fiscal con tipo (\texttt{FCF}, \texttt{CCF}), correlativo fiscal, desglose de subtotal, IVA 13\% y detalle de pagos divididos.
+\end{itemize}
+
+\subsubsection{Esquema \texttt{compras} y Esquema \texttt{rrhh}}
+\begin{itemize}
+    \item \texttt{proveedores}, \texttt{facturas\_compra} y \texttt{pagos\_proveedor}: Control de adquisiciones a crédito o contado e integración a Cuentas por Pagar.
+    \item \texttt{empleados}, \texttt{puestos}, \texttt{tramos\_renta} y \texttt{planillas}: Cálculo automatizado de retenciones laborales salvadoreñas.
+\end{itemize}
+
+\subsection{Diagrama Entidad-Relación (Simplificado)}
+
+La Fig.~\ref{fig:er_diagram} ilustra las relaciones cardinales esenciales entre las entidades núcleo del sistema.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.3cm and 1.0cm,
+    every node/.style={font=\tiny},
+    entity/.style={rectangle, draw=blue!70, fill=blue!10, thick, align=center, minimum width=2.0cm, minimum height=0.8cm},
+    rel/.style={diamond, draw=red!70, fill=red!10, aspect=2, align=center, minimum width=1.4cm},
+    line/.style={draw, thick}
+]
+
+% Entidades
+\node[entity] (sucursal) {\textbf{sucursales}\\\textit{id\_sucursal}};
+\node[entity, right=1.6cm of sucursal] (caja) {\textbf{cajas}\\\textit{id\_caja}};
+\node[entity, below=1.2cm of caja] (turno) {\textbf{turnos\_caja}\\\textit{id\_turno}};
+\node[entity, below=1.2cm of turno] (venta) {\textbf{ventas}\\\textit{id\_venta}};
+\node[entity, left=1.6cm of venta] (cliente) {\textbf{clientes}\\\textit{id\_cliente}};
+\node[entity, right=1.6cm of venta] (producto) {\textbf{productos}\\\textit{id\_producto}};
+\node[entity, above=1.2cm of producto] (receta) {\textbf{recetas}\\\textit{cant\_requerida}};
+\node[entity, right=1.4cm of receta] (insumo) {\textbf{insumos}\\\textit{id\_insumo}};
+\node[entity, left=1.6cm of sucursal] (usuario) {\textbf{usuarios}\\\textit{id\_usuario}};
+
+% Relaciones / Conexiones
+\draw[line] (sucursal) -- node[above] {1:N} (caja);
+\draw[line] (caja) -- node[right] {1:N} (turno);
+\draw[line] (turno) -- node[right] {1:N} (venta);
+\draw[line] (cliente) -- node[above] {1:N} (venta);
+\draw[line] (usuario) -- node[above] {M:N} (sucursal);
+\draw[line] (producto) -- node[above] {M:N} (venta);
+\draw[line] (producto) -- (receta);
+\draw[line] (insumo) -- (receta);
+\draw[line] (sucursal) |- node[near start, above] {1:N} (venta);
+
+\end{tikzpicture}%
+}
+\caption{Diagrama Entidad-Relación de Entidades Centrales de \textbf{artesa}.}
+\label{fig:er_diagram}
+\end{figure}
+
+\subsection{Lógica Transaccional en Procedimientos SQL}
+El sistema delega sus operaciones complejas en funciones PL/pgSQL atómicas para garantizar consistencia absoluta:
+\begin{itemize}
+    \item \texttt{pos.fn\_registrar\_venta}: Recibe la orden y pagos en formato JSONB. En una sola transacción descuenta inventario mediante las recetas correspondientes, inserta los registros de venta y pagos, y avanza el correlativo de serie fiscal.
+    \item \texttt{pos.fn\_cerrar\_turno}: Realiza el cuadre comparando montos recaudados por método contra la declaración del cajero.
+    \item \texttt{inventario.fn\_mover\_stock}: Controla saldos y previene existencias negativas según las políticas vigentes de la empresa.
+\end{itemize}

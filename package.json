@@ -15,7 +15,9 @@
     "db:seed": "node scripts/db.js seed",
     "lint": "eslint .",
     "format:check": "prettier --check .",
-    "test": "node --test"
+    "test": "node --test",
+    "doc:ieee": "powershell -ExecutionPolicy Bypass -File docs/Documentacion_IEEE/compilar.ps1",
+    "doc:ia:sync": "node docs/Documentacion_IEEE/actualizar_ia.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

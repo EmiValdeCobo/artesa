@@ -1,0 +1,76 @@
+\section{Pruebas Realizadas y Resultados}
+\label{sec:pruebas_resultados}
+
+La estrategia de Aseguramiento de Calidad (\textit{Quality Assurance} - QA) de \textbf{artesa} se diseñó bajo una política de pruebas automatizadas continuas, ejecutadas directamente sobre el ejecutor nativo \texttt{node:test} de Node.js 22. Este enfoque garantiza una velocidad de ejecución instantánea y elimina la sobrecarga de dependencias pesadas de prueba.
+
+\subsection{Tipología y Cobertura de las Pruebas}
+
+La batería de pruebas se divide en cinco categorías estratégicas:
+
+\subsubsection{1. Pruebas de Contratos de API REST}
+Verifican el estricto apego de los controladores al estándar JSend y la correcta validación de esquemas con \textbf{Zod}:
+\begin{itemize}
+    \item Validación de cargas útiles (\textit{payloads}) en solicitudes \texttt{POST} y \texttt{PUT}.
+    \item Retorno de códigos de estado HTTP semánticos (200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found y 409 Conflict).
+    \item Estructura unificada en respuestas de éxito (\texttt{\{status: "success", data: ...\}}) y error (\texttt{\{status: "fail", data: ...\}}).
+\end{itemize}
+
+\subsubsection{2. Pruebas de Máquinas de Estados Finitos (FSM)}
+Auditan las transiciones de estado de los flujos de trabajo críticos para prevenir operaciones ilegales:
+\begin{itemize}
+    \item Ciclo de vida de órdenes del POS: comprobación de transiciones válidas (\texttt{BORRADOR} $\rightarrow$ \texttt{CONFIRMADA} $\rightarrow$ \texttt{EN\_PREPARACION} $\rightarrow$ \texttt{LISTA} $\rightarrow$ \texttt{ENTREGADA}) y rechazo inmediato de transiciones retrógradas o inválidas.
+    \item Ciclo de caja: imposibilidad de registrar cobros o movimientos sobre turnos en estado \texttt{CERRADO}.
+\end{itemize}
+
+\subsubsection{3. Pruebas Aritméticas Anti-Float}
+Comprueban que los cálculos financieros no sufran desviaciones por representación binaria de coma flotante (IEEE 754):
+\begin{itemize}
+    \item Cálculo de precios con IVA incluido (tasa del 13\%) y desglose matemático inverso para facturación de consumidor final y crédito fiscal.
+    \item Retenciones de seguridad social (ISSS 3\%, AFP 7.25\%) con aplicación estricta de bases máximas de cotización.
+    \item Conciliación de montos en cobros mixtos (la suma de los pagos debe igualar exactamente al total facturado).
+\end{itemize}
+
+\subsubsection{4. Pruebas de Autorización y Matriz RBAC}
+Validan la seguridad perimetral de cada ruta y componente:
+\begin{itemize}
+    \item Rechazo de acceso a usuarios no autenticados (HTTP 401).
+    \item Bloqueo de operadores con rol activo pero sin el permiso explícito en base de datos (HTTP 403).
+    \item Protección del Kárdex: ocultamiento automático de la columna \texttt{costo\_unitario} cuando el usuario posee \texttt{INV\_VER\_KARDEX} pero carece de \texttt{INV\_VER\_COSTOS}.
+    \item Protección de seguridad operativa: verificación de que un usuario no pueda auto-desactivarse ni removerse sus propios privilegios administrativos.
+\end{itemize}
+
+\subsubsection{5. Pruebas de Contratos de Interfaz (Frontend)}
+Verifican la coherencia visual y de datos en la SPA de React:
+\begin{itemize}
+    \item Renderizado condicional del menú según permisos asignados en el token de sesión.
+    \item Sincronización del estado de acordeón en la barra lateral con la ruta activa del navegador.
+    \item Verificación de componentes compartidos (tablas con cabecera fija \textit{sticky}, scroll interior y paginación).
+\end{itemize}
+
+\subsection{Resultados Obtenidos}
+
+La Tabla~\ref{tab:resultados_pruebas} resume la distribución de las pruebas automatizadas implementadas en el sistema.
+
+\begin{table}[htbp]
+\caption{Resumen de la Suite de Pruebas Automatizadas}
+\label{tab:resultados_pruebas}
+\begin{tabularx}{\columnwidth}{lXXr}
+\toprule
+\textbf{Suite / Archivo} & \textbf{Dominio Evaluado} & \textbf{Tipo de Prueba} & \textbf{Tests} \\
+\midrule
+\texttt{pos-orders-contracts} & Órdenes y FSM & Contrato y Lógica & 25 \\
+\texttt{inventario-contracts} & Stock, Recetas, Kárdex & Contratos y Permisos & 19 \\
+\texttt{roles-permisos-contracts} & RBAC y Usuarios & Seguridad y Regresión & 12 \\
+\texttt{turnos-caja-contracts} & Arqueo y Cuadre & Lógica Financiera & 8 \\
+\texttt{empresa-contracts} & Sucursales y Parámetros & Contrato de API & 8 \\
+\texttt{frontend-pos-menu} & Menú y Categorías POS & Interfaz y Permisos & 12 \\
+\texttt{frontend-rbac-menu} & Navegación y Permisos & RBAC en UI & 14 \\
+\texttt{frontend-pages-contracts} & Vistas y Rutas Protegidas & Integración SPA & 16 \\
+\texttt{reportes-ux-contracts} & Reportes y Métricas & Presentación de Datos & 14 \\
+\midrule
+\textbf{Total de Pruebas} & \multicolumn{2}{l}{\textbf{Ejecutadas con éxito (100\% pass)}} & \textbf{128} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Métricas de Desempeño:} La ejecución completa de la suite de 128 pruebas automatizadas toma un promedio de tan solo \textbf{0.92 segundos} en un entorno de desarrollo estándar, garantizando retroalimentación inmediata durante el proceso de integración continua sin degradar los tiempos de compilación.

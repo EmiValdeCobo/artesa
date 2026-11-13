@@ -1,0 +1,66 @@
+\section{Descripción de Módulos del Sistema}
+\label{sec:descripcion_modulos}
+
+El sistema \textbf{artesa} está estructurado en subsistemas modulares orientados a dominios de negocio específicos:
+
+\subsection{Módulo de Seguridad, RBAC y Auditoría Analítica}
+Provee el control de acceso perimetral e interno del sistema.
+\begin{itemize}
+    \item \textbf{Gestión de Usuarios y Roles:} Permite la creación y asignación de usuarios con roles dinámicos (\texttt{ADMIN}, \texttt{GERENTE\_SUCURSAL}, \texttt{CAJERO}, \texttt{BARISTA}, \texttt{BODEGUERO}, \texttt{CONTADOR}, \texttt{RRHH}). Cuenta con validación contra auto-desactivación para evitar bloqueos del sistema.
+    \item \textbf{Catálogo Granular de Permisos:} Matriz asociativa donde cada acción de la API está supeditada a un código explícito (ej. \texttt{INV\_VER\_KARDEX}, \texttt{POS\_EMITIR\_CCF}, \texttt{CAJA\_CERRAR\_TURNO}).
+    \item \textbf{Bitácora Forense y Analítica:} Panel interactivo de auditoría que visualiza las modificaciones en tiempo real mediante comparadores de diferencias en JSON (\textit{diff}), gráficos de actividad por severidad, análisis de operadores y trazabilidad por dirección IP y agente de usuario.
+\end{itemize}
+
+\subsection{Módulo de Empresa, Sucursales y Parámetros}
+Administra la identidad corporativa y la configuración multi-establecimiento.
+\begin{itemize}
+    \item \textbf{Directorio de Sucursales:} Registro y administración de locales físicos con código tributario de establecimiento, dirección geográfica y estado operativo.
+    \item \textbf{Parámetros Operativos y Fiscales:} Configuración global de la tasa del Impuesto al Valor Agregado (13\% en El Salvador), tasas patronales/laborales de seguridad social y directivas de control de existencias.
+\end{itemize}
+
+\subsection{Módulo de Inventario, Recetas y Kárdex}
+Garantiza el control exacto de existencias y costos de producción.
+\begin{itemize}
+    \item \textbf{Catálogo Dual Insumo-Producto:} Diferencia materias primas (\texttt{INGREDIENTE}, \texttt{EMPAQUE}, \texttt{REVENTA}) de los productos de mostrador.
+    \item \textbf{Recetas y Explosión de Materiales:} Define la composición cuantitativa requerida para elaborar cada producto de menú (ej. gramos de café molido y mililitros de leche entera por taza de café latte).
+    \item \textbf{Kárdex Auditable con Protección de Costos:} Registro inmutable de entradas y salidas. La visualización de costos unitarios está restringida al permiso específico \texttt{INV\_VER\_COSTOS}, permitiendo al bodeguero auditar volúmenes físicos sin exponer información financiera confidencial.
+    \item \textbf{Gestión de Mermas:} Módulo formal para asentar pérdidas por vencimiento o deterioro con justificación obligatoria.
+\end{itemize}
+
+\subsection{Módulo de Punto de Venta (POS) y Comandas KDS}
+Optimiza la velocidad de atención al cliente en mostrador y mesa.
+\begin{itemize}
+    \item \textbf{Catálogo Táctil Dinámico:} Presentación de productos agrupada por familias y categorías visuales, optimizada para pantallas táctiles y teclado rápido.
+    \item \textbf{Pantalla de Cocina / KDS:} Sistema de despliegue en tiempo real para baristas y cocineros, gestionando estados de orden (\texttt{PENDIENTE}, \texttt{EN\_PREPARACION}, \texttt{LISTO}, \texttt{ENTREGADO}).
+    \item \textbf{Facturación DTE y Pagos Múltiples:} Liquidación de comandas mediante cobros mixtos (efectivo, tarjetas bancarias, Bitcoin y transferencias) con emisión de Comprobantes de Consumidor Final y Crédito Fiscal.
+\end{itemize}
+
+\subsection{Módulo de Caja, Turnos y Cuadre}
+Asegura la custodia y conciliación del flujo de efectivo.
+\begin{itemize}
+    \item \textbf{Control Estricto de Turnos:} Vinculación unívoca entre caja física y operador en turno mediante monto de apertura verificado.
+    \item \textbf{Movimientos Extraordinarios:} Asiento de ingresos manuales o egresos autorizados para compras menores de emergencia en mostrador.
+    \item \textbf{Arqueo Ciego:} Procedimiento de cierre en el cual el cajero declara los fondos físicos sin conocer el saldo teórico computado por el sistema, previniendo manipulaciones y calculando automáticamente discrepancias de cuadre.
+\end{itemize}
+
+\subsection{Módulo de Compras y Cuentas por Pagar (CxP)}
+Controla la relación con proveedores y la cadena de suministro.
+\begin{itemize}
+    \item \textbf{Recepción de Facturas de Compra:} Ingreso de compras de insumos actualizando automáticamente el stock y recalculando el costo promedio ponderado.
+    \item \textbf{Control de Crédito y Vencimientos:} Seguimiento a plazos de crédito de proveedores y gestión de pagos parciales.
+\end{itemize}
+
+\subsection{Módulo de Recursos Humanos y Planilla}
+Automatiza la gestión del personal y el cumplimiento laboral.
+\begin{itemize}
+    \item \textbf{Ficha de Empleados y Puestos:} Control de expedientes laborales, documento de identidad (DUI) y asignación a sucursal.
+    \item \textbf{Liquidación de Nómina Parametrizada:} Cálculo automatizado de deducciones según la legislación laboral de El Salvador: ISSS (3.00\%), AFP (7.25\%) y tramos de retención progresiva de Impuesto sobre la Renta.
+\end{itemize}
+
+\subsection{Módulo de Reportes y Cuadros de Mando}
+Provee inteligencia de negocios al equipo directivo.
+\begin{itemize}
+    \item \textbf{Reporte de Ventas Diarias:} Análisis evolutivo de ventas por sucursal con filtros de período.
+    \item \textbf{Ranking de Productos y Márgenes:} Identificación de artículos más vendidos y análisis de rentabilidad bruta.
+    \item \textbf{Exportación Formateada:} Generación de reportes analíticos con exportación a formatos CSV y documentos imprimibles.
+\end{itemize}

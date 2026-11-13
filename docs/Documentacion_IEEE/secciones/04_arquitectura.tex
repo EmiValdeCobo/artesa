@@ -1,0 +1,76 @@
+\section{Arquitectura del Sistema y Diagrama}
+\label{sec:arquitectura}
+
+El diseño arquitectónico de \textbf{artesa} responde al patrón desacoplado de tres capas (\textit{Three-Tier Architecture}) complementado con una pasarela de acceso inverso (\textit{Reverse Proxy Gateway}) para garantizar alta disponibilidad, aislamiento de responsabilidades y seguridad perimetral.
+
+\subsection{Componentes del Sistema}
+
+\subsubsection{Capa de Presentación (Frontend SPA)}
+Desarrollada como una Aplicación de Página Única (\textit{Single Page Application} - SPA) utilizando la biblioteca **React 19** impulsada por el empaquetador ultrarrápido **Vite**. La maquetación y diseño de interfaz se basan en **Tailwind CSS**, complementado con la biblioteca de iconografía accesible **Lucide React**. La navegación del lado del cliente está gestionada por **React Router**, integrando componentes de guardia de ruta (\texttt{ProtectedRoute}) que validan el estado de sesión activa y los permisos de usuario requeridos antes de renderizar cada módulo.
+
+\subsubsection{Capa de Pasarela y Enrutamiento (Gateway)}
+En entorno de producción contenerizado, un servidor web ligero **Nginx** actúa como pasarela perimetral en el puerto de exposición estándar (\texttt{:8080}). Nginx cumple dos funciones esenciales:
+\begin{enumerate}
+    \item Servir de forma optimizada los activos estáticos del frontend precompilados en modo producción con cabeceras de caché eficientes.
+    \item Actuar como proxy inverso transparente para el prefijo de ruta \texttt{/api/*}, canalizando las peticiones HTTP hacia el microservicio backend en el puerto interno \texttt{:3000}, evitando problemas de Política de Mismo Origen (\textit{CORS}) y ocultando la topología de red interna.
+\end{enumerate}
+
+\subsubsection{Capa de Lógica de Aplicación (Backend API REST)}
+Construida sobre el entorno de ejecución **Node.js 22 (LTS)** utilizando el framework web **Express** en modo módulos nativos ECMAScript (ESM). La arquitectura del código interno sigue una separación estricta en cuatro niveles por cada dominio de negocio:
+\begin{itemize}
+    \item \textbf{Routes:} Define las rutas del protocolo HTTP, asocia los middlewares de seguridad (\texttt{authenticate}, \texttt{requirePermiso}) y valida el esquema de entrada.
+    \item \textbf{Controller:} Extrae parámetros de la petición HTTP, invoca al servicio correspondiente y devuelve una respuesta estructurada bajo el estándar \textbf{JSend} (estados \texttt{success}, \texttt{fail} o \texttt{error}).
+    \item \textbf{Service:} Orquesta la lógica del negocio, gestiona el contexto de solicitud y coordina la ejecución transaccional.
+    \item \textbf{Repository:} Interactúa directamente con la base de datos a través de modelos de **Sequelize** para operaciones CRUD o mediante consultas parametrizadas directas para vistas y funciones de PostgreSQL.
+\end{itemize}
+
+\subsubsection{Capa de Persistencia y Motor Transaccional (Database)}
+Implementada en el motor de base de datos relacional **PostgreSQL 16**. A diferencia de los enfoques tradicionales que delegan la lógica matemática y transaccional crítica en el código JavaScript del servidor, \textbf{artesa} implementa la regla de oro del proyecto: \textit{la lógica transaccional crítica reside en funciones nativas en PL/pgSQL}. Esta decisión garantiza que las operaciones que involucran dinero, inventario y retenciones impositivas se ejecuten en milisegundos con atomicidad garantizada por el propio motor SQL, inmunes a caídas imprevistas del servidor de aplicaciones.
+
+\subsection{Diagrama de Arquitectura}
+
+La Fig.~\ref{fig:arquitectura} ilustra el flujo de peticiones, la segregación de capas y las fronteras de red entre los componentes de la infraestructura.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.1cm and 0.8cm,
+    auto,
+    box/.style={rectangle, draw=black!70, fill=blue!5, thick, rounded corners, text width=2.1cm, align=center, minimum height=1.1cm, font=\scriptsize},
+    gateway/.style={rectangle, draw=orange!80, fill=orange!10, thick, rounded corners, text width=2.1cm, align=center, minimum height=1.1cm, font=\scriptsize},
+    db/.style={cylinder, cylinder uses custom fill, cylinder end fill=green!20, cylinder body fill=green!5, draw=green!60!black, thick, shape border rotate=90, text width=1.9cm, align=center, minimum height=1.3cm, font=\scriptsize},
+    line/.style={draw, -latex', thick}
+]
+
+% Nodos
+\node [box, fill=purple!10] (client) {\textbf{Cliente Web}\\Navegador SPA};
+\node [gateway, right=0.9cm of client] (nginx) {\textbf{Gateway / Nginx}\\Puerto :8080\\Reverse Proxy};
+\node [box, right=0.9cm of nginx] (express) {\textbf{Backend API}\\Express (Node 22)\\Puerto :3000};
+\node [db, right=0.9cm of express] (postgres) {\textbf{PostgreSQL 16}\\DB: artesa\\PL/pgSQL};
+
+% Rutas del backend
+\node [box, fill=yellow!10, below=0.7cm of express, text width=2.8cm] (auth) {\textbf{Middlewares}\\JWT Auth + RBAC\\AsyncLocalStorage};
+\node [box, fill=green!10, below=0.7cm of postgres, text width=2.4cm] (sqlfunc) {\textbf{Lógica Crítica}\\Funciones SQL\\Transacciones ACID};
+
+% Conexiones
+\path [line] (client) -- node[above, font=\tiny] {HTTP/S} (nginx);
+\path [line] (nginx) -- node[above, font=\tiny] {/api/*} (express);
+\path [line] (express) -- node[above, font=\tiny] {SQL Pool} (postgres);
+\path [line] (express) -- (auth);
+\path [line] (postgres) -- (sqlfunc);
+\path [line, dashed] (auth) -| node[above, font=\tiny, near start] {Auditoría IP} (postgres);
+
+\end{tikzpicture}%
+}
+\caption{Diagrama de Arquitectura de Capas de \textbf{artesa}.}
+\label{fig:arquitectura}
+\end{figure}
+
+\subsection{Mecanismo de Autenticación y Contexto Transaccional}
+El sistema implementa autenticación sin estado en el transporte pero revalidada en persistencia:
+\begin{enumerate}
+    \item Tras autenticarse exitosamente mediante \texttt{POST /api/auth/login}, la API responde emitiendo una cookie de sesión cifrada que transporta el JWT con identificadores únicos (\texttt{jti}, \texttt{id\_usuario}, \texttt{id\_rol}).
+    \item Para cada petición subsecuente, el middleware \texttt{authenticate} verifica la validez criptográfica del token y consulta el estado del usuario en la base de datos (\texttt{activo = true}), permitiendo la revocación inmediata de privilegios sin esperar a que el token expire.
+    \item Mediante \texttt{AsyncLocalStorage}, se captura la dirección IP y el \textit{User-Agent} del cliente HTTP, inyectándolos en variables de sesión de PostgreSQL (\texttt{app.user\_id}, \texttt{app.client\_ip}) durante la ejecución de \texttt{withTransaction}, asegurando que cada disparador de bitácora relacional conserve el contexto de auditoría completo.
+\end{enumerate}

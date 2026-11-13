@@ -1,0 +1,24 @@
+\section{Legalidad y Ética en el Uso de la Inteligencia Artificial}
+\label{sec:legalidad_ia}
+
+\subsection{Marco Deontológico y Normativa Académica}
+En consonancia con las directrices de integridad académica de la cátedra de Programación Web (Ciclo 02-2026) y los principios deontológicos del Código de Ética de la ACM (\textit{Association for Computing Machinery}) \cite{acm_ai_ethics}, el equipo de desarrollo de \textbf{artesa} adoptó un protocolo explícito y verificable para la integración de herramientas de Inteligencia Artificial Generativa (IAG).
+
+El uso de modelos de lenguaje de gran escala (LLMs) se define formalmente como \textbf{asistencia técnica aumentada y programación en parejas (\textit{AI Pair Programming})}, supeditada en todo momento a la supervisión, validación y autoría intelectual del equipo humano.
+
+\subsection{Principios Rectores del Protocolo de IA}
+
+\begin{enumerate}
+    \item \textbf{Principio de Comprensión y Defensa Personal:} Cada miembro del equipo asume la responsabilidad total de las líneas de código generadas con soporte de IA. Ningún cambio es integrado al árbol principal de control de versiones (\texttt{git}) sin que el integrante responsable sea capaz de justificar su funcionamiento, trazar su flujo de ejecución y defender técnicamente su idoneidad ante el evaluador docente.
+    \item \textbf{Transparencia y Trazabilidad Obligatoria:} De acuerdo con los requerimientos de la cátedra, cada interacción significativa con agentes de IA se registra formalmente en el archivo de auditoría \texttt{docs/USO\_IA.md} y en el historial de cambios del proyecto (\texttt{CHANGELOG\_AGENTE.md}), especificando fecha, operador, herramienta, alcance y verificador humano.
+    \item \textbf{Confidencialidad y Sanitización de Datos:} Ningún secreto de infraestructura, clave simétrica JWT, contraseña de base de datos ni información sensible fue provista a los modelos de lenguaje. Se emplearon plantillas sanitizadas de entorno (\texttt{.env.example}) y datos de prueba sintéticos.
+    \item \textbf{Verificación por Pruebas Automatizadas:} Todo código o módulo derivado de interacciones con IA fue contrastado contra la suite de pruebas unitarias y de contrato (\texttt{node --test}) antes de su aprobación final, garantizando que no se introdujeran efectos secundarios indeseados o vulnerabilidades de seguridad.
+\end{enumerate}
+
+\subsection{Registro Consolidado de Intervenciones con IA}
+La Tabla~\ref{tab:registro_ia_dinamico} presenta el registro vivo de intervenciones significativas con asistentes de IA en el proyecto. Este apartado se actualiza de manera continua conforme evoluciona el desarrollo del sistema mediante el script automatizado \texttt{actualizar\_ia.js}, el cual sincroniza las bitácoras declaradas en \texttt{docs/USO\_IA.md}.
+
+\input{secciones/ia_tabla_autogenerada.tex}
+
+\subsection{Conformidad sobre Propiedad Intelectual y Licenciamiento}
+El código resultante se encuentra bajo licencia académica y de código abierto compatible con el ecosistema de Node.js, React y PostgreSQL. Las sugerencias de código provistas por los modelos de IA fueron asimiladas como estructuras sintácticas estándar de la industria, libres de reclamaciones de derechos de autor de terceros y totalmente auditadas por los estudiantes autores de este documento.

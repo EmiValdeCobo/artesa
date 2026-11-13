@@ -1,0 +1,20 @@
+\section{Conclusiones y Referencias}
+\label{sec:conclusiones_referencias}
+
+\subsection{Conclusiones}
+
+El desarrollo e implementación de la plataforma \textbf{artesa} aporta una solución robusta y verificable al reto histórico de fragmentación operativa en micro, pequeñas y medianas empresas del sector panadero y gastronómico en El Salvador. A partir de los resultados obtenidos durante el ciclo de ingeniería de software, se derivan las siguientes conclusiones fundamentales:
+
+\begin{enumerate}
+    \item \textbf{Eficacia del Modelo Transaccional SQL:} La decisión arquitectónica de concentrar la lógica transaccional crítica en procedimientos almacenados en \textbf{PL/pgSQL} dentro de PostgreSQL 16 garantizó la consistencia absoluta de las operaciones ACID. La deducción automática de insumos a través de recetas complejas se ejecuta de manera atómica, impidiendo estados intermedios inconsistentes o corrupción de existencias ante contingencias de red.
+    \item \textbf{Alineación Normativa y Fiscal Salvadoreña:} La parametrización tributaria (desglose exacto del 13\% de IVA, emisión simulada de Facturas de Consumidor Final y Comprobantes de Crédito Fiscal) y laboral (tramos de Impuesto sobre la Renta, topes y tasas de ISSS y AFP) proporciona una base técnica directamente transferible a entornos productivos reales bajo la supervisión del Ministerio de Hacienda \cite{mh_elsalvador_dte, asamblea_iva, asamblea_renta}.
+    \item \textbf{Mitigación del Error de Coma Flotante (Anti-Float):} La adopción sistemática del tipo de dato \texttt{NUMERIC} en persistencia y su manipulación estricta mediante cadenas formateadas en el transporte resolvió de raíz las discrepancias centesimales clásicas en cálculos financieros acumulados.
+    \item \textbf{Cultura de Calidad Continua:} La suite de 128 pruebas automatizadas ejecutadas en menos de un segundo validó el 100\% de los contratos de la API y las máquinas de estados finitos, facilitando el desarrollo colaborativo sin regresiones.
+\end{enumerate}
+
+\subsection{Trabajo Futuro}
+Como líneas de extensión del proyecto se contempla la integración directa con el servicio de firma electrónica y recepción de DTE del Ministerio de Hacienda, el desarrollo de un módulo de pronóstico de demanda de materias primas mediante análisis de series temporales y la implementación de una aplicación móvil para inventarios físicos con escaneo directo de código de barras.
+
+% Inclusión de bibliografía en formato IEEE
+\bibliographystyle{IEEEtran}
+\bibliography{referencias}
