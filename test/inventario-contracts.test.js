@@ -47,6 +47,22 @@ test('inventario: margen usa precio neto de IVA y costo en aritmética entera', 
   assert.equal(calcularCostoReceta([{ cantidad_requerida: '0.5000', costo_promedio: '2.1234' }]), '1.0617');
 });
 
+test('inventario: drawer reutilizable permite alta en producto y receta con permiso', async () => {
+  const [drawer, productos, recetas] = await Promise.all([
+    leer('frontend/src/modules/inventario/InsumoDrawer.jsx'),
+    leer('frontend/src/modules/inventario/CatalogoProductosPage.jsx'),
+    leer('frontend/src/modules/inventario/EditorRecetasPage.jsx'),
+  ]);
+  assert.match(drawer, /valoresIniciales/);
+  assert.match(drawer, /onGuardado\(guardado\)/);
+  assert.match(productos, /getUnidades\(\)/);
+  assert.match(productos, /tiene\('INV_GESTIONAR_INSUMOS'\).*Crear insumo de reventa/);
+  assert.match(drawer, /z-\[70\]/);
+  assert.match(recetas, /Pide a quien administra insumos que cree/);
+  assert.match(recetas, /handleSeleccionarInsumo\(nuevo, ''\)/);
+  assert.match(recetas, /cantidad-receta-\$\{nuevo\.id_insumo\}/);
+});
+
 test('inventario: el seeder asigna el kardex solo a roles autorizados y restringe costos de BODEGUERO', async () => {
   const seeder = await leer('database/seeders/003_inventario_kardex.sql');
   assert.match(seeder, /'INV_VER_KARDEX'[\s\S]*ON CONFLICT \(codigo\) DO NOTHING/);

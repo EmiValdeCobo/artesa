@@ -18,7 +18,9 @@ import {
   getReceta,
   saveReceta,
   getStock,
+  getUnidades,
 } from './inventarioApi.js';
+import InsumoDrawer from './InsumoDrawer.jsx';
 
 // ─── Helpers Financieros Anti-Float ──────────────────────────────────────────
 // Mensaje local (validación o modo sin conexión) con la misma forma que espera
@@ -43,6 +45,9 @@ export default function EditorRecetasPage() {
   // ── Estado principal ───────────────────────────────────────────────────────
   const [productos, setProductos] = useState([]);
   const [insumos, setInsumos] = useState([]);
+  const [unidades, setUnidades] = useState([]);
+  const [drawerInsumoAbierto, setDrawerInsumoAbierto] = useState(false);
+  const [valoresInsumo, setValoresInsumo] = useState({});
   const [idProductoSeleccionado, setIdProductoSeleccionado] = useState(
     () => searchParams.get('producto') ?? '',
   );
@@ -82,9 +87,10 @@ export default function EditorRecetasPage() {
       setCargando(true);
       setErrorBase(null);
       try {
-        const [resProductos, resInsumos] = await Promise.allSettled([
+        const [resProductos, resInsumos, resUnidades] = await Promise.allSettled([
           getProductos(),
           getInsumos(),
+          getUnidades(),
         ]);
 
         const listaProdCruda = resProductos.status === 'fulfilled'
@@ -101,6 +107,7 @@ export default function EditorRecetasPage() {
 
         setProductos(listaProductos);
         setInsumos(listaInsCruda);
+        if (resUnidades.status === 'fulfilled') setUnidades(Array.isArray(resUnidades.value) ? resUnidades.value : (resUnidades.value?.data ?? []));
         if (resProductos.status === 'rejected') setErrorBase(traducirError(resProductos.reason));
         if (resInsumos.status === 'rejected') setErrorInsumos(traducirError(resInsumos.reason));
       } catch (err) {
@@ -224,17 +231,18 @@ export default function EditorRecetasPage() {
     });
   }, [insumos, insumosYaEnReceta, busquedaInsumo]);
 
-  function handleSeleccionarInsumo(ins) {
+  function handleSeleccionarInsumo(ins, cantidadRequerida = '1.0000') {
     const nuevo = {
       id_insumo: ins.id_insumo,
       nombre_insumo: ins.nombre,
       codigo_unidad: ins.codigo_unidad ?? ins.unidad?.codigo ?? 'u',
       costo_promedio: String(ins.costo_promedio ?? '0.0000'),
-      cantidad_requerida: '1.0000',
+      cantidad_requerida: cantidadRequerida,
     };
     setRecetaComponentes((prev) => [...prev, nuevo]);
     setBusquedaInsumo('');
     setDropdownAbierto(false);
+    return nuevo;
   }
 
   function handleCambiarCantidad(idInsumo, valor) {
@@ -542,9 +550,11 @@ export default function EditorRecetasPage() {
                     {dropdownAbierto && busquedaInsumo.trim().length > 0 && (
                       <ul className="absolute left-0 right-0 z-30 mt-1.5 max-h-56 overflow-y-auto rounded-xl border border-line bg-surface shadow-xl scroll-fino p-1.5 space-y-0.5">
                         {insumosFiltrados.length === 0 ? (
-                          <li className="p-3 text-xs text-fg-muted text-center">
-                            No hay insumos disponibles que coincidan o ya están en la receta.
-                          </li>
+                          tiene('INV_GESTIONAR_INSUMOS') ? (
+                            <li role="button" tabIndex={0} className="p-3 text-sm text-primary-text cursor-pointer hover:bg-primary-soft" onMouseDown={() => { setValoresInsumo({ nombre: busquedaInsumo.trim(), tipo_insumo: 'INGREDIENTE', id_unidad_base: String(unidades.find((u) => u.codigo === 'UND')?.id_unidad ?? '') }); setDrawerInsumoAbierto(true); }}>+ Crear insumo «{busquedaInsumo.trim()}»</li>
+                          ) : (
+                            <li className="p-3 text-xs text-fg-muted text-center">Pide a quien administra insumos que cree «{busquedaInsumo.trim()}»</li>
+                          )
                         ) : (
                           insumosFiltrados.map((ins) => (
                             <li
@@ -598,6 +608,7 @@ export default function EditorRecetasPage() {
                               <td className="px-3 py-3 text-right">
                                 {tiene('INV_GESTIONAR_RECETAS') ? (
                                   <input
+                                    id={`cantidad-receta-${c.id_insumo}`}
                                     type="number"
                                     min="0.0001"
                                     step="0.0001"
@@ -694,6 +705,27 @@ export default function EditorRecetasPage() {
           </div>
         </div>
       )}
+      <InsumoDrawer
+        abierto={drawerInsumoAbierto}
+        insumo={null}
+        unidades={unidades}
+        valoresIniciales={valoresInsumo}
+        onCerrar={() => setDrawerInsumoAbierto(false)}
+        onGuardado={async (guardado) => {
+          setDrawerInsumoAbierto(false);
+          try {
+            const resultado = await getInsumos();
+            const lista = Array.isArray(resultado) ? resultado : (resultado?.data ?? []);
+            setInsumos(lista);
+            const id = guardado?.id_insumo ?? guardado?.data?.id_insumo;
+            const nuevo = lista.find((i) => String(i.id_insumo) === String(id)) || lista.find((i) => i.nombre === valoresInsumo.nombre);
+            if (nuevo) {
+              handleSeleccionarInsumo(nuevo, '');
+              window.setTimeout(() => document.getElementById(`cantidad-receta-${nuevo.id_insumo}`)?.focus(), 0);
+            }
+          } catch (err) { setErrorInsumos(traducirError(err)); }
+        }}
+      />
     </div>
   );
 }

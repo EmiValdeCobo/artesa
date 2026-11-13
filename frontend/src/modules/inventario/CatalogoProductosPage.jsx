@@ -16,9 +16,10 @@ import { Button, Card, Select, Spinner, Table } from '../../components/ui/index.
 import { formatoDinero } from '../../utils/formato.js';
 import { traducirError } from '../../errors/traducirError.js';
 import { calcularMargen } from './costeo.js';
+import InsumoDrawer from './InsumoDrawer.jsx';
 import {
   getProductos, createProducto, updateProducto, deleteProducto,
-  getCategorias, getInsumos,
+  getCategorias, getInsumos, getUnidades,
 } from './inventarioApi.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -62,6 +63,7 @@ export default function CatalogoProductosPage() {
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [insumos, setInsumos] = useState([]);
+  const [unidades, setUnidades] = useState([]);
 
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -80,16 +82,19 @@ export default function CatalogoProductosPage() {
   const [form, setForm] = useState(FORM_VACIO);
   const [formError, setFormError] = useState(null);
   const [guardando, setGuardando] = useState(false);
+  const [drawerInsumoAbierto, setDrawerInsumoAbierto] = useState(false);
+  const [valoresInsumo, setValoresInsumo] = useState({});
 
   // ── Carga de datos ──────────────────────────────────────────────────────────
   const cargarDatos = useCallback(async () => {
     setCargando(true);
     setError(null);
     try {
-      const [resProductos, resCategorias, resInsumos] = await Promise.allSettled([
+      const [resProductos, resCategorias, resInsumos, resUnidades] = await Promise.allSettled([
         getProductos(),
         getCategorias(),
         getInsumos(),
+        getUnidades(),
       ]);
 
       const lista = (resultado) => resultado.status === 'fulfilled'
@@ -99,6 +104,7 @@ export default function CatalogoProductosPage() {
       setProductos(listaProd);
       setCategorias(lista(resCategorias));
       setInsumos(lista(resInsumos));
+      setUnidades(lista(resUnidades));
       setError(resProductos.status === 'rejected' ? traducirError(resProductos.reason) : null);
       setErrorCategorias(resCategorias.status === 'rejected' ? traducirError(resCategorias.reason) : null);
       setErrorInsumos(resInsumos.status === 'rejected' ? traducirError(resInsumos.reason) : null);
@@ -738,6 +744,7 @@ export default function CatalogoProductosPage() {
                         placeholder="Seleccionar insumo de reventa…"
                         buscable
                       />
+                      {tiene('INV_GESTIONAR_INSUMOS') && <Button variante="ghost" icono={Plus} onClick={() => { setValoresInsumo({ tipo_insumo: 'REVENTA', id_unidad_base: String(unidades.find((u) => u.codigo === 'UND')?.id_unidad ?? '') }); setDrawerInsumoAbierto(true); }}>+ Crear insumo de reventa</Button>}
                       {insumoReventaSeleccionado && <p className="mt-1 text-xs text-fg-muted">Unidad: {insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad ?? 'UND'}{String(insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad ?? 'UND').toUpperCase() !== 'UND' && <span className="ml-1 text-warning">Cada venta descontará 1 {insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad}</span>}</p>}
                     </div>
                   )}
@@ -776,6 +783,23 @@ export default function CatalogoProductosPage() {
           </>,
           document.body
         )}
+      <InsumoDrawer
+        abierto={drawerInsumoAbierto}
+        insumo={null}
+        unidades={unidades}
+        valoresIniciales={valoresInsumo}
+        onCerrar={() => setDrawerInsumoAbierto(false)}
+        onGuardado={async (guardado) => {
+          setDrawerInsumoAbierto(false);
+          try {
+            const resultado = await getInsumos();
+            const lista = Array.isArray(resultado) ? resultado : (resultado?.data ?? []);
+            setInsumos(lista);
+            const id = guardado?.id_insumo ?? guardado?.data?.id_insumo;
+            if (id) setForm((actual) => ({ ...actual, id_insumo_reventa: String(id) }));
+          } catch (err) { setErrorInsumos(traducirError(err)); }
+        }}
+      />
     </div>
   );
 }
