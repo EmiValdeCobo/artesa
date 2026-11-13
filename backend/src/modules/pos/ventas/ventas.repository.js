@@ -77,3 +77,11 @@ export const listarVentas = ({ idTurno, estado }) =>
     [idTurno ?? null, estado ?? null],
   );
 
+// ── Anular venta (llama la función SQL atómica y revierte stock) ─────────────
+export async function anularVenta(tx, { idVenta, motivo, idUsuario }) {
+  await sel(
+    `SELECT pos.fn_anular_venta($1::uuid, $2::text, $3::uuid)`,
+    [idVenta, motivo, idUsuario],
+    tx,
+  );
+}

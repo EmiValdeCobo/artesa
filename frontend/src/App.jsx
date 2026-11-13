@@ -18,6 +18,7 @@ import SucursalesPage from './modules/empresa/SucursalesPage.jsx';
 import ParametrosPage from './modules/empresa/ParametrosPage.jsx';
 import PendienteApiPage from './modules/PendienteApiPage.jsx';
 import BitacoraPage from './modules/seguridad/BitacoraPage.jsx';
+import CajaPage from './modules/caja/CajaPage.jsx';
 
 export default function App() {
   return (
@@ -53,7 +54,7 @@ export default function App() {
         <Route path="rrhh/empleados" element={<ProtectedRoute permiso="RRHH_GESTIONAR_EMPLEADOS"><PendienteApiPage titulo="Empleados" descripcion="Gestión del personal por sucursal." endpoints={["GET/POST /api/empleados (no existe)", "PUT /api/empleados/:id (no existe)"]} /></ProtectedRoute>} />
         <Route path="rrhh/puestos" element={<ProtectedRoute permiso="RRHH_GESTIONAR_EMPLEADOS"><PendienteApiPage titulo="Puestos" descripcion="Catálogo de puestos y salarios base." endpoints={["GET/POST /api/puestos (no existe)", "PUT /api/puestos/:id (no existe)"]} /></ProtectedRoute>} />
         <Route path="rrhh" element={<ProtectedRoute permiso="RRHH_VER_PLANILLA"><PendienteApiPage titulo="RR. HH. y planilla" descripcion="Empleados, períodos y procesamiento de planillas." endpoints={["GET /api/planillas (no existe)", "POST /api/planillas (no existe)"]} /></ProtectedRoute>} />
-        <Route path="compras/proveedores" element={<ProtectedRoute permiso="COM_GESTIONAR_PROVEEDORES"><PendienteApiPage titulo="Proveedores" descripcion="Catálogo de proveedores." endpoints={["GET/POST /api/proveedores (no existe)", "PUT /api/proveedores/:id (no existe)"]} /></ProtectedRoute>} />
+        <Route path="compras/proveedores" element={<ProtectedRoute permiso="COM_GESTIONAR_PROVEEDORES"><PendienteApiPage titulo="Proveedores" descripcion="Catálogo de proveedores." endpoints={["GET/POST /api/compras/proveedores", "PUT/DELETE /api/compras/proveedores/:id"]} /></ProtectedRoute>} />
         <Route path="compras/cuentas-por-pagar" element={<ProtectedRoute permiso="COM_VER_CXP"><PendienteApiPage titulo="Cuentas por pagar" descripcion="Facturas y pagos pendientes a proveedores." endpoints={["GET /api/compras/cuentas-por-pagar (no existe)", "POST /api/compras/:id/pagos (no existe)"]} /></ProtectedRoute>} />
         <Route path="compras" element={<ProtectedRoute permiso="COM_VER_CXP"><PendienteApiPage titulo="Compras" descripcion="Compras de insumos y gastos operativos." endpoints={["GET/POST /api/compras (no existe)", "POST /api/compras (tipo_costo=GASTO) (no existe)"]} /></ProtectedRoute>} />
         <Route path="compras/gastos" element={<ProtectedRoute permiso="COM_REGISTRAR_COMPRA"><PendienteApiPage titulo="Compras tipo gasto" descripcion="Registro de gastos que no ingresan inventario." endpoints={["POST /api/compras con tipo_costo=GASTO (no existe)"]} /></ProtectedRoute>} />
@@ -78,6 +79,14 @@ export default function App() {
           element={
             <ProtectedRoute permiso="POS_COBRAR">
               <PosPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="caja"
+          element={
+            <ProtectedRoute permiso="CAJA_ABRIR_TURNO">
+              <CajaPage />
             </ProtectedRoute>
           }
         />

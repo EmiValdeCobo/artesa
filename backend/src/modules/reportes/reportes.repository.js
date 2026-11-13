@@ -1,5 +1,6 @@
 import { QueryTypes } from 'sequelize';
 import { sequelize } from '../../config/db.js';
+import { listarCuentasPorPagar } from '../compras/cuentas-por-pagar.repository.js';
 
 const consultar = (sql, bind) => sequelize.query(sql, { bind, type: QueryTypes.SELECT });
 
@@ -105,26 +106,8 @@ export const cuadreTurnos = (idUsuario, { desde, hasta, idSucursal }) => consult
 
 // La vista vw_cuentas_por_pagar no expone id_sucursal. Se replica su agregación sobre
 // tablas base para poder aplicar el alcance de usuario_sucursal sin filtrar por nombres.
-export const cuentasPorPagar = (idUsuario, { desde, hasta, idSucursal }) => consultar(
-  `${VISIBLES}
-   SELECT f.id_compra, s.nombre AS sucursal, pr.razon_social AS proveedor,
-          f.num_factura, f.tipo_costo, f.fecha_emision, f.fecha_vencimiento,
-          f.total, COALESCE(SUM(pp.monto), 0) AS pagado,
-          f.total - COALESCE(SUM(pp.monto), 0) AS saldo,
-          GREATEST(CURRENT_DATE - f.fecha_vencimiento, 0) AS dias_vencida,
-          f.estado_pago
-   FROM compras.facturas_compra f
-   JOIN visibles s ON s.id_sucursal = f.id_sucursal
-   JOIN compras.proveedores pr ON pr.id_proveedor = f.id_proveedor
-   LEFT JOIN compras.pagos_proveedor pp ON pp.id_compra = f.id_compra
-   WHERE f.estado_pago <> 'PAGADO'
-     AND f.fecha_emision BETWEEN COALESCE($2::date, CURRENT_DATE - 29) AND COALESCE($3::date, CURRENT_DATE)
-     AND ($4::int IS NULL OR f.id_sucursal = $4::int)
-   GROUP BY f.id_compra, s.nombre, pr.razon_social
-   ORDER BY f.fecha_vencimiento ASC, pr.razon_social, f.num_factura
-   LIMIT 500`,
-  [idUsuario, desde ?? null, hasta ?? null, idSucursal ?? null],
-);
+export const cuentasPorPagar = (idUsuario, filtros) =>
+  listarCuentasPorPagar(idUsuario, filtros, true);
 
 // Distribución del ingreso emitido por método de pago; cada ticket puede aparecer en
 // más de un método cuando se registró un cobro mixto.

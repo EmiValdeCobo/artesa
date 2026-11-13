@@ -4,7 +4,8 @@ import { requirePermiso } from '../../../middlewares/permisos.js';
 import { validate } from '../../../middlewares/validate.js';
 import { asyncHandler } from '../../../utils/asyncHandler.js';
 import * as controller from './ventas.controller.js';
-import { registrarVentaSchema } from './ventas.schemas.js';
+import { registrarVentaSchema, anularVentaSchema } from './ventas.schemas.js';
+
 
 // /api/pos/ventas
 const router = Router();
@@ -32,6 +33,14 @@ router.get(
   '/:id',
   requirePermiso('POS_COBRAR'),
   asyncHandler(controller.detalle),
+);
+
+// PATCH /api/pos/ventas/:id/anular → anular venta y revertir stock
+router.patch(
+  '/:id/anular',
+  requirePermiso('POS_ANULAR_VENTA'),
+  validate(anularVentaSchema),
+  asyncHandler(controller.anular),
 );
 
 export default router;

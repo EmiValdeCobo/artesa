@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutGrid, List, ChefHat, ShoppingBag, Pencil, Layers, Trash2, Tag, Plus, Search,
+  LayoutGrid, List, ChefHat, ShoppingBag, Pencil, Layers, Trash2, Tag, Plus, Search, X,
 } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -32,6 +33,15 @@ const BadgeTipo = ({ esElaborado }) =>
       Reventa
     </span>
   );
+
+// Mensaje local (validación de formulario o de conexión) con la misma forma que
+// espera BannerError, para no mezclar errores de servidor con texto plano.
+const avisoLocal = (mensaje, titulo = 'Revisa la información') => ({
+  titulo,
+  mensaje,
+  accion: '',
+  categoria: 'usuario',
+});
 
 const FORM_VACIO = {
   nombre: '',
@@ -159,16 +169,32 @@ export default function CatalogoProductosPage() {
     setFormError(null);
   };
 
+  useEffect(() => {
+    if (!drawerAbierto) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        cerrarDrawer();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [drawerAbierto]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError(null);
 
-    if (!form.nombre.trim()) return setFormError('El nombre del producto es obligatorio.');
+    if (!form.nombre.trim()) return setFormError(avisoLocal('El nombre del producto es obligatorio.'));
     if (!form.precio_venta || Number(form.precio_venta) <= 0) {
-      return setFormError('El precio de venta debe ser un número positivo.');
+      return setFormError(avisoLocal('El precio de venta debe ser un número positivo.'));
     }
     if (!form.es_elaborado && !form.id_insumo_reventa) {
-      return setFormError('Para productos de reventa, debes asociar un insumo correspondiente.');
+      return setFormError(avisoLocal('Para productos de reventa, debes asociar un insumo correspondiente.'));
     }
 
     setGuardando(true);
@@ -209,13 +235,15 @@ export default function CatalogoProductosPage() {
   };
 
   const handleEliminar = async (p) => {
-    const confirmado = await confirm({
-      titulo: 'Eliminar producto',
-      mensaje: `¿Deseas dar de baja el producto "${p.nombre}"? Si ya cuenta con órdenes o ventas históricas, el sistema aplicará borrado lógico.`,
-      destructivo: true,
-      etiquetaCancelar: 'Cancelar',
-      etiquetaAceptar: 'Eliminar producto',
-    });
+    const confirmado = await confirm(
+      `¿Deseas dar de baja el producto "${p.nombre}"? Si ya cuenta con órdenes o ventas históricas, el sistema aplicará borrado lógico.`,
+      {
+        titulo: 'Eliminar producto',
+        destructivo: true,
+        etiquetaCancelar: 'Cancelar',
+        etiquetaAceptar: 'Eliminar producto',
+      },
+    );
     if (!confirmado) return;
 
     try {
@@ -539,136 +567,91 @@ export default function CatalogoProductosPage() {
       )}
 
       {/* Drawer Crear / Editar Producto */}
-      {drawerAbierto && (
-        <>
-          <div
-            className="fixed inset-0 bg-espresso-900/60 z-40 transition-opacity"
-            onClick={cerrarDrawer}
-            aria-hidden="true"
-          />
+      {drawerAbierto &&
+        createPortal(
+          <>
+            {/* Backdrop con cobertura 100% de pantalla (w-screen, h-dvh) y oscurecimiento uniforme sin desfase */}
+            <div
+              className="fixed inset-0 w-screen h-dvh z-40 bg-[#1C110D]/75 backdrop-blur-[2px] transition-opacity"
+              onClick={cerrarDrawer}
+              aria-hidden="true"
+            />
 
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label={productoEditando ? 'Editar Producto' : 'Nuevo Producto'}
-            className="fixed right-0 top-0 h-full w-full max-w-lg bg-surface shadow-2xl z-50 flex flex-col"
-          >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-line">
-              <h2 className="text-lg font-semibold text-fg">
-                {productoEditando ? 'Editar Producto' : 'Nuevo Producto'}
-              </h2>
-              <button
-                type="button"
-                className="btn-ghost !p-1.5 min-h-8"
-                onClick={cerrarDrawer}
-                aria-label="Cerrar formulario"
-              >
-                <X size={18} aria-hidden="true" />
-              </button>
-            </div>
-
-            <form
-              onSubmit={handleSubmit}
-              className="flex flex-col gap-4 flex-1 overflow-y-auto px-6 py-5 scroll-fino"
+            {/* Panel lateral (Drawer) en Alabastro cálido, estructura Flex vertical completa */}
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label={productoEditando ? 'Editar Producto' : 'Nuevo Producto'}
+              className="fixed right-0 top-0 bottom-0 h-dvh w-full max-w-lg bg-[#FAF8F5] dark:bg-[#2A1A14] shadow-2xl z-50 flex flex-col border-l border-line"
             >
-              {formError && <BannerError error={formError} onCerrar={() => setFormError(null)} />}
-
-              <div>
-                <label htmlFor="producto-nombre" className="mb-1 block text-sm font-medium text-fg">
-                  Nombre del Producto <span className="text-danger">*</span>
-                </label>
-                <input
-                  id="producto-nombre"
-                  type="text"
-                  className="input"
-                  placeholder="Ej. Latte Grande, Croissant de Mantequilla"
-                  maxLength={120}
-                  required
-                  value={form.nombre}
-                  onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
-                />
-                <CampoError id="producto-nombre" mensaje={errorNombre} />
+              {/* Cabecera fija */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-line bg-[#FAF8F5] dark:bg-[#2A1A14] shrink-0">
+                <div>
+                  <h2 className="text-lg font-semibold text-fg">
+                    {productoEditando ? 'Editar Producto' : 'Nuevo Producto'}
+                  </h2>
+                  <p className="text-xs text-fg-muted mt-0.5">
+                    {productoEditando
+                      ? 'Modifica los datos comerciales y de inventario del producto'
+                      : 'Registra un nuevo producto para venta en catálogo y POS'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="rounded-lg p-1.5 text-fg-muted hover:text-fg hover:bg-espresso-100 dark:hover:bg-espresso-800 transition-colors"
+                  onClick={cerrarDrawer}
+                  aria-label="Cerrar formulario"
+                >
+                  <X size={18} aria-hidden="true" />
+                </button>
               </div>
 
-              <Select
-                etiqueta="Categoría del producto"
+              {/* Formulario con scroll interno */}
+              <form
+                id="form-producto"
+                onSubmit={handleSubmit}
+                className="flex flex-col gap-4 flex-1 overflow-y-auto px-6 py-5 scroll-fino"
+              >
+                {formError && <BannerError error={formError} onCerrar={() => setFormError(null)} />}
+                <div>
+                  <label htmlFor="producto-nombre" className="mb-1 block text-sm font-medium text-fg">
+                    Nombre del Producto <span className="text-danger ml-0.5 font-semibold">*</span>
+                  </label>
+                  <input
+                    id="producto-nombre"
+                    type="text"
+                    className="input focus:ring-2 focus:ring-[#B15C3D]/30 focus:border-[#B15C3D]"
+                    placeholder="Ej. Latte Grande, Croissant de Mantequilla"
+                    maxLength={150}
+                    required
+                    value={form.nombre}
+                    onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
+                  />
+                  <CampoError id="producto-nombre" mensaje={errorNombre} />
+                </div>
+
+                <Select
+                  etiqueta="Categoría del producto"
                   opciones={categoriasForm}
-                value={String(form.id_categoria)}
+                  value={String(form.id_categoria)}
                   onChange={(e) => setForm((f) => ({ ...f, id_categoria: e.target.value }))}
                   disabled={Boolean(errorCategorias)}
-              />
-
-              <div>
-                <label htmlFor="producto-codigo-barra" className="mb-1 block text-sm font-medium text-fg">
-                  Código de barras o SKU
-                </label>
-                <input
-                  id="producto-codigo-barra"
-                  type="text"
-                  className="input"
-                  placeholder="Ej. 7400001000011 (opcional)"
-                  maxLength={50}
-                  value={form.codigo_barra}
-                  onChange={(e) => setForm((f) => ({ ...f, codigo_barra: e.target.value }))}
+                  buscable
                 />
-              </div>
 
-              <div>
-                <label htmlFor="producto-precio-venta" className="mb-1 block text-sm font-medium text-fg">
-                  Precio de venta al público (incluye IVA 13%) <span className="text-danger">*</span>
-                </label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-bold text-fg-muted">
-                    $
-                  </span>
+                <div>
+                  <label htmlFor="producto-codigo-barra" className="mb-1 block text-sm font-medium text-fg">
+                    Código de barras o SKU
+                  </label>
                   <input
-                    id="producto-precio-venta"
-                    type="number"
-                    className="input pl-7 font-mono font-medium"
-                    min="0.01"
-                    step="0.01"
-                    required
-                    value={form.precio_venta}
-                    onChange={(e) => setForm((f) => ({ ...f, precio_venta: e.target.value }))}
-                    placeholder="0.00"
+                    id="producto-codigo-barra"
+                    type="text"
+                    className="input focus:ring-2 focus:ring-[#B15C3D]/30 focus:border-[#B15C3D]"
+                    placeholder="Ej. 7400001000011 (opcional)"
+                    maxLength={50}
+                    value={form.codigo_barra}
+                    onChange={(e) => setForm((f) => ({ ...f, codigo_barra: e.target.value }))}
                   />
-                </div>
-                <p className="mt-1 text-xs text-fg-muted">
-                  Conforme a la normativa tributaria de El Salvador, el precio ya incorpora el débito fiscal.
-                </p>
-              </div>
-
-              {/* Selección de Tipo: Elaborado vs Reventa */}
-              <div className="rounded-lg border border-line bg-muted/30 p-4 space-y-3">
-                <span className="block text-sm font-semibold text-fg">Tipo de Producto</span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <label
-                    className={`flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors ${form.es_elaborado ? 'border-primary bg-primary-soft text-primary-text font-semibold' : 'border-line bg-surface text-fg'}`}
-                  >
-                    <input
-                      type="radio"
-                      name="tipo_producto"
-                      className="accent-primary"
-                      checked={form.es_elaborado === true}
-                      onChange={() => setForm((f) => ({ ...f, es_elaborado: true, id_insumo_reventa: '' }))}
-                    />
-                    <ChefHat size={16} aria-hidden="true" />
-                    <span className="text-xs sm:text-sm">Elaborado con receta</span>
-                  </label>
-
-                  <label
-                    className={`flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors ${!form.es_elaborado ? 'border-secondary bg-secondary-soft text-secondary-text font-semibold' : 'border-line bg-surface text-fg'}`}
-                  >
-                    <input
-                      type="radio"
-                      name="tipo_producto"
-                      className="accent-secondary"
-                      checked={form.es_elaborado === false}
-                      onChange={() => setForm((f) => ({ ...f, es_elaborado: false }))}
-                    />
-                    <ShoppingBag size={16} aria-hidden="true" />
-                    <span className="text-xs sm:text-sm">Reventa / Empacado</span>
-                  </label>
                 </div>
 
                 {/* Si es reventa: asociar insumo */}
@@ -686,40 +669,119 @@ export default function CatalogoProductosPage() {
                     <p className="mt-1 text-xs text-fg-muted">
                       Al vender este producto en POS, se descontará automáticamente 1 unidad del insumo seleccionado.
                     </p>
+                <div>
+                  <label htmlFor="producto-precio-venta" className="mb-1 block text-sm font-medium text-fg">
+                    Precio de venta al público (incluye IVA 13%) <span className="text-danger ml-0.5 font-semibold">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-bold text-fg-muted">
+                      $
+                    </span>
+                    <input
+                      id="producto-precio-venta"
+                      type="number"
+                      className="input pl-7 font-mono font-medium focus:ring-2 focus:ring-[#B15C3D]/30 focus:border-[#B15C3D]"
+                      min="0.01"
+                      step="0.01"
+                      required
+                      value={form.precio_venta}
+                      onChange={(e) => setForm((f) => ({ ...f, precio_venta: e.target.value }))}
+                      placeholder="0.00"
+                    />
                   </div>
-                )}
-              </div>
+                  <p className="mt-1 text-xs text-fg-muted">
+                    Conforme a la normativa tributaria de El Salvador, el precio ya incorpora el débito fiscal.
+                  </p>
+                </div>
 
-              <div className="flex items-center gap-3 pt-1">
-                <input
-                  id="producto-activo"
-                  type="checkbox"
-                  checked={form.activo}
-                  onChange={(e) => setForm((f) => ({ ...f, activo: e.target.checked }))}
-                  className="h-4 w-4 rounded border-line accent-primary"
-                />
-                <label htmlFor="producto-activo" className="text-sm text-fg select-none">
-                  Producto activo para venta en POS y catálogos
-                </label>
-              </div>
-            </form>
+                {/* Selección de Tipo: Elaborado vs Reventa */}
+                <div className="rounded-xl border border-line bg-surface p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="block text-sm font-semibold text-fg">Tipo de Producto</span>
+                    <span className="text-xs text-fg-muted">Manejo de inventario</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label
+                      className={`flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors ${form.es_elaborado ? 'border-primary bg-primary-soft text-primary-text font-semibold' : 'border-line bg-surface text-fg'}`}
+                    >
+                      <input
+                        type="radio"
+                        name="tipo_producto"
+                        className="accent-primary"
+                        checked={form.es_elaborado === true}
+                        onChange={() => setForm((f) => ({ ...f, es_elaborado: true, id_insumo_reventa: '' }))}
+                      />
+                      <ChefHat size={16} aria-hidden="true" />
+                      <span className="text-xs sm:text-sm">Elaborado con receta</span>
+                    </label>
 
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-line">
-              <Button variante="ghost" onClick={cerrarDrawer} disabled={guardando}>
-                Cancelar
-              </Button>
-              <Button
-                variante="primary"
-                cargando={guardando}
-                onClick={handleSubmit}
-                disabled={guardando}
-              >
-                {productoEditando ? 'Guardar cambios' : 'Crear producto'}
-              </Button>
+                    <label
+                      className={`flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors ${!form.es_elaborado ? 'border-secondary bg-secondary-soft text-secondary-text font-semibold' : 'border-line bg-surface text-fg'}`}
+                    >
+                      <input
+                        type="radio"
+                        name="tipo_producto"
+                        className="accent-secondary"
+                        checked={form.es_elaborado === false}
+                        onChange={() => setForm((f) => ({ ...f, es_elaborado: false }))}
+                      />
+                      <ShoppingBag size={16} aria-hidden="true" />
+                      <span className="text-xs sm:text-sm">Reventa / Empacado</span>
+                    </label>
+                  </div>
+
+                  {/* Si es reventa: asociar insumo */}
+                  {!form.es_elaborado && (
+                    <div className="pt-2">
+                      <Select
+                        etiqueta="Insumo asociado para descuento 1:1 en POS"
+                        requerido
+                        opciones={opcionesInsumosReventa}
+                        value={String(form.id_insumo_reventa)}
+                        onChange={(e) => setForm((f) => ({ ...f, id_insumo_reventa: e.target.value }))}
+                        placeholder="Seleccionar insumo de reventa…"
+                        buscable
+                      />
+                      <p className="mt-1 text-xs text-fg-muted">
+                        Al vender este producto en POS, se descontará automáticamente 1 unidad del insumo seleccionado.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3 pt-1">
+                  <input
+                    id="producto-activo"
+                    type="checkbox"
+                    checked={form.activo}
+                    onChange={(e) => setForm((f) => ({ ...f, activo: e.target.checked }))}
+                    className="h-4 w-4 rounded border-line accent-primary"
+                  />
+                  <label htmlFor="producto-activo" className="text-sm text-fg select-none">
+                    Producto activo para venta en POS y catálogos
+                  </label>
+                </div>
+              </form>
+
+              {/* Pie de acciones fijo */}
+              <div className="sticky bottom-0 border-t border-line bg-[#FAF8F5] dark:bg-[#2A1A14] px-6 py-4 flex items-center justify-end gap-3 shrink-0">
+                <Button variante="ghost" onClick={cerrarDrawer} disabled={guardando}>
+                  Cancelar
+                </Button>
+                <Button
+                  variante="primary"
+                  type="submit"
+                  form="form-producto"
+                  cargando={guardando}
+                  disabled={guardando}
+                >
+                  {productoEditando ? 'Guardar cambios' : 'Crear producto'}
+                </Button>
+              </div>
             </div>
-          </div>
-        </>
-      )}
+          </>,
+          document.body
+        )}
     </div>
   );
 }
