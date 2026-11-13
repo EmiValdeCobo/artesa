@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { X, ChefHat, FlaskConical, Search, Plus, AlertCircle, ArrowLeft, Check, Sparkles } from 'lucide-react';
+import { X, ChefHat, FlaskConical, Search, AlertCircle, ArrowLeft, Check, Sparkles, Package } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
-import { Button, Card, Spinner } from '../../components/ui/index.js';
+import { Button, Card, Select, Spinner } from '../../components/ui/index.js';
 import { formatoDinero } from '../../utils/formato.js';
 import { traducirError } from '../../errors/traducirError.js';
 
@@ -32,6 +32,12 @@ function calcCostoTotal(componentes) {
     const costo = Number(c.costo_promedio || 0);
     return acc + Math.round(cant * costo * 10000) / 10000;
   }, 0);
+}
+
+// Mensaje local (validación o modo sin conexión) con la misma forma que espera
+// BannerError, para no mezclar errores de servidor con texto plano.
+function avisoLocal(mensaje, titulo = 'Revisa la información') {
+  return { titulo, mensaje, accion: '', categoria: 'usuario' };
 }
 
 function colorMargenClass(pct) {
@@ -104,12 +110,12 @@ export default function EditorRecetasPage() {
         setInsumos(listaInsCruda.length ? listaInsCruda : MOCK_INSUMOS);
 
         if (resProductos.status === 'rejected') {
-          setErrorBase('Usando catálogo local (sin conexión al backend).');
+          setErrorBase(avisoLocal('Usando catálogo local (sin conexión al backend).', 'Sin conexión'));
         }
       } catch {
         setProductos(MOCK_PRODUCTOS.filter((p) => p.es_elaborado));
         setInsumos(MOCK_INSUMOS);
-        setErrorBase('Modo demostración activo.');
+        setErrorBase(avisoLocal('Modo demostración activo.', 'Sin conexión'));
       } finally {
         setCargando(false);
       }
@@ -161,7 +167,7 @@ export default function EditorRecetasPage() {
       const componentes = mock?.componentes ?? [];
       setRecetaComponentes(componentes);
       setRecetaOriginal(JSON.parse(JSON.stringify(componentes)));
-      setErrorReceta('Receta cargada desde catálogo de respaldo.');
+      setErrorReceta(avisoLocal('Receta cargada desde catálogo de respaldo.', 'Sin conexión'));
     } finally {
       setCargandoReceta(false);
     }
@@ -187,13 +193,15 @@ export default function EditorRecetasPage() {
   // ── Cambiar producto seleccionado ─────────────────────────────────────────
   async function handleCambiarProducto(nuevoId) {
     if (hayCambios) {
-      const ok = await confirm({
-        titulo: 'Cambios sin guardar',
-        mensaje: 'Tienes modificaciones pendientes en la receta actual. ¿Deseas descartarlas y cambiar de producto?',
-        etiquetaCancelar: 'Seguir editando',
-        etiquetaAceptar: 'Descartar y cambiar',
-        destructivo: true,
-      });
+      const ok = await confirm(
+        'Tienes modificaciones pendientes en la receta actual. ¿Deseas descartarlas y cambiar de producto?',
+        {
+          titulo: 'Cambios sin guardar',
+          etiquetaCancelar: 'Seguir editando',
+          etiquetaAceptar: 'Descartar y cambiar',
+          destructivo: true,
+        },
+      );
       if (!ok) return;
     }
 
@@ -219,7 +227,7 @@ export default function EditorRecetasPage() {
       const yaExiste = insumosYaEnReceta.has(id);
       const coincide =
         !termino ||
-        ins.nombre.toLowerCase().includes(termino) ||
+        (ins.nombre ?? '').toLowerCase().includes(termino) ||
         (ins.codigo_sku && ins.codigo_sku.toLowerCase().includes(termino));
       return !yaExiste && coincide;
     });
@@ -253,8 +261,15 @@ export default function EditorRecetasPage() {
   // ── Guardar receta ─────────────────────────────────────────────────────────
   async function handleGuardar() {
     if (!idProductoSeleccionado) return;
-    setGuardando(true);
     setErrorGuardar(null);
+
+    const invalido = recetaComponentes.find((c) => !(Number(c.cantidad_requerida) > 0));
+    if (invalido) {
+      setErrorGuardar(avisoLocal(`La cantidad de "${invalido.nombre_insumo}" debe ser un número mayor a cero.`));
+      return;
+    }
+
+    setGuardando(true);
     try {
       const componentes = recetaComponentes.map((c) => ({
         idInsumo: Number(c.id_insumo),
@@ -275,12 +290,14 @@ export default function EditorRecetasPage() {
   // ── Descartar cambios ──────────────────────────────────────────────────────
   async function handleDescartar() {
     if (hayCambios) {
-      const ok = await confirm({
-        titulo: 'Descartar cambios',
-        mensaje: '¿Deseas restaurar la receta a su último estado guardado?',
-        etiquetaCancelar: 'Cancelar',
-        etiquetaAceptar: 'Restaurar',
-      });
+      const ok = await confirm(
+        '¿Deseas restaurar la receta a su último estado guardado?',
+        {
+          titulo: 'Descartar cambios',
+          etiquetaCancelar: 'Cancelar',
+          etiquetaAceptar: 'Restaurar',
+        },
+      );
       if (!ok) return;
     }
     setRecetaComponentes(JSON.parse(JSON.stringify(recetaOriginal)));
@@ -364,22 +381,18 @@ export default function EditorRecetasPage() {
             {/* 1. Selector de Producto Elaborado */}
             <Card titulo="Producto a Configurar" descripcion="Solo productos elaborados con receta activa">
               <div className="space-y-3">
-                <label htmlFor="selector-producto" className="sr-only">
-                  Seleccionar producto elaborado
-                </label>
-                <select
+                <Select
                   id="selector-producto"
-                  className="input w-full font-medium"
+                  aria-label="Seleccionar producto elaborado"
+                  placeholder="— Selecciona un producto elaborado —"
                   value={idProductoSeleccionado}
                   onChange={(e) => handleCambiarProducto(e.target.value)}
-                >
-                  <option value="">— Selecciona un producto elaborado —</option>
-                  {productos.map((p) => (
-                    <option key={p.id_producto} value={p.id_producto}>
-                      {p.nombre} ({formatoDinero(p.precio_venta)})
-                    </option>
-                  ))}
-                </select>
+                  opciones={productos.map((p) => ({
+                    valor: String(p.id_producto),
+                    texto: `${p.nombre} (${formatoDinero(p.precio_venta)})`,
+                  }))}
+                  buscable
+                />
 
                 {hayProducto && (
                   <div className="rounded-lg border border-line bg-muted/40 p-3 text-xs space-y-1">
@@ -512,7 +525,7 @@ export default function EditorRecetasPage() {
                       <input
                         id="agregar-insumo-receta"
                         type="text"
-                        className="input pl-9"
+                        className="input pl-9 h-10 rounded-lg focus:ring-2 focus:ring-[#B15C3D]/30 focus:border-[#B15C3D]"
                         placeholder="Buscar insumo disponible por nombre o código…"
                         value={busquedaInsumo}
                         onChange={(e) => {
@@ -524,7 +537,7 @@ export default function EditorRecetasPage() {
                     </div>
 
                     {dropdownAbierto && busquedaInsumo.trim().length > 0 && (
-                      <ul className="absolute left-0 right-0 z-30 mt-1 max-h-52 overflow-y-auto rounded-lg border border-line bg-surface shadow-xl scroll-fino divide-y divide-line">
+                      <ul className="absolute left-0 right-0 z-30 mt-1.5 max-h-56 overflow-y-auto rounded-xl border border-line bg-surface shadow-xl scroll-fino p-1.5 space-y-0.5">
                         {insumosFiltrados.length === 0 ? (
                           <li className="p-3 text-xs text-fg-muted text-center">
                             No hay insumos disponibles que coincidan o ya están en la receta.
@@ -533,7 +546,7 @@ export default function EditorRecetasPage() {
                           insumosFiltrados.map((ins) => (
                             <li
                               key={ins.id_insumo}
-                              className="flex cursor-pointer items-center justify-between p-3 text-sm hover:bg-muted/80 transition-colors"
+                              className="flex cursor-pointer items-center justify-between p-2.5 rounded-lg text-sm hover:bg-espresso-100/60 dark:hover:bg-espresso-800/60 transition-colors select-none"
                               onMouseDown={() => handleSeleccionarInsumo(ins)}
                             >
                               <div>
@@ -544,7 +557,7 @@ export default function EditorRecetasPage() {
                                   </span>
                                 )}
                               </div>
-                              <span className="font-mono text-xs font-semibold text-primary-text bg-primary-soft px-2 py-0.5 rounded">
+                              <span className="font-mono text-xs font-semibold text-primary-text bg-primary-soft px-2.5 py-0.5 rounded-md">
                                 {ins.codigo_unidad ?? 'u'} · $ {ins.costo_promedio ?? '0.0000'}
                               </span>
                             </li>
