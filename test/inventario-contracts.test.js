@@ -32,6 +32,14 @@ test('inventario: desactivar insumo y unidad devuelve 409 con dependencias activ
   assert.match(productosUi, /Reactivar producto/);
 });
 
+test('inventario: drawer limita reventa a insumos disponibles y muestra su vínculo', async () => {
+  const pagina = await leer('frontend/src/modules/inventario/CatalogoProductosPage.jsx');
+  assert.match(pagina, /i\.tipo_insumo\)\.toUpperCase\(\) === 'REVENTA'/);
+  assert.match(pagina, /!insumosVinculados\.has\(String\(i\.id_insumo\)\)/);
+  assert.match(pagina, /Cada venta descontará 1/);
+  assert.match(pagina, /p\.insumo_reventa/);
+});
+
 test('inventario: el seeder asigna el kardex solo a roles autorizados y restringe costos de BODEGUERO', async () => {
   const seeder = await leer('database/seeders/003_inventario_kardex.sql');
   assert.match(seeder, /'INV_VER_KARDEX'[\s\S]*ON CONFLICT \(codigo\) DO NOTHING/);

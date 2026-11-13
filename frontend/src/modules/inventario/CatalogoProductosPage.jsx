@@ -283,12 +283,12 @@ export default function CatalogoProductosPage() {
     { valor: 'CON_RECETA', texto: 'Con receta' },
   ];
 
-  const insumosReventa = insumos.filter(
-    (i) => String(i.tipo_insumo).toUpperCase() === 'REVENTA' || String(i.tipo_insumo).toUpperCase() === 'EMPAQUE',
-  );
+  const insumosVinculados = new Set(productos.filter((p) => p.activo !== false && p.id_producto !== productoEditando?.id_producto && p.id_insumo_reventa != null).map((p) => String(p.id_insumo_reventa)));
+  const insumosReventa = insumos.filter((i) => String(i.tipo_insumo).toUpperCase() === 'REVENTA' && (!insumosVinculados.has(String(i.id_insumo)) || String(i.id_insumo) === String(productoEditando?.id_insumo_reventa)));
+  const insumoReventaSeleccionado = insumosReventa.find((i) => String(i.id_insumo) === String(form.id_insumo_reventa));
   const opcionesInsumosReventa = [
     { valor: '', texto: 'Selecciona un insumo de reventa…' },
-    ...insumosReventa.map((i) => ({ valor: String(i.id_insumo), texto: `${i.nombre} (${i.codigo_unidad ?? 'u'})` })),
+    ...insumosReventa.map((i) => ({ valor: String(i.id_insumo), texto: i.nombre })),
   ];
   const errorNombre = formError?.campos?.nombre || (formError?.id === 'DUPLICADO' ? 'Ya existe un producto con ese nombre. Cambia el nombre o el código.' : null);
 
@@ -301,6 +301,7 @@ export default function CatalogoProductosPage() {
         <div>
           <span className="font-semibold text-fg">{p.nombre}</span>
           {p.es_elaborado && <span title={Number(p.n_ingredientes) === 0 ? 'No se puede vender hasta que tenga al menos un ingrediente' : `${p.n_ingredientes} ingredientes`} className={`ml-2 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${Number(p.n_ingredientes) === 0 ? 'bg-warning-soft text-warning' : 'bg-success-soft text-success'}`}>{Number(p.n_ingredientes) === 0 ? 'Sin receta' : `${p.n_ingredientes} ingredientes`}</span>}
+          {!p.es_elaborado && <p className="text-xs text-fg-muted">Insumo: {p.insumo_reventa ?? '—'}</p>}
           {p.codigo_barra && (
             <p className="font-mono text-xs text-fg-muted">{p.codigo_barra}</p>
           )}
@@ -320,7 +321,7 @@ export default function CatalogoProductosPage() {
     {
       clave: 'tipo',
       titulo: 'Tipo',
-      render: (p) => <BadgeTipo esElaborado={p.es_elaborado} />,
+      render: (p) => <div><BadgeTipo esElaborado={p.es_elaborado} />{!p.es_elaborado && <p className="mt-1 text-xs text-fg-muted">{p.insumo_reventa ?? '—'}</p>}</div>,
     },
     {
       clave: 'precio_venta',
@@ -509,6 +510,7 @@ export default function CatalogoProductosPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <h3 className="font-semibold text-fg text-base leading-snug">{p.nombre}</h3>
+                      {!p.es_elaborado && <p className="text-xs text-fg-muted">Insumo: {p.insumo_reventa ?? '—'}</p>}
                       {p.es_elaborado && <span title={Number(p.n_ingredientes) === 0 ? 'No se puede vender hasta que tenga al menos un ingrediente' : `${p.n_ingredientes} ingredientes`} className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${Number(p.n_ingredientes) === 0 ? 'bg-warning-soft text-warning' : 'bg-success-soft text-success'}`}>{Number(p.n_ingredientes) === 0 ? 'Sin receta' : `${p.n_ingredientes} ingredientes`}</span>}
                       {p.codigo_barra && (
                         <p className="font-mono text-xs text-fg-muted mt-0.5">{p.codigo_barra}</p>
@@ -703,7 +705,7 @@ export default function CatalogoProductosPage() {
                         onChange={() => setForm((f) => ({ ...f, es_elaborado: true, id_insumo_reventa: '' }))}
                       />
                       <ChefHat size={16} aria-hidden="true" />
-                      <span className="text-xs sm:text-sm">Elaborado con receta</span>
+                      <span className="text-xs sm:text-sm">Elaborado con receta<p className="font-normal text-fg-muted">Tras guardar podrás definir su receta; sin receta no se puede vender</p></span>
                     </label>
 
                     <label
@@ -717,7 +719,7 @@ export default function CatalogoProductosPage() {
                         onChange={() => setForm((f) => ({ ...f, es_elaborado: false }))}
                       />
                       <ShoppingBag size={16} aria-hidden="true" />
-                      <span className="text-xs sm:text-sm">Reventa / Empacado</span>
+                      <span className="text-xs sm:text-sm">Reventa<p className="font-normal text-fg-muted">Se descuenta 1 unidad del insumo por cada venta</p></span>
                     </label>
                   </div>
 
@@ -733,9 +735,7 @@ export default function CatalogoProductosPage() {
                         placeholder="Seleccionar insumo de reventa…"
                         buscable
                       />
-                      <p className="mt-1 text-xs text-fg-muted">
-                        Al vender este producto en POS, se descontará automáticamente 1 unidad del insumo seleccionado.
-                      </p>
+                      {insumoReventaSeleccionado && <p className="mt-1 text-xs text-fg-muted">Unidad: {insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad ?? 'UND'}{String(insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad ?? 'UND').toUpperCase() !== 'UND' && <span className="ml-1 text-warning">Cada venta descontará 1 {insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad}</span>}</p>}
                     </div>
                   )}
                 </div>
