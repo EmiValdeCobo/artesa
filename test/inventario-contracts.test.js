@@ -190,14 +190,14 @@ test('inventario UI: CatalogoInsumosPage, CatalogoProductosPage y EditorRecetasP
   ]);
 
   // 1. Rutas protegidas en App.jsx
-  assert.match(app, /path="inventario\/insumos" element={<ProtectedRoute permiso="INV_GESTIONAR_INSUMOS"><CatalogoInsumosPage \/><\/ProtectedRoute>}/);
-  assert.match(app, /path="inventario\/productos" element={<ProtectedRoute permiso="INV_VER_STOCK"><CatalogoProductosPage \/><\/ProtectedRoute>}/);
-  assert.match(app, /path="inventario\/recetas" element={<ProtectedRoute permiso="INV_GESTIONAR_RECETAS"><EditorRecetasPage \/><\/ProtectedRoute>}/);
+  assert.match(app, /path="catalogo\/insumos" element={<ProtectedRoute permiso="INV_GESTIONAR_INSUMOS"><CatalogoInsumosPage \/><\/ProtectedRoute>}/);
+  assert.match(app, /path="catalogo\/productos" element={<ProtectedRoute permiso="INV_VER_STOCK"><CatalogoProductosPage \/><\/ProtectedRoute>}/);
+  assert.match(app, /path="catalogo\/productos\/:idProducto\/receta" element={<ProtectedRoute permiso="INV_GESTIONAR_RECETAS"><EditorRecetasPage \/><\/ProtectedRoute>}/);
 
   // 2. Menú lateral en menu.js
-  assert.match(menu, /ruta: '\/inventario\/insumos', texto: 'Catálogo de Insumos', permiso: 'INV_GESTIONAR_INSUMOS'/);
-  assert.match(menu, /ruta: '\/inventario\/productos', texto: 'Catálogo de Productos', permiso: 'INV_VER_STOCK'/);
-  assert.match(menu, /ruta: '\/inventario\/recetas', texto: 'Editor de Recetas', permiso: 'INV_GESTIONAR_RECETAS'/);
+  assert.match(menu, /ruta: '\/catalogo\/insumos', texto: 'Insumos y unidades', permiso: 'INV_GESTIONAR_INSUMOS'/);
+  assert.match(menu, /ruta: '\/catalogo\/productos', texto: 'Productos', permiso: 'INV_VER_STOCK'/);
+  assert.doesNotMatch(menu, /ruta: '\/inventario\/recetas'/);
 
   // 3. CatalogoInsumosPage: pestañas y unidades; stock se consulta por sucursal en Existencias
   assert.match(insumosPage, /PestanaInsumos/);
@@ -213,7 +213,7 @@ test('inventario UI: CatalogoInsumosPage, CatalogoProductosPage y EditorRecetasP
   assert.match(productosPage, /vista === 'tabla'/);
   assert.match(productosPage, /vista === 'cuadricula'/);
   assert.match(productosPage, /formatoDinero\(p\.precio_venta\)/);
-  assert.match(productosPage, /\/inventario\/recetas\?producto=/);
+  assert.match(productosPage, /\/catalogo\/productos\/\$\{p\.id_producto\}\/receta/);
   assert.match(productosPage, /Elaborado \(Receta\)/);
   assert.match(productosPage, /Reventa/);
 

@@ -144,3 +144,10 @@ test('menu: Kárdex requiere INV_VER_KARDEX de forma independiente del stock', (
   assert.ok(rutasSinKardex.includes('/inventario'));
   assert.ok(!rutasSinKardex.includes('/inventario/kardex'));
 });
+
+test('menu: Catálogo separa insumos y productos de Inventario operativo', () => {
+  const catalogo = menu.flatMap((s) => s.items ?? []).find((i) => i.id === 'catalogo');
+  const inventario = menu.flatMap((s) => s.items ?? []).find((i) => i.id === 'inventario');
+  assert.deepEqual(catalogo.hijos.map((h) => h.ruta), ['/catalogo/insumos', '/catalogo/productos']);
+  assert.deepEqual(inventario.hijos.map((h) => h.ruta), ['/inventario', '/inventario/kardex']);
+});

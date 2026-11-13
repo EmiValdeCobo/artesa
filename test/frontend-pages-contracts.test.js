@@ -16,6 +16,10 @@ test('frontend rutas: App.jsx protege cada ruta con su permiso RBAC exacto', asy
   assert.match(app, /<ProtectedRoute permiso="EMP_GESTIONAR_SUCURSALES"><SucursalesPage \/><\/ProtectedRoute>/);
   assert.match(app, /<ProtectedRoute permiso="EMP_EDITAR_PARAMETROS"><ParametrosPage \/><\/ProtectedRoute>/);
   assert.match(app, /<ProtectedRoute permiso="SEG_GESTIONAR_ROLES">\s*<RolesPermisosPage \/>/);
+  assert.match(app, /path="catalogo\/insumos" element={<ProtectedRoute permiso="INV_GESTIONAR_INSUMOS">/);
+  assert.match(app, /path="catalogo\/productos" element={<ProtectedRoute permiso="INV_VER_STOCK">/);
+  assert.match(app, /path="catalogo\/productos\/:idProducto\/receta" element={<ProtectedRoute permiso="INV_GESTIONAR_RECETAS">/);
+  assert.match(app, /path="inventario\/recetas" element={<Navigate to="\/catalogo\/productos" replace \/>/);
 });
 
 test('frontend rutas: módulos sin endpoints backend implementados usan PendienteApiPage explícito', async () => {
@@ -114,6 +118,8 @@ test('frontend inventario: catalogo de insumos, productos y recetas protegen ico
   assert.match(recetas, /Number\(c\.cantidad_requerida\)\s*>\s*0/);
   assert.match(recetas, /\(ins\.nombre\s*\?\?\s*['"]['"]\)\.toLowerCase\(\)/);
   assert.match(recetas, /function\s+avisoLocal\s*\(/);
+  assert.match(recetas, /useParams/);
+  assert.doesNotMatch(recetas, /selector-producto/);
 
   // CatalogoInsumosPage no usa CampoTexto alto, usa inputs estandar y define avisoLocal
   assert.doesNotMatch(insumos, /import\s+CampoTexto\s+from/);
