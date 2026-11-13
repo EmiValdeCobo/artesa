@@ -1,4 +1,4 @@
-import test from 'node:test';
+﻿import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
@@ -98,3 +98,25 @@ test('frontend formularios: CampoTexto tolera icono omitido sin romper el render
   assert.doesNotMatch(campoTexto, /<Icono\s+size=\{17\}\s+aria-hidden="true"\s*\/>\s*<input/);
 });
 
+
+test('frontend inventario: catalogo de insumos, productos y recetas protegen iconos, dialogos confirm y avisoLocal', async () => {
+  const insumos = await leer('frontend/src/modules/inventario/CatalogoInsumosPage.jsx');
+  const productos = await leer('frontend/src/modules/inventario/CatalogoProductosPage.jsx');
+  const recetas = await leer('frontend/src/modules/inventario/EditorRecetasPage.jsx');
+
+  // CatalogoProductosPage importa X y usa confirm(mensaje, opciones)
+  assert.match(productos, /import\s*\{[^}]*\bX\b[^}]*\}\s*from\s*['"]lucide-react['"]/);
+  assert.match(productos, /await\s+confirm\(\s*`¿Deseas dar de baja/);
+  assert.match(productos, /const\s+avisoLocal\s*=/);
+
+  // EditorRecetasPage importa Package, valida cantidad > 0 y blinda nombre de insumo
+  assert.match(recetas, /import\s*\{[^}]*\bPackage\b[^}]*\}\s*from\s*['"]lucide-react['"]/);
+  assert.match(recetas, /Number\(c\.cantidad_requerida\)\s*>\s*0/);
+  assert.match(recetas, /\(ins\.nombre\s*\?\?\s*['"]['"]\)\.toLowerCase\(\)/);
+  assert.match(recetas, /function\s+avisoLocal\s*\(/);
+
+  // CatalogoInsumosPage no usa CampoTexto alto, usa inputs estandar y define avisoLocal
+  assert.doesNotMatch(insumos, /import\s+CampoTexto\s+from/);
+  assert.match(insumos, /className="input"/);
+  assert.match(insumos, /const\s+avisoLocal\s*=/);
+});
