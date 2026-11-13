@@ -11,6 +11,7 @@ import ventasRoutes from './pos/ventas/ventas.routes.js';
 import rrhhRoutes from './rrhh/rrhh.routes.js';
 import empresaRoutes from './empresa/empresa.routes.js';
 import bitacoraRoutes from './bitacora/bitacora.routes.js';
+import proveedoresRoutes from './compras/proveedores/proveedores.routes.js';
 
 // Cada módulo registra aquí su router bajo /api/<recurso-plural>
 // Ejemplo (cuando exista): router.use('/insumos', insumosRoutes);
@@ -28,5 +29,6 @@ router.use('/pos/ventas', ventasRoutes);
 router.use('/rrhh', rrhhRoutes);
 router.use('/empresa', empresaRoutes);
 router.use('/bitacora', bitacoraRoutes);
+router.use('/compras', proveedoresRoutes);
 
 export default router;
