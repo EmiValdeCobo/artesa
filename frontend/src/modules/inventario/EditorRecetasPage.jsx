@@ -10,6 +10,7 @@ import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import { Button, Card, Select, Spinner } from '../../components/ui/index.js';
 import { formatoDinero } from '../../utils/formato.js';
 import { traducirError } from '../../errors/traducirError.js';
+import { calcularCostoReceta, calcularMargen, calcularMargenDolares } from './costeo.js';
 
 import {
   getProductos,
@@ -20,14 +21,6 @@ import {
 } from './inventarioApi.js';
 
 // ─── Helpers Financieros Anti-Float ──────────────────────────────────────────
-function calcCostoTotal(componentes) {
-  return componentes.reduce((acc, c) => {
-    const cant = Number(c.cantidad_requerida || 0);
-    const costo = Number(c.costo_promedio || 0);
-    return acc + Math.round(cant * costo * 10000) / 10000;
-  }, 0);
-}
-
 // Mensaje local (validación o modo sin conexión) con la misma forma que espera
 // BannerError, para no mezclar errores de servidor con texto plano.
 function avisoLocal(mensaje, titulo = 'Revisa la información') {
@@ -42,6 +35,7 @@ function colorMargenClass(pct) {
 
 export default function EditorRecetasPage() {
   const { tiene } = useAuth();
+  const verCostos = tiene('INV_VER_COSTOS');
   const { confirm, notificar } = useAlert();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -350,10 +344,9 @@ export default function EditorRecetasPage() {
   }, [stockSucursal, hayComponentes, recetaComponentes]);
 
   // ── Métricas Financieras (Costeo en Tiempo Real) ───────────────────────────
-  const costoTotal = useMemo(() => calcCostoTotal(recetaComponentes), [recetaComponentes]);
-  const precioVentaNum = hayProducto ? Number(productoSeleccionado.precio_venta || 0) : 0;
-  const margenDolares = Math.max(0, Math.round((precioVentaNum - costoTotal) * 10000) / 10000);
-  const margenPorcentaje = precioVentaNum > 0 ? (margenDolares / precioVentaNum) * 100 : 0;
+  const costoTotal = useMemo(() => calcularCostoReceta(recetaComponentes), [recetaComponentes]);
+  const margenDolares = calcularMargenDolares(productoSeleccionado?.precio_venta ?? '0', costoTotal);
+  const margenPorcentaje = calcularMargen(productoSeleccionado?.precio_venta ?? '0', costoTotal) ?? 0;
   const colorMargen = colorMargenClass(margenPorcentaje);
 
   return (
@@ -418,7 +411,7 @@ export default function EditorRecetasPage() {
             </Card>
 
             {/* 2. Tarjeta de Costeo en Tiempo Real */}
-            {hayProducto && hayComponentes ? (
+            {verCostos && hayProducto && hayComponentes ? (
               <Card
                 titulo="Simulador Financiero"
                 descripcion="Costeo teórico de producción basado en costo promedio ponderado"
@@ -434,10 +427,10 @@ export default function EditorRecetasPage() {
                       {formatoDinero(productoSeleccionado.precio_venta)}
                     </dd>
                   </div>
-                  <div className={`flex items-center justify-between rounded-lg p-3 text-sm font-bold ${colorMargen}`}>
-                    <dt>Margen Bruto Estimado</dt>
-                    <dd className="font-mono">
-                      $ {margenDolares.toFixed(2)} ({margenPorcentaje.toFixed(1)}%)
+                  <div className={`flex items-center justify-between rounded-lg p-3 text-sm font-bold ${colorMargen} ${margenPorcentaje < 0 ? 'text-danger' : ''}`}>
+                    <dt>Margen sobre precio sin IVA</dt>
+                    <dd className="font-mono text-right">
+                      $ {Number(margenDolares).toFixed(2)} ({margenPorcentaje.toFixed(1)}%)
                     </dd>
                   </div>
                 </dl>
@@ -563,7 +556,7 @@ export default function EditorRecetasPage() {
                                 <span className="font-semibold text-fg">{ins.nombre}</span>
                               </div>
                               <span className="font-mono text-xs font-semibold text-primary-text bg-primary-soft px-2.5 py-0.5 rounded-md">
-                                {ins.codigo_unidad ?? 'u'} · $ {ins.costo_promedio ?? '0.0000'}
+                                {verCostos ? `${ins.codigo_unidad ?? 'u'} · $ ${ins.costo_promedio ?? '—'}` : (ins.codigo_unidad ?? 'u')}
                               </span>
                             </li>
                           ))
@@ -619,7 +612,7 @@ export default function EditorRecetasPage() {
                                 )}
                               </td>
                               <td className="px-4 py-3 text-right font-mono font-semibold text-fg">
-                                $ {subtotal.toFixed(4)}
+                                {verCostos ? `$ ${subtotal.toFixed(4)}` : '—'}
                               </td>
                               {tiene('INV_GESTIONAR_RECETAS') && (
                                 <td className="px-3 py-3 text-right">
@@ -643,7 +636,7 @@ export default function EditorRecetasPage() {
                             Costo Teórico Total:
                           </td>
                           <td className="px-4 py-3 text-right font-mono font-bold text-primary-text">
-                            $ {costoTotal.toFixed(4)}
+                            {verCostos ? `$ ${Number(costoTotal).toFixed(4)}` : '—'}
                           </td>
                           {tiene('INV_GESTIONAR_RECETAS') && <td />}
                         </tr>

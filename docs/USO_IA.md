@@ -129,3 +129,4 @@ Formato: `fecha | integrante | herramienta/modelo | para qué se usó | quién v
 2026-11-13 | EmiValdeCobo | Codex (GPT-6) | Reparación de mojibake en las entradas históricas de uso de IA y eliminación de espacios finales; se preservó el registro completo | docs/USO_IA.md | EmiValdeCobo
 2026-11-13 | EmiValdeCobo | Codex (GPT-6) | T1 de UX inventario: se implementó desactivación reversible y validación de dependencias activas con respuesta 409 legible; contrato actualizado porque baja ahora es desactivación y los productos relacionados se nombran | EmiValdeCobo
 2026-11-13 | EmiValdeCobo | Codex (GPT-6) | T2 de UX inventario: se ajustó la selección de insumos vinculados a productos de reventa y su ayuda de unidad | EmiValdeCobo
+2026-11-13 | EmiValdeCobo | Codex (GPT-6) | T3 de UX inventario: se implementó cálculo entero del margen sin IVA, costo teórico condicionado por RBAC y prueba para precio 3.50/costo 2.00 | EmiValdeCobo

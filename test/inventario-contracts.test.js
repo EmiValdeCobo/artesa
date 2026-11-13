@@ -40,6 +40,13 @@ test('inventario: drawer limita reventa a insumos disponibles y muestra su vínc
   assert.match(pagina, /p\.insumo_reventa/);
 });
 
+test('inventario: margen usa precio neto de IVA y costo en aritmética entera', async () => {
+  const { calcularMargen, calcularMargenDolares, calcularCostoReceta } = await import('../frontend/src/modules/inventario/costeo.js');
+  assert.equal(calcularMargen('3.50', '2.0000'), 35.4);
+  assert.equal(calcularMargenDolares('3.50', '4.0000'), '-0.9027');
+  assert.equal(calcularCostoReceta([{ cantidad_requerida: '0.5000', costo_promedio: '2.1234' }]), '1.0617');
+});
+
 test('inventario: el seeder asigna el kardex solo a roles autorizados y restringe costos de BODEGUERO', async () => {
   const seeder = await leer('database/seeders/003_inventario_kardex.sql');
   assert.match(seeder, /'INV_VER_KARDEX'[\s\S]*ON CONFLICT \(codigo\) DO NOTHING/);

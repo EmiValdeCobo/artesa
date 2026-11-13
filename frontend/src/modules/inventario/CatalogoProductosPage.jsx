@@ -15,6 +15,7 @@ import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import { Button, Card, Select, Spinner, Table } from '../../components/ui/index.js';
 import { formatoDinero } from '../../utils/formato.js';
 import { traducirError } from '../../errors/traducirError.js';
+import { calcularMargen } from './costeo.js';
 import {
   getProductos, createProducto, updateProducto, deleteProducto,
   getCategorias, getInsumos,
@@ -333,6 +334,8 @@ export default function CatalogoProductosPage() {
         </span>
       ),
     },
+    { clave: 'costo_teorico', titulo: 'Costo', alinear: 'right', render: (p) => p.costo_teorico == null ? '—' : `$ ${p.costo_teorico}` },
+    { clave: 'margen', titulo: 'Margen sobre precio sin IVA', alinear: 'right', render: (p) => p.costo_teorico == null ? '—' : `${calcularMargen(p.precio_venta, p.costo_teorico)?.toFixed(1) ?? '—'}%` },
     {
       clave: 'estado',
       titulo: 'Estado',
