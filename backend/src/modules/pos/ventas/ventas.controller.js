@@ -19,3 +19,8 @@ export async function detalle(req, res) {
   return res.json({ status: 'success', data: venta });
 }
 
+// PATCH /api/pos/ventas/:id/anular
+export async function anular(req, res) {
+  const venta = await service.anularVenta(req.params.id, req.body.motivo, req.user.id);
+  return res.json({ status: 'success', data: venta });
+}

@@ -44,3 +44,11 @@ export const registrarVentaSchema = z.object({
   }
 });
 
+// ── PATCH /api/pos/ventas/:id/anular ──────────────────────────────────────────
+export const anularVentaSchema = z.object({
+  motivo: z
+    .string({ required_error: 'El motivo de anulación es obligatorio' })
+    .trim()
+    .min(5, 'El motivo debe tener al menos 5 caracteres')
+    .max(255, 'El motivo no puede exceder 255 caracteres'),
+});

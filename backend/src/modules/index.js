@@ -5,9 +5,12 @@ import { cajasRoutes, turnosRoutes } from './caja/caja.routes.js';
 import inventarioRoutes from './inventario/inventario.routes.js';
 import dashboardRoutes from './dashboard/dashboard.routes.js';
 import reportesRoutes from './reportes/reportes.routes.js';
+// POS
 import preparacionRoutes from './pos/preparacion/preparacion.routes.js';
 import ordenesRoutes from './pos/ordenes/ordenes.routes.js';
 import ventasRoutes from './pos/ventas/ventas.routes.js';
+import clientesRoutes from './pos/clientes/clientes.routes.js';
+//
 import rrhhRoutes from './rrhh/rrhh.routes.js';
 import empresaRoutes from './empresa/empresa.routes.js';
 import bitacoraRoutes from './bitacora/bitacora.routes.js';
@@ -26,6 +29,7 @@ router.use('/reportes', reportesRoutes);
 router.use('/preparacion', preparacionRoutes);
 router.use('/pos/ordenes', ordenesRoutes);
 router.use('/pos/ventas', ventasRoutes);
+router.use('/pos/clientes', clientesRoutes);
 router.use('/rrhh', rrhhRoutes);
 router.use('/empresa', empresaRoutes);
 router.use('/bitacora', bitacoraRoutes);

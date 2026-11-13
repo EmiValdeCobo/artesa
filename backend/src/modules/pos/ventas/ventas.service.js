@@ -9,11 +9,15 @@ function mapearErrorPG(err) {
   const msg = err.message ?? '';
   if (err.code === 'P0001') {
     if (msg.includes('turno no existe') || msg.includes('está cerrado')) return new AppError(msg, 400);
-    if (msg.includes('CCF requiere cliente'))                              return new AppError(msg, 400);
-    if (msg.includes('no cuadran'))                                        return new AppError(msg, 400);
-    if (msg.includes('inexistentes') || msg.includes('inactivos'))        return new AppError(msg, 400);
-    if (msg.includes('descuento no puede superar'))                        return new AppError(msg, 400);
-    if (msg.includes('no tiene productos'))                                return new AppError(msg, 400);
+    if (msg.includes('CCF requiere cliente')) return new AppError(msg, 400);
+    if (msg.includes('no cuadran')) return new AppError(msg, 400);
+    if (msg.includes('inexistentes') || msg.includes('inactivos')) return new AppError(msg, 400);
+    if (msg.includes('descuento no puede superar')) return new AppError(msg, 400);
+    if (msg.includes('no tiene productos')) return new AppError(msg, 400);
+    // Casos de anulacion de venta
+    if (msg.includes('Venta no existe')) return new AppError(msg, 404);
+    if (msg.includes('ya está anulada')) return new AppError(msg, 409);
+    if (msg.includes('El turno ya cerró')) return new AppError(msg, 409);
     // Cualquier otra excepción de negocio → 400 genérico
     return new AppError(msg, 400);
   }
@@ -36,22 +40,34 @@ export async function registrarVenta(body, userId) {
     metodo,
     monto,                           // string "0.00" → PostgreSQL lo castea a NUMERIC via ::jsonb
     monto_recibido: monto_recibido ?? null,
-    referencia:     referencia ?? null,
+    referencia: referencia ?? null,
   }));
 
   try {
     return await withTransaction(async (tx) => {
       const idVenta = await repo.registrarVenta(tx, {
-        idTurno:   body.id_turno,
-        tipo:      body.tipo_comprobante,
+        idTurno: body.id_turno,
+        tipo: body.tipo_comprobante,
         idCliente: body.id_cliente ?? null,
         items,
         pagos,
         descuento: body.descuento ?? '0.00',
-        idOrden:   body.id_orden ?? null,
+        idOrden: body.id_orden ?? null,
       });
 
       // Devuelve el detalle completo recién creado
+      return repo.obtenerVenta(idVenta);
+    }, userId);
+  } catch (err) {
+    throw mapearErrorPG(err);
+  }
+}
+
+// ── Anular venta ──────────────────────────────────────────────────────────────
+export async function anularVenta(idVenta, motivo, userId) {
+  try {
+    return await withTransaction(async (tx) => {
+      await repo.anularVenta(tx, { idVenta, motivo, idUsuario: userId });
       return repo.obtenerVenta(idVenta);
     }, userId);
   } catch (err) {
