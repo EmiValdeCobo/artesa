@@ -18,6 +18,7 @@ import SucursalesPage from './modules/empresa/SucursalesPage.jsx';
 import ParametrosPage from './modules/empresa/ParametrosPage.jsx';
 import PendienteApiPage from './modules/PendienteApiPage.jsx';
 import BitacoraPage from './modules/seguridad/BitacoraPage.jsx';
+import CajaPage from './modules/caja/CajaPage.jsx';
 
 export default function App() {
   return (
@@ -78,6 +79,14 @@ export default function App() {
           element={
             <ProtectedRoute permiso="POS_COBRAR">
               <PosPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="caja"
+          element={
+            <ProtectedRoute permiso="CAJA_ABRIR_TURNO">
+              <CajaPage />
             </ProtectedRoute>
           }
         />
