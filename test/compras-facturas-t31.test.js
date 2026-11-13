@@ -19,8 +19,7 @@ test('T31 schema: acepta factura COSTO y fija tipoCosto por defecto', () => {
   assert.deepEqual(parsed.items[0], { idInsumo: 8, cantidad: '50.0000', costoUnitario: '1.250000' });
 });
 
-test('T31 schema: solo permite COSTO y rechaza GASTO/propiedades no declaradas', () => {
-  assert.throws(() => registrarCompraSchema.parse({ ...body, tipoCosto: 'GASTO' }));
+test('T31 schema: mantiene COSTO y rechaza propiedades no declaradas o detalles GASTO', () => {
   assert.throws(() => registrarCompraSchema.parse({ ...body, extra: true }));
   assert.throws(() => registrarCompraSchema.parse({ ...body, items: [{ ...body.items[0], descripcion: 'Luz' }] }));
 });
@@ -76,7 +75,7 @@ test('T31 repository: llama función SQL con bind, JSONB e id_usuario', async ()
   assert.match(repository, /compras\.fn_registrar_compra\(/);
   assert.match(repository, /\$6::jsonb,[\s\S]*\$7::uuid,[\s\S]*\$8::varchar/);
   assert.match(repository, /JSON\.stringify\(items\)/);
-  assert.match(repository, /id_insumo: idInsumo,[\s\S]*cantidad,[\s\S]*costo_unitario: costoUnitario/);
+  assert.match(repository, /id_insumo: item\.idInsumo,[\s\S]*cantidad: item\.cantidad,[\s\S]*costo_unitario: item\.costoUnitario/);
   assert.match(repository, /bind,/);
   assert.doesNotMatch(repository, /\b(INSERT INTO compras\.(facturas_compra|compra_detalles)|UPDATE inventario\.)/i);
 });
@@ -135,9 +134,105 @@ test('T31 no añade auditoría, migraciones ni modifica el schema inicial', asyn
   assert.doesNotMatch(`${service}\n${repository}`, /bitacora|fn_auditar/i);
 });
 
-test('T31 deja pagos/CxP, GASTO y frontend fuera del módulo implementado', async () => {
+test('T31 conserva separados los endpoints de T32 y no implementa frontend', async () => {
   const route = await leer('backend/src/modules/compras/facturas/facturas.routes.js');
   const repository = await leer('backend/src/modules/compras/facturas/facturas.repository.js');
   assert.doesNotMatch(route, /pagos|cuentas-por-pagar|gastos/i);
-  assert.doesNotMatch(repository, /pagos_proveedor|COM_PAGAR_PROVEEDOR|tipoCosto: 'GASTO'/);
+  assert.doesNotMatch(repository, /pagos_proveedor|COM_PAGAR_PROVEEDOR/);
+});
+
+const gasto = {
+  ...body,
+  numeroFactura: 'GAS-001',
+  tipoCosto: 'GASTO',
+  items: [
+    { descripcion: 'Servicio de electricidad', cantidad: '1', costoUnitario: '185.40' },
+    { descripcion: 'Internet', cantidad: '2', costoUnitario: '35.000000' },
+  ],
+};
+
+test('T33 schema: acepta GASTO con varios detalles y conserva decimales como strings', () => {
+  const parsed = registrarCompraSchema.parse(gasto);
+  assert.equal(parsed.tipoCosto, 'GASTO');
+  assert.equal(parsed.items.length, 2);
+  assert.equal(parsed.items[0].descripcion, 'Servicio de electricidad');
+  assert.equal(parsed.items[1].costoUnitario, '35.000000');
+  assert.equal(typeof parsed.items[0].cantidad, 'string');
+});
+
+test('T33 schema: GASTO requiere tipo explícito y descripción no vacía de hasta 150 caracteres', () => {
+  assert.throws(() => registrarCompraSchema.parse({ ...gasto, tipoCosto: undefined }));
+  for (const descripcion of ['', '   ', 'D'.repeat(151)]) {
+    assert.throws(() => registrarCompraSchema.parse({
+      ...gasto,
+      items: [{ ...gasto.items[0], descripcion }],
+    }));
+  }
+  assert.equal(registrarCompraSchema.parse({
+    ...gasto,
+    items: [{ ...gasto.items[0], descripcion: ` ${'D'.repeat(150)} ` }],
+  }).items[0].descripcion.length, 150);
+});
+
+test('T33 schema: GASTO rechaza idInsumo incluso si se envía null', () => {
+  for (const idInsumo of [1, null]) {
+    assert.throws(() => registrarCompraSchema.parse({
+      ...gasto,
+      items: [{ ...gasto.items[0], idInsumo }],
+    }));
+  }
+});
+
+test('T33 schema: requiere detalles, cantidad positiva y costo no negativo', () => {
+  assert.throws(() => registrarCompraSchema.parse({ ...gasto, items: [] }));
+  assert.throws(() => registrarCompraSchema.parse({
+    ...gasto,
+    items: [{ ...gasto.items[0], cantidad: '0' }],
+  }));
+  assert.throws(() => registrarCompraSchema.parse({
+    ...gasto,
+    items: [{ ...gasto.items[0], costoUnitario: '-1' }],
+  }));
+});
+
+test('T33 schema: conserva CONTADO y CREDITO; los detalles COSTO siguen exigiendo idInsumo', () => {
+  for (const condicionPago of ['CONTADO', 'CREDITO']) {
+    assert.equal(registrarCompraSchema.parse({ ...gasto, condicionPago }).condicionPago, condicionPago);
+  }
+  assert.throws(() => registrarCompraSchema.parse({
+    ...body,
+    items: [{ cantidad: '1', costoUnitario: '2' }],
+  }));
+  assert.throws(() => registrarCompraSchema.parse({
+    ...body,
+    items: [{ ...body.items[0], idInsumo: null }],
+  }));
+});
+
+test('T33 service: solo valida insumos para COSTO y conserva proveedor/sucursal y transacción', async () => {
+  const service = await leer('backend/src/modules/compras/facturas/facturas.service.js');
+  assert.match(service, /validarProveedor\(await repo\.buscarProveedor/);
+  assert.match(service, /validarSucursal\(await repo\.buscarSucursal/);
+  assert.match(service, /if \(datos\.tipoCosto === 'COSTO'\)[\s\S]*repo\.buscarInsumos[\s\S]*validarInsumos/);
+  assert.match(service, /withTransaction\(async \(transaction\)/);
+  assert.match(service, /\}, userId\)/);
+});
+
+test('T33 repository: invoca la función existente con bind, GASTO e insumo nulo', async () => {
+  const repository = await leer('backend/src/modules/compras/facturas/facturas.repository.js');
+  assert.match(repository, /datos\.tipoCosto === 'GASTO'[\s\S]*id_insumo: null,[\s\S]*descripcion: item\.descripcion/);
+  assert.match(repository, /compras\.fn_registrar_compra\(/);
+  assert.match(repository, /JSON\.stringify\(items\)/);
+  assert.match(repository, /datos\.tipoCosto/);
+  assert.doesNotMatch(repository, /UPDATE inventario\.|inventario\.fn_mover_stock|costo_promedio/);
+});
+
+test('T33: conserva ruta, permiso y respuesta aprobados de T31; no agrega bitácora ni migración', async () => {
+  const route = await leer('backend/src/modules/compras/facturas/facturas.routes.js');
+  const controller = await leer('backend/src/modules/compras/facturas/facturas.controller.js');
+  const service = await leer('backend/src/modules/compras/facturas/facturas.service.js');
+  assert.match(route, /requirePermiso\('COM_REGISTRAR_COMPRA'\)/);
+  assert.match(route, /router\.post\(\s*'\/'/);
+  assert.match(controller, /res\.status\(201\)\.json\(\{ id_compra: idCompra \}\)/);
+  assert.doesNotMatch(`${service}\n${route}`, /fn_auditar|bitacora/i);
 });

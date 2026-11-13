@@ -1,5 +1,5 @@
 # CONTEXT — estado vivo del proyecto (máx. 60 líneas; actualizar al cerrar tareas)
-Actualizado: 2026-11-12
+Actualizado: 2026-11-13
 
 ## Meta y fechas
 Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (listo en docs/Documentacion_IEEE con compilador y visor), manual de usuario, doc técnica, flujo de trabajo.
@@ -26,12 +26,12 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (li
 | inventario | listo | CRUD unidades-medida/insumos/productos, stock, mermas, alertas y Kárdex con permiso propio | Existencias, kárdex, catálogo de insumos (tabs + semáforo), catálogo de productos (tabla/grid) y editor de recetas BOM |
 | pos | listo | cola de preparación, órdenes (T02), ventas (T17), anulación (`fn_anular_venta`) y CRUD clientes CCF (T18-back) | catálogo y carrito local; pantallas de clientes/anulación (T18-front), cobro (T19) y ticket (T46) pendientes |
 | caja | listo | turnos, movimientos, cierre y cuadre (T05/T06/T22) | pendiente |
-| compras | listo | T30 CRUD proveedores; T31 registro facturas COSTO; T32 pagos y consulta CxP operativa; T33 pendiente | proveedores, compras, CxP y gastos siguen con PendienteApiPage |
+| compras | listo | T30 proveedores; T31 facturas COSTO; T32 pagos/CxP; T33 registro backend GASTO | pantallas de proveedores, compras, CxP y gastos siguen provisionales |
 | rrhh | listo | CRUD de puestos y empleados, validaciones, permisos y datos de prueba | pendiente |
 | reportes | vistas listas + consultas de método de pago, cuadre y CxP | ventas diarias, top productos, métodos de pago, alertas, margen, cuadre y CxP; alcance por `id_sucursal` | panel con tendencias, comparativos, tablas paginadas y exportación CSV/PDF |
 | empresa | listo | CRUD sucursales y edición parámetros | sucursales y parámetros |
 
-Pantallas de gestión pendientes por falta de endpoints backend: empleados/puestos, compras tipo gasto (T33), además de planillas. Proveedores, registro de facturas COSTO, pagos y CxP operativa tienen API; falta frontend funcional. El reporte CxP de solo lectura de Reportes se conserva y comparte consulta con la ruta operativa.
+Pantallas de gestión pendientes por falta de endpoints backend: empleados/puestos y planillas. Proveedores, registro de facturas COSTO/GASTO, pagos y CxP operativa tienen API; falta frontend funcional. El reporte CxP de solo lectura de Reportes se conserva y comparte consulta con la ruta operativa.
 
 ## Pendientes críticos
 - Verificar tablas de renta/ISSS/AFP vigentes con Hacienda (están en `rrhh.tramos_renta` y `empresa.parametros`).
