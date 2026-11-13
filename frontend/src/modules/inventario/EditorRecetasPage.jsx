@@ -264,7 +264,10 @@ export default function EditorRecetasPage() {
       const siguiente = productos.find((p) => String(p.id_producto) !== String(idProductoSeleccionado) && Number(p.n_ingredientes) === 0);
       if (siguiente) {
         const irSiguiente = await confirm({ titulo: 'Receta guardada', mensaje: 'Receta guardada. ¿Ir al siguiente producto sin receta?', etiquetaCancelar: 'Quedarme aquí', etiquetaAceptar: 'Siguiente pendiente' });
-        if (irSiguiente) handleCambiarProducto(String(siguiente.id_producto));
+        if (irSiguiente) {
+          setIdProductoSeleccionado(String(siguiente.id_producto));
+          navigate(`?producto=${siguiente.id_producto}`, { replace: true });
+        }
       }
     } catch (err) {
       setErrorGuardar(traducirError(err));

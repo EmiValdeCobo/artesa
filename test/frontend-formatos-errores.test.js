@@ -108,3 +108,11 @@ test('traducirError: maneja errores de validación asignando campos específicos
   assert.ok(traducido.campos.codigoEstablecimiento);
   assert.ok(traducido.campos.nombre);
 });
+
+test('traducirError: un nombre duplicado de inventario se marca como duplicado', () => {
+  const error = new ErrorApi({ status: 409, mensajeServidor: 'Ya existe un registro con ese código o nombre' });
+  const traducido = traducirError(error);
+  assert.equal(traducido.id, 'DUPLICADO');
+  assert.match(traducido.accion, /Cambia el nombre o el código/i);
+  assert.ok(traducido.campos.nombre);
+});
