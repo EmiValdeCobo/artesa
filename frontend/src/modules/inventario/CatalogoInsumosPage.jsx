@@ -437,7 +437,7 @@ function PestanaInsumos({ unidades, onTotal }) {
           filas={insumosFiltrados}
           idFila="id_insumo"
           cargando={cargando}
-          vacio={<EstadoVacio icono={Package} titulo="Sin insumos registrados">No hay insumos para los criterios seleccionados.</EstadoVacio>}
+          vacio={<EstadoVacio icono={Package} titulo={insumos.length === 0 ? 'Aún no hay insumos' : 'Sin resultados'} accion={insumos.length === 0 && tiene('INV_GESTIONAR_INSUMOS') ? <Button onClick={abrirCrear}>Crear primer insumo</Button> : null}>{insumos.length === 0 ? 'Registra el primer insumo para abastecer el catálogo.' : 'No hay insumos para los criterios seleccionados.'}</EstadoVacio>}
         />
       </Card>
 

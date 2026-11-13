@@ -185,6 +185,14 @@ export default function EditorRecetasPage() {
     return () => document.removeEventListener('mousedown', handleClickFuera);
   }, []);
 
+  useEffect(() => {
+    const salir = (evento) => {
+      if (hayCambios) evento.returnValue = 'Tienes cambios sin guardar.';
+    };
+    window.addEventListener('beforeunload', salir);
+    return () => window.removeEventListener('beforeunload', salir);
+  }, [hayCambios]);
+
   // ── Combobox de insumos anti-duplicados ────────────────────────────────────
   const insumosYaEnReceta = useMemo(() => {
     return new Set(recetaComponentes.map((c) => Number(c.id_insumo)));
@@ -444,7 +452,7 @@ export default function EditorRecetasPage() {
                 ) : (
                   <EstadoVacio
                     icono={Package}
-                    titulo="Sin datos de stock"
+                    titulo={hayComponentes ? 'Sin datos de stock' : 'Agrega ingredientes para simular'}
                   >
                     Asigna una sucursal con existencias activas para proyectar disponibilidad.
                   </EstadoVacio>
@@ -506,7 +514,7 @@ export default function EditorRecetasPage() {
                     </div>
 
                     {errorInsumos && <BannerError error={errorInsumos} onReintentar={() => globalThis.location?.reload()} />}
-                    {dropdownAbierto && busquedaInsumo.trim().length > 0 && (
+                    {dropdownAbierto && (
                       <ul className="absolute left-0 right-0 z-30 mt-1.5 max-h-56 overflow-y-auto rounded-xl border border-line bg-surface shadow-xl scroll-fino p-1.5 space-y-0.5">
                         {insumosFiltrados.length === 0 ? (
                           tiene('INV_GESTIONAR_INSUMOS') ? (

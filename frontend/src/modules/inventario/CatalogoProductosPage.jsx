@@ -507,9 +507,10 @@ export default function CatalogoProductosPage() {
         <Card>
           <EstadoVacio
             icono={Tag}
-            titulo="No se encontraron productos"
+            titulo={productos.length === 0 ? 'Aún no hay productos' : 'No se encontraron productos'}
+            accion={productos.length === 0 && tiene('INV_GESTIONAR_PRODUCTOS') ? <Button onClick={abrirCrear}>Crear primer producto</Button> : null}
           >
-            No hay productos que coincidan con los filtros de búsqueda o categoría seleccionados.
+            {productos.length === 0 ? 'Registra el primer producto elaborado o de reventa para comenzar.' : 'No hay productos que coincidan con los filtros de búsqueda o categoría seleccionados.'}
           </EstadoVacio>
         </Card>
       ) : vista === 'tabla' ? (
