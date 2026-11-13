@@ -20,6 +20,8 @@ export const horaDe = (isoInstante) => new Date(isoInstante).toLocaleTimeString(
 // Hora (0-23) y fecha larga en la zona del negocio.
 export const horaNegocio = (ms) => Number(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hourCycle: 'h23', timeZone: ZONA_NEGOCIO }).format(ms));
 export const fechaNegocio = (ms) => capitalizar(new Date(ms).toLocaleDateString('es-SV', { weekday: 'long', day: 'numeric', month: 'long', timeZone: ZONA_NEGOCIO }));
+// 'YYYY-MM-DD' en la zona horaria del negocio para atributos dateTime y filtros
+export const fechaISODelNegocio = (ms = Date.now()) => new Intl.DateTimeFormat('en-CA', { timeZone: ZONA_NEGOCIO }).format(ms);
 
 export const saludoPorHora = (hora) => (hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches');
 

@@ -83,3 +83,18 @@ test('frontend contratos de dinero: los importes y totales nunca usan parseFloat
 
   assert.doesNotMatch(codigo, /parseFloat\((?:total|subtotal|monto|precio|ingreso)/);
 });
+
+test('frontend dashboard: DashboardPage define fechaISO para <time> y mantiene sucursales como iterable', async () => {
+  const dash = await leer('frontend/src/modules/dashboard/DashboardPage.jsx');
+  assert.match(dash, /const\s+fechaISO\s*=/);
+  assert.match(dash, /dateTime=\{fechaISO\}/);
+  assert.doesNotMatch(dash, /const\s+sucursales\s*=.*\.join\(/);
+});
+
+test('frontend formularios: CampoTexto tolera icono omitido sin romper el render y condiciona pl-11', async () => {
+  const campoTexto = await leer('frontend/src/components/forms/CampoTexto.jsx');
+  assert.match(campoTexto, /tieneIcono/);
+  assert.match(campoTexto, /displayName\s*=\s*['"]CampoTexto['"]/);
+  assert.doesNotMatch(campoTexto, /<Icono\s+size=\{17\}\s+aria-hidden="true"\s*\/>\s*<input/);
+});
+
