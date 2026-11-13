@@ -4,7 +4,7 @@ import { requirePermiso } from '../../middlewares/permisos.js';
 import { validate } from '../../middlewares/validate.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import * as c from './inventario.controller.js';
-import { actualizarUnidadSchema, insumoSchema, mermaSchema, minimoSchema, productoSchema, recetaSchema, stockSchema, unidadSchema } from './inventario.schemas.js';
+import { actualizarInsumoSchema, actualizarUnidadSchema, insumoSchema, mermaSchema, minimoSchema, productoSchema, recetaSchema, stockSchema, unidadSchema } from './inventario.schemas.js';
 
 const router = Router();
 router.use(authenticate, requireTipo('admin'));
@@ -18,7 +18,7 @@ router.delete('/unidades-medida/:id', requirePermiso('INV_GESTIONAR_INSUMOS'), a
 router.delete('/unidades/:id', requirePermiso('INV_GESTIONAR_INSUMOS'), asyncHandler(c.eliminarUnidad));
 router.get('/insumos', requirePermiso('INV_VER_STOCK', 'INV_GESTIONAR_INSUMOS', 'INV_VER_COSTOS'), asyncHandler(c.listarInsumos));
 router.post('/insumos', requirePermiso('INV_GESTIONAR_INSUMOS'), validate(insumoSchema), asyncHandler(c.crearInsumo));
-router.put('/insumos/:id', requirePermiso('INV_GESTIONAR_INSUMOS'), validate(insumoSchema), asyncHandler(c.actualizarInsumo));
+router.put('/insumos/:id', requirePermiso('INV_GESTIONAR_INSUMOS'), validate(actualizarInsumoSchema), asyncHandler(c.actualizarInsumo));
 router.delete('/insumos/:id', requirePermiso('INV_GESTIONAR_INSUMOS'), asyncHandler(c.desactivarInsumo));
 router.get('/categorias', requirePermiso('INV_VER_STOCK', 'INV_GESTIONAR_PRODUCTOS'), asyncHandler(c.listarCategorias));
 router.get('/productos', requirePermiso('INV_VER_STOCK', 'INV_GESTIONAR_PRODUCTOS'), asyncHandler(c.listarProductos));

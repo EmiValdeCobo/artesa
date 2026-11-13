@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { actualizarInsumoSchema } from '../backend/src/modules/inventario/inventario.schemas.js';
 
 const leer = (archivo) => readFile(new URL(`../${archivo}`, import.meta.url), 'utf8');
 
@@ -78,6 +79,14 @@ test('inventario: listar insumos une unidades con id_unidad_base y devuelve tipo
   assert.doesNotMatch(consulta, /USING\s*\(id_unidad\)/);
 });
 
+test('inventario: editar insumo conserva costo y el listado de productos cuenta ingredientes', async () => {
+  const payload = actualizarInsumoSchema.parse({ nombre: 'Leche entera', tipo_insumo: 'INGREDIENTE', id_unidad_base: 1, activo: true });
+  assert.equal(payload.costoPromedio, undefined);
+  const repository = await leer('backend/src/modules/inventario/inventario.repository.js');
+  assert.match(repository, /if \(data\.costoPromedio !== undefined\) values\.costo_promedio = data\.costoPromedio/);
+  assert.match(repository, /COUNT\(\*\)::int FROM inventario\.recetas r WHERE r\.id_producto = p\.id_producto/);
+});
+
 test('inventario: el controller de merma lee el parámetro :id declarado por la ruta', async () => {
   const [controller, routes] = await Promise.all([
     leer('backend/src/modules/inventario/inventario.controller.js'),
@@ -99,13 +108,12 @@ test('inventario: los chips de T10 usan tipos reales recibidos del endpoint de i
 });
 
 test('inventario UI: CatalogoInsumosPage, CatalogoProductosPage y EditorRecetasPage cumplen especificación y RBAC', async () => {
-  const [app, menu, insumosPage, productosPage, recetasPage, mockData] = await Promise.all([
+  const [app, menu, insumosPage, productosPage, recetasPage] = await Promise.all([
     leer('frontend/src/App.jsx'),
     leer('frontend/src/config/menu.js'),
     leer('frontend/src/modules/inventario/CatalogoInsumosPage.jsx'),
     leer('frontend/src/modules/inventario/CatalogoProductosPage.jsx'),
     leer('frontend/src/modules/inventario/EditorRecetasPage.jsx'),
-    leer('frontend/src/modules/inventario/mockData.js'),
   ]);
 
   // 1. Rutas protegidas en App.jsx
@@ -118,13 +126,11 @@ test('inventario UI: CatalogoInsumosPage, CatalogoProductosPage y EditorRecetasP
   assert.match(menu, /ruta: '\/inventario\/productos', texto: 'Catálogo de Productos', permiso: 'INV_VER_STOCK'/);
   assert.match(menu, /ruta: '\/inventario\/recetas', texto: 'Editor de Recetas', permiso: 'INV_GESTIONAR_RECETAS'/);
 
-  // 3. CatalogoInsumosPage: pestañas, semáforo, filtro de stock y unidades
+  // 3. CatalogoInsumosPage: pestañas y unidades; stock se consulta por sucursal en Existencias
   assert.match(insumosPage, /PestanaInsumos/);
   assert.match(insumosPage, /PestanaUnidades/);
-  assert.match(insumosPage, /SemaforoBadge/);
-  assert.match(insumosPage, /BAJO_MINIMO/);
-  assert.match(insumosPage, /AGOTADO/);
-  assert.match(insumosPage, /NORMAL/);
+  assert.doesNotMatch(insumosPage, /SemaforoBadge|calcularEstadoStock|BAJO_MINIMO|AGOTADO/);
+  assert.match(insumosPage, /Inventario.*Existencias/);
   assert.match(insumosPage, /factor_conversion/);
 
   // 4. CatalogoProductosPage: alternancia de vistas, precio con formato sin pérdida, filtro y botón receta BOM
@@ -142,11 +148,10 @@ test('inventario UI: CatalogoInsumosPage, CatalogoProductosPage y EditorRecetasP
   assert.match(recetasPage, /cuelloDeBotella/);
   assert.match(recetasPage, /Math\.round\(cant \* costoUnit \* 10000\) \/ 10000/);
 
-  // 6. MockData: al menos 12 productos elaborados y 3 de reventa
-  const matchElab = mockData.match(/es_elaborado:\s*true/g) || [];
-  const matchRev = mockData.match(/es_elaborado:\s*false/g) || [];
-  assert.ok(matchElab.length >= 12, `Debe haber al menos 12 productos elaborados (hay ${matchElab.length})`);
-  assert.ok(matchRev.length >= 3, `Debe haber al menos 3 productos de reventa (hay ${matchRev.length})`);
+  // 6. Ninguna pantalla de catálogo debe importar datos ficticios.
+  for (const pagina of [insumosPage, productosPage, recetasPage]) assert.doesNotMatch(pagina, /mockData/);
+  assert.match(productosPage, /Sin receta/);
+  assert.match(productosPage, /filtroReceta/);
 });
 
 test('inventario: rutas de unidades-medida soportan endpoints REST completos con RBAC', async () => {

@@ -37,7 +37,7 @@ export const actualizarUnidadSchema = z.object({
   message: 'Debes proporcionar al menos un campo para actualizar',
 });
 
-export const insumoSchema = z.object({
+const camposInsumo = {
   nombre: z.string().trim().min(2).max(100),
   tipoInsumo: z.enum(['INGREDIENTE', 'EMPAQUE', 'REVENTA']).optional(),
   tipo_insumo: z.enum(['INGREDIENTE', 'EMPAQUE', 'REVENTA']).optional(),
@@ -48,14 +48,22 @@ export const insumoSchema = z.object({
   codigo_sku: z.string().trim().max(50).nullish(),
   stock_minimo: decimal(10, 4).nullish(),
   activo: z.boolean().default(true),
-}).transform((data) => ({
+};
+const normalizarInsumo = (data, incluirCostoPredeterminado) => ({
   nombre: data.nombre,
   tipoInsumo: data.tipoInsumo ?? data.tipo_insumo,
   idUnidadBase: data.idUnidadBase ?? data.id_unidad_base,
-  costoPromedio: data.costoPromedio ?? data.costo_promedio ?? '0.000000',
+  costoPromedio: data.costoPromedio ?? data.costo_promedio ?? (incluirCostoPredeterminado ? '0.000000' : undefined),
   activo: data.activo,
-})).refine((d) => Boolean(d.tipoInsumo), { message: 'El tipo de insumo es obligatorio', path: ['tipoInsumo'] })
+});
+const validarInsumo = (schema) => schema
+  .refine((d) => Boolean(d.tipoInsumo), { message: 'El tipo de insumo es obligatorio', path: ['tipoInsumo'] })
   .refine((d) => Boolean(d.idUnidadBase), { message: 'La unidad base es obligatoria', path: ['idUnidadBase'] });
+export const insumoSchema = validarInsumo(z.object(camposInsumo).transform((data) => normalizarInsumo(data, true)));
+export const actualizarInsumoSchema = validarInsumo(z.object({
+  ...camposInsumo,
+  activo: z.boolean().optional(),
+}).transform((data) => normalizarInsumo(data, false)));
 
 export const productoSchema = z.object({
   idCategoria: id.nullish(),
