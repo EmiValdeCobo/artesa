@@ -30,3 +30,5 @@ export const saveReceta        = (idProducto, body) => api.put(`/inventario/prod
 
 // ── Stock (para simulador de disponibilidad) ──────────────────────────────────
 export const getStock          = (idSucursal) => api.get(`/inventario/stock${idSucursal ? `?idSucursal=${idSucursal}` : ''}`);
+export const registrarMovimiento = (idInsumo, body) => api.post(`/inventario/insumos/${idInsumo}/movimientos`, body);
+export const actualizarStockMinimo = (idInsumo, body) => api.patch(`/inventario/insumos/${idInsumo}/stock-minimo`, body);

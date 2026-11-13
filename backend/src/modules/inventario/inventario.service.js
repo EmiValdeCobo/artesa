@@ -15,28 +15,45 @@ async function validarSucursal(userId, idSucursal, transaction) {
 function run(fn) { return fn().catch((e) => { throw traducir(e); }); }
 export const listarUnidades = () => repo.listarUnidades();
 export const crearUnidad = (d, uid) => run(() => withTransaction((t) => repo.crearUnidad(d, t), uid));
-export const actualizarUnidad = (id, d, uid) => run(() => withTransaction(async (t) => { const x = await repo.actualizarUnidad(id, d, t); if (!x) throw new AppError('Unidad no encontrada', 404); return x; }, uid));
-export const eliminarUnidad = (id, uid) => run(() => withTransaction(async (t) => {
-  if (!(await repo.buscarUnidad(id, t))) throw new AppError('Unidad no encontrada', 404);
-  const usos = await repo.insumosQueUsanUnidad(id, t);
+async function validarUnidadDesactivable(id, transaction) {
+  const usos = await repo.insumosQueUsanUnidad(id, transaction);
   if (usos.length) {
     const nombres = usos.slice(0, 5).map((x) => x.nombre);
-    const resto = usos.length > 5 ? ' y más' : '';
+    const resto = usos.length > 5 ? ` y ${usos.length - 5} más` : '';
     throw new AppError(`No se puede desactivar: la usan ${nombres.join(', ')}${resto}`, 409);
   }
-  await repo.actualizarUnidad(id, { activo: false }, t);
-}, uid));
-export const listarInsumos = async (uid) => repo.listarInsumos(await repo.usuarioTienePermiso(uid, 'INV_VER_COSTOS'));
-export const crearInsumo = (d, uid) => run(() => withTransaction(async (t) => { if (!(await repo.buscarUnidad(d.idUnidadBase, t))) throw new AppError('La unidad de medida no existe', 400); return repo.crearInsumo(d, t); }, uid));
-export const actualizarInsumo = (id, d, uid) => run(() => withTransaction(async (t) => { if (!(await repo.buscarUnidad(d.idUnidadBase, t))) throw new AppError('La unidad de medida no existe', 400); const x = await repo.actualizarInsumo(id, d, t); if (!x) throw new AppError('Insumo no encontrado', 404); return x; }, uid));
-export const desactivarInsumo = (id, uid) => run(() => withTransaction(async (t) => {
-  if (!(await repo.buscarInsumo(id, t))) throw new AppError('Insumo no encontrado', 404);
-  const usos = await repo.productosQueUsanInsumo(id, t);
+}
+async function validarInsumoDesactivable(id, transaction) {
+  const usos = await repo.productosQueUsanInsumo(id, transaction);
   if (usos.length) {
     const nombres = usos.slice(0, 5).map((x) => x.nombre);
     const resto = usos.length > 5 ? ` y ${usos.length - 5} más` : '';
     throw new AppError(`No se puede desactivar. Lo usan: ${nombres.join(', ')}${resto}`, 409);
   }
+}
+export const actualizarUnidad = (id, d, uid) => run(() => withTransaction(async (t) => {
+  const actual = await repo.buscarUnidad(id, t);
+  if (!actual) throw new AppError('Unidad no encontrada', 404);
+  if (actual.activo && d.activo === false) await validarUnidadDesactivable(id, t);
+  return repo.actualizarUnidad(id, d, t);
+}, uid));
+export const eliminarUnidad = (id, uid) => run(() => withTransaction(async (t) => {
+  if (!(await repo.buscarUnidad(id, t))) throw new AppError('Unidad no encontrada', 404);
+  await validarUnidadDesactivable(id, t);
+  await repo.actualizarUnidad(id, { activo: false }, t);
+}, uid));
+export const listarInsumos = async (uid) => repo.listarInsumos(await repo.usuarioTienePermiso(uid, 'INV_VER_COSTOS'));
+export const crearInsumo = (d, uid) => run(() => withTransaction(async (t) => { if (!(await repo.buscarUnidad(d.idUnidadBase, t))) throw new AppError('La unidad de medida no existe', 400); return repo.crearInsumo(d, t); }, uid));
+export const actualizarInsumo = (id, d, uid) => run(() => withTransaction(async (t) => {
+  if (!(await repo.buscarUnidad(d.idUnidadBase, t))) throw new AppError('La unidad de medida no existe', 400);
+  const actual = await repo.buscarInsumo(id, t);
+  if (!actual) throw new AppError('Insumo no encontrado', 404);
+  if (actual.activo && d.activo === false) await validarInsumoDesactivable(id, t);
+  return repo.actualizarInsumo(id, d, t);
+}, uid));
+export const desactivarInsumo = (id, uid) => run(() => withTransaction(async (t) => {
+  if (!(await repo.buscarInsumo(id, t))) throw new AppError('Insumo no encontrado', 404);
+  await validarInsumoDesactivable(id, t);
   await repo.desactivarInsumo(id, t);
 }, uid));
 export const listarCategorias = () => repo.listarCategorias();

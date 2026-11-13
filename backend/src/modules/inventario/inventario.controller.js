@@ -20,6 +20,6 @@ export const guardarReceta = async (req, res) => res.json(await service.guardarR
 export const listarStock = async (req, res) => res.json(await service.listarStock(req.user.id, req.query.idSucursal ? parseId(req.query.idSucursal) : null));
 export const listarAlertas = async (req, res) => res.json(await service.listarAlertas(req.user.id, req.query.idSucursal ? parseId(req.query.idSucursal) : null));
 export const listarMovimientos = async (req, res) => res.json(await service.listarMovimientos(req.user.id, req.query.idSucursal ? parseId(req.query.idSucursal) : null, req.query.idInsumo ? parseId(req.query.idInsumo) : null));
-export const configurarMinimo = async (req, res) => res.json(await service.configurarMinimo(parseId(req.params.idInsumo), req.body, req.user.id));
+export const configurarMinimo = async (req, res) => res.json(await service.configurarMinimo(parseId(req.params.id), req.body, req.user.id));
 export const ingresarStock = async (req, res) => res.status(201).json(await service.ingresarStock(parseId(req.params.idInsumo), req.body, req.user.id));
 export const registrarMerma = async (req, res) => res.status(201).json(await service.registrarMerma(parseId(req.params.id), req.body, req.user.id));

@@ -9,7 +9,7 @@ test('inventario: el kardex conserva autenticación admin y usa INV_VER_KARDEX',
   const routes = await leer('backend/src/modules/inventario/inventario.routes.js');
   assert.match(routes, /router\.use\(authenticate, requireTipo\('admin'\)\)/);
   assert.match(routes, /router\.get\('\/movimientos', requirePermiso\('INV_VER_KARDEX'\)/);
-  assert.match(routes, /router\.get\('\/stock', requirePermiso\('INV_VER_STOCK'\)/);
+  assert.match(routes, /router\.get\('\/stock', requirePermiso\('INV_VER_STOCK', 'INV_GESTIONAR_INSUMOS'\)/);
   assert.match(routes, /router\.get\('\/alertas', requirePermiso\('INV_VER_STOCK'\)/);
 });
 
@@ -61,6 +61,26 @@ test('inventario: drawer reutilizable permite alta en producto y receta con perm
   assert.match(recetas, /Pide a quien administra insumos que cree/);
   assert.match(recetas, /handleSeleccionarInsumo\(nuevo, ''\)/);
   assert.match(recetas, /cantidad-receta-\$\{nuevo\.id_insumo\}/);
+});
+
+test('inventario: diálogo de existencias usa contratos Zod y sucursales asignadas', async () => {
+  const [dialogo, api, routes, controller, inventarioPage, insumosPage] = await Promise.all([
+    leer('frontend/src/modules/inventario/DialogoExistenciasInsumo.jsx'),
+    leer('frontend/src/modules/inventario/inventarioApi.js'),
+    leer('backend/src/modules/inventario/inventario.routes.js'),
+    leer('backend/src/modules/inventario/inventario.controller.js'),
+    leer('frontend/src/modules/inventario/InventarioPage.jsx'),
+    leer('frontend/src/modules/inventario/CatalogoInsumosPage.jsx'),
+  ]);
+  assert.match(dialogo, /idSucursal: Number\(sucursal\)/);
+  assert.match(dialogo, /cantidad: cantidad\.trim\(\), tipo, motivo: motivo\.trim\(\)/);
+  assert.match(dialogo, /stockMinimo: minimo\.trim\(\)/);
+  assert.match(api, /api\.post\(`\/inventario\/insumos\/\$\{idInsumo\}\/movimientos`/);
+  assert.match(api, /api\.patch\(`\/inventario\/insumos\/\$\{idInsumo\}\/stock-minimo`/);
+  assert.match(routes, /router\.get\('\/stock', requirePermiso\('INV_VER_STOCK', 'INV_GESTIONAR_INSUMOS'\)/);
+  assert.match(controller, /configurarMinimo[\s\S]*req\.params\.id\)/);
+  assert.match(inventarioPage, /usuario\?\.sucursales/);
+  assert.match(insumosPage, /tiene\('INV_GESTIONAR_INSUMOS'\).*Existencias/);
 });
 
 test('inventario: el seeder asigna el kardex solo a roles autorizados y restringe costos de BODEGUERO', async () => {

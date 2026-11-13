@@ -4,7 +4,7 @@ import { CategoriaProducto, Insumo, Producto, Receta, UnidadMedida } from '../..
 
 const select = (sql, bind = [], transaction = null) => sequelize.query(sql, { bind, transaction, type: QueryTypes.SELECT });
 const plain = (model) => model?.get({ plain: true }) ?? null;
-export const listarUnidades = () => select(`SELECT id_unidad, codigo, nombre, factor_conversion, activo, deleted_at, modificado_en FROM inventario.unidades_medida ORDER BY nombre ASC`);
+export const listarUnidades = () => select(`SELECT id_unidad, codigo, nombre, factor_conversion, activo, deleted_at, modificado_en FROM inventario.unidades_medida WHERE deleted_at IS NULL ORDER BY nombre ASC`);
 export const buscarUnidad = (id, transaction) => select(`SELECT id_unidad, codigo, nombre, factor_conversion, activo, deleted_at, modificado_en FROM inventario.unidades_medida WHERE id_unidad = $1`, [id], transaction).then((xs) => xs[0] ?? null);
 export const crearUnidad = (data, transaction) => UnidadMedida.create({ codigo: data.codigo, nombre: data.nombre, factor_conversion: data.factor_conversion ?? data.factorConversion ?? '1.0000', activo: data.activo ?? true }, { transaction }).then(plain);
 export const actualizarUnidad = async (id, data, transaction) => { const row = await UnidadMedida.findByPk(id, { transaction }); if (!row) return null; const values = {}; if (data.codigo !== undefined) values.codigo = data.codigo; if (data.nombre !== undefined) values.nombre = data.nombre; if (data.factor_conversion !== undefined || data.factorConversion !== undefined) values.factor_conversion = data.factor_conversion ?? data.factorConversion; if (data.activo !== undefined) values.activo = data.activo; await row.update(values, { transaction }); return plain(row); };

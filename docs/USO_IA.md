@@ -131,3 +131,4 @@ Formato: `fecha | integrante | herramienta/modelo | para qué se usó | quién v
 2026-11-13 | EmiValdeCobo | Codex (GPT-6) | T2 de UX inventario: se ajustó la selección de insumos vinculados a productos de reventa y su ayuda de unidad | EmiValdeCobo
 2026-11-13 | EmiValdeCobo | Codex (GPT-6) | T3 de UX inventario: se implementó cálculo entero del margen sin IVA, costo teórico condicionado por RBAC y prueba para precio 3.50/costo 2.00 | EmiValdeCobo
 2026-11-13 | EmiValdeCobo | Codex (GPT-6) | T4 de UX inventario: se extrajo el drawer común de insumos y se conectó a los flujos de alta de reventa y receta | EmiValdeCobo
+2026-11-13 | EmiValdeCobo | Codex (GPT-6) | T5 de UX inventario: se creó el diálogo de existencias por sucursal para inventario inicial, ajustes y stock mínimo; se reparó el parámetro de ruta del endpoint | EmiValdeCobo

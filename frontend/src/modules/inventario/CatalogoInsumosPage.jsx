@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Package, Ruler, Pencil, Power, PowerOff, X, Plus } from 'lucide-react';
+import { Package, Ruler, Pencil, Power, PowerOff, X, Plus, Boxes } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
@@ -13,6 +13,7 @@ import { Button, Card, Select, Spinner, Table } from '../../components/ui/index.
 import CampoError from '../../components/forms/CampoError.jsx';
 import { traducirError } from '../../errors/traducirError.js';
 import InsumoDrawer from './InsumoDrawer.jsx';
+import DialogoExistenciasInsumo from './DialogoExistenciasInsumo.jsx';
 import {
   getInsumos, updateInsumo, deleteInsumo,
   getUnidades, createUnidad, updateUnidad, deleteUnidad,
@@ -228,7 +229,7 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
 
 // ─── PESTAÑA 1: Insumos ───────────────────────────────────────────────────────
 function PestanaInsumos({ unidades }) {
-  const { tiene } = useAuth();
+  const { tiene, usuario } = useAuth();
   const { confirm, notificar } = useAlert();
   const puedeGestionar = tiene('INV_GESTIONAR_INSUMOS');
 
@@ -242,6 +243,7 @@ function PestanaInsumos({ unidades }) {
 
   const [drawerAbierto, setDrawerAbierto] = useState(false);
   const [insumoActual, setInsumoActual] = useState(null);
+  const [insumoExistencias, setInsumoExistencias] = useState(null);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -356,6 +358,7 @@ function PestanaInsumos({ unidades }) {
             alinear: 'right',
             render: (fila) => (
               <div className="flex items-center gap-1 justify-end">
+                {tiene('INV_GESTIONAR_INSUMOS') && <button type="button" className="btn-ghost !p-1.5 min-h-8" title="Existencias" onClick={() => setInsumoExistencias(fila)}><Boxes size={15} /></button>}
                 <button
                   type="button"
                   className="btn-ghost !p-1.5 min-h-8"
@@ -445,6 +448,7 @@ function PestanaInsumos({ unidades }) {
           cargar();
         }}
       />
+      {insumoExistencias && <DialogoExistenciasInsumo insumo={insumoExistencias} sucursales={usuario?.sucursales ?? []} onCerrar={() => setInsumoExistencias(null)} />}
     </div>
   );
 }
