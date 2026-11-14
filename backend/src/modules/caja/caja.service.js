@@ -110,6 +110,26 @@ function formatearCuadre(fila) {
   };
 }
 
+// RN: no se puede cerrar la caja si en algún método (efectivo, tarjeta o digital) la diferencia absoluta
+// supera la tolerancia configurada en el parámetro `tolerancia_cuadre`. El turno sigue ABIERTO para que el
+// cajero recuente o registre el movimiento que falta. Se evalúa dentro de la misma transacción que bloquea el turno.
+const METODOS = ['efectivo', 'tarjeta', 'digital'];
+async function validarToleranciaDescuadre(transaction, idTurno, contado) {
+  const tolerancia = await repo.obtenerToleranciaCuadre(transaction);
+  if (!/^\d+(\.\d{1,2})?$/.test(tolerancia)) {
+    throw new AppError('El parámetro tolerancia_cuadre no es un monto válido; avisa a un administrador', 500);
+  }
+  const d = await repo.calcularDescuadre(transaction, { idTurno, ...contado, tolerancia });
+  const excedidos = METODOS.filter((m) => d?.[`excede_${m}`]);
+  if (excedidos.length > 0) {
+    const detalle = excedidos.map((m) => `${m} (${d[`dif_${m}`]})`).join(', ');
+    throw new AppError(
+      `El descuadre supera la tolerancia permitida de $${tolerancia} en: ${detalle}. Recuenta o registra el movimiento faltante antes de cerrar.`,
+      422,
+    );
+  }
+}
+
 // RN: solo el cajero dueño cierra su turno, una sola vez. La función SQL calcula lo esperado, guarda
 // lo contado y las diferencias (contado - esperado; negativo = faltante) y marca el turno CERRADO.
 export async function cerrarTurno(idTurno, contado, userId) {
@@ -119,6 +139,7 @@ export async function cerrarTurno(idTurno, contado, userId) {
       if (!turno) throw new AppError('El turno no existe', 404);
       if (turno.id_usuario !== userId) throw new AppError('Solo el cajero del turno puede cerrarlo', 403);
       if (turno.estado !== 'ABIERTO') throw new AppError('El turno ya está cerrado', 409);
+      await validarToleranciaDescuadre(transaction, idTurno, contado);
       await repo.cerrarTurno(transaction, { idTurno, ...contado });
       return formatearCuadre(await repo.buscarCuadre(idTurno, transaction));
     }, userId);

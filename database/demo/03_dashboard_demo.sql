@@ -101,9 +101,10 @@ INSERT INTO compras.pagos_proveedor(id_compra, monto, metodo)
 SELECT id_compra, 100.00, 'TRANSFERENCIA' FROM compras.facturas_compra WHERE num_factura = 'DEMO-F-001'
 UNION ALL SELECT id_compra, total, 'TRANSFERENCIA' FROM compras.facturas_compra WHERE num_factura = 'DEMO-F-003';
 
--- RR. HH.: quincena terminada sin procesar.
+-- RR. HH.: planilla mensual sin procesar.
 INSERT INTO rrhh.planillas(id_sucursal, periodo_inicio, periodo_fin, tipo_periodo, procesada)
-SELECT 1, z.ahora::date - 20, z.ahora::date - 6, 'QUINCENAL', FALSE FROM t_zona z
+SELECT 1, date_trunc('month', z.ahora)::date,
+  (date_trunc('month', z.ahora) + interval '1 month - 1 day')::date, 'MENSUAL', FALSE FROM t_zona z
 ON CONFLICT DO NOTHING;
 
 -- Preparación: dos pedidos con más de 25 minutos en barra.

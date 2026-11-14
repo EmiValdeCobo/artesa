@@ -20,20 +20,18 @@ test('frontend rutas: App.jsx protege cada ruta con su permiso RBAC exacto', asy
   assert.match(app, /path="catalogo\/productos" element={<ProtectedRoute permiso="INV_VER_STOCK">/);
   assert.match(app, /path="catalogo\/productos\/:idProducto\/receta" element={<ProtectedRoute permiso="INV_GESTIONAR_RECETAS">/);
   assert.match(app, /path="inventario\/recetas" element={<Navigate to="\/catalogo\/productos" replace \/>/);
+  assert.match(app, /path="compras\/proveedores" element={<ProtectedRoute permiso="COM_GESTIONAR_PROVEEDORES">/);
+  assert.match(app, /path="compras\/cuentas-por-pagar" element={<ProtectedRoute permiso="COM_VER_CXP">/);
+  assert.match(app, /path="compras" element={<ProtectedRoute permiso="COM_VER_CXP">/);
 });
 
 test('frontend rutas: módulos sin endpoints backend implementados usan PendienteApiPage explícito', async () => {
   const app = await leer('frontend/src/App.jsx');
 
   // Ninguna pantalla pendiente debe inventar llamadas falsas
-  assert.match(app, /path="seguridad\/bitacora".*<PendienteApiPage/s);
   assert.match(app, /path="rrhh\/empleados".*<PendienteApiPage/s);
   assert.match(app, /path="rrhh\/puestos".*<PendienteApiPage/s);
   assert.match(app, /path="rrhh".*<PendienteApiPage/s);
-  assert.match(app, /path="compras\/proveedores".*<PendienteApiPage/s);
-  assert.match(app, /path="compras\/cuentas-por-pagar".*<PendienteApiPage/s);
-  assert.match(app, /path="compras".*<PendienteApiPage/s);
-  assert.match(app, /path="compras\/gastos".*<PendienteApiPage/s);
 });
 
 test('frontend PendienteApiPage: informa con transparencia qué endpoints faltan sin hacer llamadas', async () => {

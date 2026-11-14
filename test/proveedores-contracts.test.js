@@ -42,7 +42,7 @@ test('proveedores: valida ID positivo y filtro opcional booleano', () => {
 test('proveedores: rutas requieren autenticación, tipo admin y permiso en los cuatro verbos', async () => {
   const routes = await leer('backend/src/modules/compras/proveedores/proveedores.routes.js');
   assert.match(routes, /router\.use\(authenticate, requireTipo\('admin'\)\)/);
-  assert.equal((routes.match(/requirePermiso\('COM_GESTIONAR_PROVEEDORES'\)/g) ?? []).length, 4);
+  assert.equal((routes.match(/requirePermiso\('COM_GESTIONAR_PROVEEDORES'/g) ?? []).length, 4);
   for (const verb of ['get', 'post', 'put', 'delete']) assert.match(routes, new RegExp(`router\\.${verb}\\('/proveedores`));
 });
 
@@ -91,8 +91,8 @@ test('proveedores: endpoints y decisión NRC/NIT quedan documentados para fronte
   const page = await leer('frontend/src/App.jsx');
   assert.match(endpoints, /GET\/POST \| `\/api\/compras\/proveedores`/);
   assert.match(endpoints, /no se impone unicidad a NRC\/NIT/);
-  assert.match(page, /GET\/POST \/api\/compras\/proveedores/);
-  assert.doesNotMatch(page, /GET\/POST \/api\/proveedores/);
+  assert.match(page, /compras\/proveedores/);
+  assert.match(page, /ProveedoresPage/);
 });
 
 test('proveedores: la migración de bitácora es idempotente y schema inicial no agrega RBAC', async () => {

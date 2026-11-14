@@ -16,7 +16,7 @@ router.put('/unidades-medida/:id', requirePermiso('INV_GESTIONAR_INSUMOS'), vali
 router.put('/unidades/:id', requirePermiso('INV_GESTIONAR_INSUMOS'), validate(actualizarUnidadSchema), asyncHandler(c.actualizarUnidad));
 router.delete('/unidades-medida/:id', requirePermiso('INV_GESTIONAR_INSUMOS'), asyncHandler(c.eliminarUnidad));
 router.delete('/unidades/:id', requirePermiso('INV_GESTIONAR_INSUMOS'), asyncHandler(c.eliminarUnidad));
-router.get('/insumos', requirePermiso('INV_VER_STOCK', 'INV_GESTIONAR_INSUMOS', 'INV_VER_COSTOS'), asyncHandler(c.listarInsumos));
+router.get('/insumos', requirePermiso('INV_VER_STOCK', 'INV_GESTIONAR_INSUMOS', 'INV_VER_COSTOS', 'COM_REGISTRAR_COMPRA'), asyncHandler(c.listarInsumos));
 router.post('/insumos', requirePermiso('INV_GESTIONAR_INSUMOS'), validate(insumoSchema), asyncHandler(c.crearInsumo));
 router.put('/insumos/:id', requirePermiso('INV_GESTIONAR_INSUMOS'), validate(actualizarInsumoSchema), asyncHandler(c.actualizarInsumo));
 router.patch('/insumos/:id/estado', requirePermiso('INV_GESTIONAR_INSUMOS'), validate(cambiarEstadoSchema), asyncHandler(c.cambiarEstadoInsumo));

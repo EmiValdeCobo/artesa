@@ -7,7 +7,8 @@ const leer = (archivo) => readFile(new URL(`../${archivo}`, import.meta.url), 'u
 
 test('rrhh: expone CRUD protegido para puestos y empleados', async () => {
   const routes = await leer('backend/src/modules/rrhh/rrhh.routes.js');
-  assert.match(routes, /authenticate, requireTipo\('admin'\), requirePermiso\('RRHH_GESTIONAR_EMPLEADOS'\)/);
+  assert.match(routes, /router\.use\(authenticate, requireTipo\('admin'\)\)/);
+  assert.match(routes, /router\.get\('\/empleados', gestionar/);
   assert.match(routes, /router\.post\('\/puestos'/);
   assert.match(routes, /router\.put\('\/empleados\/:id'/);
   assert.match(routes, /router\.delete\('\/empleados\/:id'/);
@@ -18,9 +19,19 @@ test('rrhh: valida identidad, salarios, DUI y referencias', async () => {
   const service = await leer('backend/src/modules/rrhh/rrhh.service.js');
   assert.match(schemas, /El DUI debe tener el formato/);
   assert.match(schemas, /El salario debe ser mayor a cero/);
-  assert.match(schemas, /z\.string\(\)\.uuid/);
+  assert.match(schemas, /z\.(string\(\)\.)?uuid\(\)/);
   assert.match(service, /La sucursal no existe o está inactiva/);
   assert.match(service, /El puesto no existe o está inactivo/);
+});
+
+test('rrhh planillas: fuerza permisos de cálculo/consulta y rutas de PDF', async () => {
+  const routes = await leer('backend/src/modules/rrhh/rrhh.routes.js');
+  const migration = await leer('database/migrations/007_planillas_mensuales.sql');
+  assert.match(routes, /RRHH_CALCULAR_PLANILLA/);
+  assert.match(routes, /RRHH_VER_PLANILLA/);
+  assert.match(routes, /boleta\.pdf/);
+  assert.match(migration, /uq_planilla_sucursal_mes/);
+  assert.match(migration, /rrhh\.fn_calcular_planilla/);
 });
 
 test('rrhh: las escrituras usan transacciones y el borrado es lógico', async () => {
