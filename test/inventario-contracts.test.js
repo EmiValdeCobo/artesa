@@ -44,10 +44,20 @@ test('inventario: drawer limita reventa a insumos disponibles y muestra su vínc
 });
 
 test('inventario: margen usa precio neto de IVA y costo en aritmética entera', async () => {
-  const { calcularMargen, calcularMargenDolares, calcularCostoReceta } = await import('../frontend/src/modules/inventario/costeo.js');
+  const { calcularMargen, calcularMargenDolares, calcularCostoReceta, calcularSubtotalLinea } = await import('../frontend/src/modules/inventario/costeo.js');
   assert.equal(calcularMargen('3.50', '2.0000'), 35.4);
   assert.equal(calcularMargenDolares('3.50', '4.0000'), '-0.9027');
   assert.equal(calcularCostoReceta([{ cantidad_requerida: '0.5000', costo_promedio: '2.1234' }]), '1.0617');
+  // calcularSubtotalLinea usa BigInt (anti-float) y devuelve string con 4 decimales
+  assert.equal(typeof calcularSubtotalLinea('0.5000', '2.1234'), 'string');
+  assert.equal(calcularSubtotalLinea('0.5000', '2.1234'), '1.0617');
+  // Soporta campos NUMERIC(12,6) devueltos por PostgreSQL sin colapsar a 0n
+  assert.equal(calcularSubtotalLinea('10', '0.033000'), '0.3300');
+  assert.equal(calcularCostoReceta([
+    { cantidad_requerida: '10', costo_promedio: '0.033000' },
+    { cantidad_requerida: '200', costo_promedio: '0.000300' },
+    { cantidad_requerida: '1', costo_promedio: '0.050000' }
+  ]), '0.4400');
 });
 
 test('inventario: drawer reutilizable permite alta en producto y receta con permiso', async () => {
@@ -57,6 +67,7 @@ test('inventario: drawer reutilizable permite alta en producto y receta con perm
     leer('frontend/src/modules/inventario/EditorRecetasPage.jsx'),
   ]);
   assert.match(drawer, /valoresIniciales/);
+  assert.match(drawer, /import \{[^}]*\bSelect\b[^}]*\} from/);
   assert.match(drawer, /onGuardado\(guardado\)/);
   assert.match(productos, /getUnidades\(\)/);
   assert.match(productos, /tiene\('INV_GESTIONAR_INSUMOS'\)[\s\S]*?Crear insumo de reventa/);
@@ -222,7 +233,10 @@ test('inventario UI: CatalogoInsumosPage, CatalogoProductosPage y EditorRecetasP
   assert.match(recetasPage, /Simulador Financiero/);
   assert.match(recetasPage, /Disponibilidad Operativa/);
   assert.match(recetasPage, /cuelloDeBotella/);
-  assert.match(recetasPage, /Math\.round\(cant \* costoUnit \* 10000\) \/ 10000/);
+  // El subtotal por línea se calcula con BigInt vía calcularSubtotalLinea (anti-float)
+  assert.match(recetasPage, /calcularSubtotalLinea/);
+  assert.match(recetasPage, /Sin costo base/);
+  assert.match(recetasPage, /formatoDinero\(costoTotal\)/);
 
   // 6. Ninguna pantalla de catálogo debe importar datos ficticios.
   for (const pagina of [insumosPage, productosPage, recetasPage]) assert.doesNotMatch(pagina, /mockData/);

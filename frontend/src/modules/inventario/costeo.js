@@ -2,9 +2,16 @@ import { IVA } from '../pos/impuestos.js';
 
 function aEscala4(valor) {
   const texto = String(valor ?? '0').trim();
-  if (!/^\d+(?:\.\d{1,4})?$/.test(texto)) return 0n;
-  const [entero, decimal = ''] = texto.split('.');
-  return BigInt(entero) * 10000n + BigInt(decimal.padEnd(4, '0'));
+  if (!/^[+-]?\d+(?:\.\d+)?$/.test(texto)) return 0n;
+  const esNegativo = texto.startsWith('-');
+  const limpio = texto.replace(/^[+-]/, '');
+  const [entero, decimal = ''] = limpio.split('.');
+  const d4 = decimal.slice(0, 4).padEnd(4, '0');
+  const quinto = decimal[4] || '0';
+  let bDecimal = BigInt(d4);
+  if (quinto >= '5') bDecimal += 1n;
+  const res = BigInt(entero) * 10000n + bDecimal;
+  return esNegativo ? -res : res;
 }
 
 // Devuelve porcentaje con una cifra decimal; todos los cálculos intermedios son enteros.
@@ -34,3 +41,29 @@ export function calcularCostoReceta(componentes) {
   }, 0n);
   return (Number(total) / 10000).toFixed(4);
 }
+
+// Subtotal por línea de receta (BigInt, sin float). Devuelve string con 4 decimales.
+// Para uso en tabla — evita Number(cant)*Number(costo) que viola la regla anti-float.
+export function calcularSubtotalLinea(cantidad_requerida, costo_promedio) {
+  const cantidad = aEscala4(cantidad_requerida);
+  const costo = aEscala4(costo_promedio);
+  return ((Number((cantidad * costo + 5000n) / 10000n)) / 10000).toFixed(4);
+}
+
+/**
+ * Calcula el precio sugerido con IVA (13%) para alcanzar un margen objetivo (por defecto 40%).
+ * Fórmula oficial: (Costo Teórico / (1 - 0.40)) * 1.13
+ * Todos los cálculos intermedios usan aritmética entera BigInt anti-float.
+ */
+export function calcularPrecioSugerido(costo, margenObjetivo = 0.40, iva = IVA) {
+  const costoEscala = aEscala4(costo);
+  if (costoEscala <= 0n) return '0.00';
+  const ivaPorcentaje = BigInt(Math.round(iva * 100));
+  const margenPct = BigInt(Math.round(margenObjetivo * 100));
+  const denominadorMargen = 100n - margenPct;
+  if (denominadorMargen <= 0n) return '0.00';
+  const numerador = costoEscala * (100n + ivaPorcentaje);
+  const centavos = (numerador + (denominadorMargen * 100n) / 2n) / (denominadorMargen * 100n);
+  return (Number(centavos) / 100).toFixed(2);
+}
+
