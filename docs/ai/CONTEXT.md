@@ -26,7 +26,7 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE, ma
 | pos | listo | cola de preparación (/api/preparacion) y órdenes (T02) | catálogo y carrito local; cobro/facturación pendiente |
 | caja | listo | turnos, movimientos, cierre y cuadre (T05/T06/T22) | pendiente |
 | compras | listo | pendiente | pendiente |
-| rrhh | listo | CRUD de puestos y empleados, validaciones, permisos y datos de prueba | pendiente |
+| rrhh | listo | CRUD de puestos/empleados y planillas mensuales, cálculo SQL, PDFs y permisos; pendiente extensión fiscal anual | pendiente |
 | reportes | vistas listas | ventas diarias, top productos, alertas y margen (T23) | pendiente |
 | compras | listo | pendiente | pantallas pendientes (usan PendienteApiPage) |
 | rrhh | listo | pendiente | pantallas pendientes (usan PendienteApiPage) |
@@ -36,6 +36,7 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE, ma
 Pantallas de gestión pendientes por falta de endpoints backend: empleados/puestos, proveedores, administración de CxP, compras tipo gasto y planillas. El reporte de CxP de solo lectura ya está disponible dentro de Reportes.
 
 ## Pendientes críticos
-- Verificar tablas de renta/ISSS/AFP vigentes con Hacienda (están en `rrhh.tramos_renta` y `empresa.parametros`).
+- Verificar periódicamente tramos/versiones legales de renta, ISSS, AFP e INSAFORP con Hacienda/ISSS/SSF.
+- Planillas: migración 007 debe aplicarse; el DE 10 requiere deducción adicional del tramo II y recálculos en junio/diciembre aún no modelados.
 - Asignar responsables por módulo (ver README).
 - Cambiar contraseñas semilla (`Cambiar123*`) antes de desplegar.
