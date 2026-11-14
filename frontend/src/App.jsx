@@ -44,9 +44,12 @@ export default function App() {
           }
         />
         <Route path="inventario/kardex" element={<ProtectedRoute permiso="INV_VER_KARDEX"><KardexPage /></ProtectedRoute>} />
-        <Route path="inventario/insumos" element={<ProtectedRoute permiso="INV_GESTIONAR_INSUMOS"><CatalogoInsumosPage /></ProtectedRoute>} />
-        <Route path="inventario/productos" element={<ProtectedRoute permiso="INV_VER_STOCK"><CatalogoProductosPage /></ProtectedRoute>} />
-        <Route path="inventario/recetas" element={<ProtectedRoute permiso="INV_GESTIONAR_RECETAS"><EditorRecetasPage /></ProtectedRoute>} />
+        <Route path="catalogo/insumos" element={<ProtectedRoute permiso="INV_GESTIONAR_INSUMOS"><CatalogoInsumosPage /></ProtectedRoute>} />
+        <Route path="catalogo/productos" element={<ProtectedRoute permiso="INV_VER_STOCK"><CatalogoProductosPage /></ProtectedRoute>} />
+        <Route path="catalogo/productos/:idProducto/receta" element={<ProtectedRoute permiso="INV_GESTIONAR_RECETAS"><EditorRecetasPage /></ProtectedRoute>} />
+        <Route path="inventario/insumos" element={<Navigate to="/catalogo/insumos" replace />} />
+        <Route path="inventario/productos" element={<Navigate to="/catalogo/productos" replace />} />
+        <Route path="inventario/recetas" element={<Navigate to="/catalogo/productos" replace />} />
         <Route path="reportes" element={<ProtectedRoute permiso="REP_VER_DASHBOARD"><ReportesPage /></ProtectedRoute>} />
         <Route path="empresa/sucursales" element={<ProtectedRoute permiso="EMP_GESTIONAR_SUCURSALES"><SucursalesPage /></ProtectedRoute>} />
         <Route path="empresa/parametros" element={<ProtectedRoute permiso="EMP_EDITAR_PARAMETROS"><ParametrosPage /></ProtectedRoute>} />

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { X, ChefHat, FlaskConical, Search, AlertCircle, ArrowLeft, Check, Sparkles, Package } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -7,7 +7,7 @@ import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
-import { Button, Card, Select, Spinner } from '../../components/ui/index.js';
+import { Button, Card, Spinner } from '../../components/ui/index.js';
 import { formatoDinero } from '../../utils/formato.js';
 import { traducirError } from '../../errors/traducirError.js';
 import { calcularCostoReceta, calcularMargen, calcularMargenDolares } from './costeo.js';
@@ -39,7 +39,7 @@ export default function EditorRecetasPage() {
   const { tiene } = useAuth();
   const verCostos = tiene('INV_VER_COSTOS');
   const { confirm, notificar } = useAlert();
-  const [searchParams] = useSearchParams();
+  const { idProducto } = useParams();
   const navigate = useNavigate();
 
   // ── Estado principal ───────────────────────────────────────────────────────
@@ -48,9 +48,7 @@ export default function EditorRecetasPage() {
   const [unidades, setUnidades] = useState([]);
   const [drawerInsumoAbierto, setDrawerInsumoAbierto] = useState(false);
   const [valoresInsumo, setValoresInsumo] = useState({});
-  const [idProductoSeleccionado, setIdProductoSeleccionado] = useState(
-    () => searchParams.get('producto') ?? '',
-  );
+  const idProductoSeleccionado = idProducto ?? '';
   const [recetaComponentes, setRecetaComponentes] = useState([]);
   const [recetaOriginal, setRecetaOriginal] = useState([]);
   const [stockSucursal, setStockSucursal] = useState(null);
@@ -76,7 +74,6 @@ export default function EditorRecetasPage() {
   const hayComponentes = recetaComponentes.length > 0;
   const hayProducto = Boolean(productoSeleccionado);
   const pendientesReceta = useMemo(() => productos.filter((p) => Number(p.n_ingredientes) === 0), [productos]);
-  const productosConReceta = useMemo(() => productos.slice().sort((a, b) => Number(a.n_ingredientes) - Number(b.n_ingredientes)), [productos]);
   const hayCambios = useMemo(() => {
     return JSON.stringify(recetaComponentes) !== JSON.stringify(recetaOriginal);
   }, [recetaComponentes, recetaOriginal]);
@@ -188,30 +185,13 @@ export default function EditorRecetasPage() {
     return () => document.removeEventListener('mousedown', handleClickFuera);
   }, []);
 
-  // ── Cambiar producto seleccionado ─────────────────────────────────────────
-  async function handleCambiarProducto(nuevoId) {
-    if (hayCambios) {
-      const ok = await confirm(
-        'Tienes modificaciones pendientes en la receta actual. ¿Deseas descartarlas y cambiar de producto?',
-        {
-          titulo: 'Cambios sin guardar',
-          etiquetaCancelar: 'Seguir editando',
-          etiquetaAceptar: 'Descartar y cambiar',
-          destructivo: true,
-        },
-      );
-      if (!ok) return;
-    }
-
-    setIdProductoSeleccionado(nuevoId);
-    if (nuevoId) {
-      navigate(`?producto=${nuevoId}`, { replace: true });
-    } else {
-      navigate('', { replace: true });
-      setRecetaComponentes([]);
-      setRecetaOriginal([]);
-    }
-  }
+  useEffect(() => {
+    const salir = (evento) => {
+      if (hayCambios) evento.returnValue = 'Tienes cambios sin guardar.';
+    };
+    window.addEventListener('beforeunload', salir);
+    return () => window.removeEventListener('beforeunload', salir);
+  }, [hayCambios]);
 
   // ── Combobox de insumos anti-duplicados ────────────────────────────────────
   const insumosYaEnReceta = useMemo(() => {
@@ -223,11 +203,12 @@ export default function EditorRecetasPage() {
     return insumos.filter((ins) => {
       const id = Number(ins.id_insumo);
       const yaExiste = insumosYaEnReceta.has(id);
+      const disponible = ins.activo !== false && String(ins.tipo_insumo ?? '').toUpperCase() !== 'REVENTA';
       const coincide =
         !termino ||
         (ins.nombre ?? '').toLowerCase().includes(termino) ||
         false;
-      return !yaExiste && coincide;
+      return disponible && !yaExiste && coincide;
     });
   }, [insumos, insumosYaEnReceta, busquedaInsumo]);
 
@@ -284,8 +265,7 @@ export default function EditorRecetasPage() {
       if (siguiente) {
         const irSiguiente = await confirm({ titulo: 'Receta guardada', mensaje: 'Receta guardada. ¿Ir al siguiente producto sin receta?', etiquetaCancelar: 'Quedarme aquí', etiquetaAceptar: 'Siguiente pendiente' });
         if (irSiguiente) {
-          setIdProductoSeleccionado(String(siguiente.id_producto));
-          navigate(`?producto=${siguiente.id_producto}`, { replace: true });
+          navigate(`/catalogo/productos/${siguiente.id_producto}/receta`, { replace: true });
         }
       }
     } catch (err) {
@@ -360,14 +340,14 @@ export default function EditorRecetasPage() {
   return (
     <div className="space-y-6">
       <EncabezadoPagina
-        seccion="Inventario & Catálogo"
-        titulo="Editor de recetas"
+        seccion="Catálogo › Productos"
+        titulo={`${productoSeleccionado?.nombre ?? 'Producto'} › Receta`}
         descripcion="Configura los componentes de producción para costeo exacto y descuento automático en POS."
         acciones={
           <Button
             variante="ghost"
             icono={ArrowLeft}
-            onClick={() => navigate('/inventario/productos')}
+            onClick={() => navigate('/catalogo/productos')}
           >
             Volver a Productos
           </Button>
@@ -386,21 +366,8 @@ export default function EditorRecetasPage() {
           {/* ══════════════ PANEL IZQUIERDO: FICHA Y SIMULADOR ══════════════ */}
           <div className="space-y-5">
             {/* 1. Selector de Producto Elaborado */}
-            <Card titulo="Producto a Configurar" descripcion="Solo productos elaborados con receta activa">
+            <Card titulo="Producto a Configurar" descripcion="Producto elaborado seleccionado desde el catálogo">
               <div className="space-y-3">
-                <Select
-                  id="selector-producto"
-                  aria-label="Seleccionar producto elaborado"
-                  placeholder="— Selecciona un producto elaborado —"
-                  value={idProductoSeleccionado}
-                  onChange={(e) => handleCambiarProducto(e.target.value)}
-                  opciones={productosConReceta.map((p) => ({
-                    valor: String(p.id_producto),
-                    texto: `${p.nombre}${Number(p.n_ingredientes) === 0 ? ' · sin receta' : ''} (${formatoDinero(p.precio_venta)})`,
-                  }))}
-                  buscable
-                />
-
                 {hayProducto && (
                   <div className="rounded-lg border border-line bg-muted/40 p-3 text-xs space-y-1">
                     <div className="flex justify-between">
@@ -485,7 +452,7 @@ export default function EditorRecetasPage() {
                 ) : (
                   <EstadoVacio
                     icono={Package}
-                    titulo="Sin datos de stock"
+                    titulo={hayComponentes ? 'Sin datos de stock' : 'Agrega ingredientes para simular'}
                   >
                     Asigna una sucursal con existencias activas para proyectar disponibilidad.
                   </EstadoVacio>
@@ -547,7 +514,7 @@ export default function EditorRecetasPage() {
                     </div>
 
                     {errorInsumos && <BannerError error={errorInsumos} onReintentar={() => globalThis.location?.reload()} />}
-                    {dropdownAbierto && busquedaInsumo.trim().length > 0 && (
+                    {dropdownAbierto && (
                       <ul className="absolute left-0 right-0 z-30 mt-1.5 max-h-56 overflow-y-auto rounded-xl border border-line bg-surface shadow-xl scroll-fino p-1.5 space-y-0.5">
                         {insumosFiltrados.length === 0 ? (
                           tiene('INV_GESTIONAR_INSUMOS') ? (

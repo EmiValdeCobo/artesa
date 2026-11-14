@@ -241,7 +241,7 @@ export default function CatalogoProductosPage() {
         const idCreado = creado?.id_producto ?? creado?.data?.id_producto;
         if (form.es_elaborado && tiene('INV_GESTIONAR_RECETAS')) {
           const configurar = await confirm({ titulo: 'Producto creado', mensaje: 'Producto creado. No se podrá vender hasta tener receta. ¿Configurarla ahora?', etiquetaCancelar: 'Más tarde', etiquetaAceptar: 'Configurar receta' });
-          if (configurar && idCreado) navigate(`/inventario/recetas?producto=${idCreado}`);
+          if (configurar && idCreado) navigate(`/catalogo/productos/${idCreado}/receta`);
         } else if (form.es_elaborado) {
           notificar.advertencia('Producto creado. No se podrá vender hasta tener receta. Configúrala cuando tengas el permiso INV_GESTIONAR_RECETAS.');
         } else notificar.exito('Producto creado correctamente.');
@@ -378,7 +378,7 @@ export default function CatalogoProductosPage() {
               type="button"
               className="btn-ghost !px-2.5 !py-1 text-xs font-semibold text-primary-text hover:bg-primary-soft"
               title={Number(p.n_ingredientes) === 0 ? 'Crear receta' : 'Editar receta'}
-              onClick={() => navigate(`/inventario/recetas?producto=${p.id_producto}`)}
+              onClick={() => navigate(`/catalogo/productos/${p.id_producto}/receta`)}
             >
               <Layers size={14} className="mr-1 inline" aria-hidden="true" />
               {Number(p.n_ingredientes) === 0 ? 'Crear receta' : 'Editar receta'}
@@ -507,9 +507,10 @@ export default function CatalogoProductosPage() {
         <Card>
           <EstadoVacio
             icono={Tag}
-            titulo="No se encontraron productos"
+            titulo={productos.length === 0 ? 'Aún no hay productos' : 'No se encontraron productos'}
+            accion={productos.length === 0 && tiene('INV_GESTIONAR_PRODUCTOS') ? <Button onClick={abrirCrear}>Crear primer producto</Button> : null}
           >
-            No hay productos que coincidan con los filtros de búsqueda o categoría seleccionados.
+            {productos.length === 0 ? 'Registra el primer producto elaborado o de reventa para comenzar.' : 'No hay productos que coincidan con los filtros de búsqueda o categoría seleccionados.'}
           </EstadoVacio>
         </Card>
       ) : vista === 'tabla' ? (
@@ -565,7 +566,7 @@ export default function CatalogoProductosPage() {
                       <Button
                         variante="ghost"
                         className="!px-2.5 !py-1 text-xs text-primary-text font-semibold hover:bg-primary-soft"
-                        onClick={() => navigate(`/inventario/recetas?producto=${p.id_producto}`)}
+                        onClick={() => navigate(`/catalogo/productos/${p.id_producto}/receta`)}
                         icono={Layers}
                       >
                         {Number(p.n_ingredientes) === 0 ? 'Crear receta' : 'Editar receta'}
