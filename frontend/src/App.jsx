@@ -19,6 +19,7 @@ import ParametrosPage from './modules/empresa/ParametrosPage.jsx';
 import PendienteApiPage from './modules/PendienteApiPage.jsx';
 import BitacoraPage from './modules/seguridad/BitacoraPage.jsx';
 import CajaPage from './modules/caja/CajaPage.jsx';
+import PreparacionPage from './modules/pos/PreparacionPage.jsx';
 import ComprasPage from './modules/compras/ComprasPage.jsx';
 import ProveedoresPage from './modules/compras/ProveedoresPage.jsx';
 import CuentasPorPagarPage from './modules/compras/CuentasPorPagarPage.jsx';
@@ -95,6 +96,14 @@ export default function App() {
           element={
             <ProtectedRoute permiso="CAJA_ABRIR_TURNO">
               <CajaPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="preparacion"
+          element={
+            <ProtectedRoute permiso="POS_VER_COLA_PREPARACION">
+              <PreparacionPage />
             </ProtectedRoute>
           }
         />
