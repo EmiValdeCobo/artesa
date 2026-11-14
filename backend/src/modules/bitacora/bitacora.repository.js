@@ -9,7 +9,7 @@ function construirWhere(filtros, incluirAccion = true, incluirBusqueda = false, 
   const agregar = (condicion, valor) => { bind.push(valor); condiciones.push(condicion.replace('?', `$${bind.length}`)); };
   if (filtros.startDate) agregar('b.creado_en >= ?::date', filtros.startDate);
   if (filtros.endDate) agregar("b.creado_en < (?::date + INTERVAL '1 day')", filtros.endDate);
-  if (ventanaReciente && !filtros.startDate && !filtros.endDate) condiciones.push("b.creado_en >= (CURRENT_TIMESTAMP AT TIME ZONE 'America/El_Salvador') - INTERVAL '30 days'");
+  if (ventanaReciente && !filtros.startDate && !filtros.endDate) condiciones.push("b.creado_en >= now() - INTERVAL '30 days'");
   if (filtros.module) {
     bind.push(filtros.module);
     condiciones.push(`(split_part(b.entidad, '.', 1) = lower($${bind.length}) OR lower(b.entidad) = lower($${bind.length}))`);
@@ -18,6 +18,11 @@ function construirWhere(filtros, incluirAccion = true, incluirBusqueda = false, 
   if (incluirAccion && filtros.action) {
     bind.push(filtros.action);
     condiciones.push(`b.accion = CASE $${bind.length}::text WHEN 'CREATE' THEN 'INSERT' ELSE $${bind.length}::text END`);
+  }
+  const severidad = filtros.severity || filtros.severidad;
+  if (severidad) {
+    bind.push(severidad.toUpperCase());
+    condiciones.push(`upper(b.severidad) = $${bind.length}`);
   }
   if (incluirBusqueda && filtros.search) {
     const n = bind.length + 1;

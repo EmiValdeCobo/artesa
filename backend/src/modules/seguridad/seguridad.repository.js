@@ -177,3 +177,31 @@ export async function eliminarUsuario(transaction, idUsuario) {
   const afectados = await Usuario.destroy({ where: { id_usuario: idUsuario }, transaction });
   return afectados;
 }
+
+export async function obtenerCodigosPermisosRol(idRol, transaction = null) {
+  if (!idRol) return [];
+  const rol = await Rol.findByPk(idRol, {
+    attributes: ['id_rol'],
+    paranoid: false,
+    include: [{
+      model: Permiso,
+      as: 'permisos',
+      attributes: ['codigo'],
+      through: { attributes: [] },
+    }],
+    transaction,
+  });
+  if (!rol || !rol.permisos) return [];
+  return rol.permisos.map((p) => p.codigo);
+}
+
+export async function obtenerCodigosPermisosUsuario(idUsuario, transaction = null) {
+  if (!idUsuario) return [];
+  const usuario = await Usuario.findByPk(idUsuario, {
+    attributes: ['id_usuario', 'id_rol'],
+    paranoid: false,
+    transaction,
+  });
+  if (!usuario?.id_rol) return [];
+  return obtenerCodigosPermisosRol(usuario.id_rol, transaction);
+}

@@ -576,6 +576,22 @@ export default function EditorRecetasPage() {
     }
   }
 
+  const handleVolver = async () => {
+    if (hayCambios) {
+      const confirmar = await confirm(
+        'Tienes cambios sin guardar en esta receta. Si sales ahora, se perderán las modificaciones.',
+        {
+          tipo: 'advertencia',
+          titulo: 'Cambios sin guardar',
+          etiquetaAceptar: 'Descartar cambios',
+          etiquetaCancelar: 'Continuar editando',
+        }
+      );
+      if (!confirmar) return;
+    }
+    navigate('/catalogo/productos');
+  };
+
   return (
     <div className="space-y-6">
       <EncabezadoPagina
@@ -586,7 +602,7 @@ export default function EditorRecetasPage() {
           <Button
             variante="ghost"
             icono={ArrowLeft}
-            onClick={() => navigate('/catalogo/productos')}
+            onClick={handleVolver}
           >
             Volver a Productos
           </Button>
@@ -1180,6 +1196,7 @@ export default function EditorRecetasPage() {
                                       type="button"
                                       className="btn-ghost !p-1.5 min-h-7 text-danger hover:bg-danger-soft"
                                       title="Quitar ingrediente"
+                                      aria-label={`Quitar ingrediente ${c.insumo || c.nombre_insumo || ''}`}
                                       onClick={() => handleQuitarInsumo(c.id_insumo)}
                                     >
                                       <X size={14} aria-hidden="true" />

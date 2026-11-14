@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Minus, Store, TrendingDown, TrendingUp, UserRoundX } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import AvisoError from '../../../components/feedback/AvisoError.jsx';
@@ -41,11 +41,12 @@ function Variacion({ pct }) {
   return <span className={`inline-flex items-center gap-1 font-semibold ${color}`}><Icono size={14} aria-hidden="true" />{n > 0 ? '+' : ''}{pct} % vs. 7 días previos</span>;
 }
 
-export default function VentasDiariasPanel({ cols, orden }) {
+export default function VentasDiariasPanel({ cols, orden, sucursal }) {
   const { tiene } = useAuth();
   const propias = !tiene('REP_VER_DASHBOARD'); // solo para el rótulo; el alcance real lo decide el servidor
   const [dias, setDias] = useState(14);
-  const { datos, error, cargando, actualizando, recargar } = useDashboardData('/dashboard/ventas-diarias', { dias }, { intervalo: 60000 });
+  const params = useMemo(() => ({ dias, ...(sucursal ? { sucursal } : {}) }), [dias, sucursal]);
+  const { datos, error, cargando, actualizando, recargar } = useDashboardData('/dashboard/ventas-diarias', params, { intervalo: 60000 });
   const titulo = propias ? 'Mis ventas' : 'Ventas diarias';
 
   let cuerpo;

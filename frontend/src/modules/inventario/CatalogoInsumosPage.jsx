@@ -279,7 +279,7 @@ function PestanaInsumos({ unidades, onTotal }) {
 
       const coincideEstado =
         filtroEstado === 'TODOS'
-          ? (mostrarInactivos || true)
+          ? (mostrarInactivos ? true : ins.activo !== false)
           : filtroEstado === 'ACTIVOS'
             ? ins.activo !== false
             : ins.activo === false;
@@ -397,30 +397,33 @@ function PestanaInsumos({ unidades, onTotal }) {
             alinear: 'right',
             render: (fila) => (
               <div className="flex items-center gap-1 justify-end">
-                {tiene('INV_GESTIONAR_INSUMOS') && <button type="button" className="btn-ghost !p-1.5 min-h-8" title="Existencias" onClick={() => setInsumoExistencias(fila)}><Boxes size={15} /></button>}
+                {tiene('INV_GESTIONAR_INSUMOS') && <button type="button" className="btn-ghost !p-1.5 min-h-8" title="Existencias" aria-label={`Ver existencias de ${fila.nombre}`} onClick={() => setInsumoExistencias(fila)}><Boxes size={15} aria-hidden="true" /></button>}
                 <button
                   type="button"
                   className="btn-ghost !p-1.5 min-h-8"
                   title="Editar insumo"
+                  aria-label={`Editar insumo ${fila.nombre}`}
                   onClick={() => abrirEditar(fila)}
                 >
-                  <Pencil size={15} />
+                  <Pencil size={15} aria-hidden="true" />
                 </button>
                 <button
                   type="button"
                   className="btn-ghost !p-1.5 min-h-8 text-danger"
                   title={fila.activo === false ? 'Reactivar insumo' : 'Desactivar insumo'}
+                  aria-label={`${fila.activo === false ? 'Reactivar' : 'Desactivar'} insumo ${fila.nombre}`}
                   onClick={() => handleToggleEstado(fila)}
                 >
-                  {fila.activo === false ? <Power size={15} /> : <PowerOff size={15} />}
+                  {fila.activo === false ? <Power size={15} aria-hidden="true" /> : <PowerOff size={15} aria-hidden="true" />}
                 </button>
                 <button
                   type="button"
                   className="btn-ghost !p-1.5 min-h-8 text-danger hover:bg-danger-soft"
                   title="Eliminar insumo"
+                  aria-label={`Eliminar insumo ${fila.nombre}`}
                   onClick={() => handleEliminarInsumo(fila)}
                 >
-                  <Trash2 size={15} />
+                  <Trash2 size={15} aria-hidden="true" />
                 </button>
               </div>
             ),

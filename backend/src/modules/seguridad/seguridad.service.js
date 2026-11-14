@@ -171,10 +171,33 @@ export async function revocarPermiso(idRol, idPermiso, userId) {
   } catch (error) { throw traducirErrorRbac(error); }
 }
 
+async function validarJerarquia(transaction, operadorId, { idRolAsignar = null, idUsuarioObjetivo = null } = {}) {
+  if (!operadorId) return;
+  const codigosOperador = await repo.obtenerCodigosPermisosUsuario(operadorId, transaction);
+  const permisosOperador = new Set(codigosOperador);
+
+  if (idUsuarioObjetivo) {
+    const codigosObjetivo = await repo.obtenerCodigosPermisosUsuario(idUsuarioObjetivo, transaction);
+    const tienePermisosSuperiores = codigosObjetivo.some((codigo) => !permisosOperador.has(codigo));
+    if (tienePermisosSuperiores) {
+      throw new AppError('No tienes permisos suficientes para gestionar un usuario con privilegios superiores o adicionales a los tuyos', 403);
+    }
+  }
+
+  if (idRolAsignar) {
+    const codigosRolAsignar = await repo.obtenerCodigosPermisosRol(idRolAsignar, transaction);
+    const asignaPermisosSuperiores = codigosRolAsignar.some((codigo) => !permisosOperador.has(codigo));
+    if (asignaPermisosSuperiores) {
+      throw new AppError('No tienes permisos suficientes para gestionar un usuario con privilegios superiores o adicionales a los tuyos', 403);
+    }
+  }
+}
+
 export async function crearUsuario(datos, userId) {
   try {
     return await withTransaction(async (transaction) => {
       await validarReferencias(transaction, datos.idRol, datos.sucursales);
+      await validarJerarquia(transaction, userId, { idRolAsignar: datos.idRol });
       const passwordHash = await bcrypt.hash(datos.password, 10);
       const idUsuario = await repo.crearUsuario(transaction, { ...datos, passwordHash });
       await repo.asignarSucursales(transaction, idUsuario, datos.sucursales);
@@ -192,6 +215,7 @@ export async function actualizarUsuario(idUsuario, datos, userId) {
       if (String(idUsuario) === String(userId) && String(await repo.buscarIdRolUsuario(transaction, idUsuario)) !== String(datos.idRol)) {
         throw new AppError('No puedes cambiarte a otro rol desde tu propia cuenta', 403);
       }
+      await validarJerarquia(transaction, userId, { idUsuarioObjetivo: idUsuario, idRolAsignar: datos.idRol });
       const passwordHash = datos.password ? await bcrypt.hash(datos.password, 10) : null;
       const actualizado = await repo.actualizarUsuario(transaction, idUsuario, { ...datos, passwordHash });
       if (!actualizado) throw new AppError('Usuario no encontrado', 404);
@@ -208,7 +232,10 @@ export async function desactivarUsuario(idUsuario, userId) {
     throw new AppError('No puedes desactivar tu propio usuario', 403);
   }
   try {
-    const resultado = await withTransaction((transaction) => repo.desactivarUsuario(transaction, idUsuario), userId);
+    const resultado = await withTransaction(async (transaction) => {
+      await validarJerarquia(transaction, userId, { idUsuarioObjetivo: idUsuario });
+      return repo.desactivarUsuario(transaction, idUsuario);
+    }, userId);
     if (!resultado) throw new AppError('Usuario no encontrado o ya está inactivo', 404);
   } catch (error) {
     throw traducirError(error);
@@ -217,7 +244,10 @@ export async function desactivarUsuario(idUsuario, userId) {
 
 export async function activarUsuario(idUsuario, userId) {
   try {
-    const resultado = await withTransaction((transaction) => repo.activarUsuario(transaction, idUsuario), userId);
+    const resultado = await withTransaction(async (transaction) => {
+      await validarJerarquia(transaction, userId, { idUsuarioObjetivo: idUsuario });
+      return repo.activarUsuario(transaction, idUsuario);
+    }, userId);
     if (!resultado) throw new AppError('Usuario no encontrado o ya está activo', 404);
   } catch (error) {
     throw traducirError(error);
@@ -229,7 +259,10 @@ export async function eliminarUsuario(idUsuario, userId) {
     throw new AppError('No puedes eliminar tu propio usuario', 403);
   }
   try {
-    const resultado = await withTransaction((transaction) => repo.eliminarUsuario(transaction, idUsuario), userId);
+    const resultado = await withTransaction(async (transaction) => {
+      await validarJerarquia(transaction, userId, { idUsuarioObjetivo: idUsuario });
+      return repo.eliminarUsuario(transaction, idUsuario);
+    }, userId);
     if (!resultado) throw new AppError('Usuario no encontrado', 404);
   } catch (error) {
     throw traducirError(error);

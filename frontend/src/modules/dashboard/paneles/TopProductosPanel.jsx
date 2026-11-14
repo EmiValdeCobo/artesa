@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Coffee, Store } from 'lucide-react';
 import AvisoError from '../../../components/feedback/AvisoError.jsx';
 import { Cargando, Panel, SelectorPeriodo, Vacio } from '../components/Panel.jsx';
@@ -10,12 +10,13 @@ const PERIODOS = [[1, 'Hoy'], [7, '7 días'], [30, '30 días']];
 const textoPeriodo = (dias) => (dias === 1 ? 'hoy' : `últimos ${dias} días`);
 const periodoCorto = (dias) => (dias === 1 ? 'hoy' : `${dias} días`);
 
-export default function TopProductosPanel({ cols, orden }) {
+export default function TopProductosPanel({ cols, orden, sucursal }) {
   const [dias, setDias] = useState(7);
   const [activo, setActivo] = useState(null);
   const [ancla, setAncla] = useState({ x: 0, y: 0 });
   const marco = useRef(null);
-  const { datos, error, cargando, recargar } = useDashboardData('/dashboard/top-productos', { dias, limite: 5 }, { intervalo: 120000 });
+  const params = useMemo(() => ({ dias, limite: 5, ...(sucursal ? { sucursal } : {}) }), [dias, sucursal]);
+  const { datos, error, cargando, recargar } = useDashboardData('/dashboard/top-productos', params, { intervalo: 120000 });
 
   // Ancla el tooltip a la fila: arriba de ella y, con ratón, a la altura del cursor en horizontal.
   const anclar = (i, fila, clientX) => {
