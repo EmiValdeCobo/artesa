@@ -27,7 +27,7 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (li
 | inventario | listo | CRUD unidades-medida/insumos/productos, stock, mermas, alertas y Kárdex con permiso propio; costos de producto condicionados a INV_VER_COSTOS | Existencias/kárdex por sucursal; catálogos con baja reversible, alta de insumos reutilizable, costeo sin IVA y diálogo de stock inicial/ajustes/mínimos |
 | pos | listo | cola de preparación, órdenes (T02), ventas (T17), anulación (`fn_anular_venta`) y CRUD clientes CCF (T18-back) | catálogo y carrito local; pantallas de clientes/anulación (T18-front), cobro (T19) y ticket (T46) pendientes |
 | caja | listo | turnos, movimientos, cierre y cuadre (T05/T06/T22) | pantalla de caja integrada desde develop |
-| compras | listo | T30 proveedores; T31 facturas COSTO; T32 pagos/CxP; T33 registro backend GASTO | pantallas de proveedores, compras, CxP y gastos siguen provisionales |
+| compras | listo | T30 proveedores; T31 facturas COSTO; T32 pagos/CxP; T33 registro backend GASTO | Proveedores, registro COSTO/GASTO, CxP y pagos integrados a las APIs |
 | rrhh | listo | CRUD de puestos y empleados, validaciones, permisos y datos de prueba | pendiente |
 | reportes | vistas listas + consultas de método de pago, cuadre y CxP | ventas diarias, top productos, métodos de pago, alertas, margen, cuadre y CxP; alcance por `id_sucursal` | panel con tendencias, comparativos, tablas paginadas y exportación CSV/PDF |
 | empresa | listo | CRUD sucursales y edición parámetros | sucursales y parámetros |

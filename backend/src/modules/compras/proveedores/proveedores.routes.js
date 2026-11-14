@@ -21,7 +21,7 @@ const validateQuery = (req, _res, next) => {
 };
 
 router.use(authenticate, requireTipo('admin'));
-router.get('/proveedores', requirePermiso('COM_GESTIONAR_PROVEEDORES'), validateQuery, asyncHandler(controller.listarProveedores));
+router.get('/proveedores', requirePermiso('COM_GESTIONAR_PROVEEDORES', 'COM_REGISTRAR_COMPRA'), validateQuery, asyncHandler(controller.listarProveedores));
 router.post('/proveedores', requirePermiso('COM_GESTIONAR_PROVEEDORES'), validate(proveedorSchema), asyncHandler(controller.crearProveedor));
 router.put('/proveedores/:id', requirePermiso('COM_GESTIONAR_PROVEEDORES'), validateId, validate(proveedorSchema), asyncHandler(controller.actualizarProveedor));
 router.delete('/proveedores/:id', requirePermiso('COM_GESTIONAR_PROVEEDORES'), validateId, asyncHandler(controller.desactivarProveedor));
