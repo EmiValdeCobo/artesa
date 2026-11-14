@@ -35,3 +35,9 @@ test('PDF se genera con firma y tabla de referencias xref', () => {
   assert.match(pdf.toString('binary'), /xref/);
   assert.match(generarPdf(Array.from({ length: 50 }, (_, i) => `Fila ${i}`)).toString('binary'), /\/Count 2/);
 });
+
+test('planilla conserva todas las filas repartiendo tablas largas en páginas', () => {
+  const filas = Array.from({ length: 15 }, (_, i) => `${i + 1} | Empleado ${i + 1} | $500.00 | $0.00 | $15.00 | $36.25 | $0.00 | $448.75`);
+  const pdf = generarPdf(['Planilla mensual 2026-11', 'Sucursal: Central', 'ID | Nombre | Base | Bono | ISSS | AFP | Renta | Neto', ...filas]);
+  assert.match(pdf.toString('binary'), /\/Count 2/);
+});
