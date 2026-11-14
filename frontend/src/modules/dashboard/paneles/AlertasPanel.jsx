@@ -1,4 +1,6 @@
-import { CircleAlert, CircleCheck, Store, TriangleAlert } from 'lucide-react';
+import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ChevronRight, CircleAlert, CircleCheck, Store, TriangleAlert } from 'lucide-react';
 import AvisoError from '../../../components/feedback/AvisoError.jsx';
 import { Cargando, Panel, Vacio } from '../components/Panel.jsx';
 import Actualizado from '../../../components/display/Actualizado.jsx';
@@ -12,8 +14,32 @@ const SEVERIDAD = {
 const unir = (lista) => (lista.length > 1 ? `${lista.slice(0, -1).join(', ')} y ${lista.at(-1)}` : lista[0] ?? '');
 const REFRESCO_MS = 2 * 60 * 1000;
 
-export default function AlertasPanel({ cols, titulo, orden }) {
-  const { datos, error, cargando, actualizando, recargar } = useDashboardData('/dashboard/alertas', {}, { intervalo: REFRESCO_MS });
+function resolverRutaAlerta(a) {
+  const mod = String(a.modulo || '').toUpperCase();
+  const tipo = String(a.tipo || '').toUpperCase();
+
+  if (mod.includes('INVENTARIO') || tipo.includes('STOCK')) {
+    return '/inventario';
+  }
+  if (mod.includes('COMPRA') || tipo.includes('CXP')) {
+    return '/compras/cuentas-por-pagar';
+  }
+  if (mod.includes('CAJA') || tipo.includes('CUADRE') || tipo.includes('TURNO')) {
+    return '/caja';
+  }
+  if (mod.includes('PREPARAC') || mod.includes('VENTA') || tipo.includes('PREPARACION') || tipo.includes('ANULAC') || tipo.includes('CAIDA_VENTAS')) {
+    return '/pos';
+  }
+  if (mod.includes('RR') || tipo.includes('PLANILLA')) {
+    return '/rrhh';
+  }
+  return null;
+}
+
+export default function AlertasPanel({ cols, titulo, orden, sucursal }) {
+  const navigate = useNavigate();
+  const params = useMemo(() => (sucursal ? { sucursal } : {}), [sucursal]);
+  const { datos, error, cargando, actualizando, recargar } = useDashboardData('/dashboard/alertas', params, { intervalo: REFRESCO_MS });
 
   let cuerpo;
   if (cargando) cuerpo = <Cargando lineas={4} alto="h-12" />;
@@ -41,15 +67,45 @@ export default function AlertasPanel({ cols, titulo, orden }) {
             </p>
             <ul className="grid gap-x-6 lg:grid-cols-2">
               {datos.alertas.map((a) => {
-                const { Icono, texto, clase } = SEVERIDAD[a.severidad];
+                const { Icono, texto, clase } = SEVERIDAD[a.severidad] || SEVERIDAD.aviso;
+                const ruta = resolverRutaAlerta(a);
                 return (
-                  <li key={a.id} className={`mb-2 flex gap-3 rounded-xl border-l-4 py-3 pl-3 pr-3 ${clase.split(' ')[0]} ${clase.split(' ')[2]}`}>
+                  <li
+                    key={a.id}
+                    onClick={() => ruta && navigate(ruta)}
+                    onKeyDown={(e) => {
+                      if ((e.key === 'Enter' || e.key === ' ') && ruta) {
+                        e.preventDefault();
+                        navigate(ruta);
+                      }
+                    }}
+                    role={ruta ? 'button' : undefined}
+                    tabIndex={ruta ? 0 : undefined}
+                    aria-label={ruta ? `${texto}: ${a.titulo}. Ir a ${a.modulo}` : undefined}
+                    className={`group mb-2 flex items-start gap-3 rounded-xl border-l-4 py-3 pl-3 pr-3 transition-all ${
+                      clase.split(' ')[0]
+                    } ${clase.split(' ')[2]} ${
+                      ruta ? 'cursor-pointer hover:bg-surface/90 hover:shadow-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary' : ''
+                    }`}
+                  >
                     <Icono size={18} aria-hidden="true" className={`mt-0.5 shrink-0 ${clase.split(' ')[1]}`} />
-                    <div className="min-w-0">
-                      <p className="text-base font-bold leading-snug text-fg sm:text-sm"><span className="sr-only">{texto}: </span>{a.titulo}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-base font-bold leading-snug text-fg sm:text-sm">
+                        <span className="sr-only">{texto}: </span>
+                        {a.titulo}
+                      </p>
                       <p className="mt-0.5 text-sm text-fg-muted">{a.detalle}</p>
-                      <p className="mt-1.5 text-xs font-medium uppercase tracking-[0.1em] text-fg-muted">{a.modulo} · {a.sucursal}</p>
+                      <p className="mt-1.5 text-xs font-medium uppercase tracking-[0.1em] text-fg-muted">
+                        {a.modulo} · {a.sucursal}
+                      </p>
                     </div>
+                    {ruta && (
+                      <ChevronRight
+                        size={16}
+                        aria-hidden="true"
+                        className="mt-1 shrink-0 text-fg-muted opacity-60 transition-transform group-hover:translate-x-0.5 group-hover:opacity-100"
+                      />
+                    )}
                   </li>
                 );
               })}

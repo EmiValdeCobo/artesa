@@ -5,6 +5,7 @@ import { obtenerContextoSolicitud } from '../utils/requestContext.js';
 const opciones = {
   dialect: 'postgres',
   logging: false,
+  timezone: '+00:00',
 };
 
 export const sequelize = env.database

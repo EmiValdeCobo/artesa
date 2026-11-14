@@ -145,7 +145,8 @@ export default function RolesPermisosPage() {
   const baseIds = useMemo(() => (rolActivo ? rolActivo.permisos.map((permiso) => permiso.id_permiso) : []), [rolActivo]);
   const seleccion = borrador ?? baseIds;
   const hayCambios = borrador !== null && !mismosIds(borrador, baseIds);
-  const soloLectura = Boolean(rolActivo) && !rolActivo.activo;
+  const esAdmin = rolActivo?.nombre === 'ADMIN';
+  const soloLectura = Boolean(rolActivo) && (!rolActivo.activo || esAdmin);
   const esRolDeSesion = Boolean(rolActivo) && rolActivo.nombre === usuarioSesion?.rol;
   const usuariosDelRol = (rol) => (usuariosPorRol ? usuariosPorRol[rol.id_rol] ?? 0 : null);
 
@@ -256,6 +257,10 @@ export default function RolesPermisosPage() {
   const descartarCambios = () => { setBorrador(null); setErrorAsignacion(null); };
 
   const guardarAsignacion = async () => {
+    if (rolActivo?.nombre === 'ADMIN') {
+      setErrorAsignacion(errorLocal('Rol protegido', 'El rol ADMIN es un rol protegido del sistema y su configuración es de solo lectura.', 'Selecciona otro rol si deseas editar permisos.'));
+      return;
+    }
     const motivo = validarAsignacion(rolActivo, seleccion, permisos, usuarioSesion);
     if (motivo) { setErrorAsignacion(errorLocal('No se puede guardar', motivo, 'Corrige la selección e inténtalo de nuevo.')); return; }
 
@@ -496,12 +501,13 @@ export default function RolesPermisosPage() {
                       <h2 className="break-all text-xl font-bold tracking-tight">{rolActivo.nombre}</h2>
                       {rolActivo.es_sistema && <Insignia>Sistema</Insignia>}
                       {esRolDeSesion && <Insignia variante="info">Tu rol</Insignia>}
-                      {soloLectura && <Insignia variante="aviso">Inactivo</Insignia>}
+                      {!rolActivo.activo && <Insignia variante="aviso">Inactivo</Insignia>}
+                      {esAdmin && <Insignia variante="primario">Protegido</Insignia>}
                     </div>
                     <p className="mt-1 text-sm text-fg-muted">{rolActivo.descripcion || 'Sin descripción.'}</p>
                   </div>
                   <div className="flex gap-2">
-                    <button type="button" className="btn-ghost min-h-10" disabled={soloLectura} title={soloLectura ? 'Un rol inactivo no se puede modificar' : undefined} onClick={() => abrirModalRol(rolActivo)}><Edit3 size={15} aria-hidden="true" /> Editar</button>
+                    <button type="button" className="btn-ghost min-h-10" disabled={soloLectura} title={soloLectura ? (esAdmin ? 'El rol ADMIN es un rol protegido del sistema en solo lectura' : 'Un rol inactivo no se puede modificar') : undefined} onClick={() => abrirModalRol(rolActivo)}><Edit3 size={15} aria-hidden="true" /> Editar</button>
                     <button type="button" className="btn-danger min-h-10" onClick={() => eliminarRol(rolActivo)} title={bloqueoEliminar || undefined}><Trash2 size={15} aria-hidden="true" /> Eliminar</button>
                   </div>
                 </div>
@@ -518,7 +524,10 @@ export default function RolesPermisosPage() {
 
               {soloLectura && (
                 <div className="mb-5 flex items-start gap-2 rounded-lg border border-warning/30 bg-warning-soft px-4 py-3 text-sm" role="status">
-                  <Info size={17} aria-hidden="true" className="mt-0.5 shrink-0 text-warning" /> Este rol está inactivo: puedes ver sus permisos, pero no modificarlos.
+                  <Info size={17} aria-hidden="true" className="mt-0.5 shrink-0 text-warning" />
+                  {esAdmin
+                    ? 'El rol ADMIN es un rol protegido del sistema con todos los permisos: su configuración es de solo lectura.'
+                    : 'Este rol está inactivo: puedes ver sus permisos, pero no modificarlos.'}
                 </div>
               )}
               <BannerError className="mb-5" error={errorAsignacion} onCerrar={() => setErrorAsignacion(null)} onReintentar={guardarAsignacion} />

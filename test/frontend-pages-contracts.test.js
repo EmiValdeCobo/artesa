@@ -124,3 +124,11 @@ test('frontend inventario: catalogo de insumos, productos y recetas protegen ico
   assert.match(insumos, /className="input"/);
   assert.match(insumos, /const\s+avisoLocal\s*=/);
 });
+
+test('frontend auth: AuthContext expone recargarSesion y lo reutiliza en montaje inicial', async () => {
+  const authContext = await leer('frontend/src/context/AuthContext.jsx');
+  assert.match(authContext, /const\s+recargarSesion\s*=\s*useCallback/);
+  assert.match(authContext, /recargarSesion\(\)/);
+  assert.match(authContext, /value=\{\{\s*usuario,\s*tipoSesion,\s*cargando,\s*login:\s*iniciarSesion,\s*logout,\s*tiene,\s*recargarSesion\s*\}\}/);
+  assert.match(authContext, /export\s+function\s+useAuth\(\)/);
+});

@@ -107,3 +107,21 @@ test('inventario: migración 009 asegura índices parciales y consistencia de ve
   assert.match(migracion, /CREATE OR REPLACE VIEW reportes\.vw_alertas_stock[\s\S]*WHERE i\.activo AND i\.deleted_at IS NULL/);
   assert.match(migracion, /CREATE OR REPLACE VIEW reportes\.vw_costo_margen_producto[\s\S]*WHERE p\.deleted_at IS NULL/);
 });
+
+test('inventario: borrado de insumos valida recetas, stock y movimientos antes de soft delete', async () => {
+  const [repo, serv, ctrl] = await Promise.all([
+    leer('backend/src/modules/inventario/inventario.repository.js'),
+    leer('backend/src/modules/inventario/inventario.service.js'),
+    leer('backend/src/modules/inventario/inventario.controller.js'),
+  ]);
+
+  assert.match(repo, /export const insumoTieneRecetas =/);
+  assert.match(repo, /export const insumoTieneStock =/);
+  assert.match(repo, /export const insumoTieneMovimientos =/);
+
+  assert.match(serv, /insumoTieneRecetas/);
+  assert.match(serv, /insumoTieneStock/);
+  assert.match(serv, /insumoTieneMovimientos/);
+
+  assert.match(ctrl, /ingresarStock = async \(req, res\) => res\.status\(201\)\.json\(await service\.ingresarStock\(parseId\(req\.params\.id\)/);
+});

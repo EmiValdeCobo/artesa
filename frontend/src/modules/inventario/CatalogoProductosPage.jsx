@@ -461,7 +461,7 @@ export default function CatalogoProductosPage() {
 
       const coincideEstado =
         filtroEstado === 'TODOS'
-          ? (mostrarInactivos || true)
+          ? (mostrarInactivos ? true : p.activo !== false)
           : filtroEstado === 'ACTIVOS'
             ? p.activo !== false
             : p.activo === false;
@@ -1026,6 +1026,7 @@ export default function CatalogoProductosPage() {
                         type="button"
                         className="btn-ghost !p-2 h-9 w-9 inline-flex items-center justify-center"
                         title="Editar producto"
+                        aria-label={`Editar producto ${p.nombre}`}
                         onClick={() => abrirEditar(p)}
                       >
                         <Pencil size={15} aria-hidden="true" />
@@ -1036,6 +1037,7 @@ export default function CatalogoProductosPage() {
                         type="button"
                         className="btn-ghost !p-2 h-9 w-9 inline-flex items-center justify-center text-danger"
                         title={p.activo === false ? 'Reactivar producto' : 'Desactivar producto'}
+                        aria-label={`${p.activo === false ? 'Reactivar' : 'Desactivar'} producto ${p.nombre}`}
                         onClick={() => handleToggleEstado(p)}
                       >
                         {p.activo === false ? <Power size={15} aria-hidden="true" /> : <PowerOff size={15} aria-hidden="true" />}
@@ -1046,6 +1048,7 @@ export default function CatalogoProductosPage() {
                         type="button"
                         className="btn-ghost !p-2 h-9 w-9 inline-flex items-center justify-center text-danger hover:bg-danger-soft"
                         title="Eliminar producto"
+                        aria-label={`Eliminar producto ${p.nombre}`}
                         onClick={() => handleEliminarProducto(p)}
                       >
                         <Trash2 size={15} aria-hidden="true" />

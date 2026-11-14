@@ -43,9 +43,16 @@ export const eliminarUnidad = (id, uid) => run(() => withTransaction(async (t) =
   await repo.actualizarUnidad(id, { activo: false }, t);
 }, uid));
 export const listarInsumos = async (uid, soloActivos = false) => repo.listarInsumos(await repo.usuarioTienePermiso(uid, 'INV_VER_COSTOS'), soloActivos);
-export const crearInsumo = (d, uid) => run(() => withTransaction(async (t) => { if (!(await repo.buscarUnidad(d.idUnidadBase, t))) throw new AppError('La unidad de medida no existe', 400); return repo.crearInsumo(d, t); }, uid));
+export const crearInsumo = (d, uid) => run(() => withTransaction(async (t) => {
+  const unidad = await repo.buscarUnidad(d.idUnidadBase, t);
+  if (!unidad) throw new AppError('La unidad de medida no existe', 400);
+  if (!unidad.activo) throw new AppError('No se puede asociar una unidad de medida inactiva', 400);
+  return repo.crearInsumo(d, t);
+}, uid));
 export const actualizarInsumo = (id, d, uid) => run(() => withTransaction(async (t) => {
-  if (!(await repo.buscarUnidad(d.idUnidadBase, t))) throw new AppError('La unidad de medida no existe', 400);
+  const unidad = await repo.buscarUnidad(d.idUnidadBase, t);
+  if (!unidad) throw new AppError('La unidad de medida no existe', 400);
+  if (!unidad.activo) throw new AppError('No se puede asociar una unidad de medida inactiva', 400);
   const actual = await repo.buscarInsumo(id, t);
   if (!actual) throw new AppError('Insumo no encontrado', 404);
   if (actual.activo && d.activo === false) await validarInsumoDesactivable(id, t);
@@ -61,6 +68,15 @@ export const cambiarEstadoInsumo = (id, d, uid) => run(() => withTransaction(asy
 export const eliminarInsumo = (id, uid) => run(() => withTransaction(async (t) => {
   const actual = await repo.buscarInsumo(id, t);
   if (!actual) throw new AppError('Insumo no encontrado', 404);
+  if (await repo.insumoTieneRecetas(id, t)) {
+    throw new AppError('No se puede eliminar el insumo: está asignado a recetas o productos de reventa activos', 409);
+  }
+  if (await repo.insumoTieneStock(id, t)) {
+    throw new AppError('No se puede eliminar el insumo: tiene existencias de stock registradas en sucursales', 409);
+  }
+  if (await repo.insumoTieneMovimientos(id, t)) {
+    throw new AppError('No se puede eliminar el insumo: tiene movimientos de inventario registrados en el kárdex', 409);
+  }
   await repo.eliminarInsumo(id, t);
 }, uid));
 export const desactivarInsumo = (id, uid) => run(() => withTransaction(async (t) => {
@@ -68,10 +84,33 @@ export const desactivarInsumo = (id, uid) => run(() => withTransaction(async (t)
   await validarInsumoDesactivable(id, t);
   await repo.desactivarInsumo(id, t);
 }, uid));
+async function validarInsumoReventa(idInsumoReventa, idProducto, transaction) {
+  const insumo = await repo.buscarInsumo(idInsumoReventa, transaction);
+  if (!insumo) throw new AppError('El insumo seleccionado para reventa no existe', 400);
+  if (insumo.tipo_insumo !== 'REVENTA') {
+    throw new AppError('El insumo asignado para reventa debe ser de tipo REVENTA', 400);
+  }
+  const existente = await repo.buscarProductoPorInsumoReventa(idInsumoReventa, transaction);
+  if (existente && (!idProducto || Number(existente.id_producto) !== Number(idProducto))) {
+    throw new AppError('El insumo de reventa ya está asignado a otro producto', 409);
+  }
+}
 export const listarCategorias = () => repo.listarCategorias();
 export const listarProductos = async (uid, soloActivos = false) => repo.listarProductos(await repo.usuarioTienePermiso(uid, 'INV_VER_COSTOS'), soloActivos);
-export const crearProducto = (d, uid) => run(() => withTransaction((t) => repo.escribirProducto(d, t), uid));
-export const actualizarProducto = (id, d, uid) => run(() => withTransaction(async (t) => { const x = await repo.escribirProducto(d, t, id); if (!x) throw new AppError('Producto no encontrado', 404); return x; }, uid));
+export const crearProducto = (d, uid) => run(() => withTransaction(async (t) => {
+  if (!d.esElaborado || d.idInsumoReventa) {
+    await validarInsumoReventa(d.idInsumoReventa, null, t);
+  }
+  return repo.escribirProducto(d, t);
+}, uid));
+export const actualizarProducto = (id, d, uid) => run(() => withTransaction(async (t) => {
+  const actual = await repo.buscarProducto(id, t);
+  if (!actual) throw new AppError('Producto no encontrado', 404);
+  if (!d.esElaborado || d.idInsumoReventa) {
+    await validarInsumoReventa(d.idInsumoReventa, id, t);
+  }
+  return repo.escribirProducto(d, t, id);
+}, uid));
 export const cambiarEstadoProducto = (id, d, uid) => run(() => withTransaction(async (t) => {
   const actual = await repo.buscarProducto(id, t);
   if (!actual) throw new AppError('Producto no encontrado', 404);

@@ -168,7 +168,7 @@ test('inventario: editar insumo conserva costo y el listado de productos cuenta 
   assert.equal(payload.costoPromedio, undefined);
   const repository = await leer('backend/src/modules/inventario/inventario.repository.js');
   assert.match(repository, /if \(data\.costoPromedio !== undefined\) values\.costo_promedio = data\.costoPromedio/);
-  assert.match(repository, /COUNT\(\*\)::int FROM inventario\.recetas r WHERE r\.id_producto = p\.id_producto/);
+  assert.match(repository, /COUNT\(\*\)::int FROM inventario\.recetas r JOIN inventario\.insumos ri USING \(id_insumo\) WHERE r\.id_producto = p\.id_producto AND ri\.deleted_at IS NULL/);
 });
 
 test('inventario: el controller de merma lee el parámetro :id declarado por la ruta', async () => {

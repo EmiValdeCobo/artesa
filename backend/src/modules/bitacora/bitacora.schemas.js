@@ -16,6 +16,8 @@ export const listaBitacoraQuery = validarRango(z.strictObject({
   page: z.coerce.number().int().min(1).max(1_000_000).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(25),
   action: z.enum(['CREATE', 'UPDATE', 'DELETE', 'LOGIN']).optional(),
+  severity: z.enum(['INFO', 'WARNING', 'CRITICAL', 'ERROR']).optional(),
+  severidad: z.enum(['INFO', 'WARNING', 'CRITICAL', 'ERROR']).optional(),
   search: z.string().trim().max(120).optional(),
 }));
 

@@ -54,6 +54,8 @@ export default function App() {
         <Route path="inventario/insumos" element={<Navigate to="/catalogo/insumos" replace />} />
         <Route path="inventario/productos" element={<Navigate to="/catalogo/productos" replace />} />
         <Route path="inventario/recetas" element={<Navigate to="/catalogo/productos" replace />} />
+        <Route path="inventario/stock" element={<Navigate to="/inventario" replace />} />
+        <Route path="pos/caja" element={<Navigate to="/caja" replace />} />
         <Route path="reportes" element={<ProtectedRoute permiso="REP_VER_DASHBOARD"><ReportesPage /></ProtectedRoute>} />
         <Route path="empresa/sucursales" element={<ProtectedRoute permiso="EMP_GESTIONAR_SUCURSALES"><SucursalesPage /></ProtectedRoute>} />
         <Route path="empresa/parametros" element={<ProtectedRoute permiso="EMP_EDITAR_PARAMETROS"><ParametrosPage /></ProtectedRoute>} />

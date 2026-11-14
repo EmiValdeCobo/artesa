@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { api, EVENTO_SESION_EXPIRADA } from '../api/client.js';
 
 const AuthContext = createContext(null);
@@ -9,21 +9,27 @@ export function AuthProvider({ children }) {
   const [tipoSesion, setTipoSesion] = useState(null);
   const [cargando, setCargando] = useState(true);
 
-  useEffect(() => {
-    const tipo = localStorage.getItem('tipoSesion') || 'admin';
-    api.get(tipo === 'cliente' ? '/auth/cliente/me' : '/auth/me')
-      .then((data) => {
-        setUsuario(data.usuario);
-        setPermisos(data.permisos || []);
-        setTipoSesion(tipo);
-      })
-      .catch(() => {
-        setUsuario(null);
-        setPermisos([]);
-        setTipoSesion(null);
-      })
-      .finally(() => setCargando(false));
+  const recargarSesion = useCallback(async (tipoParam) => {
+    const tipo = tipoParam || localStorage.getItem('tipoSesion') || 'admin';
+    try {
+      const data = await api.get(tipo === 'cliente' ? '/auth/cliente/me' : '/auth/me');
+      setUsuario(data.usuario);
+      setPermisos(data.permisos || []);
+      setTipoSesion(tipo);
+      return data;
+    } catch (err) {
+      setUsuario(null);
+      setPermisos([]);
+      setTipoSesion(null);
+      throw err;
+    }
   }, []);
+
+  useEffect(() => {
+    recargarSesion()
+      .catch(() => {})
+      .finally(() => setCargando(false));
+  }, [recargarSesion]);
 
   // La sesión venció a mitad de uso: se limpia el estado y ProtectedRoute lleva al login.
   // El aviso al usuario lo muestra AlertProvider (un solo toast, aunque fallen varias peticiones).
@@ -59,7 +65,7 @@ export function AuthProvider({ children }) {
   const tiene = (permiso) => permisos.includes(permiso);
 
   return (
-    <AuthContext.Provider value={{ usuario, tipoSesion, cargando, login: iniciarSesion, logout, tiene }}>
+    <AuthContext.Provider value={{ usuario, tipoSesion, cargando, login: iniciarSesion, logout, tiene, recargarSesion }}>
       {children}
     </AuthContext.Provider>
   );

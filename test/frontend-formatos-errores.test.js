@@ -139,3 +139,12 @@ test('traducirError: un nombre duplicado de inventario se marca como duplicado',
   assert.match(traducido.accion, /Cambia el nombre o el código/i);
   assert.ok(traducido.campos.nombre);
 });
+
+test('traducirError: en errores 409 con mensajeServidor asigna el mensaje real del backend', () => {
+  const mensajeReal = 'No se puede eliminar el rol: tiene 3 usuarios asignados.';
+  const error = new ErrorApi({ status: 409, mensajeServidor: mensajeReal });
+  const traducido = traducirError(error);
+  assert.equal(traducido.status, 409);
+  assert.equal(traducido.mensaje, mensajeReal);
+  assert.ok(traducido.mensajeCompleto.includes(mensajeReal));
+});
