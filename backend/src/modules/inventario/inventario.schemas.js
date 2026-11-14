@@ -93,3 +93,4 @@ export const recetaSchema = z.object({ componentes: z.array(z.object({ idInsumo:
 export const stockSchema = z.object({ idSucursal: id, idInsumo: id, cantidad: decimal(10, 4, 0.0001), tipo: z.enum(['INVENTARIO_INICIAL', 'AJUSTE', 'TRASLADO_ENTRADA']), motivo: z.string().trim().min(3).max(500) });
 export const minimoSchema = z.object({ idSucursal: id, stockMinimo: decimal(10, 4) });
 export const mermaSchema = z.object({ idSucursal: id, cantidad: decimal(10, 4, 0.0001), motivo: z.string().trim().min(3).max(500) });
+export const cambiarEstadoSchema = z.object({ activo: z.boolean().optional() });

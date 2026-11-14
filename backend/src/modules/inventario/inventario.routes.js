@@ -4,7 +4,7 @@ import { requirePermiso } from '../../middlewares/permisos.js';
 import { validate } from '../../middlewares/validate.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import * as c from './inventario.controller.js';
-import { actualizarInsumoSchema, actualizarUnidadSchema, insumoSchema, mermaSchema, minimoSchema, productoSchema, recetaSchema, stockSchema, unidadSchema } from './inventario.schemas.js';
+import { actualizarInsumoSchema, actualizarUnidadSchema, cambiarEstadoSchema, insumoSchema, mermaSchema, minimoSchema, productoSchema, recetaSchema, stockSchema, unidadSchema } from './inventario.schemas.js';
 
 const router = Router();
 router.use(authenticate, requireTipo('admin'));
@@ -19,12 +19,16 @@ router.delete('/unidades/:id', requirePermiso('INV_GESTIONAR_INSUMOS'), asyncHan
 router.get('/insumos', requirePermiso('INV_VER_STOCK', 'INV_GESTIONAR_INSUMOS', 'INV_VER_COSTOS'), asyncHandler(c.listarInsumos));
 router.post('/insumos', requirePermiso('INV_GESTIONAR_INSUMOS'), validate(insumoSchema), asyncHandler(c.crearInsumo));
 router.put('/insumos/:id', requirePermiso('INV_GESTIONAR_INSUMOS'), validate(actualizarInsumoSchema), asyncHandler(c.actualizarInsumo));
-router.delete('/insumos/:id', requirePermiso('INV_GESTIONAR_INSUMOS'), asyncHandler(c.desactivarInsumo));
+router.patch('/insumos/:id/estado', requirePermiso('INV_GESTIONAR_INSUMOS'), validate(cambiarEstadoSchema), asyncHandler(c.cambiarEstadoInsumo));
+router.patch('/insumos/:id/activo', requirePermiso('INV_GESTIONAR_INSUMOS'), validate(cambiarEstadoSchema), asyncHandler(c.cambiarEstadoInsumo));
+router.delete('/insumos/:id', requirePermiso('INV_GESTIONAR_INSUMOS'), asyncHandler(c.eliminarInsumo));
 router.get('/categorias', requirePermiso('INV_VER_STOCK', 'INV_GESTIONAR_PRODUCTOS'), asyncHandler(c.listarCategorias));
 router.get('/productos', requirePermiso('INV_VER_STOCK', 'INV_GESTIONAR_PRODUCTOS'), asyncHandler(c.listarProductos));
 router.post('/productos', requirePermiso('INV_GESTIONAR_PRODUCTOS'), validate(productoSchema), asyncHandler(c.crearProducto));
 router.put('/productos/:id', requirePermiso('INV_GESTIONAR_PRODUCTOS'), validate(productoSchema), asyncHandler(c.actualizarProducto));
-router.delete('/productos/:id', requirePermiso('INV_GESTIONAR_PRODUCTOS'), asyncHandler(c.desactivarProducto));
+router.patch('/productos/:id/estado', requirePermiso('INV_GESTIONAR_PRODUCTOS'), validate(cambiarEstadoSchema), asyncHandler(c.cambiarEstadoProducto));
+router.patch('/productos/:id/activo', requirePermiso('INV_GESTIONAR_PRODUCTOS'), validate(cambiarEstadoSchema), asyncHandler(c.cambiarEstadoProducto));
+router.delete('/productos/:id', requirePermiso('INV_GESTIONAR_PRODUCTOS'), asyncHandler(c.eliminarProducto));
 router.get('/productos/:id/receta', requirePermiso('INV_VER_STOCK', 'INV_GESTIONAR_RECETAS'), asyncHandler(c.obtenerReceta));
 router.put('/productos/:id/receta', requirePermiso('INV_GESTIONAR_RECETAS'), validate(recetaSchema), asyncHandler(c.guardarReceta));
 router.get('/stock', requirePermiso('INV_VER_STOCK', 'INV_GESTIONAR_INSUMOS'), asyncHandler(c.listarStock));
