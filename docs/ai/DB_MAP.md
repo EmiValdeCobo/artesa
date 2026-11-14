@@ -40,8 +40,8 @@ fn: compras.fn_registrar_compra(id_proveedor, id_sucursal, num_factura, fecha, c
 
 ## rrhh
 puestos(id_puesto, nombre, salario_base, activo) · empleados(id_empleado U, id_sucursal, id_puesto, id_usuario?, nombres, apellidos, dui*, nit nullable si está homologado con DUI, fecha_ingreso, salario_nominal[MENSUAL], activo) · CRUD REST en `/api/rrhh` protegido por `RRHH_GESTIONAR_EMPLEADOS`
-tramos_renta(tipo_periodo, tramo, desde, hasta, cuota_fija, porcentaje, exceso_sobre) · planillas(id_planilla, id_sucursal, periodo_inicio, periodo_fin, tipo_periodo, procesada) · planilla_detalles(id_planilla, id_empleado, salario_bruto, isss_laboral, afp_laboral, renta_retenida, total_descuentos, salario_neto, *_patronal)
-fn: rrhh.fn_calcular_planilla(id_planilla) → nº empleados (no recalcula si procesada)
+tramos_renta(tipo_periodo, tramo, desde, hasta, cuota_fija, porcentaje, exceso_sobre, vigencia_desde, vigencia_hasta) · parametros_legales(vigencias, AFP/ISSS/INSAFORP y fuente) · planillas(id_planilla, id_sucursal, mes único, id_parametro_legal, procesada) · planilla_ajustes(bonificaciones, otros_descuentos, detalle JSONB) · planilla_detalles(salario_bruto, bonificaciones, ISSS/AFP laboral, renta, otros_descuentos, neto, aportes patronales)
+fn: rrhh.fn_calcular_planilla(id_planilla) → nº empleados, mensual y transaccional; migración 007 impone unicidad de sucursal/mes. API/PDF protegidos por RRHH_CALCULAR_PLANILLA y RRHH_VER_PLANILLA.
 
 ## reportes (vistas)
 vw_alertas_stock · vw_costo_margen_producto · vw_cuadre_turno · vw_ventas_diarias · vw_top_productos · vw_cuentas_por_pagar · vw_permisos_usuario(id_usuario, username, rol, modulo, permiso)

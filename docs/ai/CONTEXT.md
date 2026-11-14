@@ -24,6 +24,14 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (li
 | Módulo | BD | Backend | Frontend |
 |---|---|---|---|
 | auth / seguridad | listo | login, CRUD RBAC, usuarios y API /bitacora con métricas | Bitácora con filtros, analítica y gestión de usuarios/roles |
+| inventario | listo | CRUD insumos/productos, stock, mermas, alertas y Kárdex con permiso propio (seeder pendiente de aplicación local) | Inventario, alertas, mermas y Kárdex de movimientos |
+| pos | listo | cola de preparación (/api/preparacion) y órdenes (T02) | catálogo y carrito local; cobro/facturación pendiente |
+| caja | listo | turnos, movimientos, cierre y cuadre (T05/T06/T22) | pendiente |
+| compras | listo | pendiente | pendiente |
+| rrhh | listo | CRUD de puestos/empleados y planillas mensuales, cálculo SQL, PDFs y permisos; pendiente extensión fiscal anual | pendiente |
+| reportes | vistas listas | ventas diarias, top productos, alertas y margen (T23) | pendiente |
+| compras | listo | pendiente | pantallas pendientes (usan PendienteApiPage) |
+| rrhh | listo | pendiente | pantallas pendientes (usan PendienteApiPage) |
 | inventario | listo | CRUD unidades-medida/insumos/productos, stock, mermas, alertas y Kárdex con permiso propio; costos de producto condicionados a INV_VER_COSTOS | Existencias/kárdex por sucursal; catálogos con baja reversible, alta de insumos reutilizable, costeo sin IVA y diálogo de stock inicial/ajustes/mínimos |
 | pos | listo | cola de preparación, órdenes (T02), ventas (T17), anulación (`fn_anular_venta`) y CRUD clientes CCF (T18-back) | catálogo y carrito local; pantallas de clientes/anulación (T18-front), cobro (T19) y ticket (T46) pendientes |
 | caja | listo | turnos, movimientos, cierre y cuadre (T05/T06/T22) | pantalla de caja integrada desde develop |
@@ -35,6 +43,7 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (li
 Pantallas de gestión pendientes por falta de endpoints backend: empleados/puestos y planillas. Proveedores, registro de facturas COSTO/GASTO, pagos y CxP operativa tienen API; falta frontend funcional. El reporte CxP de solo lectura de Reportes se conserva y comparte consulta con la ruta operativa.
 
 ## Pendientes críticos
-- Verificar tablas de renta/ISSS/AFP vigentes con Hacienda (están en `rrhh.tramos_renta` y `empresa.parametros`).
+- Verificar periódicamente tramos/versiones legales de renta, ISSS, AFP e INSAFORP con Hacienda/ISSS/SSF.
+- Planillas: migración 007 debe aplicarse; el DE 10 requiere deducción adicional del tramo II y recálculos en junio/diciembre aún no modelados.
 - Asignar responsables por módulo (ver README).
 - Cambiar contraseñas semilla (`Cambiar123*`) antes de desplegar.
