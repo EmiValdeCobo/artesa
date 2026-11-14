@@ -40,6 +40,7 @@ test('menú lateral: las rutas padre usan end para no resaltarse junto a sus hij
   for (const ruta of ['/inventario', '/compras', '/rrhh', '/seguridad']) {
     assert.equal(hijos.find((i) => i.ruta === ruta).end, true, ruta);
   }
+  assert.equal(hijos.find((i) => i.ruta === '/catalogo/productos').end, undefined);
 });
 
 test('menú lateral: los grupos de la barra no repiten ícono entre ítems de primer nivel', () => {

@@ -12,11 +12,22 @@ const PERIODOS = [[7, '7 días'], [14, '14 días'], [30, '30 días']];
 
 // Jerarquía: "Hoy" es el dato principal (más grande y con regla de acento); el resto da contexto.
 // Cada indicador toma un color de la paleta (serie 1-4): la regla y la etiqueta lo llevan; la cifra queda en Espresso para máxima legibilidad.
+// El indicador principal va en tarjeta Espresso (como la franja lateral); los demás en tarjetas claras con un tinte de su serie.
 function Indicador({ etiqueta, valor, nota, acento, principal = false, ancho = false }) {
+  const base = `min-w-0 rounded-2xl px-5 py-4 ${principal || ancho ? 'col-span-2 lg:col-span-1' : ''}`;
+  if (principal) {
+    return (
+      <div className={`${base} bg-sidebar text-on-sidebar`}>
+        <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-(--ocre-decorativo)">{etiqueta}</dt>
+        <dd className="mt-2 font-display text-4xl font-bold leading-none tabular-nums">{valor}</dd>
+        {nota && <dd className="mt-3 text-sm text-on-sidebar/75 sm:text-xs">{nota}</dd>}
+      </div>
+    );
+  }
   return (
-    <div className={`min-w-0 rounded-r-md border-l-4 py-3 pl-4 pr-3 ${principal || ancho ? 'col-span-2 lg:col-span-1' : ''}`} style={{ borderColor: `var(--serie-${acento})`, background: `color-mix(in srgb, var(--serie-${acento}) 9%, transparent)` }}>
-      <dt className="text-xs font-bold uppercase tracking-[0.08em]" style={{ color: `var(--serie-${acento}-texto)` }}>{etiqueta}</dt>
-      <dd className={`mt-1.5 font-display font-bold leading-none tabular-nums ${principal ? 'text-4xl' : 'text-2xl lg:text-xl xl:text-2xl'}`}>{valor}</dd>
+    <div className={`${base} border border-line`} style={{ background: `color-mix(in srgb, var(--serie-${acento}) 8%, transparent)` }}>
+      <dt className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em]" style={{ color: `var(--serie-${acento}-texto)` }}><span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ background: `var(--serie-${acento})` }} />{etiqueta}</dt>
+      <dd className="mt-2 font-display text-2xl font-bold leading-none tabular-nums lg:text-xl xl:text-2xl">{valor}</dd>
       {nota && <dd className="mt-2 text-sm text-fg-muted sm:text-xs">{nota}</dd>}
     </div>
   );
@@ -53,12 +64,12 @@ export default function VentasDiariasPanel({ cols, orden }) {
           <Indicador principal acento={1} etiqueta="Hoy" valor={formatoDinero(r.hoy.total)} nota={`${formatoEntero(r.hoy.tickets)} ${r.hoy.tickets === 1 ? 'ticket' : 'tickets'} hasta ahora`} />
           <Indicador acento={2} etiqueta="Ayer" valor={formatoDinero(r.ayer.total)} />
           <Indicador acento={3} etiqueta="Últimos 7 días" valor={formatoDinero(r.ultimos7.total)} nota={<Variacion pct={r.variacion7dPct} />} />
-          <Indicador ancho acento={4} etiqueta="Ticket promedio hoy" valor={filaHoy?.tickets ? formatoDinero(filaHoy.ticketPromedio) : '—'} nota={filaHoy?.tickets ? 'por venta' : 'aún sin ventas'} />
+          <Indicador ancho acento={6} etiqueta="Ticket promedio hoy" valor={filaHoy?.tickets ? formatoDinero(filaHoy.ticketPromedio) : '—'} nota={filaHoy?.tickets ? 'por venta' : 'aún sin ventas'} />
         </dl>
 
         <div className="mt-8 flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
           <div>
-            <h3 className="font-display text-lg font-bold">Ventas por día</h3>
+            <h3 className="font-display text-base font-bold">Ventas por día</h3>
             <p className="mt-0.5 text-sm text-fg-muted sm:text-xs">
               Últimos {datos.dias} días: <span className="font-medium tabular-nums text-fg">{formatoDinero(r.periodo.total)}</span> en {formatoEntero(r.periodo.tickets)} tickets
             </p>

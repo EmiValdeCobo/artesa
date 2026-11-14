@@ -1,0 +1,85 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+% Paquetes esenciales
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[utf8]{inputenc}
+  \usepackage[T1]{fontenc}
+\fi
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows, positioning, fit, backgrounds}
+
+% Configuración de hipervínculos
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    citecolor=red,
+    pdftitle={artesa: Sistema ERP y POS para Panaderías y Cafeterías Artesanales},
+    pdfpagemode=FullScreen,
+}
+
+% Configuración de listados de código
+\lstset{
+    basicstyle=\ttfamily\scriptsize,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{olive}\itshape,
+    stringstyle=\color{red},
+    showstringspaces=false,
+    tabsize=2
+}
+
+\begin{document}
+
+\title{artesa: Sistema Integral ERP y Punto de Venta (POS) con Cumplimiento Fiscal, Control de Insumos por Receta y Auditoría Forense para Cafeterías y Panaderías Artesanales\\
+\thanks{Proyecto de cátedra del Ciclo 02-2026 de Programación Web. Código fuente, esquemas relacionales y bitácoras disponibles en el repositorio oficial del proyecto.}
+}
+
+\author{
+\IEEEauthorblockN{Equipo de Ingeniería de Software artesa}
+\IEEEauthorblockA{\textit{Cátedra de Programación Web, Ciclo 02-2026} \\
+\textit{San Salvador, El Salvador} \\
+contacto@artesa.sv}
+}
+
+\maketitle
+
+\begin{abstract}
+Las micro, pequeñas y medianas empresas (MIPYMES) dedicadas a la producción de alimentos artesanales en El Salvador afrontan una severa desarticulación operativa debido a la fragmentación de sus procesos en herramientas desconectadas y registros manuales. Esta dispersión produce pérdidas por mermas no detectadas, desajustes en los arqueos de caja, imprecisiones en el costeo unitario y complejidades en la retención tributaria y laboral. En este artículo se presenta \textbf{artesa}, un sistema unificado de Planificación de Recursos Empresariales (ERP) y Punto de Venta (POS) diseñado específicamente para el rubro de panaderías y cafeterías artesanales. La solución implementa una arquitectura desacoplada de tres capas compuesta por una interfaz de usuario reactiva en React 19, una interfaz de programación de aplicaciones REST en Node.js 22 con Express y una base de datos relacional PostgreSQL 16 con motor transaccional blindado mediante procedimientos almacenados en PL/pgSQL. El sistema incorpora un módulo de inventario basado en descomposición automática de recetas y costeo promedio ponderado, control de turnos y arqueos ciegos de caja, facturación electrónica con soporte para Factura de Consumidor Final (FCF) y Comprobante de Crédito Fiscal (CCF), cálculo automatizado de planilla conforme a la legislación salvadoreña (ISSS, AFP, Renta) y una bitácora forense de auditoría con captura de metadatos de red. La confiabilidad del sistema está validada mediante una suite de más de 120 pruebas automatizadas estáticas y de integración.
+\end{abstract}
+
+\begin{IEEEkeywords}
+ERP, Punto de Venta (POS), Transacciones ACID, PL/pgSQL, Descomposición de Recetas, Auditoría Forense, Facturación Electrónica DTE, Inteligencia Artificial Responsable.
+\end{IEEEkeywords}
+
+% =========================================================================
+% INCLUSIÓN MODULAR DE SECCIONES
+% =========================================================================
+
+\input{secciones/01_justificacion_nombre.tex}
+\input{secciones/02_introduccion_objetivos.tex}
+\input{secciones/03_requisitos.tex}
+\input{secciones/04_arquitectura.tex}
+\input{secciones/05_modelo_bd.tex}
+\input{secciones/06_descripcion_modulos.tex}
+\input{secciones/07_pruebas_resultados.tex}
+\input{secciones/08_conclusiones_referencias.tex}
+\input{secciones/09_legalidad_uso_ia.tex}
+
+\end{document}

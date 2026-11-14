@@ -4,3 +4,11 @@ dist
 .env.*
 !.env.example
 *.log
+docs/Documentacion_IEEE/bin/
+docs/Documentacion_IEEE/*.aux
+docs/Documentacion_IEEE/*.log
+docs/Documentacion_IEEE/*.out
+docs/Documentacion_IEEE/*.toc
+docs/Documentacion_IEEE/*.bbl
+docs/Documentacion_IEEE/*.blg
+

@@ -6,6 +6,7 @@ import {
   formatoDineroCorto,
   formatoEntero,
   fechaLocal,
+  fechaISODelNegocio,
   haceCuanto,
 } from '../frontend/src/utils/formato.js';
 import { traducirError } from '../frontend/src/errors/traducirError.js';
@@ -43,6 +44,12 @@ test('formato: fechaLocal genera un objeto Date sin desfase de zona horaria', ()
   assert.equal(d.getFullYear(), 2026);
   assert.equal(d.getMonth(), 10); // 0-indexed -> 10 es noviembre
   assert.equal(d.getDate(), 9);
+});
+
+test('formato: fechaISODelNegocio retorna fecha YYYY-MM-DD en la zona del negocio', () => {
+  // 2026-11-10T04:00:00Z corresponde a 2026-11-09 a las 22:00 en El Salvador (UTC-6)
+  const instanteUtc = new Date('2026-11-10T04:00:00Z').getTime();
+  assert.equal(fechaISODelNegocio(instanteUtc), '2026-11-09');
 });
 
 test('formato: haceCuanto retorna etiquetas relativas legibles', () => {
@@ -99,5 +106,13 @@ test('traducirError: maneja errores de validación asignando campos específicos
   const traducido = traducirError(errorVal);
   assert.equal(traducido.canal, 'campo');
   assert.ok(traducido.campos.codigoEstablecimiento);
+  assert.ok(traducido.campos.nombre);
+});
+
+test('traducirError: un nombre duplicado de inventario se marca como duplicado', () => {
+  const error = new ErrorApi({ status: 409, mensajeServidor: 'Ya existe un registro con ese código o nombre' });
+  const traducido = traducirError(error);
+  assert.equal(traducido.id, 'DUPLICADO');
+  assert.match(traducido.accion, /Cambia el nombre o el código/i);
   assert.ok(traducido.campos.nombre);
 });

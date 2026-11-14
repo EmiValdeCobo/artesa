@@ -1,0 +1,67 @@
+\section{Requisitos Funcionales y No Funcionales}
+\label{sec:requisitos}
+
+La definición de los requerimientos de \textbf{artesa} se fundamenta en un análisis operativo directo de las demandas de las cafeterías y panaderías artesanales, categorizados según el estándar IEEE 830 para especificación de requisitos de software.
+
+\subsection{Requisitos Funcionales (RF)}
+
+Los requisitos funcionales se desglosan por subsistemas de negocio:
+
+\subsubsection{Módulo de Seguridad y Control de Acceso (SEG)}
+\begin{itemize}
+    \item \textbf{RF-SEG-01 (Autenticación Segura):} El sistema debe autenticar usuarios mediante credenciales encriptadas con bcrypt, emitiendo un token JWT firmado almacenado exclusivamente en una cookie \texttt{httpOnly}.
+    \item \textbf{RF-SEG-02 (RBAC Granular):} El sistema debe evaluar en cada petición protegida la asignación dinámica de permisos mediante el middleware \texttt{requirePermiso}, impidiendo accesos no autorizados.
+    \item \textbf{RF-SEG-03 (Auditoría Forense):} El sistema debe capturar automáticamente en una tabla de bitácora el identificador del usuario, acción ejecutada, entidad modificada, estado previo y posterior (\textit{diff} en JSONB), dirección IP del cliente y agente de usuario.
+\end{itemize}
+
+\subsubsection{Módulo de Empresa y Sucursales (EMP)}
+\begin{itemize}
+    \item \textbf{RF-EMP-01 (Aislamiento por Sucursal):} El sistema debe permitir la gestión de múltiples establecimientos físicos, asociando cajas, empleados, inventario y ventas a una sucursal específica.
+    \item \textbf{RF-EMP-02 (Configuración Paramétrica):} El sistema debe mantener una tabla centralizada de parámetros clave (tasa de IVA, techos y porcentajes de ISSS/AFP, política de stock negativo).
+\end{itemize}
+
+\subsubsection{Módulo de Inventario y Recetas (INV)}
+\begin{itemize}
+    \item \textbf{RF-INV-01 (Clasificación de Insumos):} El sistema debe clasificar los insumos en tres categorías operativas: \texttt{INGREDIENTE}, \texttt{EMPAQUE} y \texttt{REVENTA}.
+    \item \textbf{RF-INV-02 (Descomposición de Recetas):} Al confirmarse una venta de un producto elaborado, el sistema debe descontar automáticamente del stock los insumos configurados en su receta proporcionalmente a las unidades vendidas.
+    \item \textbf{RF-INV-03 (Kárdex y Costeo Promedio):} El sistema debe registrar cada entrada, salida o ajuste en un kárdex auditable, calculando el Costo Promedio Ponderado tras cada factura de compra.
+    \item \textbf{RF-INV-04 (Gestión de Mermas):} El sistema debe permitir asentar bajas de insumos por merma, desperdicio o caducidad, requiriendo motivo obligatorio y usuario responsable.
+\end{itemize}
+
+\subsubsection{Módulo de Punto de Venta y Facturación (POS)}
+\begin{itemize}
+    \item \textbf{RF-POS-01 (Catálogo Reactivo y Comandas):} El sistema debe permitir la selección ágil de productos agrupados por categorías, generando órdenes de comanda para visualización en cocina (KDS).
+    \item \textbf{RF-POS-02 (Pagos Mixtos y Multimoneda):} El sistema debe admitir cobros divididos combinando efectivo, tarjeta de débito/crédito, Bitcoin (Chivo Wallet) y transferencia bancaria en una misma transacción.
+    \item \textbf{RF-POS-03 (Cumplimiento DTE Simulado):} El sistema debe emitir comprobantes tributarios (Factura de Consumidor Final y Comprobante de Crédito Fiscal) con correlativos consecutivos, desglose del 13\% de IVA y código de generación simulado.
+\end{itemize}
+
+\subsubsection{Módulo de Caja y Turnos (CAJ)}
+\begin{itemize}
+    \item \textbf{RF-CAJ-01 (Ciclo de Turnos):} El sistema debe restringir las operaciones de venta a la existencia de un turno abierto por caja y usuario.
+    \item \textbf{RF-CAJ-02 (Arqueo Ciego y Cuadre):} Al solicitar el cierre de turno, el cajero debe declarar el efectivo real sin conocer previamente el monto calculado por el sistema, computando automáticamente sobrantes o faltantes.
+\end{itemize}
+
+\subsubsection{Módulo de Compras y Recursos Humanos (COM / RRHH)}
+\begin{itemize}
+    \item \textbf{RF-COM-01 (Cuentas por Pagar):} El sistema debe registrar compras a crédito o contado, controlando plazos de vencimiento y pagos parciales a proveedores.
+    \item \textbf{RF-RRHH-01 (Liquidación de Planilla):} El sistema debe procesar planillas quincenales o mensuales aplicando automáticamente las retenciones de ley salvadoreña (ISSS 3\%, AFP 7.25\% y tramos de renta progresivos).
+\end{itemize}
+
+\subsection{Requisitos No Funcionales (RNF)}
+
+\begin{table}[htbp]
+\caption{Especificación de Requisitos No Funcionales}
+\label{tab:rnf}
+\begin{tabularx}{\columnwidth}{lX}
+\toprule
+\textbf{Identificador} & \textbf{Descripción y Criterio de Aceptación} \\
+\midrule
+\textbf{RNF-01: ACID} & Integridad transaccional absoluta en escrituras financieras y de stock mediante procedimientos PL/pgSQL en PostgreSQL. \\
+\textbf{RNF-02: Anti-Float} & Precisión decimal exacta en montos de dinero e inventario empleando el tipo de dato \texttt{NUMERIC} en SQL y cadenas de caracteres en capas intermedias, evitando imprecisiones de coma flotante IEEE 754. \\
+\textbf{RNF-03: Seguridad} & Almacenamiento de contraseñas con \textit{salt} individual y bcrypt ($cost=10$); sesiones securizadas con tokens JWT y directivas \texttt{HttpOnly}, \texttt{SameSite=Lax} y \texttt{Secure}. \\
+\textbf{RNF-04: Mínimo Privilegio} & Conexión de la aplicación mediante el rol de base de datos restringido \texttt{web\_user}, reservando el superusuario únicamente para migraciones. \\
+\textbf{RNF-05: Desempeño} & Tiempos de respuesta de la API inferiores a 200 ms en operaciones de lectura y 350 ms en transacciones complejas bajo carga normal de sucursal. \\
+\textbf{RNF-06: Portabilidad} & Despliegue reproducible y parametrizado mediante contenedores Docker y orquestación con Docker Compose. \\
+\bottomrule
+\end{tabularx}
+\end{table}

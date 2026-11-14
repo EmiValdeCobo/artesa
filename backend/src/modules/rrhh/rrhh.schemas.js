@@ -31,12 +31,12 @@ const fecha = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha debe tener el formato AAAA-MM-DD');
 
 export const idSchema = id;
-export const idEmpleadoSchema = z.uuid();
+export const idEmpleadoSchema = z.string().uuid();
 export const puestoSchema = z.object({ nombre, salarioBase: salario });
 export const empleadoSchema = z.object({
   idSucursal: id,
   idPuesto: id,
-  idUsuario: z.uuid().optional().nullable(),
+  idUsuario: z.string().uuid().optional().nullable(),
   nombres: descripcionPersona,
   apellidos: descripcionPersona,
   dui,

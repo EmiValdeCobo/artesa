@@ -1,4 +1,4 @@
-import test from 'node:test';
+﻿import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
@@ -16,6 +16,10 @@ test('frontend rutas: App.jsx protege cada ruta con su permiso RBAC exacto', asy
   assert.match(app, /<ProtectedRoute permiso="EMP_GESTIONAR_SUCURSALES"><SucursalesPage \/><\/ProtectedRoute>/);
   assert.match(app, /<ProtectedRoute permiso="EMP_EDITAR_PARAMETROS"><ParametrosPage \/><\/ProtectedRoute>/);
   assert.match(app, /<ProtectedRoute permiso="SEG_GESTIONAR_ROLES">\s*<RolesPermisosPage \/>/);
+  assert.match(app, /path="catalogo\/insumos" element={<ProtectedRoute permiso="INV_GESTIONAR_INSUMOS">/);
+  assert.match(app, /path="catalogo\/productos" element={<ProtectedRoute permiso="INV_VER_STOCK">/);
+  assert.match(app, /path="catalogo\/productos\/:idProducto\/receta" element={<ProtectedRoute permiso="INV_GESTIONAR_RECETAS">/);
+  assert.match(app, /path="inventario\/recetas" element={<Navigate to="\/catalogo\/productos" replace \/>/);
 });
 
 test('frontend rutas: módulos sin endpoints backend implementados usan PendienteApiPage explícito', async () => {
@@ -82,4 +86,43 @@ test('frontend contratos de dinero: los importes y totales nunca usan parseFloat
   ].join('\n');
 
   assert.doesNotMatch(codigo, /parseFloat\((?:total|subtotal|monto|precio|ingreso)/);
+});
+
+test('frontend dashboard: DashboardPage define fechaISO para <time> y mantiene sucursales como iterable', async () => {
+  const dash = await leer('frontend/src/modules/dashboard/DashboardPage.jsx');
+  assert.match(dash, /const\s+fechaISO\s*=/);
+  assert.match(dash, /dateTime=\{fechaISO\}/);
+  assert.doesNotMatch(dash, /const\s+sucursales\s*=.*\.join\(/);
+});
+
+test('frontend formularios: CampoTexto tolera icono omitido sin romper el render y condiciona pl-11', async () => {
+  const campoTexto = await leer('frontend/src/components/forms/CampoTexto.jsx');
+  assert.match(campoTexto, /tieneIcono/);
+  assert.match(campoTexto, /displayName\s*=\s*['"]CampoTexto['"]/);
+  assert.doesNotMatch(campoTexto, /<Icono\s+size=\{17\}\s+aria-hidden="true"\s*\/>\s*<input/);
+});
+
+
+test('frontend inventario: catalogo de insumos, productos y recetas protegen iconos, dialogos confirm y avisoLocal', async () => {
+  const insumos = await leer('frontend/src/modules/inventario/CatalogoInsumosPage.jsx');
+  const productos = await leer('frontend/src/modules/inventario/CatalogoProductosPage.jsx');
+  const recetas = await leer('frontend/src/modules/inventario/EditorRecetasPage.jsx');
+
+  // CatalogoProductosPage importa X y usa confirm(mensaje, opciones)
+  assert.match(productos, /import\s*\{[^}]*\bX\b[^}]*\}\s*from\s*['"]lucide-react['"]/);
+  assert.match(productos, /await\s+confirm\(\s*`¿Desactivar/);
+  assert.match(productos, /const\s+avisoLocal\s*=/);
+
+  // EditorRecetasPage importa Package, valida cantidad > 0 y blinda nombre de insumo
+  assert.match(recetas, /import\s*\{[^}]*\bPackage\b[^}]*\}\s*from\s*['"]lucide-react['"]/);
+  assert.match(recetas, /Number\(c\.cantidad_requerida\)\s*>\s*0/);
+  assert.match(recetas, /\(ins\.nombre\s*\?\?\s*['"]['"]\)\.toLowerCase\(\)/);
+  assert.match(recetas, /function\s+avisoLocal\s*\(/);
+  assert.match(recetas, /useParams/);
+  assert.doesNotMatch(recetas, /selector-producto/);
+
+  // CatalogoInsumosPage no usa CampoTexto alto, usa inputs estandar y define avisoLocal
+  assert.doesNotMatch(insumos, /import\s+CampoTexto\s+from/);
+  assert.match(insumos, /className="input"/);
+  assert.match(insumos, /const\s+avisoLocal\s*=/);
 });

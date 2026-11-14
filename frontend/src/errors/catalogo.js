@@ -75,8 +75,8 @@ export const ENTRADAS = {
   PLANILLA_PROCESADA: usuario('Planilla ya procesada', 'Una planilla procesada no se puede recalcular.', 'Consulta la planilla existente o genera una nueva.'),
 
   // ── Datos y conflictos genéricos ────────────────────────────────────────────
-  VALIDACION: usuario('Revisa los datos', 'Algunos datos ingresados no son válidos.', 'Corrige lo marcado e inténtalo de nuevo.', { canal: 'campo' }),
-  DUPLICADO: usuario('Registro duplicado', 'Ya existe un registro con esos datos.', 'Verifica que el valor no esté repetido e inténtalo de nuevo.'),
+  VALIDACION: usuario('Revisa los datos', 'Algunos datos ingresados no son válidos.', 'Revisa los datos e inténtalo de nuevo.', { canal: 'campo' }),
+  DUPLICADO: usuario('Registro duplicado', 'Ya existe un registro con ese nombre o código.', 'Cambia el nombre o el código.', { canal: 'campo', campo: 'nombre', mensajeCampo: 'Ya existe. Cambia el nombre o el código.' }),
   EN_USO: usuario('No se pudo completar', 'El registro está relacionado con otros datos o hace referencia a algo que ya no existe.', 'Actualiza la pantalla y revisa los datos relacionados.'),
   CONFLICTO: usuario('No se pudo completar', 'La información cambió mientras trabajabas o esta acción ya no es posible.', 'Actualiza la pantalla e inténtalo de nuevo.'),
   NO_ENCONTRADO: usuario('No encontrado', 'Lo que buscas ya no existe o fue movido.', 'Actualiza la pantalla o vuelve al inicio.'),
@@ -104,10 +104,13 @@ export const PATRONES = [
   { regex: /^Sesión no válida para este portal$/i, id: 'PORTAL_INCORRECTO' },
   { regex: /^Usuario o contraseña incorrectos$/i, id: 'CREDENCIALES' },
   { regex: /^No tienes permiso para esta acción$/i, id: 'SIN_PERMISO' },
+  { regex: /^No se puede desactivar\. Lo usan: .+$/i, id: 'EN_USO', plantilla: (m) => ({ mensaje: m[0], detalle: 'Desactiva primero los productos relacionados para poder continuar.' }) },
+  { regex: /^No se puede desactivar: la usan .+$/i, id: 'EN_USO', plantilla: (m) => ({ mensaje: m[0], detalle: 'Cambia la unidad de los insumos activos antes de desactivarla.' }) },
   { regex: /^Demasiados intentos/i, id: 'DEMASIADAS_SOLICITUDES' },
   // Usuarios
   { regex: /^No puedes (desactivar|eliminar) tu propio usuario$/i, id: 'AUTOPROTECCION', plantilla: (m) => ({ mensaje: `No puedes ${m[1].toLowerCase()} tu propia cuenta mientras la estás usando.` }) },
   { regex: /^El nombre de usuario ya existe$/i, id: 'USERNAME_DUPLICADO' },
+  { regex: /^Ya existe un registro con ese código o nombre$/i, id: 'DUPLICADO' },
   { regex: /^El rol seleccionado no existe o está inactivo$/i, id: 'ROL_NO_DISPONIBLE' },
   { regex: /^El rol o una sucursal no existe o está inactiva$/i, id: 'ROL_NO_DISPONIBLE' },
   { regex: /^Una o más sucursales no existen o están inactivas$/i, id: 'SUCURSAL_NO_DISPONIBLE' },

@@ -1,8 +1,8 @@
 # CONTEXT — estado vivo del proyecto (máx. 60 líneas; actualizar al cerrar tareas)
-Actualizado: 2026-11-10
+Actualizado: 2026-11-13
 
 ## Meta y fechas
-Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE, manual de usuario, doc técnica, flujo de trabajo.
+Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (listo en docs/Documentacion_IEEE con compilador y visor), manual de usuario, doc técnica, flujo de trabajo.
 
 ## Decisiones tomadas
 - Stack: Express + Sequelize (conductor `pg`) + PostgreSQL 16; React + Vite + Tailwind (sin Next.js); JS puro.
@@ -16,7 +16,9 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE, ma
 - Sesiones: JWT en cookie `httpOnly`, `SameSite` configurable y `secure` configurable; el backend revalida `activo=true` en cada request.
 - Migraciones/seeders: `scripts/db.js` registra nombre, checksum SHA-256, fecha y tipo en `public.schema_migrations`.
 - Bitácora analítica: captura IP/User-Agent en `AsyncLocalStorage` y los propaga a variables PostgreSQL mediante `withTransaction`.
-- QA / Pruebas: suite automatizada en Node.js nativo (`node:test`, 128 pruebas activas) cubriendo contratos de API, FSM, anti-float y lógica frontend.
+- QA / Pruebas: suite automatizada en Node.js nativo (`node:test`, 132 pruebas activas) cubriendo contratos de API, FSM, anti-float y lógica frontend.
+- UI / Dashboard: diseño unificado con tarjetas redondeadas, paleta de marca (Terracota, Ocre, Espresso) y tipografía Montserrat del sistema (sin fuentes externas).
+- UX inventario fase 4: Catálogo y Recetas usan lenguaje de receta/costo promedio, formulario de insumos consistente y pestañas/buscador accesibles; sin cambios de lógica ni permisos.
 
 ## Estado por módulo
 | Módulo | BD | Backend | Frontend |
@@ -30,10 +32,15 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE, ma
 | reportes | vistas listas | ventas diarias, top productos, alertas y margen (T23) | pendiente |
 | compras | listo | pendiente | pantallas pendientes (usan PendienteApiPage) |
 | rrhh | listo | pendiente | pantallas pendientes (usan PendienteApiPage) |
+| inventario | listo | CRUD unidades-medida/insumos/productos, stock, mermas, alertas y Kárdex con permiso propio; costos de producto condicionados a INV_VER_COSTOS | Existencias/kárdex por sucursal; catálogos con baja reversible, alta de insumos reutilizable, costeo sin IVA y diálogo de stock inicial/ajustes/mínimos |
+| pos | listo | cola de preparación, órdenes (T02), ventas (T17), anulación (`fn_anular_venta`) y CRUD clientes CCF (T18-back) | catálogo y carrito local; pantallas de clientes/anulación (T18-front), cobro (T19) y ticket (T46) pendientes |
+| caja | listo | turnos, movimientos, cierre y cuadre (T05/T06/T22) | pantalla de caja integrada desde develop |
+| compras | listo | T30 proveedores; T31 facturas COSTO; T32 pagos/CxP; T33 registro backend GASTO | Proveedores, registro COSTO/GASTO, CxP y pagos integrados a las APIs |
+| rrhh | listo | CRUD de puestos y empleados, validaciones, permisos y datos de prueba | pendiente |
 | reportes | vistas listas + consultas de método de pago, cuadre y CxP | ventas diarias, top productos, métodos de pago, alertas, margen, cuadre y CxP; alcance por `id_sucursal` | panel con tendencias, comparativos, tablas paginadas y exportación CSV/PDF |
 | empresa | listo | CRUD sucursales y edición parámetros | sucursales y parámetros |
 
-Pantallas de gestión pendientes por falta de endpoints backend: empleados/puestos, proveedores, administración de CxP, compras tipo gasto y planillas. El reporte de CxP de solo lectura ya está disponible dentro de Reportes.
+Pantallas de gestión pendientes por falta de endpoints backend: empleados/puestos y planillas. Proveedores, registro de facturas COSTO/GASTO, pagos y CxP operativa tienen API; falta frontend funcional. El reporte CxP de solo lectura de Reportes se conserva y comparte consulta con la ruta operativa.
 
 ## Pendientes críticos
 - Verificar periódicamente tramos/versiones legales de renta, ISSS, AFP e INSAFORP con Hacienda/ISSS/SSF.

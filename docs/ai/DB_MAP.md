@@ -17,7 +17,7 @@ claves: tasa_iva, isss_empleado, isss_patronal, isss_base_maxima_mensual, afp_em
 fn: empresa.fn_param(clave) → text
 
 ## inventario
-unidades_medida(id_unidad, codigo, nombre) · categorias_producto(id_categoria, nombre)
+unidades_medida(id_unidad, codigo*, nombre, factor_conversion, activo, deleted_at, modificado_en) · categorias_producto(id_categoria, nombre)
 insumos(id_insumo, nombre*, tipo_insumo[INGREDIENTE|EMPAQUE|REVENTA], id_unidad_base, costo_promedio, activo)
 stock_sucursal(id_sucursal, id_insumo, stock_actual, stock_minimo)
 productos(id_producto, id_categoria, nombre*, codigo_barra, precio_venta[CON IVA], es_elaborado, id_insumo_reventa, activo)
@@ -34,7 +34,7 @@ fn: pos.fn_registrar_venta(id_turno, tipo, id_cliente, items jsonb, pagos jsonb,
     items=[{id_producto,cantidad,nota}] pagos=[{metodo,monto,monto_recibido,referencia}] · pos.fn_anular_venta(id_venta, motivo, id_usuario) · pos.fn_cerrar_turno(id_turno, efectivo, tarjeta, digital) → jsonb · pos.fn_siguiente_correlativo(id_caja, tipo)
 
 ## compras
-proveedores(id_proveedor, razon_social, nrc, nit, contacto, telefono, dias_credito, activo) · facturas_compra(id_compra U, id_proveedor, id_sucursal, id_usuario, num_factura, tipo_costo[COSTO|GASTO], fecha_emision, condicion_pago, fecha_vencimiento, subtotal, iva_credito, total, estado_pago)
+proveedores(id_proveedor, razon_social, nrc, nit, contacto, telefono, dias_credito, activo, deleted_at, modificado_en) [facturas conservan FK; bitácora por migración 008] · facturas_compra(id_compra U, id_proveedor, id_sucursal, id_usuario, num_factura, tipo_costo[COSTO|GASTO], fecha_emision, condicion_pago, fecha_vencimiento, subtotal, iva_credito, total, estado_pago)
 compra_detalles(id_detalle, id_compra, id_insumo?, descripcion, cantidad, costo_unitario, subtotal) [trigger: entra stock + costo promedio] · pagos_proveedor(id_pago, id_compra, fecha_pago, monto, metodo, referencia, id_usuario) [trigger: actualiza estado_pago]
 fn: compras.fn_registrar_compra(id_proveedor, id_sucursal, num_factura, fecha, condicion, items jsonb, id_usuario, tipo_costo) → id_compra   items=[{id_insumo,cantidad,costo_unitario}] ó [{descripcion,cantidad,costo_unitario}] (costo SIN IVA)
 

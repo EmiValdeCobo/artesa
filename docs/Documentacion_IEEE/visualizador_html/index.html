@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>artesa — Documentación Oficial Formato IEEE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #8b4513;
+      --primary-dark: #5c2c0c;
+      --accent: #d97706;
+      --bg-page: #f4f4f5;
+      --bg-paper: #ffffff;
+      --text-main: #18181b;
+      --text-muted: #52525b;
+      --border: #e4e4e7;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-page);
+      font-family: 'Crimson Pro', Georgia, serif;
+      color: var(--text-main);
+      line-height: 1.45;
+      font-size: 10.5pt;
+    }
+
+    /* Top Action Bar */
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: #1e293b;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 1.5rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.85rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .toolbar-title {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-weight: 600;
+    }
+
+    .badge-ieee {
+      background: #3b82f6;
+      color: #fff;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .toolbar-actions {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      background: #334155;
+      color: #fff;
+      border: 1px solid #475569;
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      background: #475569;
+    }
+
+    .btn-primary {
+      background: #ea580c;
+      border-color: #c2410c;
+    }
+    .btn-primary:hover {
+      background: #c2410c;
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 960px;
+      margin: 1.5rem auto 3rem auto;
+      background: var(--bg-paper);
+      padding: 3rem 3.5rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      border-radius: 4px;
+    }
+
+    /* Header IEEE */
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+      border-bottom: 2px solid #000;
+      padding-bottom: 1.5rem;
+    }
+
+    h1.paper-title {
+      font-size: 17pt;
+      font-weight: 700;
+      line-height: 1.25;
+      margin-bottom: 1rem;
+      color: #0f172a;
+    }
+
+    .authors {
+      font-family: 'Inter', sans-serif;
+      font-size: 9.5pt;
+      margin-bottom: 1.5rem;
+    }
+
+    .author-name { font-weight: 700; }
+    .author-dept { color: var(--text-muted); }
+
+    /* Abstract & Keywords */
+    .abstract-box {
+      margin: 0 auto 1.8rem auto;
+      text-align: justify;
+      font-size: 9pt;
+      line-height: 1.35;
+      background: #f8fafc;
+      border-left: 3px solid #2563eb;
+      padding: 0.8rem 1.2rem;
+      border-radius: 0 4px 4px 0;
+    }
+
+    .abstract-title {
+      font-weight: 700;
+      font-style: italic;
+    }
+
+    .keywords {
+      margin-top: 0.5rem;
+      font-size: 8.5pt;
+    }
+
+    /* Two-column layout */
+    .two-columns {
+      column-count: 2;
+      column-gap: 2rem;
+      column-rule: 1px solid #e2e8f0;
+      text-align: justify;
+    }
+
+    .single-column {
+      column-count: 1 !important;
+    }
+
+    h2.section-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 10.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      text-align: center;
+      margin-top: 1.4rem;
+      margin-bottom: 0.6rem;
+      color: #1e293b;
+      letter-spacing: 0.5px;
+      break-after: avoid;
+    }
+
+    h3.subsection-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 9.5pt;
+      font-weight: 600;
+      font-style: italic;
+      margin-top: 0.9rem;
+      margin-bottom: 0.35rem;
+      color: #334155;
+      break-after: avoid;
+    }
+
+    p {
+      margin-bottom: 0.65rem;
+      text-indent: 1.2em;
+    }
+
+    p.no-indent {
+      text-indent: 0;
+    }
+
+    ul, ol {
+      margin-left: 1.4rem;
+      margin-bottom: 0.75rem;
+      font-size: 9.5pt;
+    }
+
+    li {
+      margin-bottom: 0.25rem;
+    }
+
+    /* Figures & Tables */
+    .figure-box, .table-box {
+      break-inside: avoid;
+      margin: 1.2rem 0;
+      text-align: center;
+    }
+
+    .figure-full {
+      column-span: all;
+    }
+
+    .caption {
+      font-family: 'Inter', sans-serif;
+      font-size: 8pt;
+      margin-top: 0.4rem;
+      color: #475569;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8pt;
+      font-family: 'Inter', sans-serif;
+      margin-top: 0.5rem;
+    }
+
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 0.4rem 0.5rem;
+      text-align: left;
+    }
+
+    th {
+      background: #f1f5f9;
+      font-weight: 600;
+    }
+
+    .badge-pass {
+      background: #dcfce7;
+      color: #166534;
+      font-weight: 700;
+      padding: 0.1rem 0.3rem;
+      border-radius: 3px;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8pt;
+      background: #f1f5f9;
+      padding: 0.1rem 0.25rem;
+      border-radius: 3px;
+      color: #0f172a;
+    }
+
+    /* Print styles */
+    @media print {
+      body { background: #fff; }
+      .toolbar { display: none; }
+      .container {
+        box-shadow: none;
+        padding: 0;
+        margin: 0;
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top bar -->
+  <div class="toolbar">
+    <div class="toolbar-title">
+      <span class="badge-ieee">IEEE FORMAT</span>
+      <span>artesa — Documentación Técnica de Cátedra (Ciclo 02-2026)</span>
+    </div>
+    <div class="toolbar-actions">
+      <button class="btn" id="toggleColumns">Alternar 1 / 2 Columnas</button>
+      <button class="btn" onclick="window.print()">Imprimir / Guardar PDF</button>
+      <a href="../artesa_documentacion_ieee.pdf" target="_blank" class="btn btn-primary" id="openPdfBtn">Abrir PDF Compilado</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <header>
+      <h1 class="paper-title">artesa: Sistema Integral ERP y Punto de Venta (POS) con Cumplimiento Fiscal, Control de Insumos por Receta y Auditoría Forense para Cafeterías y Panaderías Artesanales</h1>
+      <div class="authors">
+        <div class="author-name">Equipo de Ingeniería de Software artesa</div>
+        <div class="author-dept">Cátedra de Programación Web · Ciclo 02-2026 · San Salvador, El Salvador</div>
+        <div class="author-contact">Repositorio y control de versiones auditado · contacto@artesa.sv</div>
+      </div>
+
+      <div class="abstract-box">
+        <span class="abstract-title">Resumen—</span>
+        Las micro, pequeñas y medianas empresas (MIPYMES) dedicadas a la producción de alimentos artesanales en El Salvador afrontan una severa desarticulación operativa debido a la fragmentación de sus procesos en herramientas desconectadas y registros manuales. Esta dispersión produce pérdidas por mermas no detectadas, desajustes en los arqueos de caja, imprecisiones en el costeo unitario y complejidades en la retención tributaria y laboral. En este artículo se presenta <strong>artesa</strong>, un sistema unificado de Planificación de Recursos Empresariales (ERP) y Punto de Venta (POS) diseñado específicamente para el rubro de panaderías y cafeterías artesanales. La solución implementa una arquitectura desacoplada de tres capas compuesta por una interfaz de usuario reactiva en React 19, una API REST en Node.js 22 con Express y una base de datos relacional PostgreSQL 16 con motor transaccional blindado mediante procedimientos almacenados en PL/pgSQL. El sistema incorpora control de inventario con costeo promedio ponderado, control de turnos y arqueos ciegos, facturación electrónica simulada (FCF y CCF con 13% de IVA), liquidación paramétrica de planillas (ISSS, AFP, Renta) y auditoría forense con IP/User-Agent.
+        <div class="keywords"><strong>Palabras Clave—</strong> ERP, Punto de Venta (POS), Transacciones ACID, PL/pgSQL, Descomposición de Recetas, Auditoría Forense, Facturación Electrónica DTE, Inteligencia Artificial Responsable.</div>
+      </div>
+    </header>
+
+    <div class="two-columns" id="contentColumns">
+
+      <!-- Sección I -->
+      <h2 class="section-title">I. Justificación del Nombre del Equipo y del Sistema</h2>
+      <p>El vocablo <em>artesa</em> (del latín vulgar <em>artēsa</em>, de origen prerromano) designa al cajón cuadrilongo de madera, de bordes inclinados, utilizado tradicionalmente por los maestros panaderos para realizar el amasado manual de la harina, el agua y la masa madre. En la cultura tradicional salvadoreña, la artesa representa el espacio donde materias primas dispersas se transforman en un producto cohesionado con alto valor agregado.</p>
+      <p>La adopción de <strong>artesa</strong> refleja la metáfora arquitectónica del sistema: así como la artesa física congrega los ingredientes para el amasado, la base de datos y la plataforma integran los flujos dispersos del negocio (compras, recetas, ventas, comandas de cocina, turnos de caja y nómina) en un único núcleo auditable y transaccional.</p>
+
+      <!-- Sección II -->
+      <h2 class="section-title">II. Introducción y Objetivo del Sistema</h2>
+      <p>En El Salvador, el sector gastronómico de panaderías y cafeterías artesanales adolece de controles integrados. El manejo habitual con hojas de cálculo o cuadernos provoca tres fallas críticas: desfase en inventario al vender productos compuestos, descuadres no detectados en cortes de caja y errores en retenciones tributarias y laborales.</p>
+      <p><strong>Objetivo General:</strong> Desarrollar e implementar un sistema web integral ERP + POS con persistencia transaccional en PostgreSQL 16 y lógica atómica en PL/pgSQL para optimizar la gestión operativa, control de recetas y cumplimiento fiscal salvadoreño.</p>
+      <p><strong>Objetivos Específicos:</strong> 1) Deducción atómica de inventario por receta; 2) Punto de venta con pantalla de cocina (KDS); 3) Arqueo ciego de caja; 4) Abastecimiento y cuentas por pagar; 5) Planilla paramétrica con tramos legales; 6) Auditoría forense inmutable.</p>
+
+      <!-- Sección III -->
+      <h2 class="section-title">III. Requisitos Funcionales y No Funcionales</h2>
+      <p>Clasificados según el estándar IEEE 830:</p>
+      <ul class="no-indent">
+        <li><strong>RF-SEG:</strong> Autenticación con JWT en cookie <code>httpOnly</code>, RBAC dinámico con <code>requirePermiso</code> y bitácora con <em>diff</em> JSON.</li>
+        <li><strong>RF-INV:</strong> Clasificación de insumos, explosión automática de recetas al vender, kárdex con control de costos y registro formal de mermas.</li>
+        <li><strong>RF-POS:</strong> Catálogo interactivo por familias, comanda KDS, cobros mixtos y emisión de FCF y CCF con 13% de IVA.</li>
+        <li><strong>RF-CAJ:</strong> Turnos individuales, movimientos autorizados y arqueo ciego con cálculo automático de diferencia.</li>
+        <li><strong>RF-RRHH:</strong> Cálculo de retenciones laborales según la legislación salvadoreña vigente (ISSS, AFP, Renta).</li>
+      </ul>
+      <p><strong>Requisitos No Funcionales (RNF):</strong> Transaccionalidad ACID en PostgreSQL 16, precisión decimal exacta sin punto flotante (Anti-Float con <code>NUMERIC</code>), seguridad con bcrypt ($cost=10$) y principio de mínimo privilegio con el rol <code>web_user</code>.</p>
+
+      <!-- Sección IV -->
+      <h2 class="section-title">IV. Arquitectura del Sistema y Diagrama</h2>
+      <p>El sistema sigue el patrón desacoplado de tres capas con pasarela de acceso inverso:</p>
+      <ul>
+        <li><strong>Frontend SPA:</strong> React 19 + Vite + Tailwind CSS + Lucide Icons.</li>
+        <li><strong>Gateway / Nginx:</strong> Puerto <code>:8080</code>; sirve estáticos y reenvía <code>/api/*</code> al backend.</li>
+        <li><strong>Backend API REST:</strong> Node.js 22 LTS con Express, Zod y Sequelize bajo arquitectura de cuatro niveles: Routes $\rightarrow$ Controller $\rightarrow$ Service $\rightarrow$ Repository.</li>
+        <li><strong>Motor de Datos:</strong> PostgreSQL 16 con funciones PL/pgSQL críticas.</li>
+      </ul>
+
+      <!-- Sección V -->
+      <h2 class="section-title">V. Modelo de Base de Datos y Entidad-Relación</h2>
+      <p>La base de datos se organiza en esquemas de dominio segregados: <code>seguridad</code>, <code>empresa</code>, <code>inventario</code>, <code>pos</code>, <code>compras</code>, <code>rrhh</code> y <code>reportes</code> (vistas analíticas).</p>
+      <p>Las funciones SQL garantizan la consistencia: <code>pos.fn_registrar_venta</code> descuenta inventario, inserta detalles y pagos y avanza el correlativo en una única transacción atómica; <code>pos.fn_cerrar_turno</code> ejecuta el cuadre contra montos declarados a ciegas.</p>
+
+      <!-- Sección VI -->
+      <h2 class="section-title">VI. Descripción de Módulos</h2>
+      <p><strong>Seguridad y Roles:</strong> Matriz RBAC dinámica y bitácora analítica con captura de IP y User-Agent vía <code>AsyncLocalStorage</code>.</p>
+      <p><strong>Inventario y Kárdex:</strong> Saldo en tiempo real y separación de privilegios: <code>INV_VER_KARDEX</code> permite ver movimientos físicos, mientras que <code>INV_VER_COSTOS</code> restringe la visualización del costo unitario.</p>
+      <p><strong>POS y Comanda:</strong> Atención ágil en caja y visualización en tiempo real para cocina.</p>
+      <p><strong>Caja:</strong> Flujo estricto de apertura, ingresos/egresos y cuadre final.</p>
+      <p><strong>Planillas:</strong> Automatización de deducciones con tramos legales del Ministerio de Hacienda.</p>
+
+      <!-- Sección VII -->
+      <h2 class="section-title">VII. Pruebas Realizadas y Resultados</h2>
+      <p>La verificación de calidad se sustenta en una suite de <strong>128 pruebas automatizadas</strong> continuas sobre <code>node:test</code> (tiempo de ejecución total: 0.92 segundos, 100% aprobadas):</p>
+      <table style="margin-bottom: 0.8rem;">
+        <thead>
+          <tr>
+            <th>Suite de Pruebas</th>
+            <th>Dominio</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>pos-orders-contracts</code></td><td>FSM de órdenes POS</td><td><span class="badge-pass">25/25 PASS</span></td></tr>
+          <tr><td><code>inventario-contracts</code></td><td>Kárdex, recetas y stock</td><td><span class="badge-pass">19/19 PASS</span></td></tr>
+          <tr><td><code>turnos-caja-contracts</code></td><td>Arqueo y cuadre de caja</td><td><span class="badge-pass">8/8 PASS</span></td></tr>
+          <tr><td><code>roles-permisos-contracts</code></td><td>RBAC y regresión de usuarios</td><td><span class="badge-pass">12/12 PASS</span></td></tr>
+          <tr><td><code>frontend-rbac-menu</code></td><td>Navegación e interfaz protegida</td><td><span class="badge-pass">14/14 PASS</span></td></tr>
+          <tr><td><code>frontend-pos-menu</code></td><td>Catálogo POS y CCF</td><td><span class="badge-pass">12/12 PASS</span></td></tr>
+          <tr><td><code>frontend-pages-contracts</code></td><td>Rutas protegidas y estado</td><td><span class="badge-pass">16/16 PASS</span></td></tr>
+          <tr><td><code>reportes-ux-contracts</code></td><td>Filtros y métricas</td><td><span class="badge-pass">14/14 PASS</span></td></tr>
+          <tr><td><code>empresa-contracts</code></td><td>Sucursales y parámetros</td><td><span class="badge-pass">8/8 PASS</span></td></tr>
+        </tbody>
+      </table>
+
+      <!-- Sección VIII -->
+      <h2 class="section-title">VIII. Conclusiones y Referencias</h2>
+      <p>La integración del ERP y el POS bajo PostgreSQL 16 con procedimientos PL/pgSQL demostró resolver el problema del desfase de inventario con consistencia ACID absoluta. El manejo anti-float y la conformidad tributaria garantizan un sistema listo para su defensa y aplicabilidad real.</p>
+      <p><strong>Referencias Clave:</strong> IEEE Std 830-1998; Fielding (REST, 2000); PostgreSQL 16 Documentation; Ministerio de Hacienda de El Salvador (Guía DTE y Ley del IVA, Dec. 296); Código de Ética ACM (2018).</p>
+
+      <!-- Sección IX -->
+      <h2 class="section-title">IX. Legalidad en el Uso de la IA</h2>
+      <p>Conforme a las normativas de la cátedra de Programación Web y al Código de Ética de la ACM, el equipo implementó un protocolo estricto de <strong>IA en Parejas (Pair Programming)</strong>:</p>
+      <ol class="no-indent">
+        <li><strong>Comprensión Obligatoria:</strong> Cada integrante comprende, justifica y defiende individualmente cada línea de código asistida por IA.</li>
+        <li><strong>Trazabilidad Pública:</strong> Registro formal en <code>docs/USO_IA.md</code> indicando fecha, integrante, herramienta (Claude, Gemini, Codex, ChatGPT), objetivo y revisor humano.</li>
+        <li><strong>Sanitización de Secretos:</strong> Cero exposición de credenciales o claves privadas a los modelos.</li>
+        <li><strong>Validación por QA:</strong> Todo código generado fue verificado con la suite de 128 pruebas antes de su integración.</li>
+      </ol>
+      <p>Este documento se actualiza automáticamente mediante el script <code>actualizar_ia.js</code> para mantener sincronizada la bitácora con los avances del equipo.</p>
+
+    </div>
+  </div>
+
+  <script>
+    const toggleBtn = document.getElementById('toggleColumns');
+    const cols = document.getElementById('contentColumns');
+    toggleBtn.addEventListener('click', () => {
+      cols.classList.toggle('single-column');
+    });
+  </script>
+</body>
+</html>

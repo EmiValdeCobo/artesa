@@ -1,4 +1,4 @@
-import { LayoutDashboard, ShoppingBag, ChefHat, Wallet, Boxes, Truck, Users, BarChart3, ShieldCheck, Store, Settings, ScrollText } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, ChefHat, Wallet, Boxes, Truck, Users, BarChart3, ShieldCheck, Store, Settings, ScrollText, BookOpen } from 'lucide-react';
 
 // Menú lateral: cada ítem se muestra solo si el usuario tiene el permiso indicado
 export const menu = [
@@ -11,8 +11,13 @@ export const menu = [
       { ruta: '/inventario', texto: 'Existencias', permiso: 'INV_VER_STOCK', end: true },
       { ruta: '/inventario/kardex', texto: 'Kárdex', permiso: 'INV_VER_KARDEX' },
     ]},
+    { id: 'catalogo', texto: 'Catálogo', icono: BookOpen, hijos: [
+      { ruta: '/catalogo/insumos', texto: 'Insumos y unidades', permiso: 'INV_GESTIONAR_INSUMOS' },
+      { ruta: '/catalogo/productos', texto: 'Productos', permiso: 'INV_VER_STOCK' },
+    ]},
     { id: 'compras', texto: 'Compras', icono: Truck, hijos: [
       { ruta: '/compras', texto: 'Compras', permiso: 'COM_VER_CXP', end: true },
+      { ruta: '/compras/registrar', texto: 'Registrar factura', permiso: 'COM_REGISTRAR_COMPRA' },
       { ruta: '/compras/proveedores', texto: 'Proveedores', permiso: 'COM_GESTIONAR_PROVEEDORES' },
       { ruta: '/compras/cuentas-por-pagar', texto: 'Cuentas por pagar', permiso: 'COM_VER_CXP' },
       { ruta: '/compras/gastos', texto: 'Compras tipo gasto', permiso: 'COM_REGISTRAR_COMPRA' },

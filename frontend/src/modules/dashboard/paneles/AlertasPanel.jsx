@@ -23,7 +23,7 @@ export default function AlertasPanel({ cols, titulo, orden }) {
     cuerpo = (
       <>
         {datos.incompleto && (
-          <div role="alert" className="mb-4 flex items-start gap-2.5 border border-warning/40 bg-warning-soft px-3 py-2.5 text-sm">
+          <div role="alert" className="mb-4 flex items-start gap-2.5 rounded-xl border border-warning/40 bg-warning-soft px-3 py-2.5 text-sm">
             <TriangleAlert size={17} aria-hidden="true" className="mt-0.5 shrink-0 text-warning" />
             <p className="min-w-0 flex-1">
               No se pudieron calcular las alertas de {unir(datos.fallos.map((f) => f.modulo))}. Lo demás está al día.{' '}
@@ -43,7 +43,7 @@ export default function AlertasPanel({ cols, titulo, orden }) {
               {datos.alertas.map((a) => {
                 const { Icono, texto, clase } = SEVERIDAD[a.severidad];
                 return (
-                  <li key={a.id} className={`mb-2 flex gap-3 rounded-r-md border-l-4 py-3 pl-3 pr-3 ${clase.split(' ')[0]} ${clase.split(' ')[2]}`}>
+                  <li key={a.id} className={`mb-2 flex gap-3 rounded-xl border-l-4 py-3 pl-3 pr-3 ${clase.split(' ')[0]} ${clase.split(' ')[2]}`}>
                     <Icono size={18} aria-hidden="true" className={`mt-0.5 shrink-0 ${clase.split(' ')[1]}`} />
                     <div className="min-w-0">
                       <p className="text-base font-bold leading-snug text-fg sm:text-sm"><span className="sr-only">{texto}: </span>{a.titulo}</p>
@@ -63,7 +63,7 @@ export default function AlertasPanel({ cols, titulo, orden }) {
   }
 
   return (
-    <Panel titulo={titulo} cols={cols} orden={orden} acento={5}>
+    <Panel titulo={titulo} cols={cols} orden={orden} acento={3}>
       {datos && error && <AvisoError className="mb-4" error={error} onReintentar={recargar} />}
       {cuerpo}
     </Panel>

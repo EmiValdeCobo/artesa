@@ -28,14 +28,17 @@ test('reportes: los informes extendidos exigen permisos específicos además del
 
 test('reportes: las consultas nuevas limitan los datos a sucursales visibles y acotan resultados', async () => {
   const repo = await leer('backend/src/modules/reportes/reportes.repository.js');
+  const cxpRepo = await leer('backend/src/modules/compras/cuentas-por-pagar.repository.js');
   assert.match(repo, /FROM reportes\.vw_cuadre_turno q/);
   assert.match(repo, /GROUP BY s\.id_sucursal, s\.nombre, v\.fecha_emision::date/);
   assert.match(repo, /JOIN visibles s ON s\.id_sucursal = ss\.id_sucursal/);
   assert.match(repo, /FROM pos\.pagos p/);
   assert.match(repo, /q\.id_sucursal IN \(SELECT id_sucursal FROM visibles/);
-  assert.match(repo, /JOIN visibles s ON s\.id_sucursal = f\.id_sucursal/);
-  assert.match(repo, /f\.estado_pago <> 'PAGADO'/);
-  assert.equal((repo.match(/LIMIT 500/g) || []).length, 2);
+  assert.match(repo, /listarCuentasPorPagar\(idUsuario, filtros, true\)/);
+  assert.match(cxpRepo, /JOIN visibles s ON s\.id_sucursal = f\.id_sucursal/);
+  assert.match(cxpRepo, /f\.estado_pago <> 'PAGADO'/);
+  assert.match(cxpRepo, /LIMIT 500/);
+  assert.equal((repo.match(/LIMIT 500/g) || []).length, 1);
 });
 
 test('reportes UI: agrega visualizaciones, paginación y condiciona los datos sensibles por permiso', async () => {

@@ -24,7 +24,7 @@ export default function Table({
         </thead>
         <tbody className="divide-y divide-line">
           {filas.map((fila) => (
-            <tr key={fila[idFila]} className="hover:bg-muted/60">
+            <tr key={fila[idFila]} className={`hover:bg-muted/60 ${fila.activo === false ? 'opacity-60' : ''}`}>
               {columnas.map((c) => (
                 <td key={c.clave} className={`px-5 py-4 ${c.alinear === 'right' ? 'text-right' : ''}`}>
                   {c.render ? c.render(fila) : fila[c.clave]}
