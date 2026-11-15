@@ -42,7 +42,7 @@ DECLARE
     v_n_items INT; v_n_validos INT;
     v_bruto NUMERIC; v_total NUMERIC; v_iva NUMERIC; v_sub NUMERIC; v_pagado NUMERIC;
     v_corr TEXT; v_ctrl TEXT; v_id UUID := gen_random_uuid();
-    r RECORD;
+    v_ord RECORD;
 BEGIN
     SELECT * INTO v_turno FROM pos.turnos_caja WHERE id_turno = p_id_turno;
     IF NOT FOUND OR v_turno.estado <> 'ABIERTO' THEN RAISE EXCEPTION 'El turno no existe o está cerrado'; END IF;

@@ -25,6 +25,7 @@ export default function PosPage() {
   const [categoria, setCategoria] = useState('Todas');
   const [busqueda, setBusqueda] = useState('');
   const [tipoDocumento, setTipoDocumento] = useState('FACTURA');
+  const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [items, dispatch] = useReducer(carritoReducer, carritoInicial);
 
   const cargar = useCallback(async () => {
@@ -53,8 +54,13 @@ export default function PosPage() {
   // Sin POS_EMITIR_CCF el documento siempre es consumidor final, aunque el estado local diga otra cosa.
   const documento = puedeCCF ? tipoDocumento : 'FACTURA';
 
-  // Aquí se conectará POST /api/pos/ordenes con { tipoDocumento, items }.
-  const cobrar = () => setAviso('El cobro se conecta en la semana 2 (modal de pago).');
+  // Aquí se conectará POST /api/pos/ordenes y ventas con { tipoDocumento, id_cliente: clienteSeleccionado?.id_cliente, items }.
+  const cobrar = () => {
+    const etiquetaCliente = clienteSeleccionado
+      ? ` para ${clienteSeleccionado.nombre_razon_social}`
+      : ' (Consumidor Final)';
+    setAviso(`El cobro${etiquetaCliente} se conecta en la pantalla de pago (T19).`);
+  };
 
   return (
     <div className={`mx-auto max-w-7xl ${unidades > 0 ? 'pb-20 lg:pb-0' : ''}`}>
@@ -121,7 +127,15 @@ export default function PosPage() {
         </section>
 
         <div className="lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)]">
-          <Carrito items={items} tipoDocumento={documento} onTipoDocumento={setTipoDocumento} dispatch={dispatch} onCobrar={cobrar} />
+          <Carrito
+            items={items}
+            tipoDocumento={documento}
+            onTipoDocumento={setTipoDocumento}
+            clienteSeleccionado={clienteSeleccionado}
+            onSeleccionarCliente={setClienteSeleccionado}
+            dispatch={dispatch}
+            onCobrar={cobrar}
+          />
         </div>
       </div>
 
