@@ -3,11 +3,16 @@ import { authenticate, requireTipo } from '../../middlewares/auth.js';
 import { requirePermiso } from '../../middlewares/permisos.js';
 import { validate } from '../../middlewares/validate.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
+import { AppError } from '../../utils/AppError.js';
 import * as controller from './seguridad.controller.js';
 import { actualizarPermisoSchema, actualizarRolSchema, actualizarUsuarioSchema, asignarPermisosSchema, crearPermisoSchema, crearRolSchema, crearUsuarioSchema } from './seguridad.schemas.js';
 
 const router = Router();
 router.use(authenticate, requireTipo('admin'));
+router.param('id', (req, _res, next, id) => {
+  if (req.path.startsWith('/usuarios/') && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return next(new AppError('Identificador de usuario inválido', 400));
+  next();
+});
 router.get('/usuarios', requirePermiso('SEG_GESTIONAR_USUARIOS'), asyncHandler(controller.listarUsuarios));
 router.get('/roles', requirePermiso('SEG_GESTIONAR_USUARIOS', 'SEG_GESTIONAR_ROLES'), asyncHandler(controller.listarRoles));
 router.post('/roles', requirePermiso('SEG_GESTIONAR_ROLES'), validate(crearRolSchema), asyncHandler(controller.crearRol));
