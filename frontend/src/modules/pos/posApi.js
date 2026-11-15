@@ -116,4 +116,9 @@ export async function obtenerDetalleVenta(idVenta) {
   return res?.data ?? res;
 }
 
+export async function registrarVenta(payload) {
+  const res = await api.post('/pos/ventas', payload);
+  return res?.data ?? res;
+}
+
 export const anularVenta = (idVenta, motivo) => api.patch(`/pos/ventas/${idVenta}/anular`, { motivo });

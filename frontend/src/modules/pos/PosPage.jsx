@@ -14,6 +14,8 @@ import { agruparPorCategoria } from './categorias.js';
 import { calcularTotales, formatoMoneda } from './impuestos.js';
 import ProductoCard from './ProductoCard.jsx';
 import Carrito from './Carrito.jsx';
+import ModalCobro from './ModalCobro.jsx';
+import VentaExitosaModal from './VentaExitosaModal.jsx';
 
 export default function PosPage() {
   const { usuario, tiene } = useAuth();
@@ -34,6 +36,8 @@ export default function PosPage() {
   const [tipoDocumento, setTipoDocumento] = useState('FACTURA');
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [items, dispatch] = useReducer(carritoReducer, carritoInicial);
+  const [modalCobroAbierto, setModalCobroAbierto] = useState(false);
+  const [ventaExitosa, setVentaExitosa] = useState(null);
 
   // Detecta si el cajero tiene un turno abierto para vincular la sucursal del turno
   useEffect(() => {
@@ -86,12 +90,22 @@ export default function PosPage() {
   // Sin POS_EMITIR_CCF el documento siempre es consumidor final, aunque el estado local diga otra cosa.
   const documento = puedeCCF ? tipoDocumento : 'FACTURA';
 
-  // Aquí se conectará POST /api/pos/ordenes y ventas con { tipoDocumento, id_cliente: clienteSeleccionado?.id_cliente, items }.
+  // Pantalla de cobro (T19)
   const cobrar = () => {
-    const etiquetaCliente = clienteSeleccionado
-      ? ` para ${clienteSeleccionado.nombre_razon_social}`
-      : ' (Consumidor Final)';
-    setAviso(`El cobro${etiquetaCliente} se conecta en la pantalla de pago (T19).`);
+    if (!turnoActivo) {
+      setAviso('Debes tener un turno de caja abierto para registrar ventas. Abre un turno en el módulo de Caja.');
+      return;
+    }
+    setAviso('');
+    setModalCobroAbierto(true);
+  };
+
+  const handleVentaExitosa = (venta) => {
+    setModalCobroAbierto(false);
+    setVentaExitosa(venta);
+    dispatch({ tipo: 'vaciar' });
+    setClienteSeleccionado(null);
+    cargar();
   };
 
   return (
@@ -217,6 +231,24 @@ export default function PosPage() {
           <a href="#pedido-actual" className="btn-primary">Ver pedido</a>
         </div>
       )}
+
+      {/* Modal de cobro y pagos mixtos (T19) */}
+      <ModalCobro
+        abierto={modalCobroAbierto}
+        onCerrar={() => setModalCobroAbierto(false)}
+        items={items}
+        tipoDocumento={documento}
+        clienteSeleccionado={clienteSeleccionado}
+        turnoActivo={turnoActivo}
+        onVentaExitosa={handleVentaExitosa}
+      />
+
+      {/* Modal de venta exitosa y comprobante térmico (T19) */}
+      <VentaExitosaModal
+        abierto={Boolean(ventaExitosa)}
+        venta={ventaExitosa}
+        onNuevaVenta={() => setVentaExitosa(null)}
+      />
     </div>
   );
 }
