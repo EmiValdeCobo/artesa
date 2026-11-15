@@ -55,6 +55,10 @@ export function traducirError(error) {
   const dinamico = (plantilla || base.plantilla)?.(m) || {};
   const { plantilla: _omitida, ...entrada } = { ...base, ...dinamico };
 
+  if (esApi && error.status === 409 && error.mensajeServidor) {
+    entrada.mensaje = error.mensajeServidor;
+  }
+
   const campos = esApi ? camposDe(id, entrada, error) : {};
   const nCampos = Object.keys(campos).length;
   // Validación: si el backend no dijo qué campos, el mensaje es general y va como banner.

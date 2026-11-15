@@ -119,6 +119,28 @@ export const cerrarTurno = (transaction, { idTurno, efectivo, tarjeta, digital }
   transaction,
 );
 
+// Tolerancia de descuadre: parámetro `tolerancia_cuadre` (empresa.parametros, en dólares). Si no existe se usa
+// el valor por defecto; si existe pero no es un monto válido se avisa, para no cerrar cajas con un límite roto.
+export const TOLERANCIA_CUADRE_DEFECTO = '1.00';
+export async function obtenerToleranciaCuadre(transaction) {
+  const [fila] = await consultar("SELECT empresa.fn_param('tolerancia_cuadre') AS valor", [], transaction);
+  return fila?.valor ?? TOLERANCIA_CUADRE_DEFECTO;
+}
+
+// Diferencia (contado - esperado) por método usando lo esperado EN VIVO de la vista, y si |dif| supera el límite.
+// Todo en NUMERIC dentro de la BD: nada pasa por float.
+export async function calcularDescuadre(transaction, { idTurno, efectivo, tarjeta, digital, tolerancia }) {
+  const [fila] = await consultar(
+    `SELECT ($2::numeric - v.esperado_efectivo)::text AS dif_efectivo, ABS($2::numeric - v.esperado_efectivo) > $5::numeric AS excede_efectivo,
+            ($3::numeric - v.esperado_tarjeta)::text  AS dif_tarjeta,  ABS($3::numeric - v.esperado_tarjeta)  > $5::numeric AS excede_tarjeta,
+            ($4::numeric - v.esperado_digital)::text  AS dif_digital,  ABS($4::numeric - v.esperado_digital)  > $5::numeric AS excede_digital
+     FROM reportes.vw_cuadre_turno v WHERE v.id_turno = $1::uuid`,
+    [idTurno, efectivo, tarjeta, digital, tolerancia],
+    transaction,
+  );
+  return fila ?? null;
+}
+
 // Turno + lo esperado (frozen al cerrar, en vivo mientras está abierto) + lo contado + diferencias.
 const SELECT_CUADRE = `
   SELECT t.id_turno, t.id_caja, c.nombre_identificador AS caja, c.id_sucursal, s.nombre AS sucursal,

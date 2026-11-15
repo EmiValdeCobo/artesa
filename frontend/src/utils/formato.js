@@ -2,14 +2,45 @@ import { ZONA_NEGOCIO } from '../config/negocio.js';
 
 // Formato solo para MOSTRAR. Los importes llegan como string NUMERIC y el servidor ya los sumó:
 // aquí nunca se suman ni se comparan importes.
-const moneda = new Intl.NumberFormat('es-SV', { style: 'currency', currency: 'USD' });
+const moneda = new Intl.NumberFormat('es-SV', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 const moneda0 = new Intl.NumberFormat('es-SV', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const entero = new Intl.NumberFormat('es-SV');
 
 export const capitalizar = (texto) => texto.charAt(0).toUpperCase() + texto.slice(1);
-export const formatoDinero = (valor) => moneda.format(valor ?? 0);
+export const formatoDinero = (valor) => {
+  if (valor === null || valor === undefined || valor === '') return moneda.format(0);
+  const num = typeof valor === 'number' ? valor : Number(valor);
+  return moneda.format(Number.isNaN(num) ? 0 : num);
+};
 export const formatoDineroCorto = (valor) => moneda0.format(valor ?? 0);
 export const formatoEntero = (valor) => entero.format(valor ?? 0);
+
+/**
+ * Formatea cantidades físicas/conteos como números enteros sin decimales (ej. 1, 18, 250, 50),
+ * eliminando decimales residuales que devuelve PostgreSQL (como 1.0000, 10.00 o 50.0000).
+ */
+export const formatearUnidades = (valor) => {
+  if (valor === null || valor === undefined || valor === '') return '0';
+  const num = typeof valor === 'number' ? valor : Number(String(valor).trim());
+  if (Number.isNaN(num)) return '0';
+  return entero.format(Math.round(num));
+};
+
+/**
+ * Limpia un valor de cantidad para inputs numéricos (<input type="number" step="1">),
+ * asegurando un string entero limpio sin comas ni decimales innecesarios (ej. '1.0000' -> '1').
+ */
+export const enteroParaInput = (valor) => {
+  if (valor === null || valor === undefined || valor === '') return '';
+  const num = typeof valor === 'number' ? valor : Number(String(valor).trim());
+  if (Number.isNaN(num)) return '';
+  return String(Math.round(num));
+};
 
 // 'YYYY-MM-DD' → Date local sin desfase de zona horaria.
 export const fechaLocal = (iso) => { const [a, m, d] = iso.split('-').map(Number); return new Date(a, m - 1, d); };

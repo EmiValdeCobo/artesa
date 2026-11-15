@@ -3,15 +3,16 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
-import { Button } from '../../components/ui/index.js';
+import { Button, Select } from '../../components/ui/index.js';
 import CampoError from '../../components/forms/CampoError.jsx';
+import { formatoDinero } from '../../utils/formato.js';
 import { traducirError } from '../../errors/traducirError.js';
 import { createInsumo, updateInsumo } from './inventarioApi.js';
 const TIPOS_INSUMO = ['INGREDIENTE', 'EMPAQUE', 'REVENTA'];
 const VALORES_VACIOS = {};
 const avisoLocal = (mensaje, titulo = 'Revisa la información') => ({ titulo, mensaje, accion: '', categoria: 'usuario' });
 // ─── DRAWER: Formulario de Insumo ────────────────────────────────────────────
-export default function InsumoDrawer({ abierto, insumo, unidades, valoresIniciales = VALORES_VACIOS, onCerrar, onGuardado }) {
+export default function InsumoDrawer({ abierto, insumo, unidades = [], valoresIniciales = VALORES_VACIOS, onCerrar, onGuardado }) {
   const { notificar } = useAlert();
   const esEdicion = Boolean(insumo?.id_insumo);
 
@@ -37,7 +38,7 @@ export default function InsumoDrawer({ abierto, insumo, unidades, valoresInicial
           activo: insumo.activo ?? true,
         });
       } else {
-        setForm({ nombre: valoresIniciales.nombre ?? '', tipo_insumo: valoresIniciales.tipo_insumo ?? 'INGREDIENTE', id_unidad_base: String(valoresIniciales.id_unidad_base ?? ''), costo_promedio: valoresIniciales.costo_promedio ?? '0.0000', activo: valoresIniciales.activo ?? true });
+        setForm({ nombre: valoresIniciales.nombre ?? '', tipo_insumo: valoresIniciales.tipo_insumo ?? 'INGREDIENTE', id_unidad_base: String(valoresIniciales.id_unidad_base ?? ''), costo_promedio: valoresIniciales.costo_promedio ? Number(valoresIniciales.costo_promedio).toFixed(2) : '0.00', activo: valoresIniciales.activo ?? true });
       }
     }
   }, [abierto, insumo, esEdicion, valoresIniciales]);
@@ -59,7 +60,7 @@ export default function InsumoDrawer({ abierto, insumo, unidades, valoresInicial
         tipo_insumo: form.tipo_insumo,
         id_unidad_base: Number(form.id_unidad_base),
         activo: form.activo,
-        ...(!esEdicion && { costo_promedio: form.costo_promedio || '0.0000' }),
+        ...(!esEdicion && { costo_promedio: form.costo_promedio ? Number(form.costo_promedio).toFixed(2) : '0.00' }),
       };
 
       const guardado = esEdicion ? await updateInsumo(insumo.id_insumo, payload) : await createInsumo(payload);
@@ -185,14 +186,14 @@ export default function InsumoDrawer({ abierto, insumo, unidades, valoresInicial
                 Costo
               </label>
               <input
-                className="input"
+                className="input font-mono"
                 id="insumo-costo"
                 type="number"
-                placeholder="0.0000"
+                placeholder="0.00"
                 value={form.costo_promedio}
                 onChange={(e) => set('costo_promedio')(e.target.value)}
                 min={0}
-                step="0.0001"
+                step="0.01"
               />
               <p className="mt-1 text-xs text-fg-muted">Costo por {unidades.find((u) => String(u.id_unidad) === String(form.id_unidad_base))?.codigo ?? 'unidad base'}.</p>
             </div>
@@ -202,7 +203,7 @@ export default function InsumoDrawer({ abierto, insumo, unidades, valoresInicial
                 <span title="Promedio del costo de las compras registradas, ponderado por la cantidad comprada.">Costo promedio</span>
               </span>
               <p className="text-sm font-mono font-bold text-fg">
-                {insumo.costo_promedio == null ? <span title="Sin permiso para ver costos">—</span> : `$ ${insumo.costo_promedio}`}
+                {insumo.costo_promedio == null ? <span title="Sin permiso para ver costos">—</span> : formatoDinero(insumo.costo_promedio)}
               </p>
               <p className="text-xs text-fg-muted italic">
                 El costo se actualiza automáticamente con cada factura de compra.

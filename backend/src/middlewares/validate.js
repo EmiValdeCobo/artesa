@@ -10,7 +10,12 @@ export const validate = (schema) => (req, _res, next) => {
 export const validateQuery = (schema) => (req, _res, next) => {
   const resultado = schema.safeParse(req.query);
   if (!resultado.success) return next(resultado.error);
-  Object.keys(req.query).forEach((clave) => delete req.query[clave]);
-  Object.assign(req.query, resultado.data);
+  req.validatedQuery = resultado.data;
+  Object.defineProperty(req, 'query', {
+    value: resultado.data,
+    writable: true,
+    enumerable: true,
+    configurable: true,
+  });
   next();
 };

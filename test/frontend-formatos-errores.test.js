@@ -5,6 +5,8 @@ import {
   formatoDinero,
   formatoDineroCorto,
   formatoEntero,
+  formatearUnidades,
+  enteroParaInput,
   fechaLocal,
   fechaISODelNegocio,
   haceCuanto,
@@ -37,6 +39,27 @@ test('formato: formatoDineroCorto redondea a 0 decimales para tarjetas de resume
 test('formato: formatoEntero da formato a números enteros', () => {
   assert.equal(formatoEntero(1500), '1,500');
   assert.equal(formatoEntero(0), '0');
+});
+
+test('formato: formatearUnidades renderiza unidades enteras eliminando decimales de PostgreSQL', () => {
+  assert.equal(formatearUnidades('1.0000'), '1');
+  assert.equal(formatearUnidades('18.00'), '18');
+  assert.equal(formatearUnidades(250), '250');
+  assert.equal(formatearUnidades('50.0000'), '50');
+  assert.equal(formatearUnidades(null), '0');
+  assert.equal(formatearUnidades(undefined), '0');
+  assert.equal(formatearUnidades(''), '0');
+  assert.equal(formatearUnidades(1500), '1,500');
+});
+
+test('formato: enteroParaInput limpia valores para campos numéricos enteros', () => {
+  assert.equal(enteroParaInput('1.0000'), '1');
+  assert.equal(enteroParaInput('18.00'), '18');
+  assert.equal(enteroParaInput('50.0000'), '50');
+  assert.equal(enteroParaInput(250), '250');
+  assert.equal(enteroParaInput(null), '');
+  assert.equal(enteroParaInput(undefined), '');
+  assert.equal(enteroParaInput(''), '');
 });
 
 test('formato: fechaLocal genera un objeto Date sin desfase de zona horaria', () => {
@@ -115,4 +138,13 @@ test('traducirError: un nombre duplicado de inventario se marca como duplicado',
   assert.equal(traducido.id, 'DUPLICADO');
   assert.match(traducido.accion, /Cambia el nombre o el código/i);
   assert.ok(traducido.campos.nombre);
+});
+
+test('traducirError: en errores 409 con mensajeServidor asigna el mensaje real del backend', () => {
+  const mensajeReal = 'No se puede eliminar el rol: tiene 3 usuarios asignados.';
+  const error = new ErrorApi({ status: 409, mensajeServidor: mensajeReal });
+  const traducido = traducirError(error);
+  assert.equal(traducido.status, 409);
+  assert.equal(traducido.mensaje, mensajeReal);
+  assert.ok(traducido.mensajeCompleto.includes(mensajeReal));
 });

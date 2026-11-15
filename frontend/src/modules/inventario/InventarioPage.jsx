@@ -12,8 +12,9 @@ import Metrica from '../../components/display/Metrica.jsx';
 import Pestanas from '../../components/navigation/Pestanas.jsx';
 import { traducirError } from '../../errors/traducirError.js';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
+import { formatearUnidades } from '../../utils/formato.js';
 
-const CANTIDAD_VALIDA = /^\d{1,10}(\.\d{1,4})?$/;
+const CANTIDAD_VALIDA = /^[1-9]\d*$/;
 const SUCURSALES_VACIAS = [];
 const FILTROS_TIPO_INSUMO = [
   { valor: 'TODOS', etiqueta: 'Todos' },
@@ -22,20 +23,8 @@ const FILTROS_TIPO_INSUMO = [
   { valor: 'REVENTA', etiqueta: 'Reventa' },
 ];
 
-function formatearCantidad(valor) {
-  const texto = String(valor ?? '');
-  const [entero, fraccion = ''] = texto.split('.');
-  if (!/^-?\d+$/.test(entero)) return texto;
-
-  const signo = entero.startsWith('-') ? '-' : '';
-  const digitos = signo ? entero.slice(1) : entero;
-  const enteroAgrupado = digitos.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  const fraccionSignificativa = fraccion.replace(/0+$/, '');
-  return `${signo}${enteroAgrupado}${fraccionSignificativa ? `.${fraccionSignificativa}` : ''}`;
-}
-
 function esCantidadPositiva(valor) {
-  return CANTIDAD_VALIDA.test(valor.trim()) && /[1-9]/.test(valor);
+  return CANTIDAD_VALIDA.test(valor.trim());
 }
 
 export default function InventarioPage() {
@@ -199,8 +188,8 @@ export default function InventarioPage() {
   const columnasStock = [
     { clave: 'insumo', titulo: 'Insumo' },
     { clave: 'unidad', titulo: 'Unidad' },
-    { clave: 'stock_actual', titulo: 'Stock actual', alinear: 'right', render: (fila) => formatearCantidad(fila.stock_actual) },
-    { clave: 'stock_minimo', titulo: 'Stock mínimo', alinear: 'right', render: (fila) => formatearCantidad(fila.stock_minimo) },
+    { clave: 'stock_actual', titulo: 'Stock actual', alinear: 'right', render: (fila) => formatearUnidades(fila.stock_actual) },
+    { clave: 'stock_minimo', titulo: 'Stock mínimo', alinear: 'right', render: (fila) => formatearUnidades(fila.stock_minimo) },
   ];
 
   const columnasAlertas = [
@@ -209,9 +198,9 @@ export default function InventarioPage() {
     { clave: 'nivel', titulo: 'Nivel', render: (fila) => (
       <EstadoBadge tipo={fila.nivel === 'AGOTADO' ? 'error' : 'alerta'}>{fila.nivel}</EstadoBadge>
     ) },
-    { clave: 'stock_actual', titulo: 'Actual', alinear: 'right', render: (fila) => formatearCantidad(fila.stock_actual) },
-    { clave: 'stock_minimo', titulo: 'Mínimo', alinear: 'right', render: (fila) => formatearCantidad(fila.stock_minimo) },
-    { clave: 'faltante', titulo: 'Faltante', alinear: 'right', render: (fila) => formatearCantidad(fila.faltante) },
+    { clave: 'stock_actual', titulo: 'Actual', alinear: 'right', render: (fila) => formatearUnidades(fila.stock_actual) },
+    { clave: 'stock_minimo', titulo: 'Mínimo', alinear: 'right', render: (fila) => formatearUnidades(fila.stock_minimo) },
+    { clave: 'faltante', titulo: 'Faltante', alinear: 'right', render: (fila) => formatearUnidades(fila.faltante) },
   ];
 
   const pestanas = [
@@ -360,17 +349,17 @@ export default function InventarioPage() {
                           id="inventario-cantidad-merma"
                           icono={Scale}
                           type="number"
-                          min="0.0001"
-                          max="9999999999.9999"
-                          step="0.0001"
-                          inputMode="decimal"
-                          placeholder="Ej.: 0.5000"
+                          min="1"
+                          max="9999999999"
+                          step="1"
+                          inputMode="numeric"
+                          placeholder="Ej.: 1"
                           value={cantidad}
                           onChange={(evento) => setCantidad(evento.target.value)}
                           disabled={enviando}
                           required
                         />
-                        <p className="mt-1 text-xs text-fg-muted">Hasta 4 decimales.</p>
+                        <p className="mt-1 text-xs text-fg-muted">Unidades enteras sin decimales.</p>
                       </div>
                       <div className="md:col-span-2">
                         <label htmlFor="inventario-motivo-merma" className="mb-1.5 block text-sm font-medium">Motivo</label>

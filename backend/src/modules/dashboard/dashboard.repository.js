@@ -124,7 +124,7 @@ export const alertasStock = (sucursalIds) => query(
    FROM inventario.stock_sucursal ss
    JOIN inventario.insumos i ON i.id_insumo = ss.id_insumo
    JOIN empresa.sucursales s ON s.id_sucursal = ss.id_sucursal
-   WHERE i.activo AND ss.id_sucursal = ANY($1::int[])
+   WHERE i.activo AND i.deleted_at IS NULL AND ss.id_sucursal = ANY($1::int[])
      AND ss.stock_actual <= ss.stock_minimo AND (ss.stock_minimo > 0 OR ss.stock_actual < 0)
    GROUP BY 1, 2, 3
    ORDER BY 3, 2`,

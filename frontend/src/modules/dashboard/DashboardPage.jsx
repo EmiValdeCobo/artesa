@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import AlertasPanel from './paneles/AlertasPanel.jsx';
 import TopProductosPanel from './paneles/TopProductosPanel.jsx';
@@ -27,12 +28,23 @@ function anchos(ids) {
 
 export default function DashboardPage() {
   const { usuario, tiene } = useAuth();
+  const [sucursalSeleccionada, setSucursalSeleccionada] = useState('');
   const visibles = PANELES.filter((p) => p.permisos.some(tiene));
   const ancho = anchos(visibles.map((p) => p.id));
   const sinVentas = !visibles.some((p) => p.id === 'ventas');
-  const sucursales = Array.isArray(usuario?.sucursales) && usuario.sucursales.length > 0
-    ? usuario.sucursales.map((s) => (typeof s === 'string' ? s : s?.nombre)).filter(Boolean)
-    : ['Sin sucursal asignada'];
+  const sucursales = useMemo(() => {
+    if (!Array.isArray(usuario?.sucursales) || usuario.sucursales.length === 0) return [];
+    return usuario.sucursales
+      .map((s, idx) => {
+        if (typeof s === 'string') return { id: idx + 1, nombre: s };
+        return { id: s.id_sucursal ?? s.id ?? idx + 1, nombre: s.nombre };
+      })
+      .filter((s) => Boolean(s.nombre));
+  }, [usuario?.sucursales]);
+
+  const puedeVerTodas = tiene('DASH_TODAS_SUCURSALES') || sucursales.length > 1;
+  const idSucursalFiltro = sucursalSeleccionada ? Number(sucursalSeleccionada) : undefined;
+
   const ahora = useAhora(60000); // el saludo y la fecha cambian solos (mañana → tarde → noche, y de día a medianoche)
   const fecha = fechaNegocio(ahora);
   const fechaISO = fechaISODelNegocio(ahora);
@@ -54,21 +66,38 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <div className="lg:max-w-md lg:text-right">
-          <p id="sucursales-label" className="text-xs font-medium uppercase tracking-[0.18em] text-fg-muted">
+        <div className="flex flex-col gap-2 sm:min-w-64 lg:items-end">
+          <label
+            htmlFor="selector-sucursal-dashboard"
+            id="sucursales-label"
+            className="text-xs font-medium uppercase tracking-[0.18em] text-fg-muted"
+          >
             Sucursal
-          </p>
-          <ul aria-labelledby="sucursales-label" className="mt-2 flex flex-wrap gap-2 lg:justify-end">
-            {sucursales.map((s) => (
-              <li
-                key={s}
-                className="inline-flex items-center gap-1.5 rounded-full border border-line bg-canvas px-3 py-1 text-sm font-semibold"
+          </label>
+          {sucursales.length > 0 ? (
+            <div className="relative w-full max-w-xs">
+              <MapPin aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-(--ocre-decorativo)" />
+              <select
+                id="selector-sucursal-dashboard"
+                aria-label="Seleccionar sucursal"
+                className="input h-10 w-full rounded-xl bg-canvas pl-9 pr-8 text-sm font-semibold cursor-pointer"
+                value={sucursalSeleccionada}
+                onChange={(e) => setSucursalSeleccionada(e.target.value)}
               >
-                <MapPin aria-hidden="true" className="size-3.5 text-(--ocre-decorativo)" />
-                {s}
-              </li>
-            ))}
-          </ul>
+                {puedeVerTodas && <option value="">Todas las sucursales</option>}
+                {sucursales.map((s) => (
+                  <option key={s.id} value={String(s.id)}>
+                    {s.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-line bg-canvas px-3 py-1 text-sm font-semibold text-fg-muted">
+              <MapPin aria-hidden="true" className="size-3.5 text-(--ocre-decorativo)" />
+              Sin sucursal asignada
+            </div>
+          )}
         </div>
       </header>
       <div className="mt-6 grid grid-cols-12 gap-4" data-zona="graficas">
@@ -79,6 +108,7 @@ export default function DashboardPage() {
               orden={i}
               cols={ancho[id]}
               titulo={sinVentas ? 'Notificaciones de tu área' : 'Alertas'}
+              sucursal={idSucursalFiltro}
             />
           ))
         ) : (

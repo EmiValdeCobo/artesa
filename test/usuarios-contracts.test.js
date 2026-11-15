@@ -87,3 +87,13 @@ test('usuarios service: valida que el rol y las sucursales existan y estén acti
   assert.match(service, /El rol seleccionado no existe o está inactivo/);
   assert.match(service, /Una o más sucursales no existen o están inactivas/);
 });
+
+test('usuarios service & repo: previene escalada de privilegios (RBAC de jerarquía)', async () => {
+  const service = await seg('seguridad.service.js');
+  const repo = await seg('seguridad.repository.js');
+
+  assert.match(repo, /export async function obtenerCodigosPermisosRol/);
+  assert.match(repo, /export async function obtenerCodigosPermisosUsuario/);
+  assert.match(service, /validarJerarquia/);
+  assert.match(service, /No tienes permisos suficientes para gestionar un usuario con privilegios superiores o adicionales a los tuyos/);
+});

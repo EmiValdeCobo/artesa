@@ -25,3 +25,14 @@ test('caja: el dinero nunca se convierte a float', async () => {
   ].join('\n');
   assert.doesNotMatch(codigo, /parseFloat|Number\(monto/);
 });
+
+test('caja: el cierre valida la tolerancia de descuadre desde el parámetro tolerancia_cuadre', async () => {
+  const service = await leer('backend/src/modules/caja/caja.service.js');
+  const repo = await leer('backend/src/modules/caja/caja.repository.js');
+  assert.match(repo, /fn_param\('tolerancia_cuadre'\)/);
+  assert.match(service, /validarToleranciaDescuadre/);
+  assert.match(service, /422/);
+  // la validación ocurre antes de llamar a la función SQL que cierra el turno
+  assert.ok(service.indexOf('await validarToleranciaDescuadre(') < service.indexOf('await repo.cerrarTurno('));
+});
+

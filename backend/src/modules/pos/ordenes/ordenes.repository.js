@@ -27,7 +27,7 @@ export async function obtenerProductosOrden(ids, tx) {
   return sel(
     `SELECT id_producto, nombre, precio_venta::text AS precio_unitario
      FROM inventario.productos
-     WHERE id_producto = ANY($1::int[]) AND activo = true`,
+     WHERE id_producto = ANY($1::int[]) AND activo = true AND deleted_at IS NULL`,
     [ids],
     tx,
   );

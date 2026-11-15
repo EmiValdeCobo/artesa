@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, ChevronLeft, ChevronRight, Eye, RefreshCw } from 'lucide-react';
 import { api } from '../../api/client.js';
 import BannerError from '../../components/feedback/BannerError.jsx';
@@ -29,7 +29,7 @@ function DetalleRegistro({ registro, onCerrar }) {
 
 export default function BitacoraPage() {
   const [fechas,setFechas]=useState({startDate:diasAntes(30),endDate:hoyLocal()});
-  const [filtros,setFiltros]=useState({search:'',user:'',module:'',action:''});
+  const [filtros,setFiltros]=useState({search:'',user:'',module:'',action:'',severity:''});
   const [pagina,setPagina]=useState(1);
   const [respuesta,setRespuesta]=useState({data:[],pagination:{page:1,limit:25,total:0,totalPages:0}});
   const [metricas,setMetricas]=useState(null);
@@ -42,21 +42,69 @@ export default function BitacoraPage() {
 
   const queryBase = useMemo(() => ({...fechas,...(filtros.module?{module:filtros.module}:{}),...(filtros.user?{user:filtros.user}:{})}),[fechas,filtros.module,filtros.user]);
   const modulos = useMemo(()=>metricas?.modulos??[],[metricas]);
-  const consultaLista = async () => {
-    setCargando(true);setError(null);
-    try { const params=new URLSearchParams({...queryBase,page:String(pagina),limit:'25',...(filtros.search?{search:filtros.search}:{}),...(filtros.action?{action:filtros.action}:{})});setRespuesta(await api.get(`/bitacora?${params}`)); }
-    catch(e){setError(e.message);}
-    finally{setCargando(false);}
-  };
-  const consultaMetricas = async () => {
-    setCargandoMetricas(true);setErrorMetricas(null);
-    try { const rangoDias=(Date.parse(`${fechas.endDate}T00:00:00Z`)-Date.parse(`${fechas.startDate}T00:00:00Z`))/86400000;const periodo={...queryBase,granularity:rangoDias<=1?'hour':'day'};setGranularidad(periodo.granularity);setMetricas(await api.get(`/bitacora/metricas?${new URLSearchParams(periodo)}`)); }
-    catch(e){setErrorMetricas(e.message);}
-    finally{setCargandoMetricas(false);}
+  const abortListaRef = useRef(null);
+  const abortMetricasRef = useRef(null);
+
+  const consultaLista = async (signal) => {
+    setCargando(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams({
+        ...queryBase,
+        page: String(pagina),
+        limit: '25',
+        ...(filtros.search ? { search: filtros.search } : {}),
+        ...(filtros.action ? { action: filtros.action } : {}),
+        ...(filtros.severity ? { severity: filtros.severity } : {}),
+      });
+      const data = await api.get(`/bitacora?${params}`, { signal });
+      setRespuesta(data);
+    } catch (e) {
+      if (signal?.aborted || e?.name === 'AbortError') return;
+      setError(e.message);
+    } finally {
+      if (!signal?.aborted) setCargando(false);
+    }
   };
 
-  useEffect(()=>{const t=setTimeout(consultaLista,250);return()=>clearTimeout(t);},[queryBase,pagina,filtros.search,filtros.action]);
-  useEffect(()=>{consultaMetricas();},[queryBase]);
+  const consultaMetricas = async (signal) => {
+    setCargandoMetricas(true);
+    setErrorMetricas(null);
+    try {
+      const rangoDias = (Date.parse(`${fechas.endDate}T00:00:00Z`) - Date.parse(`${fechas.startDate}T00:00:00Z`)) / 86400000;
+      const periodo = { ...queryBase, granularity: rangoDias <= 1 ? 'hour' : 'day' };
+      setGranularidad(periodo.granularity);
+      const data = await api.get(`/bitacora/metricas?${new URLSearchParams(periodo)}`, { signal });
+      setMetricas(data);
+    } catch (e) {
+      if (signal?.aborted || e?.name === 'AbortError') return;
+      setErrorMetricas(e.message);
+    } finally {
+      if (!signal?.aborted) setCargandoMetricas(false);
+    }
+  };
+
+  useEffect(() => {
+    abortListaRef.current?.abort();
+    const controller = new AbortController();
+    abortListaRef.current = controller;
+    const t = setTimeout(() => consultaLista(controller.signal), 250);
+    return () => {
+      clearTimeout(t);
+      controller.abort();
+    };
+  }, [queryBase, pagina, filtros.search, filtros.action, filtros.severity]);
+
+  useEffect(() => {
+    abortMetricasRef.current?.abort();
+    const controller = new AbortController();
+    abortMetricasRef.current = controller;
+    const t = setTimeout(() => consultaMetricas(controller.signal), 350);
+    return () => {
+      clearTimeout(t);
+      controller.abort();
+    };
+  }, [queryBase]);
   const cambiarFiltro=(campo,valor)=>{setFiltros(prev=>({...prev,[campo]:valor}));setPagina(1);};
   const primeraFila=(pagina-1)*respuesta.pagination.limit+1;
   const finFila=Math.min(pagina*respuesta.pagination.limit,respuesta.pagination.total);
@@ -72,12 +120,13 @@ export default function BitacoraPage() {
 
   return <div className="space-y-6 pb-8">
     <EncabezadoPagina seccion="Seguridad · Auditoría" titulo="Bitácora de actividad" descripcion="Rastrea cambios, accesos y patrones operativos. El análisis se calcula en PostgreSQL sobre los filtros elegidos." acciones={<div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-xs text-fg-muted"><span className="h-2 w-2 rounded-full bg-success"/> Auditoría activa</div>} />
-    <Card titulo="Filtros" descripcion="Combina período, operador, módulo, evento y texto libre."><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+    <Card titulo="Filtros" descripcion="Combina período, operador, módulo, evento y texto libre."><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
       <label className="text-xs font-medium text-fg-muted">Desde<input className="input mt-1 text-fg" type="date" value={fechas.startDate} max={fechas.endDate} onChange={e=>{setFechas(f=>({...f,startDate:e.target.value}));setPagina(1);}}/></label>
       <label className="text-xs font-medium text-fg-muted">Hasta<input className="input mt-1 text-fg" type="date" value={fechas.endDate} min={fechas.startDate} max={hoyLocal()} onChange={e=>{setFechas(f=>({...f,endDate:e.target.value}));setPagina(1);}}/></label>
       <label className="text-xs font-medium text-fg-muted">Operador<input className="input mt-1 text-fg" placeholder="Nombre de usuario" value={filtros.user} onChange={e=>cambiarFiltro('user',e.target.value)}/></label>
       <Select etiqueta="Módulo" value={filtros.module} onChange={e=>cambiarFiltro('module',e.target.value)} placeholder="Todos los módulos" opciones={modulos.map(m=>({valor:m,texto:m[0]?.toUpperCase()+m.slice(1)}))}/>
       <Select etiqueta="Acción" value={filtros.action} onChange={e=>cambiarFiltro('action',e.target.value)} placeholder="Todas las acciones" opciones={[{valor:'CREATE',texto:'Creación'},{valor:'UPDATE',texto:'Actualización'},{valor:'DELETE',texto:'Eliminación'},{valor:'LOGIN',texto:'Acceso'}]}/>
+      <Select etiqueta="Severidad" value={filtros.severity} onChange={e=>cambiarFiltro('severity',e.target.value)} placeholder="Todas" opciones={[{valor:'',texto:'Todas'},{valor:'INFO',texto:'INFO'},{valor:'WARNING',texto:'WARNING'},{valor:'CRITICAL',texto:'CRITICAL'},{valor:'ERROR',texto:'ERROR'}]}/>
       <label className="text-xs font-medium text-fg-muted">Buscar en evento<div className="relative mt-1"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted"/><input className="input pl-9 text-fg" placeholder="Entidad, datos, IP…" value={filtros.search} onChange={e=>cambiarFiltro('search',e.target.value)}/></div></label>
     </div><div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-fg-muted">{respuesta.pagination.total.toLocaleString('es-SV')} eventos encontrados</p><Button variante="ghost" icono={RefreshCw} onClick={()=>{consultaLista();consultaMetricas();}}>Actualizar datos</Button></div></Card>
     <section aria-label="Indicadores de auditoría">{cargandoMetricas?<Card><Spinner texto="Calculando analítica de auditoría…"/></Card>:errorMetricas?<ErrorEnLinea texto={errorMetricas} reintentar={consultaMetricas}/>:metricas?<BitacoraMetricas metricas={{...metricas,granularidad}}/>:null}</section>
