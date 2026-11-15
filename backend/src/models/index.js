@@ -1,5 +1,5 @@
 // Índice público de modelos; cada módulo mantiene sus definiciones aisladas.
-import { Permiso, Rol, RolPermiso, Usuario, UsuarioSucursal } from './seguridad.js';
+import { Permiso, Rol, RolPermiso, TokenRevocado, Usuario, UsuarioSucursal } from './seguridad.js';
 import { Sucursal } from './empresa.js';
 import { Caja, Cliente, MovimientoCaja, TurnoCaja } from './pos.js';
 import { CategoriaProducto, Insumo, Producto, Receta, UnidadMedida } from './inventario.js';
@@ -16,4 +16,4 @@ Empleado.belongsTo(Puesto, { foreignKey: 'id_puesto', as: 'puesto' });
 Empleado.belongsTo(Sucursal, { foreignKey: 'id_sucursal', as: 'sucursal' });
 Empleado.belongsTo(Usuario, { foreignKey: 'id_usuario', as: 'usuario' });
 
-export { Permiso, Rol, RolPermiso, Usuario, UsuarioSucursal, Sucursal, Cliente, Caja, TurnoCaja, MovimientoCaja, UnidadMedida, Insumo, CategoriaProducto, Producto, Receta, Puesto, Empleado };
+export { Permiso, Rol, RolPermiso, TokenRevocado, Usuario, UsuarioSucursal, Sucursal, Cliente, Caja, TurnoCaja, MovimientoCaja, UnidadMedida, Insumo, CategoriaProducto, Producto, Receta, Puesto, Empleado };

@@ -1,35 +1,47 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import AppLayout from './layout/AppLayout.jsx';
 import ProtectedRoute from './components/navigation/ProtectedRoute.jsx';
-import LoginPage from './pages/LoginPage.jsx';
-import ClienteLoginPage from './pages/ClienteLoginPage.jsx';
-import ClienteHomePage from './pages/ClienteHomePage.jsx';
-import DashboardPage from './modules/dashboard/DashboardPage.jsx';
-import RolesPermisosPage from './modules/seguridad/RolesPermisosPage.jsx';
-import UsuariosPage from './modules/seguridad/UsuariosPage.jsx';
-import PosPage from './modules/pos/PosPage.jsx';
-import ClientesPage from './modules/pos/ClientesPage.jsx';
-import VentasHistorialPage from './modules/pos/VentasHistorialPage.jsx';
-import InventarioPage from './modules/inventario/InventarioPage.jsx';
-import KardexPage from './modules/inventario/KardexPage.jsx';
-import CatalogoInsumosPage from './modules/inventario/CatalogoInsumosPage.jsx';
-import CatalogoProductosPage from './modules/inventario/CatalogoProductosPage.jsx';
-import EditorRecetasPage from './modules/inventario/EditorRecetasPage.jsx';
-import ReportesPage from './modules/reportes/ReportesPage.jsx';
-import SucursalesPage from './modules/empresa/SucursalesPage.jsx';
-import ParametrosPage from './modules/empresa/ParametrosPage.jsx';
-import PendienteApiPage from './modules/PendienteApiPage.jsx';
-import BitacoraPage from './modules/seguridad/BitacoraPage.jsx';
-import CajaPage from './modules/caja/CajaPage.jsx';
-import PreparacionPage from './modules/pos/PreparacionPage.jsx';
-import ComprasPage from './modules/compras/ComprasPage.jsx';
-import ProveedoresPage from './modules/compras/ProveedoresPage.jsx';
-import CuentasPorPagarPage from './modules/compras/CuentasPorPagarPage.jsx';
-import CompraFacturaPage from './modules/compras/CompraFacturaPage.jsx';
+import Spinner from './components/ui/Spinner.jsx';
+
+const LoginPage = lazy(() => import('./pages/LoginPage.jsx'));
+const ClienteLoginPage = lazy(() => import('./pages/ClienteLoginPage.jsx'));
+const ClienteHomePage = lazy(() => import('./pages/ClienteHomePage.jsx'));
+const DashboardPage = lazy(() => import('./modules/dashboard/DashboardPage.jsx'));
+const RolesPermisosPage = lazy(() => import('./modules/seguridad/RolesPermisosPage.jsx'));
+const UsuariosPage = lazy(() => import('./modules/seguridad/UsuariosPage.jsx'));
+const PosPage = lazy(() => import('./modules/pos/PosPage.jsx'));
+const ClientesPage = lazy(() => import('./modules/pos/ClientesPage.jsx'));
+const VentasHistorialPage = lazy(() => import('./modules/pos/VentasHistorialPage.jsx'));
+const InventarioPage = lazy(() => import('./modules/inventario/InventarioPage.jsx'));
+const KardexPage = lazy(() => import('./modules/inventario/KardexPage.jsx'));
+const CatalogoInsumosPage = lazy(() => import('./modules/inventario/CatalogoInsumosPage.jsx'));
+const CatalogoProductosPage = lazy(() => import('./modules/inventario/CatalogoProductosPage.jsx'));
+const EditorRecetasPage = lazy(() => import('./modules/inventario/EditorRecetasPage.jsx'));
+const ReportesPage = lazy(() => import('./modules/reportes/ReportesPage.jsx'));
+const SucursalesPage = lazy(() => import('./modules/empresa/SucursalesPage.jsx'));
+const ParametrosPage = lazy(() => import('./modules/empresa/ParametrosPage.jsx'));
+const PendienteApiPage = lazy(() => import('./modules/PendienteApiPage.jsx'));
+const BitacoraPage = lazy(() => import('./modules/seguridad/BitacoraPage.jsx'));
+const CajaPage = lazy(() => import('./modules/caja/CajaPage.jsx'));
+const PreparacionPage = lazy(() => import('./modules/pos/PreparacionPage.jsx'));
+const ComprasPage = lazy(() => import('./modules/compras/ComprasPage.jsx'));
+const ProveedoresPage = lazy(() => import('./modules/compras/ProveedoresPage.jsx'));
+const CuentasPorPagarPage = lazy(() => import('./modules/compras/CuentasPorPagarPage.jsx'));
+const CompraFacturaPage = lazy(() => import('./modules/compras/CompraFacturaPage.jsx'));
+
+function CargandoPantalla() {
+  return (
+    <div className="flex min-h-[350px] items-center justify-center">
+      <Spinner texto="Cargando pantalla…" />
+    </div>
+  );
+}
 
 export default function App() {
   return (
-    <Routes>
+    <Suspense fallback={<CargandoPantalla />}>
+      <Routes>
       <Route path="/login" element={<Navigate to="/admin/login" replace />} />
       <Route path="/admin/login" element={<LoginPage />} />
       <Route path="/cliente/login" element={<ClienteLoginPage />} />
@@ -134,5 +146,6 @@ export default function App() {
         element={<ProtectedRoute portal="cliente"><ClienteHomePage /></ProtectedRoute>}
       />
     </Routes>
+    </Suspense>
   );
 }

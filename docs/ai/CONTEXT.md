@@ -1,5 +1,5 @@
 # CONTEXT — estado vivo del proyecto (máx. 60 líneas; actualizar al cerrar tareas)
-Actualizado: 2026-11-13
+Actualizado: 2026-11-14
 
 ## Meta y fechas
 Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (listo en docs/Documentacion_IEEE con compilador y visor), manual de usuario, doc técnica, flujo de trabajo.
@@ -13,11 +13,12 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (li
 - El Kárdex requiere `INV_VER_KARDEX`; su `costo_unitario` solo se incluye con `INV_VER_COSTOS` además del permiso de Kárdex. El seeder `003_inventario_kardex.sql` está pendiente de aplicación en la BD local por un error previo en `001_portales_demo.sql`.
 - CRUD: modelos Sequelize; funciones SQL y vistas con consultas parametrizadas. Migraciones/seeders: `psql` mediante scripts del proyecto.
 - Conexión BD: el backend usa el rol global restringido `web_user`; `POSTGRES_USER` queda reservado para administración y migraciones.
-- Sesiones: JWT en cookie `httpOnly`, `SameSite` configurable y `secure` configurable; el backend revalida `activo=true` en cada request.
-- Migraciones/seeders: `scripts/db.js` registra nombre, checksum SHA-256, fecha y tipo en `public.schema_migrations`.
+- Sesiones: JWT en cookie `httpOnly`, `SameSite`/`secure` configurables (`secure=true` por defecto en producción), `trust proxy` en Express, login con hash dummy anti-timing attack y logout con revocación `jti` (`seguridad.tokens_revocados`).
+- Migraciones/seeders: `scripts/db.js` registra nombre, checksum SHA-256, fecha y tipo en `public.schema_migrations`. Paridad 1:1 estricta entre `database/init` (Docker bootstrap) y `database/migrations` (db:migrate).
+- Producción y Docker: `morgan` estructurado (`combined` en prod, silenciado en test), cookies seguras por defecto y puertos aislados en Docker Compose (`db` en `127.0.0.1` y `api` en `expose` interno sin bypass de Nginx).
 - Bitácora analítica: captura IP/User-Agent en `AsyncLocalStorage` y los propaga a variables PostgreSQL mediante `withTransaction`.
-- QA / Pruebas: suite automatizada en Node.js nativo (`node:test` + `supertest`, 305 pruebas activas, 0 fallos) cubriendo contratos de API, FSM, anti-float, UI/UX, lógica frontend, cola de preparación, suite bloqueante P0, validaciones de catálogo/auditoría extendida P1, diffing/accesibilidad/integración HTTP P2 y protección de condición de carrera en autenticación.
-- UI / Dashboard: diseño unificado con selector de sucursal global, paneles reactivos (ventas, top productos, alertas navegables con accesibilidad y hover hacia sus respectivos módulos), paleta de marca (Terracota, Ocre, Espresso) y tipografía Montserrat.
+- QA / Pruebas: suite automatizada en Node.js nativo (`node:test` + `supertest`, 319 pruebas activas, 0 fallos) y linter con 0 advertencias (hooks estabilizados sin closures obsoletos) cubriendo contratos de API, FSM, anti-float, UI/UX, lógica frontend, cola de preparación, suite bloqueante P0, validaciones de catálogo/auditoría extendida P1, diffing/accesibilidad/integración HTTP P2, condición de carrera, timing attacks, revocación JWT, hardening de producción y code-splitting.
+- UI / Frontend: diseño unificado con selector de sucursal global, paneles reactivos (ventas, top productos, alertas navegables con accesibilidad y hover hacia sus respectivos módulos), paleta de marca (Terracota, Ocre, Espresso), tipografía Montserrat y code-splitting por ruta con `React.lazy` y `Suspense` (bundle inicial reducido de 623 KB a 242 KB, -61%).
 - UX inventario y recetas: Catálogo con badge de ingredientes alineado en sub-línea, costo en 1 línea ($0.00), modal rápido de preview de receta con estética editorial clara (Alabastro/Espresso/Terracota), redirección automática al crear producto elaborado; Editor de Recetas con flujo dual (Ficha Técnica de solo lectura con % de proporción vs Constructor interactivo), skeletons cálidos (sin spinners circulares), disponibilidad operativa con selector de sucursal/cuello de botella/alerta de stock 0 y ajuste rápido de precio con precio sugerido 40% (IVA 13% incluido).
 
 

@@ -14,7 +14,7 @@ const hoy = () => new Date().toLocaleDateString('sv-SE');
 export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
   const gasto = tipoCosto === 'GASTO'; const titulo = gasto ? 'Compra tipo gasto' : 'Registrar factura de compra';
   const { usuario, tiene } = useAuth(); const navigate = useNavigate();
-  const sucursales = usuario?.sucursales ?? [];
+  const sucursales = useMemo(() => usuario?.sucursales ?? [], [usuario?.sucursales]);
   const [proveedores,setProveedores]=useState([]); const [insumos,setInsumos]=useState([]);
   const [form,setForm]=useState({idProveedor:'',idSucursal:'',numeroFactura:'',fechaEmision:hoy(),condicionPago:'CONTADO',items:[nuevaLinea(tipoCosto)]});
   const [cargando,setCargando]=useState(true); const [guardando,setGuardando]=useState(false); const [error,setError]=useState(null); const [resultado,setResultado]=useState(null);

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
-import { PackageSearch, Search, ShieldAlert, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { PackageSearch, Search, ShieldAlert, Store, Wallet, X } from 'lucide-react';
 import { Spinner } from '../../components/ui/index.js';
 import BannerError from '../../components/feedback/BannerError.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
@@ -7,6 +8,7 @@ import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { traducirError } from '../../errors/traducirError.js';
 import { obtenerProductos } from './posApi.js';
+import { cajaApi } from '../../api/caja.api.js';
 import { carritoInicial, carritoReducer } from './carritoReducer.js';
 import { agruparPorCategoria } from './categorias.js';
 import { calcularTotales, formatoMoneda } from './impuestos.js';
@@ -14,10 +16,15 @@ import ProductoCard from './ProductoCard.jsx';
 import Carrito from './Carrito.jsx';
 
 export default function PosPage() {
-  const { tiene } = useAuth();
+  const { usuario, tiene } = useAuth();
   // El menú se arma con productos (INV_VER_STOCK) y existencias (INV_VER_STOCK): sin él la API respondería 403.
   const puedeVerMenu = tiene('INV_VER_STOCK');
   const puedeCCF = tiene('POS_EMITIR_CCF');
+
+  const sucursales = useMemo(() => usuario?.sucursales ?? [], [usuario]);
+  const [idSucursal, setIdSucursal] = useState(() => sucursales[0]?.id_sucursal ?? null);
+  const [turnoActivo, setTurnoActivo] = useState(null);
+
   const [productos, setProductos] = useState([]);
   const [cargando, setCargando] = useState(puedeVerMenu);
   const [error, setError] = useState(null);
@@ -28,17 +35,42 @@ export default function PosPage() {
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [items, dispatch] = useReducer(carritoReducer, carritoInicial);
 
+  // Detecta si el cajero tiene un turno abierto para vincular la sucursal del turno
+  useEffect(() => {
+    let activo = true;
+    cajaApi.obtenerTurnoActual()
+      .then((turno) => {
+        if (!activo) return;
+        setTurnoActivo(turno);
+        if (turno?.id_sucursal) {
+          setIdSucursal(turno.id_sucursal);
+        }
+      })
+      .catch(() => {
+        if (!activo) return;
+        setTurnoActivo(null);
+      });
+    return () => { activo = false; };
+  }, []);
+
+  // Si cambian las sucursales del usuario y aún no hay sucursal seleccionada
+  useEffect(() => {
+    if (!idSucursal && sucursales.length > 0) {
+      setIdSucursal(sucursales[0].id_sucursal);
+    }
+  }, [idSucursal, sucursales]);
+
   const cargar = useCallback(async () => {
     setCargando(true);
     setError(null);
     try {
-      setProductos(await obtenerProductos());
+      setProductos(await obtenerProductos(idSucursal));
     } catch (err) {
       setError(traducirError(err));
     } finally {
       setCargando(false);
     }
-  }, []);
+  }, [idSucursal]);
 
   useEffect(() => { if (puedeVerMenu) cargar(); }, [puedeVerMenu, cargar]);
 
@@ -66,7 +98,47 @@ export default function PosPage() {
     <div className={`mx-auto max-w-7xl ${unidades > 0 ? 'pb-20 lg:pb-0' : ''}`}>
       <EncabezadoPagina seccion="Operación" titulo="Punto de venta" descripcion="Toca un producto del menú para agregarlo al pedido." />
 
-      {aviso && <p className="mt-5 rounded-md bg-info-soft px-3 py-2 text-sm text-info" role="status">{aviso}</p>}
+      {/* Indicador de sucursal operativa y estado del turno de caja */}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-2.5 text-sm shadow-sm">
+        <div className="flex items-center gap-2">
+          <Store size={16} className="text-primary" />
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-muted">Sucursal:</span>
+          {turnoActivo ? (
+            <span className="text-center text-xs font-semibold text-fg">{turnoActivo.sucursal}</span>
+          ) : sucursales.length > 1 ? (
+            <select
+              aria-label="Seleccionar sucursal"
+              value={idSucursal ?? ''}
+              onChange={(e) => setIdSucursal(Number(e.target.value))}
+              className="rounded-md border border-line bg-background px-2.5 py-1 text-center text-xs font-medium text-fg"
+            >
+              {sucursales.map((s) => (
+                <option key={s.id_sucursal} value={s.id_sucursal} className="text-center">{s.nombre}</option>
+              ))}
+            </select>
+          ) : (
+            <span className="text-center text-xs font-semibold text-fg">{sucursales[0]?.nombre || 'Sin sucursal asignada'}</span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 text-xs">
+          {turnoActivo ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-success-soft px-2.5 py-1 font-semibold text-success">
+              <Wallet size={13} />
+              Turno abierto: {turnoActivo.caja}
+            </span>
+          ) : (
+            <div className="inline-flex items-center gap-2 text-fg-muted">
+              <span>Sin turno de caja abierto</span>
+              <Link to="/caja" className="font-semibold text-primary hover:underline">
+                Abrir turno en Caja
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {aviso && <p className="mt-4 rounded-md bg-info-soft px-3 py-2 text-sm text-info" role="status">{aviso}</p>}
 
       <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_22rem] lg:items-start">
         <section aria-label="Menú">

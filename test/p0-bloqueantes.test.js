@@ -197,6 +197,28 @@ test('P0.4 infra: docker-compose.yml define DB_PORT: ${DB_PORT:-5432} en servici
   );
 });
 
+test('P0.4 infra: docker-compose.yml asegura puertos en producción (api usa expose y db se liga a loopback)', async () => {
+  const composeSource = await leer('docker-compose.yml');
+
+  assert.match(
+    composeSource,
+    /127\.0\.0\.1/,
+    'docker-compose.yml debe ligar el puerto de PostgreSQL a loopback (127.0.0.1)',
+  );
+
+  assert.match(
+    composeSource,
+    /expose:\s*\n\s*-\s*"\$\{PORT:-3000\}"|expose:\s*\n\s*-\s*"3000"/,
+    'docker-compose.yml debe usar expose en lugar de mapear puerto 3000 al host para api',
+  );
+
+  assert.match(
+    composeSource,
+    /COOKIE_SECURE:\s*\$\{COOKIE_SECURE:-true\}/,
+    'docker-compose.yml debe fijar COOKIE_SECURE a true por defecto',
+  );
+});
+
 test('P0.4 infra: frontend/Dockerfile copia /app/frontend/dist y frontend/nginx.conf', async () => {
   const dockerfileFrontend = await leer('frontend/Dockerfile');
 
@@ -213,6 +235,14 @@ test('P0.4 infra: frontend/Dockerfile copia /app/frontend/dist y frontend/nginx.
   );
 });
 
+test('P0.4 infra: frontend/nginx.conf propaga headers de proxy inverso hacia backend', async () => {
+  const nginxConf = await leer('frontend/nginx.conf');
+
+  assert.match(nginxConf, /proxy_set_header\s+X-Real-IP\s+\$remote_addr;/, 'nginx debe reenviar X-Real-IP');
+  assert.match(nginxConf, /proxy_set_header\s+X-Forwarded-For\s+\$proxy_add_x_forwarded_for;/, 'nginx debe reenviar X-Forwarded-For');
+  assert.match(nginxConf, /proxy_set_header\s+X-Forwarded-Proto\s+\$scheme;/, 'nginx debe reenviar X-Forwarded-Proto');
+});
+
 test('P0.4 infra: backend/Dockerfile define WORKDIR /app/backend y CMD node src/server.js', async () => {
   const dockerfileBackend = await leer('backend/Dockerfile');
 
@@ -227,6 +257,13 @@ test('P0.4 infra: backend/Dockerfile define WORKDIR /app/backend y CMD node src/
     /CMD\s+\["node",\s*"src\/server\.js"\]/,
     'backend/Dockerfile debe ejecutar CMD ["node", "src/server.js"]',
   );
+});
+
+test('P0.4 infra: ci.yml define variables de entorno (JWT_SECRET, DB_*) para ejecución limpia de pruebas', async () => {
+  const ci = await leer('.github/workflows/ci.yml');
+
+  assert.match(ci, /JWT_SECRET:/, 'ci.yml debe definir JWT_SECRET');
+  assert.match(ci, /DATABASE_URL:|DB_HOST:/, 'ci.yml debe definir conexión a base de datos (DATABASE_URL o DB_*)');
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

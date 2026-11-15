@@ -74,6 +74,13 @@ export const escribirProducto = async (data, transaction, id = null) => {
 export const cambiarEstadoProducto = async (id, activo, transaction) => { const row = await Producto.findOne({ where: { id_producto: id, deleted_at: null }, transaction }); if (!row) return null; await row.update({ activo }, { transaction }); return plain(row); };
 export const desactivarProducto = async (id, transaction) => { const row = await Producto.findOne({ where: { id_producto: id, deleted_at: null }, transaction }); if (!row) return false; await row.update({ activo: false }, { transaction }); return true; };
 export const eliminarProducto = async (id, transaction) => { const row = await Producto.findOne({ where: { id_producto: id, deleted_at: null }, transaction }); if (!row) return false; await row.update({ deleted_at: new Date() }, { transaction }); return true; };
+export const listarTodasLasRecetas = () => select(`
+  SELECT r.id_producto, r.id_insumo, r.cantidad_requerida
+  FROM inventario.recetas r
+  JOIN inventario.insumos i USING (id_insumo)
+  WHERE i.deleted_at IS NULL AND i.activo = true
+  ORDER BY r.id_producto, r.id_insumo
+`);
 export const recetaActual = (id, verCostos = false, transaction = null) => select(`SELECT r.id_producto, r.id_insumo, i.nombre AS insumo, i.nombre AS nombre_insumo, r.cantidad_requerida, u.codigo AS unidad, u.codigo AS codigo_unidad, i.activo AS insumo_activo, CASE WHEN $2::boolean THEN i.costo_promedio ELSE NULL::numeric END AS costo_promedio FROM inventario.recetas r JOIN inventario.insumos i USING (id_insumo) JOIN inventario.unidades_medida u ON u.id_unidad = i.id_unidad_base WHERE r.id_producto = $1 AND i.deleted_at IS NULL ORDER BY i.nombre`, [id, verCostos], transaction);
 export const guardarReceta = async (id, componentes, transaction) => {
   const existentes = await Receta.findAll({ where: { id_producto: id }, transaction });

@@ -74,3 +74,28 @@ export const registrarIntentoLogin = (username) => withTransaction((transaction)
    RETURNING id_bitacora`,
   { bind: [username], transaction, type: QueryTypes.SELECT },
 ));
+
+export async function revocarToken(jti, expiracion, idUsuario = null) {
+  return sequelize.query(
+    `INSERT INTO seguridad.tokens_revocados (jti, id_usuario, expiracion)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (jti) DO NOTHING`,
+    {
+      bind: [jti, idUsuario ? String(idUsuario) : null, expiracion],
+      type: QueryTypes.INSERT,
+    },
+  );
+}
+
+export async function esTokenRevocado(jti) {
+  const filas = await sequelize.query(
+    `SELECT 1 FROM seguridad.tokens_revocados
+     WHERE jti = $1 AND expiracion > CURRENT_TIMESTAMP
+     LIMIT 1`,
+    {
+      bind: [jti],
+      type: QueryTypes.SELECT,
+    },
+  );
+  return filas.length > 0;
+}

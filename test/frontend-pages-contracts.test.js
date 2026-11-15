@@ -34,6 +34,20 @@ test('frontend rutas: módulos sin endpoints backend implementados usan Pendient
   assert.match(app, /path="rrhh".*<PendienteApiPage/s);
 });
 
+test('frontend code-splitting: App.jsx y AppLayout.jsx usan React.lazy y Suspense para dividir pantallas', async () => {
+  const [app, layout] = await Promise.all([
+    leer('frontend/src/App.jsx'),
+    leer('frontend/src/layout/AppLayout.jsx'),
+  ]);
+
+  assert.match(app, /lazy\(/, 'App.jsx debe importar pantallas con React.lazy');
+  assert.match(app, /<Suspense\s+fallback=/, 'App.jsx debe envolver rutas en Suspense');
+  assert.match(app, /DashboardPage\s*=\s*lazy\(/);
+  assert.match(app, /PosPage\s*=\s*lazy\(/);
+  assert.match(app, /ReportesPage\s*=\s*lazy\(/);
+  assert.match(layout, /<Suspense\s+fallback=.*<Outlet/s, 'AppLayout debe envolver Outlet en Suspense');
+});
+
 test('frontend PendienteApiPage: informa con transparencia qué endpoints faltan sin hacer llamadas', async () => {
   const page = await leer('frontend/src/modules/PendienteApiPage.jsx');
   assert.match(page, /Pendiente de API/);

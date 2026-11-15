@@ -6,7 +6,7 @@ const leer = (archivo) => readFile(new URL(`../${archivo}`, import.meta.url), 'u
 
 test('caja frontend: App.jsx registra y protege la ruta /caja con CAJA_ABRIR_TURNO', async () => {
   const app = await leer('frontend/src/App.jsx');
-  assert.match(app, /import\s+CajaPage\s+from\s+['"]\.\/modules\/caja\/CajaPage\.jsx['"]/);
+  assert.match(app, /import\s+CajaPage\s+from\s+['"]\.\/modules\/caja\/CajaPage\.jsx['"]|CajaPage\s*=\s*lazy\(\(\)\s*=>\s*import\(['"]\.\/modules\/caja\/CajaPage\.jsx['"]\)\)/);
   assert.match(app, /path="caja"\s+element=\{\s*<ProtectedRoute\s+permiso="CAJA_ABRIR_TURNO">\s*<CajaPage\s*\/>/);
 });
 

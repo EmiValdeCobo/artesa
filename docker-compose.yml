@@ -10,7 +10,7 @@ services:
       POSTGRES_DB: "${POSTGRES_DB:?Error: POSTGRES_DB debe estar definido en el archivo .env}"
       WEB_DB_PASSWORD: "${WEB_DB_PASSWORD:?Error: WEB_DB_PASSWORD debe estar definido en el archivo .env}"
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_HOST_BIND:-127.0.0.1}:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d:ro   # ejecuta 01_schema.sql solo la primera vez
@@ -26,6 +26,7 @@ services:
       dockerfile: backend/Dockerfile
     restart: unless-stopped
     environment:
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: ${PORT:-3000}
       DB_HOST: db
       DB_PORT: ${DB_PORT:-5432}
@@ -35,12 +36,13 @@ services:
       JWT_SECRET: "${JWT_SECRET:?Error: JWT_SECRET debe estar definido en el archivo .env}"
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
-      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
       COOKIE_SAMESITE: ${COOKIE_SAMESITE:-lax}
+      TRUST_PROXY: ${TRUST_PROXY:-1}
     depends_on:
       db: { condition: service_healthy }
-    ports:
-      - "${PORT:-3000}:3000"
+    expose:
+      - "${PORT:-3000}"
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
       interval: 10s

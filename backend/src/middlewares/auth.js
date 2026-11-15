@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import { AppError } from '../utils/AppError.js';
 import { Cliente, Rol, Usuario } from '../models/index.js';
+import { esTokenRevocado } from '../modules/auth/auth.service.js';
 
 // Exige cookie httpOnly (o Bearer para clientes externos) y revalida estado en BD.
 export async function authenticate(req, _res, next) {
@@ -14,6 +15,9 @@ export async function authenticate(req, _res, next) {
     if (!payload.id || !payload.tipo || !['admin', 'cliente'].includes(payload.tipo)) {
       throw new Error('Token sin tipo de sesión');
     }
+    if (payload.jti && (await esTokenRevocado(payload.jti))) {
+      return next(new AppError('Token revocado', 401));
+    }
     const modelo = payload.tipo === 'admin' ? Usuario : Cliente;
     const id = payload.tipo === 'admin' ? payload.id : Number(payload.id);
     const usuario = payload.tipo === 'admin'
@@ -24,8 +28,10 @@ export async function authenticate(req, _res, next) {
       : await modelo.findOne({ where: { id_cliente: id, activo: true } });
     if (!usuario) return next(new AppError('Sesión inactiva', 401));
     req.user = { id, rol: payload.rol, tipo: payload.tipo, jti: payload.jti };
+    req.tokenExp = payload.exp;
     next();
-  } catch {
+  } catch (err) {
+    if (err.esAppError) return next(err);
     next(new AppError('Token inválido o expirado', 401));
   }
 }

@@ -7,6 +7,18 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      JWT_SECRET: ci_test_jwt_secret_artesa_32_chars_long
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USER: web_user
+      DB_PASSWORD: ci_test_password
+      DB_NAME: artesa_test
+      DATABASE_URL: postgres://web_user:ci_test_password@localhost:5432/artesa_test
+      CORS_ORIGIN: http://localhost:8080
+      COOKIE_SECURE: false
+      COOKIE_SAMESITE: lax
+      TRUST_PROXY: 1
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

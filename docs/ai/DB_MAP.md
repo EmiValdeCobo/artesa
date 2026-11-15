@@ -8,7 +8,7 @@ Control operativo: `public.schema_migrations(nombre, aplicado_en, checksum, tipo
 ## seguridad
 roles(id_rol, nombre*, descripcion, es_sistema, activo, creado_en, modificado_en, deleted_at; unicidad de nombre solo con deleted_at IS NULL) · permisos(id_permiso, codigo*, modulo, descripcion)
 roles_permisos(id_rol, id_permiso) · usuarios(id_usuario U, id_rol, username*, password_hash, activo, ultimo_login, creado_en, modificado_en, deleted_at) [soft-delete: deleted_at IS NOT NULL = oculto]
-usuario_sucursal(id_usuario, id_sucursal) · bitacora(id_bitacora, id_usuario, accion, entidad, datos_antes, datos_despues, creado_en, ip_cliente, agente_cliente, severidad) [trigger en productos, recetas, roles_permisos, usuarios; columnas analíticas en migración 006]
+usuario_sucursal(id_usuario, id_sucursal) · bitacora(id_bitacora, id_usuario, accion, entidad, datos_antes, datos_despues, creado_en, ip_cliente, agente_cliente, severidad) [trigger en productos, recetas, roles_permisos, usuarios; columnas analíticas en migración 006] · tokens_revocados(jti*, id_usuario, expiracion, revocado_en) [migración 011 / init 14]
 fn: seguridad.fn_tiene_permiso(id_usuario, codigo) → bool
 
 ## empresa
@@ -51,4 +51,4 @@ SEG_GESTIONAR_USUARIOS SEG_GESTIONAR_ROLES SEG_VER_BITACORA · EMP_GESTIONAR_SUC
 POS_CREAR_ORDEN POS_VER_COLA_PREPARACION POS_COBRAR POS_EMITIR_CCF POS_APLICAR_DESCUENTO POS_ANULAR_VENTA POS_GESTIONAR_CLIENTES · CAJA_ABRIR_TURNO CAJA_CERRAR_TURNO CAJA_MOVIMIENTOS CAJA_VER_CUADRES
 COM_GESTIONAR_PROVEEDORES COM_REGISTRAR_COMPRA COM_PAGAR_PROVEEDOR COM_VER_CXP · RRHH_GESTIONAR_EMPLEADOS RRHH_VER_SALARIOS RRHH_CALCULAR_PLANILLA RRHH_VER_PLANILLA · REP_VER_DASHBOARD
 Roles semilla: ADMIN, GERENTE_SUCURSAL, CAJERO, BARISTA, BODEGUERO, CONTADOR, RRHH. Usuarios demo: admin, gerente1, cajero1, barista1, bodega1 (pass Cambiar123*).
-`INV_VER_KARDEX` se incorpora mediante `database/seeders/003_inventario_kardex.sql` para ADMIN, GERENTE_SUCURSAL y BODEGUERO; el seeder retira `INV_VER_COSTOS` únicamente a BODEGUERO.
+`INV_VER_KARDEX` se incorpora mediante `database/migrations/012_permisos_kardex.sql` / `database/init/10_permisos_kardex.sql` (y seeder 003) para ADMIN, GERENTE_SUCURSAL y BODEGUERO.
