@@ -123,6 +123,7 @@ export const eliminarProducto = (id, uid) => run(() => withTransaction(async (t)
   await repo.eliminarProducto(id, t);
 }, uid));
 export const desactivarProducto = (id, uid) => withTransaction(async (t) => { if (!(await repo.desactivarProducto(id, t))) throw new AppError('Producto no encontrado', 404); }, uid);
+export const listarRecetas = () => repo.listarTodasLasRecetas();
 export const obtenerReceta = async (id, uid) => { const p = await repo.buscarProducto(id); if (!p) throw new AppError('Producto no encontrado', 404); if (!p.es_elaborado) throw new AppError('Los productos de reventa no usan receta', 400); return repo.recetaActual(id, await repo.usuarioTienePermiso(uid, 'INV_VER_COSTOS')); };
 export const guardarReceta = (id, d, uid) => run(() => withTransaction(async (t) => {
   const p = await repo.buscarProducto(id, t);

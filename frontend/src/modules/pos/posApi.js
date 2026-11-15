@@ -8,9 +8,6 @@ const USAR_DATOS_SEMILLA = false;
 // Si te da 404, cámbialo por el que corresponda a la URL de tu backend.
 const BASE = '/inventario';
 
-// Hasta que exista un selector de sucursal, se usa esta (o la primera que devuelva el stock).
-const SUCURSAL_POR_DEFECTO = 1;
-
 // Los productos elaborados no tienen stock propio; se marcan "bajo" con este umbral de unidades.
 const STOCK_BAJO_ELABORADOS = 5;
 
@@ -18,26 +15,31 @@ const num = (valor) => Number(valor ?? 0);
 
 // Unidades que se pueden preparar: el insumo más escaso de la receta limita el resultado.
 function unidadesPreparables(receta, stockPorInsumo) {
-  if (!receta.length) return 0; // sin receta cargada no se puede garantizar nada
+  if (!receta || !receta.length) return 0; // sin receta cargada no se puede garantizar nada
   return Math.floor(Math.min(...receta.map((c) => num(stockPorInsumo.get(c.id_insumo)) / num(c.cantidad_requerida))));
 }
 
-export async function obtenerProductos() {
+export async function obtenerProductos(idSucursal = null) {
   if (USAR_DATOS_SEMILLA) return productosSemilla;
 
-  const [productos, filasStock] = await Promise.all([
-    api.get(`${BASE}/productos`),
-    api.get(`${BASE}/stock`),
+  const queryStock = idSucursal ? `?idSucursal=${idSucursal}` : '';
+
+  // En lugar de hacer N peticiones de receta por cada producto (N+1),
+  // se consultan productos, stock de la sucursal y recetas en lote (3 peticiones en paralelo).
+  const [productos, filasStock, recetasBulk] = await Promise.all([
+    api.get(`${BASE}/productos?activo=true`),
+    api.get(`${BASE}/stock${queryStock}`),
+    api.get(`${BASE}/recetas`).catch(() => null),
   ]);
 
-  const idSucursal = filasStock.some((f) => f.id_sucursal === SUCURSAL_POR_DEFECTO)
-    ? SUCURSAL_POR_DEFECTO
-    : filasStock[0]?.id_sucursal;
+  const idSucursalEfectiva = idSucursal
+    ? (filasStock.some((f) => Number(f.id_sucursal) === Number(idSucursal)) ? Number(idSucursal) : Number(filasStock[0]?.id_sucursal))
+    : Number(filasStock[0]?.id_sucursal);
 
   const stockPorInsumo = new Map();
   const minimoPorInsumo = new Map();
   filasStock
-    .filter((f) => f.id_sucursal === idSucursal)
+    .filter((f) => !idSucursalEfectiva || Number(f.id_sucursal) === idSucursalEfectiva)
     .forEach((f) => {
       stockPorInsumo.set(f.id_insumo, num(f.stock_actual));
       minimoPorInsumo.set(f.id_insumo, num(f.stock_minimo));
@@ -45,12 +47,17 @@ export async function obtenerProductos() {
 
   const activos = productos.filter((p) => p.activo && !p.deleted_at);
 
-  // Solo los elaborados tienen receta; el resto no necesita petición.
-  const recetas = await Promise.all(
-    activos.map((p) => (p.es_elaborado ? api.get(`${BASE}/productos/${p.id_producto}/receta`) : Promise.resolve([]))),
-  );
+  // Mapa de recetas agrupadas por id_producto (lookup O(1) en memoria)
+  const mapaRecetas = new Map();
+  if (Array.isArray(recetasBulk)) {
+    for (const r of recetasBulk) {
+      const idProd = Number(r.id_producto);
+      if (!mapaRecetas.has(idProd)) mapaRecetas.set(idProd, []);
+      mapaRecetas.get(idProd).push(r);
+    }
+  }
 
-  return activos.map((p, i) => {
+  return activos.map((p) => {
     const base = {
       id_producto: p.id_producto,
       nombre: p.nombre,
@@ -59,7 +66,13 @@ export async function obtenerProductos() {
       precio: num(p.precio_venta),
     };
     if (p.es_elaborado) {
-      return { ...base, tipo: 'elaborado', stock: unidadesPreparables(recetas[i], stockPorInsumo), stock_minimo: STOCK_BAJO_ELABORADOS };
+      const receta = mapaRecetas.get(Number(p.id_producto)) || [];
+      return {
+        ...base,
+        tipo: 'elaborado',
+        stock: unidadesPreparables(receta, stockPorInsumo),
+        stock_minimo: STOCK_BAJO_ELABORADOS,
+      };
     }
     return {
       ...base,

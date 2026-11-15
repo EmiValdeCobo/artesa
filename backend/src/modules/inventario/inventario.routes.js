@@ -29,6 +29,7 @@ router.put('/productos/:id', requirePermiso('INV_GESTIONAR_PRODUCTOS'), validate
 router.patch('/productos/:id/estado', requirePermiso('INV_GESTIONAR_PRODUCTOS'), validate(cambiarEstadoSchema), asyncHandler(c.cambiarEstadoProducto));
 router.patch('/productos/:id/activo', requirePermiso('INV_GESTIONAR_PRODUCTOS'), validate(cambiarEstadoSchema), asyncHandler(c.cambiarEstadoProducto));
 router.delete('/productos/:id', requirePermiso('INV_GESTIONAR_PRODUCTOS'), asyncHandler(c.eliminarProducto));
+router.get('/recetas', requirePermiso('INV_VER_STOCK', 'INV_GESTIONAR_RECETAS'), asyncHandler(c.listarRecetas));
 router.get('/productos/:id/receta', requirePermiso('INV_VER_STOCK', 'INV_GESTIONAR_RECETAS'), asyncHandler(c.obtenerReceta));
 router.put('/productos/:id/receta', requirePermiso('INV_GESTIONAR_RECETAS'), validate(recetaSchema), asyncHandler(c.guardarReceta));
 router.get('/stock', requirePermiso('INV_VER_STOCK', 'INV_GESTIONAR_INSUMOS'), asyncHandler(c.listarStock));
