@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
 // Presentación PDF de planillas y boletas. Los valores recibidos se dibujan sin transformarlos.
 // Colores sincronizados con frontend/src/index.css.
 const COLORS = {
@@ -18,6 +21,14 @@ const rect = (x, y, width, height, fill, stroke = null, lineWidth = 0.6) => {
   return commands.join('\n');
 };
 const line = (x1, y1, x2, y2, color = COLORS.line, width = 0.6) => `${width} w ${color} RG ${x1} ${y1} m ${x2} ${y2} l S`;
+// La fuente oficial vive en backend/brand y se copia desde frontend/public/brand.
+// El escritor PDF ligero no interpreta SVG directamente; el JPEG se genera desde
+// esa fuente oficial para incrustación DCT, mientras se valida y carga la fuente SVG.
+const LOGO_SVG = readFileSync(fileURLToPath(new URL('../../../brand/logo-principal-oscuro.svg', import.meta.url)), 'utf8');
+if (!LOGO_SVG.includes('<svg')) throw new Error('El logo SVG de artesa no es válido');
+const LOGO = readFileSync(fileURLToPath(new URL('../../../brand/logo-principal-oscuro.jpg', import.meta.url)));
+const image = (x, y, width, height) => `q ${width} 0 0 ${height} ${x} ${y} cm /Im1 Do Q`;
+const byteLength = (value) => Buffer.byteLength(value, 'binary');
 const wrap = (texto, max = 42) => {
   const lines = []; let current = '';
   for (const word of String(texto).split(' ')) {
@@ -30,7 +41,9 @@ const wrap = (texto, max = 42) => {
 function planillaPage(textos) {
   const comandos = [rect(0, 0, 842, 595, COLORS.alabastro), rect(28, 28, 786, 539, COLORS.blanco, COLORS.line, 1)];
   comandos.push(rect(28, 513, 786, 54, COLORS.espresso));
-  comandos.push(pdfText(48, 542, 18, textos[0] ?? 'Planilla mensual', 'F2', COLORS.blanco));
+  comandos.push(rect(34, 517, 82, 46, COLORS.espresso));
+  comandos.push(image(38, 524, 74, 30.83));
+  comandos.push(pdfText(122, 542, 18, textos[0] ?? 'Planilla mensual', 'F2', COLORS.blanco));
   comandos.push(line(48, 493, 794, 493, COLORS.ocre, 1.2));
   comandos.push(pdfText(48, 475, 9, textos[1] ?? '', 'F2'));
   const encabezado = (textos[2] ?? '').split('|').map((v) => v.trim());
@@ -58,7 +71,9 @@ function planillaPage(textos) {
 function boletaPage(textos) {
   const comandos = [rect(0, 0, 595, 842, COLORS.alabastro), rect(30, 30, 535, 782, COLORS.blanco, COLORS.line, 1)];
   comandos.push(rect(30, 720, 535, 92, COLORS.espresso));
-  comandos.push(pdfText(297.5, 766, 20, 'Boleta de pago a empleado', 'F2', COLORS.blanco, 'center'));
+  comandos.push(rect(38, 729, 92, 74, COLORS.espresso));
+  comandos.push(image(43, 750, 82, 34.17));
+  comandos.push(pdfText(340, 766, 20, 'Boleta de pago a empleado', 'F2', COLORS.blanco, 'center'));
   comandos.push(rect(30, 680, 535, 40, COLORS.muted));
   comandos.push(pdfText(46, 701, 9, textos[1] ?? '', 'F2'));
   comandos.push(pdfText(46, 687, 8.5, textos[0] ?? '', 'F1', COLORS.secondary));
@@ -91,17 +106,18 @@ function genericPage(textos) {
 }
 
 function buildPdf(pages, width, height) {
-  const objects = ['<< /Type /Catalog /Pages 2 0 R >>', null, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>', '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>'];
+  const objects = ['<< /Type /Catalog /Pages 2 0 R >>', null, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>', '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>', `<< /Type /XObject /Subtype /Image /Width 1200 /Height 500 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${LOGO.length} >>\nstream\n`];
+  objects[4] += LOGO.toString('binary') + '\nendstream';
   const pageRefs = [];
   pages.forEach((content, index) => {
-    const pageId = 5 + index * 2; const contentId = pageId + 1; pageRefs.push(`${pageId} 0 R`);
-    objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${width} ${height}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentId} 0 R >>`);
-    objects.push(`<< /Length ${new TextEncoder().encode(content).length} >>\nstream\n${content}\nendstream`);
+    const pageId = 6 + index * 2; const contentId = pageId + 1; pageRefs.push(`${pageId} 0 R`);
+    objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${width} ${height}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> /XObject << /Im1 5 0 R >> >> /Contents ${contentId} 0 R >>`);
+    objects.push(`<< /Length ${byteLength(content)} >>\nstream\n${content}\nendstream`);
   });
   objects[1] = `<< /Type /Pages /Kids [${pageRefs.join(' ')}] /Count ${pages.length} >>`;
   let pdf = '%PDF-1.4\n'; const offsets = [];
-  objects.forEach((object, index) => { offsets[index] = new TextEncoder().encode(pdf).length; pdf += `${index + 1} 0 obj\n${object}\nendobj\n`; });
-  const xref = new TextEncoder().encode(pdf).length;
+  objects.forEach((object, index) => { offsets[index] = byteLength(pdf); pdf += `${index + 1} 0 obj\n${object}\nendobj\n`; });
+  const xref = byteLength(pdf);
   pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.map((offset) => `${String(offset).padStart(10, '0')} 00000 n \n`).join('')}trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
   return Buffer.from(pdf, 'binary');
 }
