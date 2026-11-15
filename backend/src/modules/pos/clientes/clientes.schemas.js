@@ -1,5 +1,11 @@
 import { z } from 'zod';
 
+const REGLAS_DOC = {
+  DUI: /^\d{8}-\d$/,
+  NIT: /^(\d{4}-\d{6}-\d{3}-\d|\d{8}-\d)$/,
+  PASAPORTE: /^[A-Za-z0-9]{6,12}$/,
+};
+
 export const clienteSchema = z
   .object({
     nombre_razon_social: z
@@ -17,14 +23,20 @@ export const clienteSchema = z
     nrc: z
       .string()
       .trim()
-      .regex(/^\d{1,8}-\d$/, 'Formato de NRC inválido (ej. 123456-7)')
+      .regex(/^\d{2,8}-\d$/, 'NRC inválido para El Salvador (ej. 123456-7)')
       .nullable()
       .optional()
       .or(z.literal('')),
     giro_economico: z.string().trim().max(150).nullable().optional(),
     direccion: z.string().trim().max(500).nullable().optional(),
     email: z.string().trim().email('Correo electrónico inválido').max(120).nullable().optional().or(z.literal('')),
-    telefono: z.string().trim().max(20).nullable().optional(),
+    telefono: z
+      .string()
+      .trim()
+      .regex(/^[267]\d{3}-?\d{4}$/, 'Teléfono inválido: 8 dígitos de El Salvador iniciando con 2, 6 o 7')
+      .nullable()
+      .optional()
+      .or(z.literal('')),
   })
   .superRefine((val, ctx) => {
     const tieneNrc = Boolean(val.nrc && val.nrc.trim() !== '');
@@ -50,5 +62,15 @@ export const clienteSchema = z
         path: ['tipo_documento'],
         message: 'Debe seleccionar el tipo de documento',
       });
+    }
+    if (val.tipo_documento && val.num_documento) {
+      const regex = REGLAS_DOC[val.tipo_documento];
+      if (regex && !regex.test(val.num_documento)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['num_documento'],
+          message: `Formato de ${val.tipo_documento} inválido para El Salvador`,
+        });
+      }
     }
   });

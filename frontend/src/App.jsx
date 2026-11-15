@@ -8,6 +8,8 @@ import DashboardPage from './modules/dashboard/DashboardPage.jsx';
 import RolesPermisosPage from './modules/seguridad/RolesPermisosPage.jsx';
 import UsuariosPage from './modules/seguridad/UsuariosPage.jsx';
 import PosPage from './modules/pos/PosPage.jsx';
+import ClientesPage from './modules/pos/ClientesPage.jsx';
+import VentasHistorialPage from './modules/pos/VentasHistorialPage.jsx';
 import InventarioPage from './modules/inventario/InventarioPage.jsx';
 import KardexPage from './modules/inventario/KardexPage.jsx';
 import CatalogoInsumosPage from './modules/inventario/CatalogoInsumosPage.jsx';
@@ -82,11 +84,27 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-                <Route
+        <Route
           path="pos"
           element={
             <ProtectedRoute permiso="POS_COBRAR">
               <PosPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="pos/clientes"
+          element={
+            <ProtectedRoute permiso="POS_GESTIONAR_CLIENTES">
+              <ClientesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="pos/ventas"
+          element={
+            <ProtectedRoute permiso="POS_COBRAR">
+              <VentasHistorialPage />
             </ProtectedRoute>
           }
         />

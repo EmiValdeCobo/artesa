@@ -31,6 +31,7 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (li
 | rrhh | listo | CRUD de puestos y empleados, validaciones, permisos y datos de prueba | pendiente |
 | reportes | vistas listas + consultas de método de pago, cuadre y CxP | ventas diarias, top productos, métodos de pago, alertas, margen, cuadre y CxP; alcance por `id_sucursal` | panel con tendencias, comparativos, tablas paginadas y exportación CSV/PDF |
 | empresa | listo | CRUD sucursales y edición parámetros | sucursales y parámetros |
+| pos | listo | cola de preparación, órdenes (T02), ventas (T17), anulación (`fn_anular_venta`) y CRUD clientes CCF (T18) | catálogo, carrito, gestión de clientes CCF con máscaras SV e historial paginado con reimpresión de facturas (T18); pantalla de cobro (T19) pendiente |
 
 Pantallas de gestión pendientes por falta de endpoints backend: empleados/puestos y planillas. Proveedores, registro de facturas COSTO/GASTO, pagos y CxP operativa tienen API; falta frontend funcional. El reporte CxP de solo lectura de Reportes se conserva y comparte consulta con la ruta operativa.
 

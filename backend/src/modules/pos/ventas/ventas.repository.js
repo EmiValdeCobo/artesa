@@ -25,17 +25,27 @@ export async function registrarVenta(tx, { idTurno, tipo, idCliente, items, pago
   return rows[0].id_venta;
 }
 
-// ── Detalle completo de una venta ─────────────────────────────────────────────
+// ── Detalle completo de una venta ─────────────────────────────────────────────// ── Detalle completo de una venta ─────────────────────────────────────────────
 export async function obtenerVenta(idVenta) {
   const [venta] = await sel(
     `SELECT v.id_venta, v.tipo_comprobante, v.correlativo, v.numero_control,
-            v.estado, v.estado_dte, v.sello_recepcion,
+            v.codigo_generacion::text, v.estado, v.estado_dte, v.sello_recepcion,
             v.subtotal::text, v.descuento::text, v.iva::text, v.total::text,
-            v.fecha_emision,
-            v.id_turno::text, v.id_sucursal, v.id_cliente,
+            v.motivo_anulacion, v.fecha_emision,
+            v.id_turno::text, v.id_sucursal, v.id_cliente, v.id_usuario::text,
+            s.nombre AS sucursal_nombre,
+            s.direccion AS sucursal_direccion,
+            s.departamento AS sucursal_departamento,
+            s.telefono AS sucursal_telefono,
+            u.username AS cajero_username,
             c.nombre_razon_social AS cliente_nombre,
-            c.nrc, c.giro_economico
+            c.tipo_documento AS cliente_tipo_documento,
+            c.num_documento AS cliente_num_documento,
+            c.nrc, c.giro_economico,
+            c.direccion AS cliente_direccion
      FROM pos.ventas v
+     JOIN empresa.sucursales s ON s.id_sucursal = v.id_sucursal
+     JOIN seguridad.usuarios u ON u.id_usuario = v.id_usuario
      LEFT JOIN pos.clientes c ON c.id_cliente = v.id_cliente
      WHERE v.id_venta = $1::uuid`,
     [idVenta],
@@ -68,8 +78,12 @@ export const listarVentas = ({ idTurno, estado }) =>
   sel(
     `SELECT v.id_venta, v.tipo_comprobante, v.correlativo,
             v.total::text, v.estado, v.fecha_emision,
-            c.nombre_razon_social AS cliente_nombre
+            c.nombre_razon_social AS cliente_nombre,
+            u.username AS cajero_username,
+            s.nombre AS sucursal_nombre
      FROM pos.ventas v
+     JOIN seguridad.usuarios u ON u.id_usuario = v.id_usuario
+     JOIN empresa.sucursales s ON s.id_sucursal = v.id_sucursal
      LEFT JOIN pos.clientes c ON c.id_cliente = v.id_cliente
      WHERE ($1::uuid IS NULL OR v.id_turno = $1::uuid)
        AND ($2::text IS NULL OR v.estado = $2::text)

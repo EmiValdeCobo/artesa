@@ -69,3 +69,38 @@ export async function obtenerProductos() {
     };
   });
 }
+
+// ── Clientes (T18) ────────────────────────────────────────────────────────────
+export async function listarClientes({ q = '', soloCcf = false } = {}) {
+  const params = new URLSearchParams();
+  if (q.trim()) params.set('q', q.trim());
+  if (soloCcf) params.set('solo_ccf', 'true');
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const res = await api.get(`/pos/clientes${query}`);
+  const lista = res?.clientes ?? res?.data?.clientes ?? res?.data ?? res;
+  return Array.isArray(lista) ? lista : [];
+}
+
+export const crearCliente = (payload) => api.post('/pos/clientes', payload);
+
+export const actualizarCliente = (idCliente, payload) => api.put(`/pos/clientes/${idCliente}`, payload);
+
+export const eliminarCliente = (idCliente) => api.delete(`/pos/clientes/${idCliente}`);
+
+// ── Ventas y Anulación (T17 / T18) ────────────────────────────────────────────
+export async function listarVentas({ idTurno = '', estado = '' } = {}) {
+  const params = new URLSearchParams();
+  if (idTurno) params.set('id_turno', idTurno);
+  if (estado) params.set('estado', estado);
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const res = await api.get(`/pos/ventas${query}`);
+  const lista = res?.ventas ?? res?.data?.ventas ?? res?.data ?? res;
+  return Array.isArray(lista) ? lista : [];
+}
+
+export async function obtenerDetalleVenta(idVenta) {
+  const res = await api.get(`/pos/ventas/${idVenta}`);
+  return res?.data ?? res;
+}
+
+export const anularVenta = (idVenta, motivo) => api.patch(`/pos/ventas/${idVenta}/anular`, { motivo });
