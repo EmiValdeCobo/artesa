@@ -93,7 +93,7 @@ function boletaPage(textos) {
     comandos.push(line(46, y - 8, 549, y - 8, COLORS.line, 0.35));
   }
   const summaryY = Math.max(170, 616 - rows * 24 - 28);
-  comandos.push(rect(46, summaryY, 503, 30, COLORS.muted, COLORS.line));
+  comandos.push(rect(46, summaryY, 513, 30, COLORS.muted, COLORS.line));
   comandos.push(pdfText(56, summaryY + 11, 9, neto?.[0] ?? 'Salario liquido:', 'F2'));
   comandos.push(pdfText(549, summaryY + 11, 10, neto?.[1] ?? '', 'F2', COLORS.terracotaDark, 'right'));
   return comandos.join('\n');
