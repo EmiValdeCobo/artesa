@@ -38,7 +38,6 @@ CREATE OR REPLACE FUNCTION pos.fn_registrar_venta(
 DECLARE
     v_turno pos.turnos_caja%ROWTYPE; v_suc INT;
     v_cli pos.clientes%ROWTYPE;
-    v_ord RECORD;
     v_tasa NUMERIC := empresa.fn_param('tasa_iva')::NUMERIC;
     v_n_items INT; v_n_validos INT;
     v_bruto NUMERIC; v_total NUMERIC; v_iva NUMERIC; v_sub NUMERIC; v_pagado NUMERIC;
@@ -48,21 +47,6 @@ BEGIN
     SELECT * INTO v_turno FROM pos.turnos_caja WHERE id_turno = p_id_turno;
     IF NOT FOUND OR v_turno.estado <> 'ABIERTO' THEN RAISE EXCEPTION 'El turno no existe o está cerrado'; END IF;
     SELECT id_sucursal INTO v_suc FROM pos.cajas WHERE id_caja = v_turno.id_caja;
-
-    IF p_id_orden IS NOT NULL THEN
-        SELECT o.id_orden, o.estado, c.id_sucursal INTO v_ord
-        FROM pos.ordenes o
-        JOIN pos.turnos_caja t ON t.id_turno = o.id_turno
-        JOIN pos.cajas c ON c.id_caja = t.id_caja
-        WHERE o.id_orden = p_id_orden
-        FOR UPDATE OF o;
-
-        IF NOT FOUND THEN RAISE EXCEPTION 'Orden no existe'; END IF;
-        IF v_ord.id_sucursal <> v_suc THEN RAISE EXCEPTION 'La orden pertenece a otra sucursal'; END IF;
-        IF v_ord.estado IN ('FACTURADA', 'ANULADA') THEN
-            RAISE EXCEPTION 'La orden ya está facturada o está anulada';
-        END IF;
-    END IF;
 
     IF p_tipo = 'CCF' THEN
         SELECT * INTO v_cli FROM pos.clientes WHERE id_cliente = p_id_cliente;
