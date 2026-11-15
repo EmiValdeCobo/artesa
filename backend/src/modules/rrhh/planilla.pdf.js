@@ -42,26 +42,26 @@ function planillaPage(textos) {
   const comandos = [rect(0, 0, 842, 595, COLORS.alabastro), rect(28, 28, 786, 539, COLORS.blanco, COLORS.line, 1)];
   comandos.push(rect(28, 513, 786, 54, COLORS.espresso));
   comandos.push(rect(34, 517, 82, 46, COLORS.espresso));
-  comandos.push(image(38, 524, 74, 30.83));
-  comandos.push(pdfText(122, 542, 18, textos[0] ?? 'Planilla mensual', 'F2', COLORS.blanco));
+  comandos.push(image(38, 520, 84, 40.83));
+  comandos.push(pdfText(122, 534, 24, textos[0] ?? 'Planilla mensual', 'F2', COLORS.blanco));
   comandos.push(line(48, 493, 794, 493, COLORS.ocre, 1.2));
   comandos.push(pdfText(48, 475, 9, textos[1] ?? '', 'F2'));
   const encabezado = (textos[2] ?? '').split('|').map((v) => v.trim());
   const filas = textos.slice(3).filter(Boolean).map((texto) => texto.split('|').map((v) => v.trim()));
-  const columns = [48, 92, 298, 392, 480, 560, 640, 720, 794]; const top = 450; const headerHeight = 31;
+  const columns = [48, 92, 275, 392, 480, 560, 640, 720, 794]; const top = 450; const headerHeight = 31;
   comandos.push(rect(48, top - headerHeight, 746, headerHeight, COLORS.muted, COLORS.line));
   for (let i = 0; i < encabezado.length; i += 1) {
     const center = (columns[i] + columns[i + 1]) / 2;
     wrap(encabezado[i], Math.max(8, Math.floor((columns[i + 1] - columns[i]) / 5.4))).slice(0, 2)
-      .forEach((part, j) => comandos.push(pdfText(center, top - 12 - (j * 9), 7, part, 'F2', COLORS.espresso, 'center')));
+      .forEach((part, j) => comandos.push(pdfText(center, top - 17 - (j * 9), 9, part, 'F2', COLORS.espresso, 'center')));
   }
   let y = top - headerHeight;
   filas.forEach((fila, row) => {
     const height = 25; y -= height;
     comandos.push(rect(48, y, 746, height, row % 2 ? COLORS.alabastro : COLORS.blanco, COLORS.line));
     fila.forEach((value, i) => {
-      const right = columns[i + 1] - 7; const isNumber = i === 0 || i >= 2;
-      comandos.push(pdfText(isNumber ? right : columns[i] + 7, y + 9, 7.7, value, i === 0 ? 'F2' : 'F1', COLORS.secondary, isNumber ? 'right' : 'left'));
+      const center = (columns[i] + columns[i + 1]) / 2;
+      comandos.push(pdfText(center, y + 9, 7.7, value, i === 0 ? 'F2' : 'F1', COLORS.secondary, 'center'));
     });
   });
   comandos.push(rect(48, 45, 746, 20, COLORS.muted, COLORS.line));
@@ -70,10 +70,10 @@ function planillaPage(textos) {
 
 function boletaPage(textos) {
   const comandos = [rect(0, 0, 595, 842, COLORS.alabastro), rect(30, 30, 535, 782, COLORS.blanco, COLORS.line, 1)];
-  comandos.push(rect(30, 720, 535, 92, COLORS.espresso));
+  comandos.push(rect(30, 720, 535, 90, COLORS.espresso));
   comandos.push(rect(38, 729, 92, 74, COLORS.espresso));
-  comandos.push(image(43, 750, 82, 34.17));
-  comandos.push(pdfText(340, 766, 20, 'Boleta de pago a empleado', 'F2', COLORS.blanco, 'center'));
+  comandos.push(image(30, 730, 130, 65.17));
+  comandos.push(pdfText(310, 760, 27, 'Boleta de pago a empleado', 'F2', COLORS.blanco, 'center'));
   comandos.push(rect(30, 680, 535, 40, COLORS.muted));
   comandos.push(pdfText(46, 701, 9, textos[1] ?? '', 'F2'));
   comandos.push(pdfText(46, 687, 8.5, textos[0] ?? '', 'F1', COLORS.secondary));
