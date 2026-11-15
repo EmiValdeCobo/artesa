@@ -41,8 +41,12 @@ test('T32 schema: parámetro de factura debe ser UUID', () => {
 });
 
 test('T32 schema: filtros CxP permiten consulta sin rango y validan rangos acotados', () => {
-  assert.deepEqual(filtrosCuentasPorPagarSchema.parse({}), {});
+  assert.deepEqual(filtrosCuentasPorPagarSchema.parse({}), { estado: 'pendientes' });
   assert.equal(filtrosCuentasPorPagarSchema.parse({ idSucursal: '2' }).idSucursal, 2);
+  for (const estado of ['pendientes', 'pagadas', 'todas']) {
+    assert.equal(filtrosCuentasPorPagarSchema.parse({ estado }).estado, estado);
+  }
+  assert.throws(() => filtrosCuentasPorPagarSchema.parse({ estado: 'vencidas' }));
   assert.throws(() => filtrosCuentasPorPagarSchema.parse({ desde: '2026-01-01' }));
   assert.throws(() => filtrosCuentasPorPagarSchema.parse({ desde: '2025-01-01', hasta: '2026-11-13' }));
 });
@@ -54,12 +58,12 @@ test('T32 routes: pago exige sesión admin, COM_PAGAR_PROVEEDOR, UUID, body Zod 
   assert.match(routes, /idFacturaPagoSchema\.safeParse/);
 });
 
-test('T32 routes: consulta operativa exige autenticación y únicamente el permiso COM_VER_CXP', async () => {
+test('T32 routes: consulta operativa limita portal admin antes de comprobar COM_VER_CXP', async () => {
   const routes = await leer('backend/src/modules/compras/cuentas-por-pagar/cuentas-por-pagar.routes.js');
   assert.match(routes, /router\.get\([\s\S]*'\/cuentas-por-pagar'/);
   assert.match(routes, /requirePermiso\('COM_VER_CXP'\)/);
-  assert.match(routes, /router\.get\([\s\S]*authenticate,[\s\S]*requirePermiso\('COM_VER_CXP'\)/);
-  assert.doesNotMatch(routes, /requireTipo|REP_VER_DASHBOARD/);
+  assert.match(routes, /router\.get\([\s\S]*authenticate,[\s\S]*requireTipo\('admin'\),[\s\S]*requirePermiso\('COM_VER_CXP'\)/);
+  assert.doesNotMatch(routes, /REP_VER_DASHBOARD/);
 });
 
 test('T32 agrega pagos y CxP al router existente de compras sin reemplazar T30/T31', async () => {
@@ -131,9 +135,12 @@ test('T32 reportes y Compras reutilizan una consulta CxP común', async () => {
   const reportes = await leer('backend/src/modules/reportes/reportes.repository.js');
   const shared = await leer('backend/src/modules/compras/cuentas-por-pagar.repository.js');
   const cxpService = await leer('backend/src/modules/compras/cuentas-por-pagar/cuentas-por-pagar.service.js');
-  assert.match(reportes, /listarCuentasPorPagar\(idUsuario, filtros, true\)/);
+  assert.match(reportes, /listarCuentasPorPagar\(idUsuario, \{ \.\.\.filtros, estado: 'pendientes' \}, true\)/);
   assert.match(cxpService, /listarCuentasPorPagar\(userId, filtros, false\)/);
-  assert.match(shared, /f\.estado_pago <> 'PAGADO'/);
+  assert.match(shared, /\$6::text = 'pendientes'[\s\S]*f\.estado_pago IN \('PENDIENTE', 'PARCIAL'\)/);
+  assert.match(shared, /\$6::text = 'pagadas'[\s\S]*f\.estado_pago = 'PAGADO'/);
+  assert.match(shared, /\$6::text = 'todas'/);
+  assert.match(shared, /f\.estado_pago = 'PAGADO' THEN 0\.00::numeric/);
   assert.match(shared, /SUM\(monto\)/);
   assert.match(shared, /f\.total::text AS total/);
   assert.match(shared, /AS pagado/);

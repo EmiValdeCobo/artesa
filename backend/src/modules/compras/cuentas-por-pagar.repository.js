@@ -3,6 +3,7 @@ import { sequelize } from '../../config/db.js';
 
 export const listarCuentasPorPagar = async (idUsuario, filtros = {}, periodoRecientePorDefecto = false) => {
   const { desde, hasta, idSucursal } = filtros;
+  const estado = filtros.estado ?? 'pendientes';
   const rows = await sequelize.query(
     `WITH visibles AS (
        SELECT s.id_sucursal, s.nombre
@@ -26,14 +27,19 @@ export const listarCuentasPorPagar = async (idUsuario, filtros = {}, periodoReci
      SELECT f.id_compra, s.nombre AS sucursal, pr.razon_social AS proveedor,
             f.num_factura, f.tipo_costo, f.fecha_emision, f.fecha_vencimiento,
             f.total::text AS total, COALESCE(t.pagado, 0)::text AS pagado,
-            (f.total - COALESCE(t.pagado, 0))::text AS saldo,
+            CASE WHEN f.estado_pago = 'PAGADO' THEN 0.00::numeric
+                 ELSE f.total - COALESCE(t.pagado, 0) END::text AS saldo,
             GREATEST(CURRENT_DATE - f.fecha_vencimiento, 0) AS dias_vencida,
             f.estado_pago
      FROM compras.facturas_compra f
      JOIN visibles s ON s.id_sucursal = f.id_sucursal
      JOIN compras.proveedores pr ON pr.id_proveedor = f.id_proveedor
      LEFT JOIN totales t ON t.id_compra = f.id_compra
-     WHERE f.estado_pago <> 'PAGADO'
+     WHERE (
+         ($6::text = 'pendientes' AND f.estado_pago IN ('PENDIENTE', 'PARCIAL'))
+         OR ($6::text = 'pagadas' AND f.estado_pago = 'PAGADO')
+         OR $6::text = 'todas'
+       )
        AND (
          ($5::boolean AND f.fecha_emision BETWEEN COALESCE($2::date, CURRENT_DATE - 29) AND COALESCE($3::date, CURRENT_DATE))
          OR
@@ -44,7 +50,7 @@ export const listarCuentasPorPagar = async (idUsuario, filtros = {}, periodoReci
      ORDER BY f.fecha_vencimiento ASC, pr.razon_social, f.num_factura
      LIMIT 500`,
     {
-      bind: [idUsuario, desde ?? null, hasta ?? null, idSucursal ?? null, periodoRecientePorDefecto],
+      bind: [idUsuario, desde ?? null, hasta ?? null, idSucursal ?? null, periodoRecientePorDefecto, estado],
       type: QueryTypes.SELECT,
     },
   );

@@ -107,7 +107,7 @@ export const cuadreTurnos = (idUsuario, { desde, hasta, idSucursal }) => consult
 // La vista vw_cuentas_por_pagar no expone id_sucursal. Se replica su agregación sobre
 // tablas base para poder aplicar el alcance de usuario_sucursal sin filtrar por nombres.
 export const cuentasPorPagar = (idUsuario, filtros) =>
-  listarCuentasPorPagar(idUsuario, filtros, true);
+  listarCuentasPorPagar(idUsuario, { ...filtros, estado: 'pendientes' }, true);
 
 // Distribución del ingreso emitido por método de pago; cada ticket puede aparecer en
 // más de un método cuando se registró un cobro mixto.

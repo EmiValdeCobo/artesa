@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate } from '../../../middlewares/auth.js';
+import { authenticate, requireTipo } from '../../../middlewares/auth.js';
 import { requirePermiso } from '../../../middlewares/permisos.js';
 import { asyncHandler } from '../../../utils/asyncHandler.js';
 import * as controller from './cuentas-por-pagar.controller.js';
@@ -16,6 +16,7 @@ const validarFiltros = (req, _res, next) => {
 router.get(
   '/cuentas-por-pagar',
   authenticate,
+  requireTipo('admin'),
   requirePermiso('COM_VER_CXP'),
   validarFiltros,
   asyncHandler(controller.listar),
