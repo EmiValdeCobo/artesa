@@ -19,6 +19,7 @@ export const actualizarProducto = async (req, res) => res.json(await service.act
 export const cambiarEstadoProducto = async (req, res) => res.json(await service.cambiarEstadoProducto(parseId(req.params.id), req.body, req.user.id));
 export const eliminarProducto = async (req, res) => { await service.eliminarProducto(parseId(req.params.id), req.user.id); res.status(204).end(); };
 export const desactivarProducto = async (req, res) => { await service.desactivarProducto(parseId(req.params.id), req.user.id); res.status(204).end(); };
+export const listarRecetas = async (_req, res) => res.json(await service.listarRecetas());
 export const obtenerReceta = async (req, res) => res.json(await service.obtenerReceta(parseId(req.params.id), req.user.id));
 export const guardarReceta = async (req, res) => res.json(await service.guardarReceta(parseId(req.params.id), req.body, req.user.id));
 export const listarStock = async (req, res) => res.json(await service.listarStock(req.user.id, req.query.idSucursal ? parseId(req.query.idSucursal) : null));

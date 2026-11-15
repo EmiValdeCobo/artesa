@@ -11,6 +11,8 @@ const DashboardPage = lazy(() => import('./modules/dashboard/DashboardPage.jsx')
 const RolesPermisosPage = lazy(() => import('./modules/seguridad/RolesPermisosPage.jsx'));
 const UsuariosPage = lazy(() => import('./modules/seguridad/UsuariosPage.jsx'));
 const PosPage = lazy(() => import('./modules/pos/PosPage.jsx'));
+const ClientesPage = lazy(() => import('./modules/pos/ClientesPage.jsx'));
+const VentasHistorialPage = lazy(() => import('./modules/pos/VentasHistorialPage.jsx'));
 const InventarioPage = lazy(() => import('./modules/inventario/InventarioPage.jsx'));
 const KardexPage = lazy(() => import('./modules/inventario/KardexPage.jsx'));
 const CatalogoInsumosPage = lazy(() => import('./modules/inventario/CatalogoInsumosPage.jsx'));
@@ -97,11 +99,27 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-                <Route
+        <Route
           path="pos"
           element={
             <ProtectedRoute permiso="POS_COBRAR">
               <PosPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="pos/clientes"
+          element={
+            <ProtectedRoute permiso="POS_GESTIONAR_CLIENTES">
+              <ClientesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="pos/ventas"
+          element={
+            <ProtectedRoute permiso="POS_COBRAR">
+              <VentasHistorialPage />
             </ProtectedRoute>
           }
         />

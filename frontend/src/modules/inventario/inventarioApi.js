@@ -29,6 +29,7 @@ export const patchProductoEstado = cambiarEstadoProducto;
 export const deleteProducto    = (id)       => api.delete(`/inventario/productos/${id}`);
 
 // ── Recetas (BOM) ─────────────────────────────────────────────────────────────
+export const getRecetas        = ()                 => api.get('/inventario/recetas');
 export const getReceta         = (idProducto)       => api.get(`/inventario/productos/${idProducto}/receta`);
 export const saveReceta        = (idProducto, body) => api.put(`/inventario/productos/${idProducto}/receta`, body);
 

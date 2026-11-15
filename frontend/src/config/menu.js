@@ -1,10 +1,12 @@
-import { LayoutDashboard, ShoppingBag, ChefHat, Wallet, Boxes, Truck, Users, BarChart3, ShieldCheck, Store, Settings, ScrollText, BookOpen } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, ChefHat, Wallet, Boxes, Truck, Users, BarChart3, ShieldCheck, Store, Settings, ScrollText, BookOpen, UserCheck, Receipt } from 'lucide-react';
 
 // Menú lateral: cada ítem se muestra solo si el usuario tiene el permiso indicado
 export const menu = [
   { ruta: '/', texto: 'Inicio', permiso: null, icono: LayoutDashboard, end: true },
   { seccion: 'Operación', items: [
-    { ruta: '/pos', texto: 'Punto de venta', permiso: 'POS_COBRAR', icono: ShoppingBag },
+    { ruta: '/pos', texto: 'Punto de venta', permiso: 'POS_COBRAR', icono: ShoppingBag, end: true },
+    { ruta: '/pos/ventas', texto: 'Historial ventas', permiso: 'POS_COBRAR', icono: Receipt },
+    { ruta: '/pos/clientes', texto: 'Clientes (CCF)', permiso: 'POS_GESTIONAR_CLIENTES', icono: UserCheck },
     { ruta: '/preparacion', texto: 'Preparación', permiso: 'POS_VER_COLA_PREPARACION', icono: ChefHat },
     { ruta: '/caja', texto: 'Caja y turnos', permiso: 'CAJA_ABRIR_TURNO', icono: Wallet },
     { id: 'inventario', texto: 'Inventario', icono: Boxes, hijos: [
