@@ -69,7 +69,6 @@ export async function eliminarRol(transaction, idRol) {
 
 export const contarUsuariosPorRol = (transaction, idRol) => Usuario.count({
   where: { id_rol: idRol },
-  paranoid: false,
   transaction,
 });
 

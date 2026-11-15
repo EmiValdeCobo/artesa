@@ -5,8 +5,9 @@ import { AppError } from '../../utils/AppError.js';
 import * as repo from './seguridad.repository.js';
 
 function traducirError(error) {
-  if (error.code === '23505') return new AppError('El nombre de usuario ya existe', 409);
-  if (error.code === '23503') return new AppError('El rol o una sucursal no existe o está inactiva', 400);
+  const origen = error.original ?? error.parent ?? error;
+  if (origen.code === '23505') return new AppError('El nombre de usuario ya existe', 409);
+  if (origen.code === '23503') return new AppError('El rol o una sucursal no existe o está inactiva', 400);
   return error;
 }
 

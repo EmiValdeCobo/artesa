@@ -8,8 +8,8 @@ export const idSchema = id;
 export const unidadSchema = z.object({
   codigo: z.string().trim().min(1).max(10).transform((v) => v.toUpperCase()),
   nombre: z.string().trim().min(2).max(50),
-  factorConversion: decimal(6, 4).optional(),
-  factor_conversion: decimal(6, 4).optional(),
+  factorConversion: decimal(6, 4).refine((v) => Number(v) > 0, 'El factor de conversión debe ser mayor a cero').optional(),
+  factor_conversion: decimal(6, 4).refine((v) => Number(v) > 0, 'El factor de conversión debe ser mayor a cero').optional(),
   activo: z.boolean().optional(),
 }).transform((data) => ({
   codigo: data.codigo,
@@ -21,8 +21,8 @@ export const unidadSchema = z.object({
 export const actualizarUnidadSchema = z.object({
   codigo: z.string().trim().min(1).max(10).transform((v) => v.toUpperCase()).optional(),
   nombre: z.string().trim().min(2).max(50).optional(),
-  factorConversion: decimal(6, 4).optional(),
-  factor_conversion: decimal(6, 4).optional(),
+  factorConversion: decimal(6, 4).refine((v) => Number(v) > 0, 'El factor de conversión debe ser mayor a cero').optional(),
+  factor_conversion: decimal(6, 4).refine((v) => Number(v) > 0, 'El factor de conversión debe ser mayor a cero').optional(),
   activo: z.boolean().optional(),
 }).transform((data) => {
   const res = {};
@@ -89,7 +89,7 @@ export const productoSchema = z.object({
     message: 'Los productos de reventa requieren insumo asociado y los elaborados no',
     path: ['idInsumoReventa'],
   });
-export const recetaSchema = z.object({ componentes: z.array(z.object({ idInsumo: id, cantidadRequerida: decimal(6, 4).refine((v) => Number(v) > 0, 'La cantidad debe ser mayor a cero') })).min(1).max(100) });
+export const recetaSchema = z.object({ componentes: z.array(z.object({ idInsumo: id, cantidadRequerida: decimal(6, 4).refine((v) => Number(v) > 0, 'La cantidad debe ser mayor a cero') })).min(1).max(100).refine((c) => new Set(c.map((x) => Number(x.idInsumo))).size === c.length, 'No repitas insumos en la receta') });
 export const stockSchema = z.object({ idSucursal: id, idInsumo: id, cantidad: decimal(10, 4, 0.0001), tipo: z.enum(['INVENTARIO_INICIAL', 'AJUSTE', 'TRASLADO_ENTRADA']), motivo: z.string().trim().min(3).max(500) });
 export const minimoSchema = z.object({ idSucursal: id, stockMinimo: decimal(10, 4) });
 export const mermaSchema = z.object({ idSucursal: id, cantidad: decimal(10, 4, 0.0001), motivo: z.string().trim().min(3).max(500) });
