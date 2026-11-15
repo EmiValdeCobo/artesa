@@ -399,6 +399,10 @@ export default function EditorRecetasPage() {
     if (!idProductoSeleccionado) return;
     setErrorGuardar(null);
 
+    if (recetaComponentes.length === 0) {
+      setErrorGuardar(avisoLocal('La receta debe tener al menos un ingrediente.'));
+      return;
+    }
     const invalido = recetaComponentes.find((c) => !(Number(c.cantidad_requerida) > 0));
     if (invalido) {
       setErrorGuardar(avisoLocal(`La cantidad de "${invalido.nombre_insumo}" debe ser un número mayor a cero.`));
