@@ -11,7 +11,7 @@ import { EscenaBarra, RastroServicio, SiluetaDerecha, SiluetaIzquierda } from '.
 const retardo = (ms) => ({ '--retardo': `${ms}ms` });
 
 export default function LoginPage() {
-  const { usuario, tipoSesion, login } = useAuth();
+  const { usuario, tipoSesion, login, cargando } = useAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -33,7 +33,7 @@ export default function LoginPage() {
 
   async function manejarEnvio(e) {
     e.preventDefault();
-    if (enviando) return;
+    if (enviando || cargando) return;
     if (!username.trim()) return fallar('Escribe tu usuario para continuar.', 'usuario', refUsuario);
     if (!password) return fallar('Escribe tu contraseña para continuar.', 'password', refPassword);
     setError(''); setInvalido(null); setEnviando(true);
@@ -101,7 +101,7 @@ export default function LoginPage() {
               )}
 
               <div className="mt-6 flex justify-center sm:mt-8">
-                <button type="submit" disabled={enviando}
+                <button type="submit" disabled={enviando || cargando}
                   className="group inline-flex h-12 min-w-44 items-center justify-center gap-2 rounded-lg bg-primary px-9 text-[15px] font-semibold text-on-accent shadow-lg shadow-primary/30 outline-none transition hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:translate-y-px disabled:opacity-70">
                   {enviando ? <><HiloSpinner /> Ingresando…</> : <>Ingresar <ArrowRight size={17} aria-hidden="true" className="transition-transform group-hover:translate-x-1" /></>}
                 </button>
