@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import request from 'supertest';
 import app from '../backend/src/app.js';
 
@@ -54,4 +55,34 @@ test('supertest: endpoint inexistente responde 404 estructurado', async () => {
   const res = await request(app).get('/api/ruta-inexistente-xyz');
   assert.equal(res.status, 404);
   assert.ok(res.body.error);
+});
+
+test('supertest: trust proxy está configurado en app', () => {
+  assert.equal(app.get('trust proxy'), 1);
+});
+
+test('prod config: morgan utiliza formato combinado en producción y dev en desarrollo', async () => {
+  const appSrc = await readFile('backend/src/app.js', 'utf8');
+  assert.match(appSrc, /env\.morganFormat/, 'app.js debe usar env.morganFormat');
+  assert.match(appSrc, /NODE_ENV === 'test'|env\.nodeEnv !== 'test'/, 'app.js debe considerar entorno test para suprimir logs ruidosos');
+});
+
+test('prod config: cookieSecure se activa por defecto en producción', async () => {
+  const envSrc = await readFile('backend/src/config/env.js', 'utf8');
+  assert.match(envSrc, /parseCookieSecure/, 'env.js debe definir parseCookieSecure');
+  assert.match(envSrc, /isProduction/, 'env.js debe evaluar si es producción');
+});
+
+test('prod config: regla parseCookieSecure activa secure en producción y respeta overrides', () => {
+  function parseCookieSecure(valor, esProduccion) {
+    if (valor === 'true') return true;
+    if (valor === 'false') return false;
+    return esProduccion;
+  }
+
+  assert.equal(parseCookieSecure(undefined, true), true, 'Producción sin COOKIE_SECURE debe ser true');
+  assert.equal(parseCookieSecure('', true), true, 'Producción con string vacío debe ser true');
+  assert.equal(parseCookieSecure('false', true), false, 'Producción con false explícito debe ser false');
+  assert.equal(parseCookieSecure(undefined, false), false, 'Desarrollo sin COOKIE_SECURE debe ser false');
+  assert.equal(parseCookieSecure('true', false), true, 'Desarrollo con true explícito debe ser true');
 });

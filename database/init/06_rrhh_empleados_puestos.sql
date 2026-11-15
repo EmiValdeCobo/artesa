@@ -1,11 +1,20 @@
 -- Espejo de database/migrations/006_rrhh_empleados_puestos.sql para instalaciones nuevas.
+-- Extiende el catálogo de puestos con borrado lógico y carga datos iniciales de RRHH.
 ALTER TABLE rrhh.puestos ADD COLUMN IF NOT EXISTS activo BOOLEAN NOT NULL DEFAULT TRUE;
 
 INSERT INTO rrhh.puestos(nombre, salario_base) VALUES
-  ('Gerente General', 1500.00), ('Chef de Cocina', 1100.00), ('Sous Chef', 850.00),
-  ('Cocinero', 600.00), ('Ayudante de Cocina', 450.00), ('Mesero', 450.00),
-  ('Hostess', 500.00), ('Bartender', 600.00), ('Barista', 500.00),
-  ('Cajero', 500.00), ('Contador', 900.00), ('Encargado de Compras', 800.00)
+  ('Gerente General', 1500.00),
+  ('Chef de Cocina', 1100.00),
+  ('Sous Chef', 850.00),
+  ('Cocinero', 600.00),
+  ('Ayudante de Cocina', 450.00),
+  ('Mesero', 450.00),
+  ('Hostess', 500.00),
+  ('Bartender', 600.00),
+  ('Barista', 500.00),
+  ('Cajero', 500.00),
+  ('Contador', 900.00),
+  ('Encargado de Compras', 800.00)
 ON CONFLICT (nombre) DO NOTHING;
 
 INSERT INTO rrhh.empleados(id_sucursal, id_puesto, nombres, apellidos, dui, nit, fecha_ingreso, salario_nominal)

@@ -340,7 +340,7 @@ export default function CajaPage() {
     }
   };
 
-  const verDetalleCuadre = async (idTurno) => {
+  const verDetalleCuadre = useCallback(async (idTurno) => {
     try {
       const cuadre = await cajaApi.obtenerCuadre(idTurno);
       setCuadreDetalle(cuadre);
@@ -348,7 +348,7 @@ export default function CajaPage() {
     } catch (err) {
       notificar.error(err.message || 'No se pudo cargar el detalle del cuadre.');
     }
-  };
+  }, [notificar]);
 
   // ─── Pestañas y columnas ─────────────────────────────────────────────────────
   const pestanasVisibles = useMemo(() => {
@@ -479,7 +479,7 @@ export default function CajaPage() {
         </Button>
       ),
     },
-  ], []);
+  ], [verDetalleCuadre]);
 
   // ─── Render principal ────────────────────────────────────────────────────────
   if (cargando) {

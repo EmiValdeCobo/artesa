@@ -14,6 +14,10 @@ test('P2.1 bitácora: implementa AbortController y debounce en carga de lista y 
   assert.match(codigo, /api\.get\(`\/bitacora\/metricas\?\${new URLSearchParams\(periodo\)}`,\s*\{\s*signal\s*\}\)/);
   assert.match(codigo, /setTimeout\(\(\)\s*=>\s*consultaLista\(controller\.signal\),\s*250\)/);
   assert.match(codigo, /setTimeout\(\(\)\s*=>\s*consultaMetricas\(controller\.signal\),\s*350\)/);
+  assert.match(codigo, /const consultaLista\s*=\s*useCallback\(/);
+  assert.match(codigo, /const consultaMetricas\s*=\s*useCallback\(/);
+  assert.match(codigo, /},\s*\[consultaLista\]\);/);
+  assert.match(codigo, /},\s*\[consultaMetricas\]\);/);
 });
 
 test('P2.2 inventario: guardarReceta implementa lógica de diffing en lugar de destroy masivo', async () => {

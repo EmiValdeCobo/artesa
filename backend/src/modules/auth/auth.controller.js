@@ -6,6 +6,7 @@ export const loginLimiter = rateLimit({
   limit: 5,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  skipSuccessfulRequests: true,
   message: { error: 'Demasiados intentos de inicio de sesión. Intenta de nuevo más tarde.' },
 });
 
@@ -25,7 +26,10 @@ export async function loginCliente(req, res) {
   res.json(sesion);
 }
 
-export function logout(_req, res) {
+export async function logout(req, res) {
+  if (req.user?.jti) {
+    await service.revocarToken(req.user.jti, req.tokenExp, req.user.id);
+  }
   res.clearCookie('artesa_session', service.opcionesCookie());
   res.status(204).send();
 }

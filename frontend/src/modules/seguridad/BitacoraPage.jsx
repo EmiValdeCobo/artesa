@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Search, ChevronLeft, ChevronRight, Eye, RefreshCw } from 'lucide-react';
 import { api } from '../../api/client.js';
 import BannerError from '../../components/feedback/BannerError.jsx';
@@ -45,7 +45,7 @@ export default function BitacoraPage() {
   const abortListaRef = useRef(null);
   const abortMetricasRef = useRef(null);
 
-  const consultaLista = async (signal) => {
+  const consultaLista = useCallback(async (signal) => {
     setCargando(true);
     setError(null);
     try {
@@ -65,9 +65,9 @@ export default function BitacoraPage() {
     } finally {
       if (!signal?.aborted) setCargando(false);
     }
-  };
+  }, [queryBase, pagina, filtros.search, filtros.action, filtros.severity]);
 
-  const consultaMetricas = async (signal) => {
+  const consultaMetricas = useCallback(async (signal) => {
     setCargandoMetricas(true);
     setErrorMetricas(null);
     try {
@@ -82,7 +82,7 @@ export default function BitacoraPage() {
     } finally {
       if (!signal?.aborted) setCargandoMetricas(false);
     }
-  };
+  }, [fechas.startDate, fechas.endDate, queryBase]);
 
   useEffect(() => {
     abortListaRef.current?.abort();
@@ -93,7 +93,7 @@ export default function BitacoraPage() {
       clearTimeout(t);
       controller.abort();
     };
-  }, [queryBase, pagina, filtros.search, filtros.action, filtros.severity]);
+  }, [consultaLista]);
 
   useEffect(() => {
     abortMetricasRef.current?.abort();
@@ -104,7 +104,7 @@ export default function BitacoraPage() {
       clearTimeout(t);
       controller.abort();
     };
-  }, [queryBase]);
+  }, [consultaMetricas]);
   const cambiarFiltro=(campo,valor)=>{setFiltros(prev=>({...prev,[campo]:valor}));setPagina(1);};
   const primeraFila=(pagina-1)*respuesta.pagination.limit+1;
   const finFila=Math.min(pagina*respuesta.pagination.limit,respuesta.pagination.total);
