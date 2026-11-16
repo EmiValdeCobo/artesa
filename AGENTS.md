@@ -36,7 +36,7 @@ Módulos: auth, seguridad, empresa, inventario, pos, caja, compras, rrhh, report
 - Uso de IA: registra cada uso significativo en `docs/USO_IA.md` (el enunciado exige declararlo; sin comprensión = penalización).
 
 ## Skills (leer solo la que aplique)
-`00-registrar-cambio` · `convencion-commits` · `nuevo-endpoint-rest` · `nueva-pantalla-react` · `cambio-base-datos` · `permisos-rbac` · `usar-funciones-sql` · `prompts-significativos` · `orquestador` · `programador-backend` · `programador-frontend` · `qa`
+`00-registrar-cambio` · `convencion-commits` · `sincronizar-develop` · `flujo-feature-merge` · `nuevo-endpoint-rest` · `nueva-pantalla-react` · `cambio-base-datos` · `permisos-rbac` · `usar-funciones-sql` · `prompts-significativos` · `orquestador` · `programador-backend` · `programador-frontend` · `qa`
 Ubicación: `docs/ai/skills/<nombre>.md` y `.agents/skills/<nombre>/SKILL.md`
 
 ## Comandos
