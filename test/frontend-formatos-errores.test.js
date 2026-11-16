@@ -27,6 +27,7 @@ test('formato: formatoDinero maneja números y strings numéricos sin perder dec
   // Debe incluir el símbolo de dólar y 2 decimales
   assert.match(formatoDinero(12.5), /\$12\.50/);
   assert.match(formatoDinero('100.99'), /\$100\.99/);
+  assert.equal(formatoDinero('1735.41'), '$1,735.41');
   assert.match(formatoDinero(null), /\$0\.00/);
   assert.match(formatoDinero(undefined), /\$0\.00/);
 });
