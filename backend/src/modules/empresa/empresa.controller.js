@@ -8,3 +8,5 @@ export const crearSucursal = async (req, res) => res.status(201).json(await serv
 export const actualizarSucursal = async (req, res) => res.json(await service.actualizarSucursal(id(req.params.id), req.body, req.user.id));
 export const cambiarEstadoSucursal = async (req, res) => res.json(await service.cambiarEstadoSucursal(id(req.params.id), z.boolean().parse(req.body.activa), req.user.id));
 export const actualizarParametro = async (req, res) => res.json(await service.actualizarParametro(req.body, req.user.id));
+export const obtenerApertura = async (req, res) => res.json(await service.obtenerApertura(id(req.params.id)));
+export const registrarApertura = async (req, res) => res.json(await service.registrarApertura(id(req.params.id), req.body, req.user.id));
