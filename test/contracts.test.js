@@ -4,11 +4,11 @@ import { readFile } from 'node:fs/promises';
 
 const leer = (archivo) => readFile(new URL(`../${archivo}`, import.meta.url), 'utf8');
 
-test('caja: el cierre llama la función SQL y exige dueño del turno', async () => {
+test('caja: el cierre llama la función SQL y autoriza al dueño o supervisor', async () => {
   const repo = await leer('backend/src/modules/caja/caja.repository.js');
   const service = await leer('backend/src/modules/caja/caja.service.js');
   assert.match(repo, /pos\.fn_cerrar_turno/);
-  assert.match(service, /Solo el cajero del turno puede cerrarlo/);
+  assert.match(service, /Solo el cajero del turno o un supervisor de su sucursal puede cerrarlo/);
 });
 
 test('reportes: solo lectura protegida con REP_VER_DASHBOARD y costos sensibles', async () => {
