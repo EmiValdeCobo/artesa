@@ -1,5 +1,5 @@
 # CONTEXT — estado vivo del proyecto (máx. 60 líneas; actualizar al cerrar tareas)
-Actualizado: 2026-11-15
+Actualizado: 2026-11-16
 
 ## Meta y fechas
 Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (listo en docs/Documentacion_IEEE con compilador y visor), manual de usuario, doc técnica, flujo de trabajo.
@@ -10,17 +10,18 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (li
 - Precios incluyen IVA (13%); se desglosa en la factura. (Confirmar con docente si el CCF suma IVA aparte.)
 - Facturación electrónica DTE simulada (número de control, código de generación, sello simulado).
 - RBAC dinámico: roles y permisos en BD; middleware `requirePermiso`.
-- El Kárdex requiere `INV_VER_KARDEX`; su `costo_unitario` solo se incluye con `INV_VER_COSTOS` además del permiso de Kárdex. El seeder `003_inventario_kardex.sql` está pendiente de aplicación en la BD local por un error previo en `001_portales_demo.sql`.
-- CRUD: modelos Sequelize; funciones SQL y vistas con consultas parametrizadas. Migraciones/seeders: `psql` mediante scripts del proyecto.
+- El Kárdex requiere `INV_VER_KARDEX`; su `costo_unitario` solo se incluye con `INV_VER_COSTOS` además del permiso de Kárdex.
+- CRUD: modelos Sequelize; funciones SQL y vistas con consultas parametrizadas. Migraciones: `scripts/db.js`. Datos demo: `pnpm seed:reset` (backend/seeders, Sequelize, reemplaza los datos en una transacción, determinista con semilla fija; no toca esquema, permisos, parámetros ni schema_migrations). Los seeders SQL 001/002 se eliminaron; queda 003 (permisos).
 - Conexión BD: el backend usa el rol global restringido `web_user`; `POSTGRES_USER` queda reservado para administración y migraciones.
 - Sesiones: JWT en cookie `httpOnly`, `SameSite`/`secure` configurables (`secure=true` por defecto en producción), `trust proxy` en Express, login con hash dummy anti-timing attack y logout con revocación `jti` (`seguridad.tokens_revocados`).
 - Migraciones/seeders: `scripts/db.js` registra nombre, checksum SHA-256, fecha y tipo en `public.schema_migrations`. Paridad 1:1 estricta entre `database/init` (Docker bootstrap) y `database/migrations` (db:migrate).
 - Producción y Docker: `morgan` estructurado (`combined` en prod, silenciado en test), cookies seguras por defecto y puertos aislados en Docker Compose (`db` en `127.0.0.1` y `api` en `expose` interno sin bypass de Nginx).
 - Bitácora analítica: captura IP/User-Agent en `AsyncLocalStorage` y los propaga a variables PostgreSQL mediante `withTransaction`.
-- QA / Pruebas: suite automatizada en Node.js nativo (`node:test` + `supertest`, 319 pruebas activas, 0 fallos) y linter con 0 advertencias (hooks estabilizados sin closures obsoletos) cubriendo contratos de API, FSM, anti-float, UI/UX, lógica frontend, cola de preparación, suite bloqueante P0, validaciones de catálogo/auditoría extendida P1, diffing/accesibilidad/integración HTTP P2, condición de carrera, timing attacks, revocación JWT, hardening de producción y code-splitting.
-- UI / Frontend: diseño unificado con selector de sucursal global, paneles reactivos (ventas, top productos, alertas navegables con accesibilidad y hover hacia sus respectivos módulos), paleta de marca (Terracota, Ocre, Espresso), tipografía Montserrat y code-splitting por ruta con `React.lazy` y `Suspense` (bundle inicial reducido de 623 KB a 242 KB, -61%).
+- QA / Pruebas: suite automatizada en Node.js nativo (`node:test` + `supertest`, 359 pruebas activas) y lint sin errores (2 warnings previos en Caja/Compras); cubre contratos de API, FSM, anti-float, UI/UX, lógica frontend, seguridad y accesibilidad.
+- UI / Frontend: diseño unificado con selector de sucursal global, paneles reactivos y paleta de marca; Dashboard, Catálogo y Reportes responsivos. Ventas diarias usa héroe con curva horaria comparada, filas de contexto y rangos 7/14/30 que controlan serie/total/variación; endpoint agrega en PostgreSQL por zona del negocio y cachea 30 s por usuario/alcance. Lista de productos reserva acciones en fila y pasa a tarjetas bajo 768 px; ver `docs/diseno-widget-ventas-diarias.md`.
 - UX inventario y recetas: Catálogo con badge de ingredientes alineado en sub-línea, costo en 1 línea ($0.00), modal rápido de preview de receta con estética editorial clara (Alabastro/Espresso/Terracota), redirección automática al crear producto elaborado; Editor de Recetas con flujo dual (Ficha Técnica de solo lectura con % de proporción vs Constructor interactivo), skeletons cálidos (sin spinners circulares), disponibilidad operativa con selector de sucursal/cuello de botella/alerta de stock 0 y ajuste rápido de precio con precio sugerido 40% (IVA 13% incluido).
 - UI compartida: iconos por acción en `config/iconos.js` + `BotonIcono` (referencia Usuarios); combobox único `Select`/`CustomSelect` en portal (no se recorta en tablas/diálogos); máscaras en `utils/mascaras.js` (teléfono 2222-3333, código, montos, enteros). Catálogo usa tokens de paleta, sin hex arbitrarios.
+- UX 2026-11-16 (2.ª iteración): tendencia de Reportes usa `GraficaTendencia.jsx` (eje USD, hoy rayado, promedio, fines de semana); Kárdex filtra en cliente con filtros en URL y avisa el `LIMIT 500` real del endpoint; alertas de stock prellenan `/compras/registrar` como borrador vía `location.state` (sin proveedor habitual en API: queda por elegir); catálogo de permisos sin scroll interno. `Table.jsx` ganó `encabezado`, `clase`, `horizontal` y `minAncho` (compatibles hacia atrás).
 
 
 ## Estado por módulo
