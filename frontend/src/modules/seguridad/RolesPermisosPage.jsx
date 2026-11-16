@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, CircleAlert, Edit3, Info, KeyRound, Layers, Lock, Plus, Save, Search, Trash2, Undo2, Users } from 'lucide-react';
+import { ChevronDown, CircleAlert, Info, KeyRound, Layers, Lock, Plus, Save, Search, Undo2 } from 'lucide-react';
+import { BotonIcono, Select } from '../../components/ui/index.js';
+import { ICONOS } from '../../config/iconos.js';
 import { api } from '../../api/client.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
@@ -440,7 +442,7 @@ export default function RolesPermisosPage() {
 
       {listo && (
         <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Metrica icono={Users} valor={roles.length} etiqueta="Roles" tono="primario" />
+          <Metrica icono={ICONOS.rol} valor={roles.length} etiqueta="Roles" tono="primario" />
           <Metrica icono={KeyRound} valor={permisos.length} etiqueta="Permisos" tono="info" />
           <Metrica icono={Layers} valor={modulos.length} etiqueta="Módulos" tono="neutro" />
           <Metrica icono={CircleAlert} valor={sinAsignar} etiqueta="Permisos sin asignar" tono={sinAsignar ? 'aviso' : 'exito'} />
@@ -459,10 +461,8 @@ export default function RolesPermisosPage() {
           <aside className="h-fit lg:-mx-1 lg:h-full lg:min-h-0 scroll-fino lg:overflow-y-auto lg:px-1 lg:py-1 lg:[scrollbar-gutter:stable]">
             {/* Móvil: selector compacto en lugar de una lista larga */}
             <div className="card lg:hidden">
-              <label htmlFor="selector-rol" className="block text-sm font-medium">Rol</label>
-              <select id="selector-rol" className="input mt-1.5" value={rolId ?? ''} onChange={(evento) => seleccionarRol(Number(evento.target.value))}>
-                {roles.map((rol) => <option key={rol.id_rol} value={rol.id_rol}>{rol.nombre}{rol.activo ? '' : ' (inactivo)'}</option>)}
-              </select>
+              <Select id="selector-rol" etiqueta="Rol" placeholder="" value={rolId ?? ''} onChange={(evento) => seleccionarRol(Number(evento.target.value))}
+                vacio="No hay roles registrados" opciones={roles.map((rol) => ({ valor: rol.id_rol, texto: `${rol.nombre}${rol.activo ? '' : ' (inactivo)'}` }))} />
             </div>
 
             <nav className="card hidden p-3 lg:block" aria-label="Roles disponibles">
@@ -507,8 +507,8 @@ export default function RolesPermisosPage() {
                     <p className="mt-1 text-sm text-fg-muted">{rolActivo.descripcion || 'Sin descripción.'}</p>
                   </div>
                   <div className="flex gap-2">
-                    <button type="button" className="btn-ghost min-h-10" disabled={soloLectura} title={soloLectura ? (esAdmin ? 'El rol ADMIN es un rol protegido del sistema en solo lectura' : 'Un rol inactivo no se puede modificar') : undefined} onClick={() => abrirModalRol(rolActivo)}><Edit3 size={15} aria-hidden="true" /> Editar</button>
-                    <button type="button" className="btn-danger min-h-10" onClick={() => eliminarRol(rolActivo)} title={bloqueoEliminar || undefined}><Trash2 size={15} aria-hidden="true" /> Eliminar</button>
+                    <button type="button" className="btn-ghost min-h-10" disabled={soloLectura} title={soloLectura ? (esAdmin ? 'El rol ADMIN es un rol protegido del sistema en solo lectura' : 'Un rol inactivo no se puede modificar') : undefined} onClick={() => abrirModalRol(rolActivo)}><ICONOS.editar size={16} aria-hidden="true" /> Editar</button>
+                    <button type="button" className="btn-danger min-h-10" onClick={() => eliminarRol(rolActivo)} title={bloqueoEliminar || undefined}><ICONOS.eliminar size={16} aria-hidden="true" /> Eliminar</button>
                   </div>
                 </div>
                 <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-line pt-4">
@@ -563,7 +563,7 @@ export default function RolesPermisosPage() {
               )}
             </div>
           ) : (
-            <div className="card"><EstadoVacio icono={Users} titulo="Sin roles">Crea un rol para empezar a asignarle permisos.</EstadoVacio></div>
+            <div className="card"><EstadoVacio icono={ICONOS.rol} titulo="Sin roles">Crea un rol para empezar a asignarle permisos.</EstadoVacio></div>
           )}
         </div>
       ) : (
@@ -574,10 +574,10 @@ export default function RolesPermisosPage() {
               <p className="mt-1 text-xs text-fg-muted">{plural(permisosFiltrados.length, 'permiso', 'permisos')}{permisosFiltrados.length !== permisos.length && ` de ${permisos.length}`}</p>
             </div>
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-              <select className="input sm:w-48" value={filtroModulo} onChange={(event) => setFiltroModulo(event.target.value)} aria-label="Filtrar por módulo">
-                <option value="">Todos los módulos</option>
-                {modulos.map((modulo) => <option key={modulo} value={modulo}>{infoModulo(modulo).etiqueta}</option>)}
-              </select>
+              <div className="sm:w-48">
+                <Select aria-label="Filtrar por módulo" placeholder="Todos los módulos" value={filtroModulo} onChange={(event) => setFiltroModulo(event.target.value)}
+                  opciones={modulos.map((modulo) => ({ valor: modulo, texto: infoModulo(modulo).etiqueta }))} />
+              </div>
               <div className="relative sm:w-72">
                 <Search size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" aria-hidden="true" />
                 <input className="input pl-9" value={filtroPermisos} onChange={(event) => setFiltroPermisos(event.target.value)} placeholder="Buscar código o descripción…" aria-label="Buscar permiso" />
@@ -606,9 +606,9 @@ export default function RolesPermisosPage() {
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-2">
-                          <button type="button" className="btn-ghost !p-2" onClick={() => abrirAsignacion(permiso)} aria-label={`Asignar ${permiso.codigo} a roles`} title="Asignar a roles"><Users size={16} /></button>
-                          <button type="button" className="btn-ghost !p-2" onClick={() => abrirModalPermiso(permiso)} aria-label={`Editar ${permiso.codigo}`} title="Editar"><Edit3 size={16} /></button>
-                          <button type="button" className="btn-danger !p-2" onClick={() => eliminarPermiso(permiso)} aria-label={`Eliminar ${permiso.codigo}`} title={bloqueo || 'Eliminar'}>{bloqueo ? <Lock size={16} /> : <Trash2 size={16} />}</button>
+                          <BotonIcono icono={ICONOS.rol} etiqueta={`Asignar ${permiso.codigo} a roles`} titulo="Asignar a roles" onClick={() => abrirAsignacion(permiso)} />
+                          <BotonIcono icono={ICONOS.editar} etiqueta={`Editar ${permiso.codigo}`} titulo="Editar" onClick={() => abrirModalPermiso(permiso)} />
+                          <BotonIcono icono={bloqueo ? ICONOS.bloqueado : ICONOS.eliminar} tono="peligro" etiqueta={`Eliminar ${permiso.codigo}`} titulo={bloqueo || 'Eliminar'} onClick={() => eliminarPermiso(permiso)} />
                         </div>
                       </td>
                     </tr>

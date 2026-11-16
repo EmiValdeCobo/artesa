@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { sucursalSchema, parametroSchema } from '../backend/src/modules/empresa/empresa.schemas.js';
+import { aperturaSchema, sucursalSchema, parametroSchema } from '../backend/src/modules/empresa/empresa.schemas.js';
 
 const leer = (archivo) => readFile(new URL(`../${archivo}`, import.meta.url), 'utf8');
 const emp = (archivo) => leer(`backend/src/modules/empresa/${archivo}`);
@@ -17,7 +17,7 @@ test('empresa: rutas protegidas globalmente con authenticate y requireTipo(admin
 test('empresa: sucursales exige EMP_GESTIONAR_SUCURSALES en todos sus verbos', async () => {
   const routes = await emp('empresa.routes.js');
   const matches = routes.match(/requirePermiso\('EMP_GESTIONAR_SUCURSALES'\)/g) ?? [];
-  assert.equal(matches.length, 4, 'Se esperaban 4 endpoints de sucursales con EMP_GESTIONAR_SUCURSALES (GET, POST, PUT, PATCH)');
+  assert.equal(matches.length, 6, 'Se esperaban 6 endpoints de sucursales con EMP_GESTIONAR_SUCURSALES (GET, POST, PUT, PATCH y apertura GET/POST)');
 });
 
 test('empresa: parámetros exige EMP_EDITAR_PARAMETROS en lectura y escritura', async () => {
@@ -100,4 +100,32 @@ test('empresa repository: consultas usan bind parameters ($1, $2) sin concatenac
 test('empresa controller: crearSucursal responde con código 201', async () => {
   const controller = await emp('empresa.controller.js');
   assert.match(controller, /res\.status\(201\)\.json/);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. APERTURA DE SUCURSAL Y MÁSCARAS
+// ─────────────────────────────────────────────────────────────────────────────
+test('empresa schema: teléfono acepta 8 dígitos con o sin guion y se guarda con máscara 2222-3333', () => {
+  const base = { codigoEstablecimiento: 'S001', nombre: 'Café', direccion: 'Calle 1', departamento: 'San Salvador' };
+  assert.equal(sucursalSchema.parse({ ...base, telefono: '22223333' }).telefono, '2222-3333');
+  assert.equal(sucursalSchema.parse({ ...base, telefono: '' }).telefono, null);
+  assert.throws(() => sucursalSchema.parse({ ...base, telefono: '2222-333' }));
+  assert.throws(() => sucursalSchema.parse({ ...base, telefono: '(503) 2222' }));
+});
+
+test('empresa schema: aperturaSchema exige enteros (mínimo > 0, carga ≥ 0) y sin insumos repetidos', () => {
+  const ok = aperturaSchema.parse({ items: [{ idInsumo: 1, stockMinimo: '5', cantidadInicial: '10' }] });
+  assert.deepEqual(ok.items[0], { idInsumo: 1, stockMinimo: 5, cantidadInicial: 10 });
+  assert.throws(() => aperturaSchema.parse({ items: [] }));
+  assert.throws(() => aperturaSchema.parse({ items: [{ idInsumo: 1, stockMinimo: 0 }] }));
+  assert.throws(() => aperturaSchema.parse({ items: [{ idInsumo: 1, stockMinimo: '1.5' }] }));
+  assert.throws(() => aperturaSchema.parse({ items: [{ idInsumo: 1, stockMinimo: 2 }, { idInsumo: 1, stockMinimo: 3 }] }));
+});
+
+test('empresa service: crear sucursal asigna a los ADMIN activos y la apertura usa fn_mover_stock en transacción', async () => {
+  const [service, repo] = await Promise.all([emp('empresa.service.js'), emp('empresa.repository.js')]);
+  assert.match(service, /crearSucursal\s*=.*asignarAdministradores/);
+  assert.match(repo, /r\.nombre = 'ADMIN' AND u\.activo AND u\.deleted_at IS NULL/);
+  assert.match(service, /registrarApertura\s*=.*withTransaction/);
+  assert.match(repo, /inventario\.fn_mover_stock\(\$1,\$2,\$3,'INVENTARIO_INICIAL'/);
 });

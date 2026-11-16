@@ -25,6 +25,8 @@ Todas las respuestas de error usan `{ "error": "texto" }`, con `detalles` adicio
 | GET | `/api/seguridad/sucursales` | Cookie JWT + tipo admin | `SEG_GESTIONAR_USUARIOS` | — | 200; 401; 403 |
 | POST | `/api/seguridad/usuarios` | Cookie JWT + tipo admin | `SEG_GESTIONAR_USUARIOS` | `{username,password,idRol,sucursales[]}` | 201; 400; 401; 403; 409 |
 | PUT | `/api/seguridad/usuarios/:id` | Cookie JWT + tipo admin | `SEG_GESTIONAR_USUARIOS` | `{username,password?,idRol,sucursales[]}` | 200; 400; 401; 403; 404; 409 |
+| GET | `/api/empresa/sucursales/:id/apertura` | Cookie JWT + tipo admin | `EMP_GESTIONAR_SUCURSALES` | — → `{sucursal,usuarios[],cajas[],insumos[{id_insumo,insumo,unidad,stock_actual,stock_minimo,stock_minimo_sugerido,cubierto}],lista}` | 200; 400; 401; 403; 404 |
+| POST | `/api/empresa/sucursales/:id/apertura` | Cookie JWT + tipo admin | `EMP_GESTIONAR_SUCURSALES` | `{items:[{idInsumo,stockMinimo(entero>0),cantidadInicial(entero≥0)}]}`; fija mínimos y carga `INVENTARIO_INICIAL` vía `fn_mover_stock` | 200; 400; 401; 403; 404 |
 | DELETE | `/api/seguridad/usuarios/:id` | Cookie JWT + tipo admin | `SEG_GESTIONAR_USUARIOS` | — | 204; 401; 403; 404 |
 | GET | `/api/cajas` | Cookie JWT + tipo admin | `CAJA_ABRIR_TURNO` | — | 200; 401; 403 |
 | GET | `/api/turnos/actual` | Cookie JWT + tipo admin | `CAJA_ABRIR_TURNO` o `CAJA_MOVIMIENTOS` | — | 200; 401; 403; 404 |

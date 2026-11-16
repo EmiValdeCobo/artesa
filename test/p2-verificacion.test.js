@@ -59,13 +59,13 @@ test('P2.4 accesibilidad: botones de acción con iconos tienen etiquetas aria-la
   ]);
 
   // Insumos
-  assert.match(insumos, /aria-label=\{`Ver existencias de \$\{fila\.nombre\}`\}/);
-  assert.match(insumos, /aria-label=\{`Editar insumo \$\{fila\.nombre\}`\}/);
-  assert.match(insumos, /aria-label=\{`Eliminar insumo \$\{fila\.nombre\}`\}/);
+  assert.match(insumos, /etiqueta=\{`Ver existencias de \$\{fila\.nombre\}`\}/);
+  assert.match(insumos, /etiqueta=\{`Editar insumo \$\{fila\.nombre\}`\}/);
+  assert.match(insumos, /etiqueta=\{`Eliminar insumo \$\{fila\.nombre\}`\}/);
 
   // Productos
-  assert.match(productos, /aria-label=\{`Editar producto \$\{p\.nombre\}`\}/);
-  assert.match(productos, /aria-label=\{`Eliminar producto \$\{p\.nombre\}`\}/);
+  assert.match(productos, /etiqueta=\{`Editar producto \$\{p\.nombre\}`\}/);
+  assert.match(productos, /etiqueta=\{`Eliminar producto \$\{p\.nombre\}`\}/);
 
   // Editor
   assert.match(editor, /aria-label=\{`Quitar ingrediente \$\{c\.insumo \|\| c\.nombre_insumo \|\| ''\}`\}/);

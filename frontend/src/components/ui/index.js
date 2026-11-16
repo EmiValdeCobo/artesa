@@ -1,3 +1,4 @@
+export { default as BotonIcono } from './BotonIcono.jsx';
 export { default as Button } from './Button.jsx';
 export { default as Card } from './Card.jsx';
 export { default as CustomSelect } from './CustomSelect.jsx';
