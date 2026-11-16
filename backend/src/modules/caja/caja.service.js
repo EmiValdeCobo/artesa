@@ -130,14 +130,23 @@ async function validarToleranciaDescuadre(transaction, idTurno, contado) {
   }
 }
 
-// RN: solo el cajero dueño cierra su turno, una sola vez. La función SQL calcula lo esperado, guarda
+// RN: cierra el turno su cajero dueño; o un supervisor (permiso CAJA_CERRAR_CUALQUIER_TURNO: ADMIN y gerente)
+// de una sucursal que tenga asignada, para cerrar turnos que quedaron abiertos (p. ej. de días anteriores).
+async function validarQuienCierra(turno, userId, transaction) {
+  if (turno.id_usuario === userId) return;
+  const esSupervisor = (await repo.usuarioTienePermiso(userId, 'CAJA_CERRAR_CUALQUIER_TURNO'))
+    && (await repo.usuarioTieneSucursal(userId, turno.id_sucursal, transaction));
+  if (!esSupervisor) throw new AppError('Solo el cajero del turno o un supervisor de su sucursal puede cerrarlo', 403);
+}
+
+// RN: el turno se cierra una sola vez. La función SQL calcula lo esperado, guarda
 // lo contado y las diferencias (contado - esperado; negativo = faltante) y marca el turno CERRADO.
 export async function cerrarTurno(idTurno, contado, userId) {
   try {
     return await withTransaction(async (transaction) => {
       const turno = await repo.bloquearTurno(transaction, idTurno);
       if (!turno) throw new AppError('El turno no existe', 404);
-      if (turno.id_usuario !== userId) throw new AppError('Solo el cajero del turno puede cerrarlo', 403);
+      await validarQuienCierra(turno, userId, transaction);
       if (turno.estado !== 'ABIERTO') throw new AppError('El turno ya está cerrado', 409);
       await validarToleranciaDescuadre(transaction, idTurno, contado);
       await repo.cerrarTurno(transaction, { idTurno, ...contado });
