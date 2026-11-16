@@ -6,7 +6,7 @@ import { idProveedorSchema, listarProveedoresSchema, proveedorSchema } from '../
 const leer = (archivo) => readFile(new URL(`../${archivo}`, import.meta.url), 'utf8');
 const base = {
   razonSocial: '  Distribuidora La Central  ',
-  nrc: '  NRC-123  ',
+  nrc: ' 123456-7 ',
   nit: '  0614-123456-123-1  ',
   diasCredito: '30',
 };
@@ -14,7 +14,7 @@ const base = {
 test('proveedores: normaliza espacios y transforma datos del body al formato de base de datos', () => {
   assert.deepEqual(proveedorSchema.parse(base), {
     razon_social: 'Distribuidora La Central',
-    nrc: 'NRC-123',
+    nrc: '123456-7',
     nit: '0614-123456-123-1',
     contacto: null,
     telefono: null,
@@ -27,6 +27,22 @@ test('proveedores: rechaza body incompleto, textos sobre límite y días no ente
   assert.throws(() => proveedorSchema.parse({ ...base, razonSocial: 'x'.repeat(151) }));
   for (const diasCredito of [-1, 1.5, '', '1.2']) {
     assert.throws(() => proveedorSchema.parse({ ...base, diasCredito }));
+  }
+});
+
+test('proveedores: valida formatos NRC, NIT y teléfono y normaliza espacios externos', () => {
+  const valido = proveedorSchema.parse({ ...base, telefono: ' 2222-3333 ' });
+  assert.equal(valido.nrc, '123456-7');
+  assert.equal(valido.nit, '0614-123456-123-1');
+  assert.equal(valido.telefono, '2222-3333');
+  for (const nrc of ['NRC-123', '12345-7', '1234567', 'sdfsdfsdf']) {
+    assert.throws(() => proveedorSchema.parse({ ...base, nrc }));
+  }
+  for (const nit of ['12345678-9', '0614-123456-12-1', 'texto']) {
+    assert.throws(() => proveedorSchema.parse({ ...base, nit }));
+  }
+  for (const telefono of ['22223333', '222-3333', 'abcd-3333', '2222 3333']) {
+    assert.throws(() => proveedorSchema.parse({ ...base, telefono }));
   }
 });
 
@@ -43,6 +59,7 @@ test('proveedores: rutas requieren autenticación, tipo admin y permiso en los c
   const routes = await leer('backend/src/modules/compras/proveedores/proveedores.routes.js');
   assert.match(routes, /router\.use\(authenticate, requireTipo\('admin'\)\)/);
   assert.equal((routes.match(/requirePermiso\('COM_GESTIONAR_PROVEEDORES'/g) ?? []).length, 4);
+  assert.equal((routes.match(/validate\(proveedorSchema\)/g) ?? []).length, 2, 'POST y PUT deben compartir validación fiscal');
   for (const verb of ['get', 'post', 'put', 'delete']) assert.match(routes, new RegExp(`router\\.${verb}\\('/proveedores`));
 });
 
