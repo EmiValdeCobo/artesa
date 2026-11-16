@@ -67,7 +67,7 @@ Antes de mergear a `develop`, comprueba si tus compañeros subieron cambios a `d
 2. **Si el conteo es mayor a 0**:
    Integra los cambios de develop en tu feature branch **sin rebase**:
    ```bash
-   git merge origin/develop --no-rebase -m "🔀 merge(git): sincronizar develop en feature/<modulo>-<desc> antes de merge"
+   git merge origin/develop -m "🔀 merge(git): sincronizar develop en feature/<modulo>-<desc> antes de merge"
    ```
    - Resuelve cualquier conflicto unificando el código de ambas partes.
    - Ejecuta `pnpm test`.

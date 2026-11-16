@@ -135,7 +135,7 @@ Antes de fusionar tu rama en `develop`, debes asegurar que tu rama incorpore cua
 2. **Si el conteo es mayor a 0**:
    Integra los cambios de develop en tu feature branch **sin rebase**:
    ```bash
-   git merge origin/develop --no-rebase -m "🔀 merge(git): sincronizar develop en feature/<modulo>-<desc> antes de merge"
+   git merge origin/develop -m "🔀 merge(git): sincronizar develop en feature/<modulo>-<desc> antes de merge"
    ```
    - Si surgen conflictos, resuélvelos unificando las mejoras de ambos lados.
    - Vuelve a ejecutar `pnpm test` para garantizar que la unión de código sigue funcionando al 100%.
