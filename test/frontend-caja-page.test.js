@@ -51,6 +51,7 @@ test('caja frontend: CajaPage maneja los flujos de apertura, movimientos, cierre
   assert.match(cajaPage, /tiene\('CAJA_ABRIR_TURNO'\)/);
   assert.match(cajaPage, /tiene\('CAJA_MOVIMIENTOS'\)/);
   assert.match(cajaPage, /tiene\('CAJA_CERRAR_TURNO'\)/);
+  assert.match(cajaPage, /tiene\('CAJA_CERRAR_CUALQUIER_TURNO'\)/);
   assert.match(cajaPage, /tiene\('CAJA_VER_CUADRES'\)/);
 });
 

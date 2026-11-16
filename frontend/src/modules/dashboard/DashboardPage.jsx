@@ -7,7 +7,9 @@ import { fechaISODelNegocio, fechaNegocio, horaNegocio, saludoPorHora } from '..
 import { PERMISOS_ALERTAS, PERMISOS_TOP, PERMISOS_VENTAS } from './lib/permisos.js';
 import { useAhora } from '../../hooks/useAhora.js';
 import './dashboard.css';
-import { CalendarDays, MapPin } from "lucide-react";
+import { CalendarDays } from "lucide-react";
+import { ICONOS } from "../../config/iconos.js";
+import { Select } from '../../components/ui/index.js';
 
 
 /* Inicio. Rejilla de 12 columnas: cada bloque es un objeto en PANELES con los permisos que lo habilitan.
@@ -76,25 +78,20 @@ export default function DashboardPage() {
           </label>
           {sucursales.length > 0 ? (
             <div className="relative w-full max-w-xs">
-              <MapPin aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-(--ocre-decorativo)" />
-              <select
+              <ICONOS.sucursal aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 size-4 text-(--ocre-decorativo)" />
+              <Select
                 id="selector-sucursal-dashboard"
                 aria-label="Seleccionar sucursal"
-                className="input h-10 w-full rounded-xl bg-canvas pl-9 pr-8 text-sm font-semibold cursor-pointer"
+                className="rounded-xl bg-canvas pl-9 font-semibold"
                 value={sucursalSeleccionada}
                 onChange={(e) => setSucursalSeleccionada(e.target.value)}
-              >
-                {puedeVerTodas && <option value="">Todas las sucursales</option>}
-                {sucursales.map((s) => (
-                  <option key={s.id} value={String(s.id)}>
-                    {s.nombre}
-                  </option>
-                ))}
-              </select>
+                placeholder={puedeVerTodas ? 'Todas las sucursales' : ''}
+                opciones={sucursales.map((s) => ({ valor: String(s.id), texto: s.nombre }))}
+              />
             </div>
           ) : (
             <div className="inline-flex items-center gap-1.5 rounded-full border border-line bg-canvas px-3 py-1 text-sm font-semibold text-fg-muted">
-              <MapPin aria-hidden="true" className="size-3.5 text-(--ocre-decorativo)" />
+              <ICONOS.sucursal aria-hidden="true" className="size-3.5 text-(--ocre-decorativo)" />
               Sin sucursal asignada
             </div>
           )}

@@ -10,7 +10,7 @@ import { createPortal } from 'react-dom';
 //   · móvil: hoja inferior a todo el ancho · escritorio: tarjeta centrada
 
 const FOCALIZABLES = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
-const TAMANOS = { sm: 'sm:max-w-md', md: 'sm:max-w-lg', lg: 'sm:max-w-xl' };
+const TAMANOS = { sm: 'sm:max-w-md', md: 'sm:max-w-lg', lg: 'sm:max-w-xl', xl: 'sm:max-w-3xl' };
 
 const pila = []; // diálogos abiertos; solo el de arriba reacciona al teclado
 

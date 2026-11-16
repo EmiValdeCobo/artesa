@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Search, ChevronLeft, ChevronRight, Eye, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '../../api/client.js';
 import BannerError from '../../components/feedback/BannerError.jsx';
 import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
 import Dialogo from '../../components/Dialogo.jsx';
-import { Button, Card, Select, Spinner, Table } from '../../components/ui/index.js';
+import { BotonIcono, Button, Card, Select, Spinner, Table } from '../../components/ui/index.js';
+import { ICONOS } from '../../config/iconos.js';
 import BitacoraMetricas from './BitacoraMetricas.jsx';
 import JsonDiffViewer from './JsonDiffViewer.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
@@ -115,20 +116,20 @@ export default function BitacoraPage() {
     {clave:'modulo',titulo:'Módulo',render:f=><span className="rounded-md bg-muted px-2 py-1 text-xs capitalize">{f.modulo}</span>},
     {clave:'cliente',titulo:'IP / Dispositivo',render:f=><div className="max-w-[190px]"><p className="font-medium">{f.ip_cliente??'No registrada'}</p><p className="truncate text-xs text-fg-muted" title={f.agente_cliente}>{f.agente_cliente||'Dispositivo no registrado'}</p></div>},
     {clave:'severidad',titulo:'Severidad',render:f=><EstadoBadge tipo={NIVEL[f.severidad]?.[0]??'info'}>{NIVEL[f.severidad]?.[1]??f.severidad}</EstadoBadge>},
-    {clave:'detalle',titulo:'',render:f=><Button variante="ghost" icono={Eye} aria-label={`Ver detalle del registro ${f.id_bitacora}`} onClick={()=>setSeleccionado(f)}>Detalle</Button>},
+    {clave:'detalle',titulo:'',render:f=><BotonIcono icono={ICONOS.ver} etiqueta={`Ver detalle del registro ${f.id_bitacora}`} titulo="Ver detalle" onClick={()=>setSeleccionado(f)}/>},
   ];
 
   return <div className="space-y-6 pb-8">
     <EncabezadoPagina seccion="Seguridad · Auditoría" titulo="Bitácora de actividad" descripcion="Rastrea cambios, accesos y patrones operativos. El análisis se calcula en PostgreSQL sobre los filtros elegidos." acciones={<div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-xs text-fg-muted"><span className="h-2 w-2 rounded-full bg-success"/> Auditoría activa</div>} />
     <Card titulo="Filtros" descripcion="Combina período, operador, módulo, evento y texto libre."><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
-      <label className="text-xs font-medium text-fg-muted">Desde<input className="input mt-1 text-fg" type="date" value={fechas.startDate} max={fechas.endDate} onChange={e=>{setFechas(f=>({...f,startDate:e.target.value}));setPagina(1);}}/></label>
-      <label className="text-xs font-medium text-fg-muted">Hasta<input className="input mt-1 text-fg" type="date" value={fechas.endDate} min={fechas.startDate} max={hoyLocal()} onChange={e=>{setFechas(f=>({...f,endDate:e.target.value}));setPagina(1);}}/></label>
-      <label className="text-xs font-medium text-fg-muted">Operador<input className="input mt-1 text-fg" placeholder="Nombre de usuario" value={filtros.user} onChange={e=>cambiarFiltro('user',e.target.value)}/></label>
+      <label className="block text-sm font-medium">Desde<input className="input mt-1.5 h-10 py-0" type="date" value={fechas.startDate} max={fechas.endDate} onChange={e=>{setFechas(f=>({...f,startDate:e.target.value}));setPagina(1);}}/></label>
+      <label className="block text-sm font-medium">Hasta<input className="input mt-1.5 h-10 py-0" type="date" value={fechas.endDate} min={fechas.startDate} max={hoyLocal()} onChange={e=>{setFechas(f=>({...f,endDate:e.target.value}));setPagina(1);}}/></label>
+      <label className="block text-sm font-medium">Operador<input className="input mt-1.5 h-10 py-0" placeholder="Nombre de usuario" value={filtros.user} onChange={e=>cambiarFiltro('user',e.target.value)}/></label>
       <Select etiqueta="Módulo" value={filtros.module} onChange={e=>cambiarFiltro('module',e.target.value)} placeholder="Todos los módulos" opciones={modulos.map(m=>({valor:m,texto:m[0]?.toUpperCase()+m.slice(1)}))}/>
       <Select etiqueta="Acción" value={filtros.action} onChange={e=>cambiarFiltro('action',e.target.value)} placeholder="Todas las acciones" opciones={[{valor:'CREATE',texto:'Creación'},{valor:'UPDATE',texto:'Actualización'},{valor:'DELETE',texto:'Eliminación'},{valor:'LOGIN',texto:'Acceso'}]}/>
       <Select etiqueta="Severidad" value={filtros.severity} onChange={e=>cambiarFiltro('severity',e.target.value)} placeholder="Todas" opciones={[{valor:'',texto:'Todas'},{valor:'INFO',texto:'INFO'},{valor:'WARNING',texto:'WARNING'},{valor:'CRITICAL',texto:'CRITICAL'},{valor:'ERROR',texto:'ERROR'}]}/>
-      <label className="text-xs font-medium text-fg-muted">Buscar en evento<div className="relative mt-1"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted"/><input className="input pl-9 text-fg" placeholder="Entidad, datos, IP…" value={filtros.search} onChange={e=>cambiarFiltro('search',e.target.value)}/></div></label>
-    </div><div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-fg-muted">{respuesta.pagination.total.toLocaleString('es-SV')} eventos encontrados</p><Button variante="ghost" icono={RefreshCw} onClick={()=>{consultaLista();consultaMetricas();}}>Actualizar datos</Button></div></Card>
+      <label className="block text-sm font-medium">Buscar en evento<div className="relative mt-1.5"><ICONOS.buscar size={17} aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted"/><input className="input h-10 py-0 pl-9" placeholder="Entidad, datos, IP…" value={filtros.search} onChange={e=>cambiarFiltro('search',e.target.value)}/></div></label>
+    </div><div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-fg-muted">{respuesta.pagination.total.toLocaleString('es-SV')} eventos encontrados</p><Button variante="ghost" icono={ICONOS.actualizar} onClick={()=>{consultaLista();consultaMetricas();}}>Actualizar datos</Button></div></Card>
     <section aria-label="Indicadores de auditoría">{cargandoMetricas?<Card><Spinner texto="Calculando analítica de auditoría…"/></Card>:errorMetricas?<ErrorEnLinea texto={errorMetricas} reintentar={consultaMetricas}/>:metricas?<BitacoraMetricas metricas={{...metricas,granularidad}}/>:null}</section>
     <Card titulo="Registro de eventos" descripcion="Ordenado por fecha descendente; selecciona un evento para revisar sus diferencias." sinPadding>
       {error?<div className="p-5"><ErrorEnLinea texto={error} reintentar={consultaLista}/></div>:<Table columnas={columnas} filas={respuesta.data} idFila="id_bitacora" cargando={cargando} vacio="No hay eventos para los filtros seleccionados." maxAltura="max-h-[620px]"/>}

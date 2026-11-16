@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Edit3, Plus, Search, ShieldCheck, Trash2, UserCheck, UserX, X } from 'lucide-react';
+import { Plus, Search, ShieldCheck, X } from 'lucide-react';
 import { api } from '../../api/client.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
@@ -8,6 +8,8 @@ import CampoError, { idError } from '../../components/forms/CampoError.jsx';
 import Dialogo from '../../components/Dialogo.jsx';
 import { traducirError } from '../../errors/traducirError.js';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
+import { BotonIcono, Select } from '../../components/ui/index.js';
+import { ICONOS } from '../../config/iconos.js';
 
 const formularioInicial = { username: '', password: '', idRol: '', sucursales: [] };
 const ORDEN_CAMPOS = ['username', 'password', 'idRol', 'sucursales'];
@@ -82,7 +84,7 @@ function UsuarioModal({ usuario, roles, sucursales, guardando, error, onDescarta
           <h2 id="usuario-modal-titulo" className="text-xl font-bold tracking-tight">{usuario ? 'Editar usuario' : 'Nuevo usuario'}</h2>
           <p id="usuario-modal-descripcion" className="mt-1 text-sm text-fg-muted">Asigna sus credenciales, rol y sucursales de operación.</p>
         </div>
-        <button type="button" className="btn-ghost !p-2" onClick={onClose} aria-label="Cerrar formulario"><X size={18} /></button>
+        <BotonIcono icono={ICONOS.cerrar} etiqueta="Cerrar formulario" onClick={onClose} />
       </div>
 
       <form noValidate onSubmit={enviar}>
@@ -104,12 +106,8 @@ function UsuarioModal({ usuario, roles, sucursales, guardando, error, onDescarta
           </div>
 
           <div>
-            <label htmlFor={idCampo('idRol')} className="block text-sm font-medium">Rol</label>
-            <select id={idCampo('idRol')} className={`input mt-1.5 ${claseInvalida}`} value={formulario.idRol} onChange={(event) => actualizar('idRol', event.target.value)}
-              aria-invalid={errores.idRol ? true : undefined} aria-describedby={describir(errores, 'idRol')}>
-              <option value="">Seleccionar rol…</option>
-              {roles.map((rol) => <option key={rol.id_rol} value={rol.id_rol}>{rol.nombre}</option>)}
-            </select>
+            <Select id={idCampo('idRol')} etiqueta="Rol" placeholder="Seleccionar rol…" vacio="No hay roles activos" className={claseInvalida} value={formulario.idRol} onChange={(event) => actualizar('idRol', event.target.value)}
+              aria-invalid={errores.idRol ? true : undefined} aria-describedby={describir(errores, 'idRol')} opciones={roles.map((rol) => ({ valor: rol.id_rol, texto: rol.nombre }))} />
             <CampoError id={idCampo('idRol')} mensaje={errores.idRol} />
           </div>
 
@@ -270,12 +268,12 @@ export default function UsuariosPage() {
                     <td className="px-5 py-4"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${usuario.activo ? 'bg-success-soft text-success' : 'bg-muted text-fg-muted'}`}>{usuario.activo ? 'Activo' : 'Inactivo'}</span></td>
                     <td className="px-5 py-4">
                       <div className="flex justify-end gap-2">
-                        <button type="button" className="btn-ghost !p-2" onClick={() => { setUsuarioEditando(usuario); setModalAbierto(true); }} aria-label={`Editar ${usuario.username}`} title="Editar"><Edit3 size={16} /></button>
+                        <BotonIcono icono={ICONOS.editar} etiqueta={`Editar ${usuario.username}`} titulo="Editar" onClick={() => { setUsuarioEditando(usuario); setModalAbierto(true); }} />
                         {usuario.activo
-                          ? <button type="button" className="btn-ghost !p-2 text-warning" onClick={() => desactivar(usuario)} aria-label={`Desactivar ${usuario.username}`} title="Desactivar"><UserX size={16} /></button>
-                          : <button type="button" className="btn-ghost !p-2 text-success" onClick={() => activar(usuario)} aria-label={`Activar ${usuario.username}`} title="Activar"><UserCheck size={16} /></button>
+                          ? <BotonIcono icono={ICONOS.desactivarUsuario} tono="aviso" etiqueta={`Desactivar ${usuario.username}`} titulo="Desactivar" onClick={() => desactivar(usuario)} />
+                          : <BotonIcono icono={ICONOS.activarUsuario} tono="exito" etiqueta={`Activar ${usuario.username}`} titulo="Activar" onClick={() => activar(usuario)} />
                         }
-                        <button type="button" className="btn-danger !p-2" onClick={() => eliminar(usuario)} aria-label={`Eliminar ${usuario.username}`} title="Eliminar definitivamente"><Trash2 size={16} /></button>
+                        <BotonIcono icono={ICONOS.eliminar} tono="peligro" etiqueta={`Eliminar ${usuario.username}`} titulo="Eliminar definitivamente" onClick={() => eliminar(usuario)} />
                       </div>
                     </td>
                   </tr>)}

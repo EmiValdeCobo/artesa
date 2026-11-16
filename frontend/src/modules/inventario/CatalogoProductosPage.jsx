@@ -12,8 +12,10 @@ import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
 import CampoError from '../../components/forms/CampoError.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
-import { Button, Card, Select, Table } from '../../components/ui/index.js';
+import { BotonIcono, Button, Card, Select, Table } from '../../components/ui/index.js';
+import { ICONOS } from '../../config/iconos.js';
 import { formatoDinero, formatearUnidades } from '../../utils/formato.js';
+import { aplicarMascara, completarDecimales, propsMascara } from '../../utils/mascaras.js';
 import { traducirError } from '../../errors/traducirError.js';
 import { calcularMargen, calcularCostoReceta, calcularSubtotalLinea } from './costeo.js';
 import InsumoDrawer from './InsumoDrawer.jsx';
@@ -76,15 +78,15 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
   const margen = useMemo(() => calcularMargen(producto.precio_venta, costoTotal), [producto.precio_venta, costoTotal]);
 
   const badgeMargenClass = (pct) => {
-    if (pct == null) return 'bg-[#F3EFE8] text-[#8C7A72] border border-[#E6DFD5]';
-    if (pct >= 40) return 'bg-[#EAF5ED] text-[#2D6A4F] border border-[#B7E4C7]';
-    if (pct >= 20) return 'bg-[#FDF6E9] text-[#B57614] border border-[#F7DCB4]';
-    return 'bg-[#FDF0ED] text-[#BA3C2A] border border-[#F5C2B8]';
+    if (pct == null) return 'bg-muted text-fg-muted border border-line';
+    if (pct >= 40) return 'bg-success-soft text-success border border-success/30';
+    if (pct >= 20) return 'bg-warning-soft text-warning border border-warning/30';
+    return 'bg-danger-soft text-danger border border-danger/30';
   };
 
   return createPortal(
     <div
-      className="fixed inset-0 bg-[#1C110D]/70 backdrop-blur-[2px] z-50 flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 bg-espresso-950/60 backdrop-blur-[2px] z-50 flex items-center justify-center p-4 overflow-y-auto"
       role="presentation"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onCerrar();
@@ -94,65 +96,57 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-receta-titulo"
-        className="relative w-full max-w-2xl bg-[#FAF8F5] border border-[#E6DFD5] rounded-2xl shadow-2xl p-6 sm:p-7 text-[#321F19] my-auto overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+        className="relative w-full max-w-2xl bg-surface border border-line rounded-2xl shadow-2xl p-6 sm:p-7 text-fg my-auto overflow-hidden animate-in fade-in zoom-in-95 duration-150"
       >
         {/* Cabecera Limpia y Botón de Cierre Alineado */}
-        <div className="flex items-start justify-between gap-4 pb-4 border-b border-[#EAE3D9]">
+        <div className="flex items-start justify-between gap-4 pb-4 border-b border-line">
           <div>
-            <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold bg-[#B15C3D]/10 text-[#B15C3D] mb-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold bg-primary-soft text-primary-text mb-2">
               <ChefHat size={14} aria-hidden="true" />
               Receta de producto elaborado
             </span>
-            <h2 id="modal-receta-titulo" className="text-2xl font-bold text-[#321F19] leading-tight">
+            <h2 id="modal-receta-titulo" className="text-2xl font-bold text-fg leading-tight">
               {producto.nombre}
             </h2>
-            <p className="text-sm text-[#6E5A52] mt-1 flex items-center gap-1.5">
+            <p className="text-sm text-fg-muted mt-1 flex items-center gap-1.5">
               <Tag size={14} aria-hidden="true" />
-              Categoría: <span className="font-medium text-[#321F19]">{categoriaNombre || 'Sin categoría'}</span>
+              Categoría: <span className="font-medium text-fg">{categoriaNombre || 'Sin categoría'}</span>
             </p>
           </div>
-          <button
-            type="button"
-            className="text-[#6E5A52] hover:bg-[#EFEAE2] hover:text-[#321F19] rounded-lg p-2 transition-colors cursor-pointer"
-            onClick={onCerrar}
-            title="Cerrar previsualización"
-            aria-label="Cerrar modal"
-          >
-            <X size={20} aria-hidden="true" />
-          </button>
+          <BotonIcono icono={ICONOS.cerrar} etiqueta="Cerrar modal" onClick={onCerrar} />
         </div>
 
         {/* Tarjetas de Métricas Financieras (KPI Strip) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-5">
           {/* 1. Precio Venta (con IVA) */}
-          <div className="bg-white border border-[#EAE3D9] rounded-xl p-3.5 shadow-xs flex flex-col justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-[#6E5A52] block mb-1">
+          <div className="bg-white border border-line rounded-xl p-3.5 shadow-xs flex flex-col justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-muted block mb-1">
               Precio Venta (con IVA)
             </span>
-            <span className="text-xl font-bold font-mono text-[#B15C3D] tabular-nums">
+            <span className="text-xl font-bold font-mono text-primary-text tabular-nums">
               {formatoDinero(producto.precio_venta)}
             </span>
           </div>
 
           {/* 2. Costo Teórico Total */}
-          <div className="bg-white border border-[#EAE3D9] rounded-xl p-3.5 shadow-xs flex flex-col justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-[#6E5A52] block mb-1">
+          <div className="bg-white border border-line rounded-xl p-3.5 shadow-xs flex flex-col justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-muted block mb-1">
               Costo Teórico Total
             </span>
-            <span className="text-xl font-bold font-mono text-[#321F19] tabular-nums">
+            <span className="text-xl font-bold font-mono text-fg tabular-nums">
               {tienePermisoCostos ? (cargando ? '…' : formatoDinero(costoTotal)) : '—'}
             </span>
           </div>
 
           {/* 3. Margen s/Neto */}
-          <div className="bg-white border border-[#EAE3D9] rounded-xl p-3.5 shadow-xs flex flex-col justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-[#6E5A52] block mb-1">
+          <div className="bg-white border border-line rounded-xl p-3.5 shadow-xs flex flex-col justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-muted block mb-1">
               Margen s/Neto
             </span>
             <div className="flex items-center">
               {tienePermisoCostos ? (
                 cargando ? (
-                  <span className="text-sm text-[#8C7A72]">…</span>
+                  <span className="text-sm text-fg-muted">…</span>
                 ) : margen != null ? (
                   <span
                     className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-bold font-mono ${badgeMargenClass(
@@ -162,10 +156,10 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
                     {margen.toFixed(1)}%
                   </span>
                 ) : (
-                  <span className="text-sm font-mono text-[#8C7A72]">—</span>
+                  <span className="text-sm font-mono text-fg-muted">—</span>
                 )
               ) : (
-                <span className="text-xs font-medium text-[#8C7A72]">Protegido</span>
+                <span className="text-xs font-medium text-fg-muted">Protegido</span>
               )}
             </div>
           </div>
@@ -179,7 +173,7 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
         ) : cargando ? (
           <div className="space-y-3 py-4 animate-pulse" aria-busy="true">
             <div className="h-4 w-44 rounded bg-espresso-200/50" />
-            <div className="divide-y divide-[#EAE3D9] rounded-xl border border-[#EAE3D9] bg-white overflow-hidden">
+            <div className="divide-y divide-line rounded-xl border border-line bg-white overflow-hidden">
               {[1, 2, 3].map((n) => (
                 <div key={n} className="flex items-center justify-between p-3.5">
                   <div className="h-4 w-36 rounded bg-espresso-200/40" />
@@ -191,14 +185,14 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
             </div>
           </div>
         ) : componentes.length === 0 ? (
-          <div className="py-8 px-4 text-center text-sm text-[#6E5A52] bg-white rounded-xl border border-[#EAE3D9]">
+          <div className="py-8 px-4 text-center text-sm text-fg-muted bg-white rounded-xl border border-line">
             Este producto aún no tiene ingredientes registrados en su receta.
           </div>
         ) : (
-          <div className="bg-white border border-[#EAE3D9] rounded-xl overflow-hidden shadow-xs">
+          <div className="bg-white border border-line rounded-xl overflow-hidden shadow-xs">
             <div className="max-h-72 overflow-y-auto scroll-fino">
               <table className="w-full text-left text-sm border-collapse">
-                <thead className="bg-[#F3EFE8] text-[11px] font-semibold uppercase tracking-wider text-[#6E5A52] sticky top-0 z-10 border-b border-[#EAE3D9]">
+                <thead className="bg-muted text-[11px] font-semibold uppercase tracking-wider text-fg-muted sticky top-0 z-10 border-b border-line">
                   <tr>
                     <th className="py-3 px-4">Ingrediente</th>
                     <th className="py-3 px-4 text-center">Cantidad</th>
@@ -206,41 +200,41 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
                     <th className="py-3 px-4 text-right whitespace-nowrap">Subtotal</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#EAE3D9] text-[#321F19]">
+                <tbody className="divide-y divide-line text-fg">
                   {componentes.map((c) => {
                     const subtotal = calcularSubtotalLinea(c.cantidad_requerida, c.costo_promedio);
                     const costoUnitarioCero = !c.costo_promedio || Number(c.costo_promedio) === 0;
                     const subtotalCero = !subtotal || Number(subtotal) === 0;
 
                     return (
-                      <tr key={c.id_insumo} className="hover:bg-[#FAF8F5]/80 transition-colors">
-                        <td className="py-3 px-4 font-medium text-[#321F19]">
+                      <tr key={c.id_insumo} className="hover:bg-muted/60 transition-colors">
+                        <td className="py-3 px-4 font-medium text-fg">
                           {c.nombre_insumo || c.insumo}
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <span className="inline-flex items-center gap-1 bg-[#F3EFE8] text-[#5C4942] px-2 py-0.5 rounded text-xs font-medium font-mono">
+                          <span className="inline-flex items-center gap-1 bg-muted text-fg-muted px-2 py-0.5 rounded text-xs font-medium font-mono">
                             <span>{formatearUnidades(c.cantidad_requerida)}</span>
-                            <span className="uppercase text-[11px] text-[#8C7A72]">
+                            <span className="uppercase text-[11px] text-fg-muted">
                               {c.codigo_unidad || c.unidad || 'UND'}
                             </span>
                           </span>
                         </td>
                         <td className="py-3 px-4 text-right font-mono text-xs whitespace-nowrap tabular-nums">
                           {tienePermisoCostos ? (
-                            <span className={costoUnitarioCero ? 'text-[#8C7A72]' : 'text-[#321F19]'}>
+                            <span className={costoUnitarioCero ? 'text-fg-muted' : 'text-fg'}>
                               {formatoDinero(c.costo_promedio)}
                             </span>
                           ) : (
-                            <span className="text-[#8C7A72]">—</span>
+                            <span className="text-fg-muted">—</span>
                           )}
                         </td>
                         <td className="py-3 px-4 text-right font-mono font-semibold text-xs whitespace-nowrap tabular-nums">
                           {tienePermisoCostos ? (
-                            <span className={subtotalCero ? 'text-[#8C7A72]' : 'text-[#321F19]'}>
+                            <span className={subtotalCero ? 'text-fg-muted' : 'text-fg'}>
                               {formatoDinero(subtotal)}
                             </span>
                           ) : (
-                            <span className="text-[#8C7A72]">—</span>
+                            <span className="text-fg-muted">—</span>
                           )}
                         </td>
                       </tr>
@@ -248,11 +242,11 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
                   })}
                 </tbody>
                 <tfoot>
-                  <tr className="bg-[#F7F5F0] border-t border-[#E6DFD5]">
-                    <td colSpan={3} className="py-3 px-4 text-right text-xs font-bold uppercase text-[#6E5A52]">
+                  <tr className="bg-muted border-t border-line">
+                    <td colSpan={3} className="py-3 px-4 text-right text-xs font-bold uppercase text-fg-muted">
                       COSTO TEÓRICO TOTAL:
                     </td>
-                    <td className="py-3 px-4 text-right font-mono text-base font-bold text-[#B15C3D] whitespace-nowrap tabular-nums">
+                    <td className="py-3 px-4 text-right font-mono text-base font-bold text-primary-text whitespace-nowrap tabular-nums">
                       {tienePermisoCostos ? formatoDinero(costoTotal) : '—'}
                     </td>
                   </tr>
@@ -263,11 +257,11 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
         )}
 
         {/* Pie de Acciones Equilibrado */}
-        <div className="flex items-center justify-end gap-3 pt-5 mt-5 border-t border-[#EAE3D9]">
+        <div className="flex items-center justify-end gap-3 pt-5 mt-5 border-t border-line">
           <button
             type="button"
             onClick={onCerrar}
-            className="border border-[#D8CFC4] bg-white text-[#321F19] hover:bg-[#F3EFE8] px-4 py-2.5 rounded-xl font-medium transition-colors cursor-pointer text-sm"
+            className="border border-line bg-white text-fg hover:bg-muted px-4 py-2.5 rounded-xl font-medium transition-colors cursor-pointer text-sm"
           >
             Cerrar
           </button>
@@ -275,7 +269,7 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
             <button
               type="button"
               onClick={() => onEditarReceta(producto.id_producto)}
-              className="bg-[#B15C3D] hover:bg-[#9A4E32] text-white px-5 py-2.5 rounded-xl font-semibold shadow-sm flex items-center gap-2 transition-colors cursor-pointer text-sm"
+              className="bg-primary hover:bg-primary-hover text-on-accent px-5 py-2.5 rounded-xl font-semibold shadow-sm flex items-center gap-2 transition-colors cursor-pointer text-sm"
             >
               <Layers size={16} aria-hidden="true" />
               Editar receta completa
@@ -775,34 +769,20 @@ export default function CatalogoProductosPage() {
             </button>
           )}
           {tiene('INV_GESTIONAR_PRODUCTOS') && (
-            <button
-              type="button"
-              className="btn-ghost !p-2 h-9 w-9 inline-flex items-center justify-center"
-              title="Editar producto"
-              onClick={() => abrirEditar(p)}
-            >
-              <Pencil size={15} aria-hidden="true" />
-            </button>
+            <BotonIcono icono={ICONOS.editar} className="h-9 w-9" etiqueta={`Editar producto ${p.nombre}`} titulo="Editar producto" onClick={() => abrirEditar(p)} />
           )}
           {tiene('INV_GESTIONAR_PRODUCTOS') && (
-            <button
-              type="button"
-              className="btn-ghost !p-2 h-9 w-9 inline-flex items-center justify-center text-danger"
-              title={p.activo === false ? 'Reactivar producto' : 'Desactivar producto'}
+            <BotonIcono
+              icono={p.activo === false ? ICONOS.activar : ICONOS.desactivar}
+              tono={p.activo === false ? 'exito' : 'aviso'}
+              className="h-9 w-9"
+              etiqueta={`${p.activo === false ? 'Reactivar' : 'Desactivar'} producto ${p.nombre}`}
+              titulo={p.activo === false ? 'Reactivar producto' : 'Desactivar producto'}
               onClick={() => handleToggleEstado(p)}
-            >
-              {p.activo === false ? <Power size={15} aria-hidden="true" /> : <PowerOff size={15} aria-hidden="true" />}
-            </button>
+            />
           )}
           {tiene('INV_GESTIONAR_PRODUCTOS') && (
-            <button
-              type="button"
-              className="btn-ghost !p-2 h-9 w-9 inline-flex items-center justify-center text-danger hover:bg-danger-soft"
-              title="Eliminar producto"
-              onClick={() => handleEliminarProducto(p)}
-            >
-              <Trash2 size={15} aria-hidden="true" />
-            </button>
+            <BotonIcono icono={ICONOS.eliminar} tono="peligro" className="h-9 w-9" etiqueta={`Eliminar producto ${p.nombre}`} titulo="Eliminar producto" onClick={() => handleEliminarProducto(p)} />
           )}
         </div>
       ),
@@ -838,7 +818,7 @@ export default function CatalogoProductosPage() {
             Buscar producto
           </label>
           <div className="relative">
-            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" aria-hidden="true" />
+            <ICONOS.buscar size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" aria-hidden="true" />
             <input
               id="buscar-producto"
               type="search"
@@ -1022,37 +1002,20 @@ export default function CatalogoProductosPage() {
                       </Button>
                     )}
                     {tiene('INV_GESTIONAR_PRODUCTOS') && (
-                      <button
-                        type="button"
-                        className="btn-ghost !p-2 h-9 w-9 inline-flex items-center justify-center"
-                        title="Editar producto"
-                        aria-label={`Editar producto ${p.nombre}`}
-                        onClick={() => abrirEditar(p)}
-                      >
-                        <Pencil size={15} aria-hidden="true" />
-                      </button>
+                      <BotonIcono icono={ICONOS.editar} className="h-9 w-9" etiqueta={`Editar producto ${p.nombre}`} titulo="Editar producto" onClick={() => abrirEditar(p)} />
                     )}
                     {tiene('INV_GESTIONAR_PRODUCTOS') && (
-                      <button
-                        type="button"
-                        className="btn-ghost !p-2 h-9 w-9 inline-flex items-center justify-center text-danger"
-                        title={p.activo === false ? 'Reactivar producto' : 'Desactivar producto'}
-                        aria-label={`${p.activo === false ? 'Reactivar' : 'Desactivar'} producto ${p.nombre}`}
+                      <BotonIcono
+                        icono={p.activo === false ? ICONOS.activar : ICONOS.desactivar}
+                        tono={p.activo === false ? 'exito' : 'aviso'}
+                        className="h-9 w-9"
+                        etiqueta={`${p.activo === false ? 'Reactivar' : 'Desactivar'} producto ${p.nombre}`}
+                        titulo={p.activo === false ? 'Reactivar producto' : 'Desactivar producto'}
                         onClick={() => handleToggleEstado(p)}
-                      >
-                        {p.activo === false ? <Power size={15} aria-hidden="true" /> : <PowerOff size={15} aria-hidden="true" />}
-                      </button>
+                      />
                     )}
                     {tiene('INV_GESTIONAR_PRODUCTOS') && (
-                      <button
-                        type="button"
-                        className="btn-ghost !p-2 h-9 w-9 inline-flex items-center justify-center text-danger hover:bg-danger-soft"
-                        title="Eliminar producto"
-                        aria-label={`Eliminar producto ${p.nombre}`}
-                        onClick={() => handleEliminarProducto(p)}
-                      >
-                        <Trash2 size={15} aria-hidden="true" />
-                      </button>
+                      <BotonIcono icono={ICONOS.eliminar} tono="peligro" className="h-9 w-9" etiqueta={`Eliminar producto ${p.nombre}`} titulo="Eliminar producto" onClick={() => handleEliminarProducto(p)} />
                     )}
                   </div>
                 </div>
@@ -1068,7 +1031,7 @@ export default function CatalogoProductosPage() {
           <>
             {/* Backdrop con cobertura 100% de pantalla (w-screen, h-dvh) y oscurecimiento uniforme sin desfase */}
             <div
-              className="fixed inset-0 w-screen h-dvh z-40 bg-[#1C110D]/75 backdrop-blur-[2px] transition-opacity"
+              className="fixed inset-0 w-screen h-dvh z-40 bg-espresso-950/60 backdrop-blur-[2px] transition-opacity"
               onClick={cerrarDrawer}
               aria-hidden="true"
             />
@@ -1078,10 +1041,10 @@ export default function CatalogoProductosPage() {
               role="dialog"
               aria-modal="true"
               aria-label={productoEditando ? 'Editar Producto' : 'Nuevo Producto'}
-              className="fixed right-0 top-0 bottom-0 h-dvh w-full max-w-lg bg-[#FAF8F5] dark:bg-[#2A1A14] shadow-2xl z-50 flex flex-col border-l border-line"
+              className="fixed right-0 top-0 bottom-0 h-dvh w-full max-w-lg bg-surface shadow-2xl z-50 flex flex-col border-l border-line"
             >
               {/* Cabecera fija */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-line bg-[#FAF8F5] dark:bg-[#2A1A14] shrink-0">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-line bg-surface shrink-0">
                 <div>
                   <h2 className="text-lg font-semibold text-fg">
                     {productoEditando ? 'Editar Producto' : 'Nuevo Producto'}
@@ -1092,14 +1055,7 @@ export default function CatalogoProductosPage() {
                       : 'Registra un nuevo producto para venta en catálogo y POS'}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  className="rounded-lg p-1.5 text-fg-muted hover:text-fg hover:bg-espresso-100 dark:hover:bg-espresso-800 transition-colors"
-                  onClick={cerrarDrawer}
-                  aria-label="Cerrar formulario"
-                >
-                  <X size={18} aria-hidden="true" />
-                </button>
+                <BotonIcono icono={ICONOS.cerrar} etiqueta="Cerrar formulario" onClick={cerrarDrawer} />
               </div>
 
               {/* Formulario con scroll interno */}
@@ -1117,7 +1073,7 @@ export default function CatalogoProductosPage() {
                   <input
                     id="producto-nombre"
                     type="text"
-                    className="input focus:ring-2 focus:ring-[#B15C3D]/30 focus:border-[#B15C3D]"
+                    className="input font-mono"
                     placeholder="Ej. Latte Grande, Croissant de Mantequilla"
                     maxLength={150}
                     required
@@ -1143,11 +1099,12 @@ export default function CatalogoProductosPage() {
                   <input
                     id="producto-codigo-barra"
                     type="text"
-                    className="input focus:ring-2 focus:ring-[#B15C3D]/30 focus:border-[#B15C3D]"
+                    className="input font-mono"
                     placeholder="Ej. 7400001000011 (opcional)"
                     maxLength={50}
                     value={form.codigo_barra}
-                    onChange={(e) => setForm((f) => ({ ...f, codigo_barra: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, codigo_barra: aplicarMascara('identificador', e.target.value) }))}
+                    spellCheck={false}
                   />
                 </div>
 
@@ -1161,14 +1118,12 @@ export default function CatalogoProductosPage() {
                     </span>
                     <input
                       id="producto-precio-venta"
-                      type="number"
-                      className="input pl-7 font-mono font-medium focus:ring-2 focus:ring-[#B15C3D]/30 focus:border-[#B15C3D]"
-                      min="0.01"
-                      step="0.01"
+                      {...propsMascara('monto')}
+                      className="input pl-7 font-mono font-medium"
                       required
                       value={form.precio_venta}
-                      onChange={(e) => setForm((f) => ({ ...f, precio_venta: e.target.value }))}
-                      placeholder="0.00"
+                      onChange={(e) => setForm((f) => ({ ...f, precio_venta: aplicarMascara('monto', e.target.value) }))}
+                      onBlur={() => setForm((f) => ({ ...f, precio_venta: completarDecimales(f.precio_venta) }))}
                     />
                   </div>
                   <p className="mt-1 text-xs text-fg-muted">
@@ -1178,7 +1133,7 @@ export default function CatalogoProductosPage() {
 
                 {!form.es_elaborado && <div className="rounded-xl border border-line bg-surface p-4 space-y-2">
                   <Select etiqueta="Insumo de reventa" requerido opciones={opcionesInsumosReventa} value={String(form.id_insumo_reventa)} onChange={(e) => setForm((f) => ({ ...f, id_insumo_reventa: e.target.value }))} placeholder="Selecciona un insumo de reventa…" buscable />
-                  {tiene('INV_GESTIONAR_INSUMOS') && <Button type="button" variante="ghost" icono={Plus} onClick={() => { setValoresInsumo({ tipo_insumo: 'REVENTA', id_unidad_base: String(unidades.find((u) => u.codigo === 'UND')?.id_unidad ?? '') }); setDrawerInsumoAbierto(true); }}>+ Crear insumo de reventa</Button>}
+                  {tiene('INV_GESTIONAR_INSUMOS') && <Button type="button" variante="ghost" icono={Plus} onClick={() => { setValoresInsumo({ tipo_insumo: 'REVENTA', id_unidad_base: String(unidades.find((u) => u.codigo === 'UND')?.id_unidad ?? '') }); setDrawerInsumoAbierto(true); }}>Crear insumo de reventa</Button>}
                   {insumoReventaSeleccionado && <p className="text-xs text-fg-muted">Unidad: {insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad ?? 'UND'}{String(insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad ?? 'UND').toUpperCase() !== 'UND' && <span className="ml-1 text-warning">Cada venta descontará 1 {insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad}</span>}</p>}
                 </div>}
                 <div className="flex items-center gap-3 pt-1">
@@ -1196,7 +1151,7 @@ export default function CatalogoProductosPage() {
               </form>
 
               {/* Pie de acciones fijo */}
-              <div className="sticky bottom-0 border-t border-line bg-[#FAF8F5] dark:bg-[#2A1A14] px-6 py-4 flex items-center justify-end gap-3 shrink-0">
+              <div className="sticky bottom-0 border-t border-line bg-surface px-6 py-4 flex items-center justify-end gap-3 shrink-0">
                 <Button variante="ghost" onClick={cerrarDrawer} disabled={guardando}>
                   Cancelar
                 </Button>
