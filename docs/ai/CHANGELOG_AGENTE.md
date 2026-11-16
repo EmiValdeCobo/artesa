@@ -165,3 +165,4 @@ Formato: `AAAA-MM-DD | quién (persona/agente) | área | qué cambió | archivos
 2026-11-15 | Emilio/Devin | compras/frontend | Fix crash al navegar de Registrar factura a Gastos operativos: React Router reutilizaba la instancia de CompraFacturaPage con líneas de COSTO (sin descripcion); se añadió key por tipo de costo para remontar | frontend/src/App.jsx
 2026-11-15 | Codex | caja/qa | Alineadas pruebas de cierre de caja con permiso supervisor y migracion 014; 342/342 tests pasan con env de test | test/caja-contracts.test.js, test/contracts.test.js
 2026-11-15 | Emilio/Antigravity | ai/skills | Creación de skills sincronizar-develop (pull/merge condicional sin rebase) y flujo-feature-merge (creación de rama, push y merge --no-ff a develop con rebase prohibido) | docs/ai/skills/{sincronizar-develop,flujo-feature-merge}.md, .agents/skills/{sincronizar-develop,flujo-feature-merge}/SKILL.md, AGENTS.md, docs/USO_IA.md
+
