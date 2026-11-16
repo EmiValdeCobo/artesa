@@ -93,6 +93,20 @@ export default function CajaPage() {
   const [guardandoCierre, setGuardandoCierre] = useState(false);
   const [errorCierre, setErrorCierre] = useState(null);
 
+  const handleCargarMontosEsperados = () => {
+    const target = (turnoParaCierre && turnoParaCierre.id_turno) ? turnoParaCierre : turno;
+    if (!target) return;
+    const ef = target.esperado_efectivo ?? target.efectivo?.esperado ?? '0.00';
+    const tj = target.ventas_tarjeta ?? target.tarjeta?.esperado ?? target.ventas?.tarjeta ?? '0.00';
+    const dg = target.ventas_digital ?? target.digital?.esperado ?? target.ventas?.digital ?? '0.00';
+
+    setFormCierre({
+      efectivo: String(Number(ef || 0).toFixed(2)),
+      tarjeta: String(Number(tj || 0).toFixed(2)),
+      digital: String(Number(dg || 0).toFixed(2)),
+    });
+  };
+
   // Diálogo de cuadre (tras cierre o para ver auditoría)
   const [mostrarCuadre, setMostrarCuadre] = useState(false);
   const [cuadreDetalle, setCuadreDetalle] = useState(null);
@@ -303,7 +317,10 @@ export default function CajaPage() {
   // ─── Cierre de turno y arqueo ───────────────────────────────────────────────
   const abrirModalCierre = (turnoObjetivo = null) => {
     setErrorCierre(null);
-    setTurnoParaCierre(turnoObjetivo || turno);
+    const objetivoValido = (turnoObjetivo && typeof turnoObjetivo === 'object' && turnoObjetivo.id_turno)
+      ? turnoObjetivo
+      : null;
+    setTurnoParaCierre(objetivoValido);
     // Pre-llenamos con 0.00
     setFormCierre({ efectivo: '0.00', tarjeta: '0.00', digital: '0.00' });
     setMostrarCierre(true);
@@ -648,7 +665,7 @@ export default function CajaPage() {
                 {puedeCerrar && (
                   <Button
                     variante="danger"
-                    onClick={abrirModalCierre}
+                    onClick={() => abrirModalCierre()}
                     icono={Lock}
                   >
                     Cerrar turno
@@ -1239,19 +1256,31 @@ export default function CajaPage() {
           )}
 
           <form onSubmit={handleCerrarTurno} className="space-y-4 p-5">
-            <div className="rounded-lg bg-muted/60 p-3 text-xs text-fg-muted space-y-1">
-              <p className="font-semibold text-fg">Referencia del sistema:</p>
-              <div className="flex justify-between">
-                <span>Efectivo esperado en gaveta:</span>
-                <span className="font-bold text-fg">{formatoDinero((turnoParaCierre || turno)?.esperado_efectivo)}</span>
+            <div className="rounded-lg bg-muted/60 p-3 text-xs text-fg-muted space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-semibold text-fg">Referencia del sistema:</p>
+                <button
+                  type="button"
+                  onClick={handleCargarMontosEsperados}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-surface px-2.5 py-1 text-xs font-semibold text-primary-text border border-line hover:bg-muted transition-colors"
+                >
+                  <Scale size={13} aria-hidden="true" />
+                  Cargar montos esperados
+                </button>
               </div>
-              <div className="flex justify-between">
-                <span>Vouchers de tarjeta registrados:</span>
-                <span className="font-medium text-fg">{formatoDinero((turnoParaCierre || turno)?.ventas_tarjeta)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Pagos digitales registrados:</span>
-                <span className="font-medium text-fg">{formatoDinero((turnoParaCierre || turno)?.ventas_digital)}</span>
+              <div className="space-y-1">
+                <div className="flex justify-between">
+                  <span>Efectivo esperado en gaveta:</span>
+                  <span className="font-bold text-fg">{formatoDinero((turnoParaCierre || turno)?.esperado_efectivo ?? (turnoParaCierre || turno)?.efectivo?.esperado)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Vouchers de tarjeta registrados:</span>
+                  <span className="font-medium text-fg">{formatoDinero((turnoParaCierre || turno)?.ventas_tarjeta ?? (turnoParaCierre || turno)?.tarjeta?.esperado ?? (turnoParaCierre || turno)?.ventas?.tarjeta)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Pagos digitales registrados:</span>
+                  <span className="font-medium text-fg">{formatoDinero((turnoParaCierre || turno)?.ventas_digital ?? (turnoParaCierre || turno)?.digital?.esperado ?? (turnoParaCierre || turno)?.ventas?.digital)}</span>
+                </div>
               </div>
             </div>
 
