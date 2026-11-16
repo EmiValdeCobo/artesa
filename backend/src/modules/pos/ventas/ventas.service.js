@@ -5,8 +5,10 @@ import * as repo from './ventas.repository.js';
 // ── Mapeo de errores PostgreSQL P0001 → AppError HTTP ────────────────────────
 function mapearErrorPG(err) {
   if (err instanceof AppError) return err;
-  const msg = err.message ?? '';
-  if (err.code === 'P0001') {
+  const origen = err.original ?? err.parent ?? err;
+  const msg = origen.message ?? err.message ?? '';
+  const code = origen.code ?? err.code;
+  if (code === 'P0001') {
     if (msg.includes('turno no existe') || msg.includes('está cerrado')) return new AppError(msg, 400);
     if (msg.includes('no pertenece al usuario') || msg.includes('sucursal')) return new AppError(msg, 403);
     if (msg.includes('Orden no existe')) return new AppError(msg, 404);
@@ -22,7 +24,7 @@ function mapearErrorPG(err) {
     if (msg.includes('El turno ya cerró')) return new AppError(msg, 409);
     return new AppError(msg, 400);
   }
-  if (err.code === '23505') return new AppError('Conflicto al generar el correlativo. Intente de nuevo.', 409);
+  if (code === '23505') return new AppError('Conflicto al generar el correlativo. Intente de nuevo.', 409);
   return err;
 }
 

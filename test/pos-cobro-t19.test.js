@@ -40,6 +40,7 @@ test('T19 ModalCobro: incluye billetes rápidos y cálculo de vuelto en efectivo
 test('T19 ModalCobro: valida faltante en tiempo real y bloquea confirmación incompleta', async () => {
   const modal = await leer('frontend/src/modules/pos/ModalCobro.jsx');
   assert.match(modal, /faltante/i);
+  assert.match(modal, /sobrante/i);
   assert.match(modal, /puedeConfirmar/);
 });
 
