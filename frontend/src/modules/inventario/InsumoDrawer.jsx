@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
-import { Button, Select } from '../../components/ui/index.js';
+import { BotonIcono, Button, Select } from '../../components/ui/index.js';
+import { ICONOS } from '../../config/iconos.js';
 import CampoError from '../../components/forms/CampoError.jsx';
 import { formatoDinero } from '../../utils/formato.js';
+import { aplicarMascara, completarDecimales, propsMascara } from '../../utils/mascaras.js';
 import { traducirError } from '../../errors/traducirError.js';
 import { createInsumo, updateInsumo } from './inventarioApi.js';
 const TIPOS_INSUMO = ['INGREDIENTE', 'EMPAQUE', 'REVENTA'];
@@ -60,7 +62,7 @@ export default function InsumoDrawer({ abierto, insumo, unidades = [], valoresIn
         tipo_insumo: form.tipo_insumo,
         id_unidad_base: Number(form.id_unidad_base),
         activo: form.activo,
-        ...(!esEdicion && { costo_promedio: form.costo_promedio ? Number(form.costo_promedio).toFixed(2) : '0.00' }),
+        ...(!esEdicion && { costo_promedio: completarDecimales(form.costo_promedio) || '0.00' }),
       };
 
       const guardado = esEdicion ? await updateInsumo(insumo.id_insumo, payload) : await createInsumo(payload);
@@ -109,7 +111,7 @@ export default function InsumoDrawer({ abierto, insumo, unidades = [], valoresIn
     <>
       {/* Backdrop con cobertura 100% de pantalla (w-screen, h-dvh) y blur oscuro profundo */}
       <div
-        className="fixed inset-0 w-screen h-dvh z-[60] bg-[#1C110D]/75 backdrop-blur-[2px] transition-opacity"
+        className="fixed inset-0 w-screen h-dvh z-[60] bg-espresso-950/60 backdrop-blur-[2px] transition-opacity"
         onClick={onCerrar}
         aria-hidden="true"
       />
@@ -119,10 +121,10 @@ export default function InsumoDrawer({ abierto, insumo, unidades = [], valoresIn
         role="dialog"
         aria-modal="true"
         aria-label={esEdicion ? 'Editar insumo' : 'Nuevo insumo'}
-        className="fixed right-0 top-0 bottom-0 h-dvh w-full max-w-md bg-[#FAF8F5] dark:bg-[#2A1A14] shadow-2xl z-[70] flex flex-col border-l border-line"
+        className="fixed right-0 top-0 bottom-0 h-dvh w-full max-w-md bg-surface shadow-2xl z-[70] flex flex-col border-l border-line"
       >
         {/* Cabecera fija */}
-        <div className="px-6 py-4 border-b border-line bg-[#FAF8F5] dark:bg-[#2A1A14] flex items-center justify-between shrink-0">
+        <div className="px-6 py-4 border-b border-line bg-surface flex items-center justify-between shrink-0">
           <div>
             <h2 className="text-lg font-semibold text-fg">
               {esEdicion ? 'Editar insumo' : 'Nuevo insumo'}
@@ -131,14 +133,7 @@ export default function InsumoDrawer({ abierto, insumo, unidades = [], valoresIn
               {esEdicion ? 'Actualiza los datos del insumo y stock mínimo' : 'Registra un ingrediente, empaque o artículo de reventa'}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onCerrar}
-            className="rounded-lg p-1.5 text-fg-muted hover:text-fg hover:bg-espresso-100 dark:hover:bg-espresso-800 transition-colors"
-            aria-label="Cerrar formulario"
-          >
-            <X size={18} aria-hidden="true" />
-          </button>
+          <BotonIcono icono={ICONOS.cerrar} etiqueta="Cerrar formulario" onClick={onCerrar} />
         </div>
 
         {/* Cuerpo con scroll interno */}
@@ -188,12 +183,10 @@ export default function InsumoDrawer({ abierto, insumo, unidades = [], valoresIn
               <input
                 className="input font-mono"
                 id="insumo-costo"
-                type="number"
-                placeholder="0.00"
+                {...propsMascara('monto')}
                 value={form.costo_promedio}
-                onChange={(e) => set('costo_promedio')(e.target.value)}
-                min={0}
-                step="0.01"
+                onChange={(e) => set('costo_promedio')(aplicarMascara('monto', e.target.value))}
+                onBlur={() => form.costo_promedio && set('costo_promedio')(completarDecimales(form.costo_promedio))}
               />
               <p className="mt-1 text-xs text-fg-muted">Costo por {unidades.find((u) => String(u.id_unidad) === String(form.id_unidad_base))?.codigo ?? 'unidad base'}.</p>
             </div>
@@ -226,7 +219,7 @@ export default function InsumoDrawer({ abierto, insumo, unidades = [], valoresIn
         </form>
 
         {/* Pie de acciones fijo */}
-        <div className="sticky bottom-0 border-t border-line bg-[#FAF8F5] dark:bg-[#2A1A14] px-6 py-4 flex items-center justify-end gap-3 shrink-0">
+        <div className="sticky bottom-0 border-t border-line bg-surface px-6 py-4 flex items-center justify-end gap-3 shrink-0">
           <Button variante="ghost" onClick={onCerrar} disabled={cargando}>
             Descartar cambios
           </Button>

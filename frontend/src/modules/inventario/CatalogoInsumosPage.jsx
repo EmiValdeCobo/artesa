@@ -9,7 +9,8 @@ import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import Pestanas from '../../components/navigation/Pestanas.jsx';
-import { Button, Card, Select, Spinner, Table } from '../../components/ui/index.js';
+import { BotonIcono, Button, Card, Select, Spinner, Table } from '../../components/ui/index.js';
+import { ICONOS } from '../../config/iconos.js';
 import CampoError from '../../components/forms/CampoError.jsx';
 import { formatoDinero, formatearUnidades, enteroParaInput } from '../../utils/formato.js';
 import { traducirError } from '../../errors/traducirError.js';
@@ -131,25 +132,18 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
   if (!abierto) return null;
 
   return createPortal(
-    <div className="fixed inset-0 w-screen h-dvh z-50 flex items-center justify-center bg-[#1C110D]/75 backdrop-blur-[2px] p-4">
+    <div className="fixed inset-0 w-screen h-dvh z-50 flex items-center justify-center bg-espresso-950/60 backdrop-blur-[2px] p-4">
       <div
         role="dialog"
         aria-modal="true"
         aria-label={esEdicion ? 'Editar Unidad' : 'Nueva Unidad'}
-        className="bg-[#FAF8F5] dark:bg-[#2A1A14] rounded-xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden border border-line"
+        className="bg-surface rounded-xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden border border-line"
       >
         <div className="px-6 py-4 border-b border-line flex items-center justify-between">
           <h2 className="text-base font-semibold text-fg">
             {esEdicion ? 'Editar Unidad' : 'Nueva Unidad de Medida'}
           </h2>
-          <button
-            type="button"
-            onClick={onCerrar}
-            className="rounded-lg p-1.5 text-fg-muted hover:text-fg hover:bg-espresso-100 dark:hover:bg-espresso-800 transition-colors"
-            aria-label="Cerrar"
-          >
-            <X size={18} />
-          </button>
+          <BotonIcono icono={ICONOS.cerrar} etiqueta="Cerrar" onClick={onCerrar} />
         </div>
 
         <form id="form-unidad" onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
@@ -195,10 +189,10 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
             <input
               className="input font-mono"
               id="unidad-factor"
-              type="number"
+              inputMode="numeric"
               placeholder="1"
               value={form.factor_conversion}
-              onChange={set('factor_conversion')}
+              onChange={(e) => setForm((f) => ({ ...f, factor_conversion: mascaraEntero(e.target.value) }))}
               min="1"
               step="1"
             />
@@ -208,7 +202,7 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
           </div>
         </form>
 
-        <div className="px-6 py-4 border-t border-line bg-[#FAF8F5] dark:bg-[#2A1A14] flex gap-3 justify-end">
+        <div className="px-6 py-4 border-t border-line bg-surface flex gap-3 justify-end">
           <Button variante="ghost" onClick={onCerrar} disabled={cargando}>
             Cancelar
           </Button>
@@ -397,34 +391,16 @@ function PestanaInsumos({ unidades, onTotal }) {
             alinear: 'right',
             render: (fila) => (
               <div className="flex items-center gap-1 justify-end">
-                {tiene('INV_GESTIONAR_INSUMOS') && <button type="button" className="btn-ghost !p-1.5 min-h-8" title="Existencias" aria-label={`Ver existencias de ${fila.nombre}`} onClick={() => setInsumoExistencias(fila)}><Boxes size={15} aria-hidden="true" /></button>}
-                <button
-                  type="button"
-                  className="btn-ghost !p-1.5 min-h-8"
-                  title="Editar insumo"
-                  aria-label={`Editar insumo ${fila.nombre}`}
-                  onClick={() => abrirEditar(fila)}
-                >
-                  <Pencil size={15} aria-hidden="true" />
-                </button>
-                <button
-                  type="button"
-                  className="btn-ghost !p-1.5 min-h-8 text-danger"
-                  title={fila.activo === false ? 'Reactivar insumo' : 'Desactivar insumo'}
-                  aria-label={`${fila.activo === false ? 'Reactivar' : 'Desactivar'} insumo ${fila.nombre}`}
+                {tiene('INV_GESTIONAR_INSUMOS') && <BotonIcono icono={Boxes} etiqueta={`Ver existencias de ${fila.nombre}`} titulo="Existencias" onClick={() => setInsumoExistencias(fila)} />}
+                <BotonIcono icono={ICONOS.editar} etiqueta={`Editar insumo ${fila.nombre}`} titulo="Editar insumo" onClick={() => abrirEditar(fila)} />
+                <BotonIcono
+                  icono={fila.activo === false ? ICONOS.activar : ICONOS.desactivar}
+                  tono={fila.activo === false ? 'exito' : 'aviso'}
+                  etiqueta={`${fila.activo === false ? 'Reactivar' : 'Desactivar'} insumo ${fila.nombre}`}
+                  titulo={fila.activo === false ? 'Reactivar insumo' : 'Desactivar insumo'}
                   onClick={() => handleToggleEstado(fila)}
-                >
-                  {fila.activo === false ? <Power size={15} aria-hidden="true" /> : <PowerOff size={15} aria-hidden="true" />}
-                </button>
-                <button
-                  type="button"
-                  className="btn-ghost !p-1.5 min-h-8 text-danger hover:bg-danger-soft"
-                  title="Eliminar insumo"
-                  aria-label={`Eliminar insumo ${fila.nombre}`}
-                  onClick={() => handleEliminarInsumo(fila)}
-                >
-                  <Trash2 size={15} aria-hidden="true" />
-                </button>
+                />
+                <BotonIcono icono={ICONOS.eliminar} tono="peligro" etiqueta={`Eliminar insumo ${fila.nombre}`} titulo="Eliminar insumo" onClick={() => handleEliminarInsumo(fila)} />
               </div>
             ),
           },
@@ -462,7 +438,7 @@ function PestanaInsumos({ unidades, onTotal }) {
         <div className="flex items-end gap-3">
           <div className="relative flex-1">
             <label htmlFor="buscar-insumo" className="mb-1 block text-sm font-medium text-fg">Buscar insumo</label>
-            <Search size={16} className="pointer-events-none absolute left-3 top-[2.35rem] -translate-y-1/2 text-fg-muted" aria-hidden="true" />
+            <ICONOS.buscar size={17} className="pointer-events-none absolute left-3 top-[2.35rem] -translate-y-1/2 text-fg-muted" aria-hidden="true" />
             <input id="buscar-insumo" type="search" placeholder="Buscar por nombre…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="input pl-9" aria-label="Buscar insumo por nombre" />
           </div>
           <span className="mb-2 text-sm text-fg-muted" aria-live="polite">{insumosFiltrados.length} encontrados</span>
@@ -634,22 +610,14 @@ function PestanaUnidades({ onTotal }) {
             alinear: 'right',
             render: (fila) => (
               <div className="flex items-center gap-1 justify-end">
-                <button
-                  type="button"
-                  className="btn-ghost !p-1.5 min-h-8"
-                  title="Editar unidad"
-                  onClick={() => abrirEditar(fila)}
-                >
-                  <Pencil size={15} />
-                </button>
-                <button
-                  type="button"
-                  className="btn-ghost !p-1.5 min-h-8 text-danger"
-                  title={fila.activo === false ? 'Reactivar unidad' : 'Desactivar unidad'}
+                <BotonIcono icono={ICONOS.editar} etiqueta={`Editar unidad ${fila.nombre}`} titulo="Editar unidad" onClick={() => abrirEditar(fila)} />
+                <BotonIcono
+                  icono={fila.activo === false ? ICONOS.activar : ICONOS.desactivar}
+                  tono={fila.activo === false ? 'exito' : 'aviso'}
+                  etiqueta={`${fila.activo === false ? 'Reactivar' : 'Desactivar'} unidad ${fila.nombre}`}
+                  titulo={fila.activo === false ? 'Reactivar unidad' : 'Desactivar unidad'}
                   onClick={() => fila.activo === false ? reactivar(fila) : handleDesactivar(fila)}
-                >
-                  {fila.activo === false ? <Power size={15} /> : <PowerOff size={15} />}
-                </button>
+                />
               </div>
             ),
           },

@@ -21,6 +21,7 @@ import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import Metrica from '../../components/display/Metrica.jsx';
 import Pestanas from '../../components/navigation/Pestanas.jsx';
 import { Button, Card, Select, Table } from '../../components/ui/index.js';
+import { ICONOS } from '../../config/iconos.js';
 
 function fechaLocal(fecha = new Date()) {
   const anio = fecha.getFullYear();
@@ -404,11 +405,11 @@ export default function ReportesPage() {
         <form className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1.2fr_auto] xl:items-end" onSubmit={(evento) => { evento.preventDefault(); cargar({ desde, hasta, idSucursal }); }}>
           <label className="block text-sm font-medium">
             Desde
-            <input className="input mt-1.5" type="date" value={desde} max={hasta || undefined} onChange={(evento) => setDesde(evento.target.value)} required />
+            <input className="input mt-1.5 h-10 py-0" type="date" value={desde} max={hasta || undefined} onChange={(evento) => setDesde(evento.target.value)} required />
           </label>
           <label className="block text-sm font-medium">
             Hasta
-            <input className="input mt-1.5" type="date" value={hasta} min={desde || undefined} max={HOY} onChange={(evento) => setHasta(evento.target.value)} required />
+            <input className="input mt-1.5 h-10 py-0" type="date" value={hasta} min={desde || undefined} max={HOY} onChange={(evento) => setHasta(evento.target.value)} required />
           </label>
           <Select
             etiqueta="Sucursal"
@@ -417,7 +418,7 @@ export default function ReportesPage() {
             placeholder="Todas mis sucursales"
             opciones={sucursales.map((sucursal) => ({ valor: String(sucursal.id_sucursal), texto: sucursal.nombre }))}
           />
-          <Button type="submit" cargando={cargando}>Aplicar filtros</Button>
+          <Button type="submit" className="h-10" icono={ICONOS.buscar} cargando={cargando}>Aplicar filtros</Button>
         </form>
         <p className="mt-3 text-xs text-fg-muted">Máximo 366 días por consulta. Los resultados se limitan a las sucursales que tienes asignadas.</p>
       </Card>
