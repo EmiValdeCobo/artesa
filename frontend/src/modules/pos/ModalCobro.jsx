@@ -29,6 +29,24 @@ const aCentavos  = (n) => Math.round((Number(n) || 0) * 100);
 const desCentavos = (c) => (c / 100).toFixed(2);
 const fmtStr      = (n) => (Number(n) || 0).toFixed(2);
 
+// Utilidad para limpiar y formatear entradas numéricas de dinero automáticamente con ceros (ej: "5" -> "0.05" o manejado como centavos)
+const formatearEntradaDinero = (valorRaw) => {
+  const limpio = String(valorRaw ?? '').replace(/[^\d]/g, '');
+  if (!limpio) return '';
+  const centavos = parseInt(limpio, 10);
+  return (centavos / 100).toFixed(2);
+};
+
+// Utilidad para limpiar y validar porcentaje (0 a 100)
+const formatearEntradaPorcentaje = (valorRaw) => {
+  const limpio = String(valorRaw ?? '').replace(/[^\d.]/g, '');
+  if (limpio === '' || limpio === '.') return '';
+  const num = parseFloat(limpio);
+  if (isNaN(num)) return '';
+  if (num > 100) return '100';
+  return limpio;
+};
+
 const pagoVacio = () => ({ metodo: 'EFECTIVO', monto: '', monto_recibido: '', referencia: '' });
 
 // ── Componente ModalCobro ─────────────────────────────────────────────────────
@@ -43,7 +61,7 @@ export default function ModalCobro({
   onVentaExitosa,
 }) {
   const [pagos, setPagos]               = useState([pagoVacio()]);
-  const [descuento, setDescuento]       = useState(descuentoGlobal);
+  const [porcentajeDesc, setPorcentajeDesc] = useState(''); // Descuento por porcentaje (ej: '10' para 10%)
   const [enviando, setEnviando]         = useState(false);
   const [errorEnvio, setErrorEnvio]     = useState(null);
   const primerInputRef = useRef(null);
@@ -52,19 +70,22 @@ export default function ModalCobro({
   useEffect(() => {
     if (abierto) {
       const { total: totalBruto } = calcularTotales(items);
-      const descCent = aCentavos(descuentoGlobal);
-      const totCent = Math.max(aCentavos(totalBruto) - descCent, 0);
-      const inicial = desCentavos(totCent);
+      const inicial = fmtStr(totalBruto);
       setPagos([{ metodo: 'EFECTIVO', monto: inicial, monto_recibido: inicial, referencia: '' }]);
-      setDescuento(descuentoGlobal);
+      setPorcentajeDesc('');
       setEnviando(false);
       setErrorEnvio(null);
     }
-  }, [abierto, items, descuentoGlobal]);
+  }, [abierto, items]);
 
   // ── Cálculos derivados (totales, faltante, vuelto) ───────────────────────
   const { subtotal, iva, total: totalBruto } = calcularTotales(items);
-  const descuentoCentavos = aCentavos(descuento);
+  
+  // Cálculo del descuento monetario basado en el porcentaje ingresado sobre el subtotal (o total bruto)
+  const descPorcentajeNum = Number(porcentajeDesc) || 0;
+  const descuentoCentavos = Math.round(aCentavos(subtotal) * (descPorcentajeNum / 100));
+  const descuentoEfectivoStr = desCentavos(descuentoCentavos);
+
   const totalCentavos     = Math.max(aCentavos(totalBruto) - descuentoCentavos, 0);
   const totalFinal        = desCentavos(totalCentavos);
 
@@ -78,8 +99,8 @@ export default function ModalCobro({
 
   // Vuelto: solo si hay EFECTIVO y el monto_recibido supera el monto del pago en efectivo
   const vueltoCentavos = useMemo(() => {
-    let totalRecibido = 0;
     let totalMontoEfectivo = 0;
+    let totalRecibido = 0;
     for (const p of pagos) {
       if (p.metodo === 'EFECTIVO') {
         totalMontoEfectivo += aCentavos(p.monto);
@@ -95,9 +116,15 @@ export default function ModalCobro({
     && sumaPagosCentavos === totalCentavos
     && !enviando;
 
-  // ── Mutadores de pagos ───────────────────────────────────────────────────
+  // ── Mutadores de pagos con formateo automático de ceros ───────────────────
   const actualizarPago = useCallback((idx, campo, valor) => {
-    setPagos((prev) => prev.map((p, i) => (i === idx ? { ...p, [campo]: valor } : p)));
+    setPagos((prev) => prev.map((p, i) => {
+      if (i !== idx) return p;
+      if (campo === 'monto' || campo === 'monto_recibido') {
+        return { ...p, [campo]: formatearEntradaDinero(valor) };
+      }
+      return { ...p, [campo]: valor };
+    }));
   }, []);
 
   const agregarPago = () => {
@@ -126,7 +153,6 @@ export default function ModalCobro({
 
   const aplicarBillete = (idx, billete) => {
     if (billete.multiplicador === null) {
-      // "Exacto": pone el monto_recibido igual al monto
       const monto = pagos[idx].monto || desCentavos(totalCentavos);
       actualizarPago(idx, 'monto_recibido', monto);
       if (!pagos[idx].monto) actualizarPago(idx, 'monto', monto);
@@ -144,7 +170,7 @@ export default function ModalCobro({
         id_turno: turnoActivo.id_turno,
         tipo_comprobante: tipoDocumento === 'CCF' ? 'CCF' : 'FCF',
         id_cliente: clienteSeleccionado?.id_cliente ?? null,
-        descuento: fmtStr(descuento),
+        descuento: descuentoEfectivoStr,
         items: items.map((i) => ({
           id_producto: i.id_producto,
           cantidad: i.cantidad,
@@ -191,20 +217,29 @@ export default function ModalCobro({
               <dt className="text-fg-muted">IVA ({IVA * 100}%)</dt>
               <dd className="tabular-nums">{formatoMoneda(iva)}</dd>
             </div>
+            
+            {/* Descuento por porcentaje */}
             <div className="flex items-center justify-between gap-2">
-              <dt className="text-fg-muted">Descuento</dt>
-              <dd>
+              <dt className="text-fg-muted flex items-center gap-1">
+                Descuento (%)
+                {descuentoCentavos > 0 && (
+                  <span className="text-xs text-success">(-{formatoMoneda(Number(descuentoEfectivoStr))})</span>
+                )}
+              </dt>
+              <dd className="flex items-center gap-1">
                 <input
                   type="text"
                   inputMode="decimal"
-                  className="input w-24 text-right text-sm !py-1"
-                  value={descuento}
-                  onChange={(e) => setDescuento(e.target.value)}
-                  placeholder="0.00"
-                  aria-label="Descuento"
+                  className="input w-20 text-right text-sm !py-1"
+                  value={porcentajeDesc}
+                  onChange={(e) => setPorcentajeDesc(formatearEntradaPorcentaje(e.target.value))}
+                  placeholder="0"
+                  aria-label="Porcentaje de descuento"
                 />
+                <span className="text-xs text-fg-muted">%</span>
               </dd>
             </div>
+
             <div className="flex justify-between border-t border-line pt-2 text-base font-bold">
               <dt>Total a cobrar</dt>
               <dd className="tabular-nums">{formatoMoneda(Number(totalFinal))}</dd>
@@ -239,7 +274,7 @@ export default function ModalCobro({
                     ))}
                   </select>
 
-                  {/* Monto */}
+                  {/* Monto (con autocompletado de ceros) */}
                   <input
                     ref={idx === 0 ? primerInputRef : undefined}
                     type="text"
@@ -372,4 +407,3 @@ export default function ModalCobro({
     </Dialogo>
   );
 }
-

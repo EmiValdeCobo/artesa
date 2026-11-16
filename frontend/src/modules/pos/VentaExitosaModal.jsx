@@ -1,4 +1,4 @@
-import { CheckCircle2, Printer, PlusCircle } from 'lucide-react';
+import { CheckCircle2, Printer, PlusCircle, X } from 'lucide-react';
 import Dialogo from '../../components/Dialogo.jsx';
 import { Button } from '../../components/ui/index.js';
 import { formatoMoneda } from './impuestos.js';
@@ -15,7 +15,19 @@ export default function VentaExitosaModal({
 
   return (
     <Dialogo onCerrar={onNuevaVenta} tamano="sm" labelledBy="titulo-exito">
-      <div className="p-6 text-center">
+      {/* Botón de salida en la esquina superior derecha */}
+      <div className="flex justify-end px-4 pt-3">
+        <button
+          type="button"
+          onClick={onNuevaVenta}
+          className="rounded-lg p-1.5 text-fg-muted transition-colors hover:bg-muted hover:text-fg"
+          aria-label="Cerrar modal"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      <div className="px-6 pb-6 pt-2 text-center">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success-soft text-success">
           <CheckCircle2 size={36} />
         </div>
@@ -71,4 +83,3 @@ export default function VentaExitosaModal({
     </Dialogo>
   );
 }
-

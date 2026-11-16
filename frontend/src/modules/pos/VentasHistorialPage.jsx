@@ -3,217 +3,13 @@ import { Eye, Printer, RefreshCw, X, ChevronLeft, ChevronRight, Search } from 'l
 import Dialogo from '../../components/Dialogo.jsx';
 import { Button } from '../../components/ui/index.js';
 import { listarVentas, obtenerDetalleVenta } from './posApi.js';
-
-function escaparHtml(texto) {
-  return String(texto ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-function abrirVentanaImpresion(venta) {
-  const ancho = 780;
-  const alto = 680;
-  const left = Math.max(0, Math.round((window.screen.width - ancho) / 2));
-  const top = Math.max(0, Math.round((window.screen.height - alto) / 2));
-
-  const ventana = window.open(
-    '',
-    '_blank',
-    `width=${ancho},height=${alto},left=${left},top=${top},scrollbars=yes,resizable=yes`,
-  );
-  if (!ventana) return;
-
-  const fecha = venta.fecha_emision
-    ? new Date(venta.fecha_emision).toLocaleString('es-SV')
-    : new Date().toLocaleString('es-SV');
-
-  const detalles = venta.detalles ?? [];
-  const pagos = venta.pagos ?? [];
-
-  // Cálculo dinámico de altura en mm para que Chrome recorte la página al tamaño del ticket
-  const alturaBaseMm = 115; // Cabecera, datos DTE, totales y pie
-  const alturaItemsMm = detalles.reduce((acc, d) => acc + (d.nota ? 10 : 6), 0);
-  const alturaPagosMm = pagos.length > 0 ? 10 + pagos.length * 5 : 0;
-  const alturaExtraClienteMm =
-    (venta.nrc ? 5 : 0) +
-    (venta.giro_economico ? 6 : 0) +
-    (venta.cliente_direccion ? 7 : 0);
-
-  const alturaTotalMm = Math.max(
-    130,
-    Math.ceil(alturaBaseMm + alturaItemsMm + alturaPagosMm + alturaExtraClienteMm),
-  );
-
-  const filasItems = detalles
-    .map(
-      (d) => `
-        <tr>
-          <td style="padding:3px 0; vertical-align:top;">
-            ${escaparHtml(d.cantidad)}x ${escaparHtml(d.nombre_producto)}
-            ${d.nota ? `<div style="font-size:10px;color:#555;">(${escaparHtml(d.nota)})</div>` : ''}
-          </td>
-          <td style="padding:3px 0; text-align:right; vertical-align:top; white-space:nowrap;">
-            $${escaparHtml(d.subtotal_linea)}
-          </td>
-        </tr>`,
-    )
-    .join('');
-
-  const filasPagos = pagos
-    .map(
-      (p) => `
-        <div style="display:flex;justify-content:space-between;font-size:11px;margin:2px 0;">
-          <span>${escaparHtml(p.metodo)}</span>
-          <span>$${escaparHtml(p.monto)}</span>
-        </div>`,
-    )
-    .join('');
-
-  ventana.document.write(`
-    <!doctype html>
-    <html lang="es">
-      <head>
-        <meta charset="utf-8" />
-        <title>${escaparHtml(venta.tipo_comprobante)} #${escaparHtml(venta.correlativo)}</title>
-        <style>
-          @page {
-            size: 80mm ${alturaTotalMm}mm;
-            margin: 0mm;
-          }
-          * { box-sizing: border-box; }
-          body {
-            font-family: 'Courier New', Courier, monospace;
-            margin: 0;
-            padding: 16px;
-            background: #f3f4f6;
-            color: #111;
-            font-size: 11.5px;
-            line-height: 1.3;
-          }
-          .ticket {
-            width: 80mm;
-            margin: 0 auto;
-            background: #fff;
-            padding: 3mm 4mm;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
-          }
-        @media print {
-            @page {
-              size: 80mm ${alturaTotalMm}mm;
-              margin: 0;
-            }
-            html, body {
-              width: 80mm;
-              height: ${alturaTotalMm}mm;
-              margin: 0 !important;
-              padding: 0 !important;
-              background: #fff;
-            }
-            .ticket {
-              width: 80mm;
-              margin: 0 !important;
-              padding: 3mm 4mm;
-              box-shadow: none;
-            }
-          }
-          .centro { text-align: center; }
-          .linea { border-top: 1px dashed #333; margin: 6px 0; }
-          table { width: 100%; border-collapse: collapse; font-size: 11px; }
-          .totales div { display: flex; justify-content: space-between; font-size: 11px; margin: 2px 0; }
-          .total-final { font-size: 13.5px !important; font-weight: bold; margin-top: 4px !important; }
-        </style>
-      </head>
-      <body>
-        <div class="ticket">
-          <div class="centro">
-            <div style="font-weight:bold;font-size:15px;">ARTESA</div>
-            <div style="font-size:10.5px;">Cafetería &amp; Panadería Artesanal</div>
-            ${venta.sucursal_nombre ? `<div style="font-size:10.5px;font-weight:bold;margin-top:2px;">Sucursal: ${escaparHtml(venta.sucursal_nombre)}</div>` : ''}
-            ${venta.sucursal_direccion ? `<div style="font-size:9.5px;">${escaparHtml(venta.sucursal_direccion)}${venta.sucursal_departamento ? `, ${escaparHtml(venta.sucursal_departamento)}` : ''}</div>` : ''}
-            ${venta.sucursal_telefono ? `<div style="font-size:9.5px;">Tel: ${escaparHtml(venta.sucursal_telefono)}</div>` : ''}
-            <div style="font-size:11px;margin-top:5px;font-weight:bold;">
-              ${venta.tipo_comprobante === 'CCF' ? 'COMPROBANTE DE CRÉDITO FISCAL' : 'FACTURA CONSUMIDOR FINAL'}
-            </div>
-            <div style="font-size:12px;font-weight:bold;">
-              ${escaparHtml(venta.tipo_comprobante)} #${escaparHtml(venta.correlativo)}
-            </div>
-          </div>
-
-          <div class="linea"></div>
-
-          <div style="font-size:10.5px;">
-            <div><strong>Fecha:</strong> ${escaparHtml(fecha)}</div>
-            <div><strong>Generado por:</strong> ${escaparHtml(venta.cajero_username || 'Cajero POS')}</div>
-            <div><strong>Cliente:</strong> ${escaparHtml(venta.cliente_nombre || 'Consumidor Final')}</div>
-            ${venta.cliente_num_documento ? `<div><strong>${escaparHtml(venta.cliente_tipo_documento || 'Doc')}:</strong> ${escaparHtml(venta.cliente_num_documento)}</div>` : ''}
-            ${venta.nrc ? `<div><strong>NRC:</strong> ${escaparHtml(venta.nrc)}</div>` : ''}
-            ${venta.giro_economico ? `<div><strong>Giro:</strong> ${escaparHtml(venta.giro_economico)}</div>` : ''}
-            ${venta.cliente_direccion ? `<div><strong>Dirección cliente:</strong> ${escaparHtml(venta.cliente_direccion)}</div>` : ''}
-            ${venta.numero_control ? `<div style="word-break:break-all;"><strong>No. Control DTE:</strong> ${escaparHtml(venta.numero_control)}</div>` : ''}
-            ${venta.codigo_generacion ? `<div style="word-break:break-all;"><strong>Cód. Generación:</strong> ${escaparHtml(venta.codigo_generacion)}</div>` : ''}
-          </div>
-
-          <div class="linea"></div>
-
-          <table>
-            <thead>
-              <tr style="border-bottom:1px solid #333;">
-                <th style="text-align:left;padding-bottom:3px;">Descripción</th>
-                <th style="text-align:right;padding-bottom:3px;">Importe</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${filasItems || '<tr><td colspan="2">Sin detalle</td></tr>'}
-            </tbody>
-          </table>
-
-          <div class="linea"></div>
-
-          <div class="totales">
-            <div><span>Subtotal:</span><span>$${escaparHtml(venta.subtotal ?? '0.00')}</span></div>
-            <div><span>Descuento:</span><span>-$${escaparHtml(venta.descuento ?? '0.00')}</span></div>
-            <div><span>IVA (13%):</span><span>$${escaparHtml(venta.iva ?? '0.00')}</span></div>
-            <div class="total-final"><span>TOTAL:</span><span>$${escaparHtml(venta.total ?? '0.00')}</span></div>
-          </div>
-
-          ${
-            filasPagos
-              ? `<div class="linea"></div>
-                 <div style="font-size:10.5px;font-weight:bold;margin-bottom:2px;">Formas de pago</div>
-                 ${filasPagos}`
-              : ''
-          }
-
-          <div class="linea"></div>
-          <div class="centro" style="font-size:10px;">
-            <div>Reimpresión de comprobante</div>
-            <div>¡Gracias por su preferencia!</div>
-          </div>
-        </div>
-
-        <script>
-          window.onload = function () {
-            window.focus();
-            setTimeout(function () {
-              window.print();
-            }, 150);
-          };
-          window.onafterprint = function () {
-            window.close();
-          };
-        </script>
-      </body>
-    </html>
-  `);
-  ventana.document.close();
-}
+import { abrirVentanaImpresion } from './imprimirTicket.js';
 
 export default function VentasHistorialPage() {
   const [ventas, setVentas] = useState([]);
   const [busqueda, setBusqueda] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState('');
+  const [sucursalFiltro, setSucursalFiltro] = useState('');
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
 
@@ -230,6 +26,7 @@ export default function VentasHistorialPage() {
     setCargando(true);
     setError('');
     try {
+      // Si la API soporta filtrar por sucursal en backend, puedes pasar { estado: estadoFiltro, id_sucursal: sucursalFiltro }
       const lista = await listarVentas({ estado: estadoFiltro });
       setVentas(Array.isArray(lista) ? lista : []);
       setPaginaActual(1);
@@ -244,22 +41,41 @@ export default function VentasHistorialPage() {
     cargarVentas();
   }, [cargarVentas]);
 
-  // Filtrado por buscador (correlativo, tipo FCF/CCF o cliente)
+  // Obtener lista única de sucursales presentes en las ventas para poblar el select dinámicamente
+  const sucursalesDisponibles = useMemo(() => {
+    const mapa = new Map();
+    ventas.forEach((v) => {
+      if (v.id_sucursal && v.sucursal_nombre) {
+        mapa.set(String(v.id_sucursal), v.sucursal_nombre);
+      }
+    });
+    return Array.from(mapa.entries()).map(([id, nombre]) => ({ id, nombre }));
+  }, [ventas]);
+
+  // Filtrado por buscador (correlativo, tipo FCF/CCF, cliente) y por sucursal
   const ventasFiltradas = useMemo(() => {
     const termino = busqueda.trim().toLowerCase();
-    if (!termino) return ventas;
 
     return ventas.filter((v) => {
+      // Filtro por sucursal
+      if (sucursalFiltro && String(v.id_sucursal ?? '') !== sucursalFiltro) {
+        return false;
+      }
+
+      // Filtro por término de búsqueda
+      if (!termino) return true;
+
       const correlativoStr = String(v.correlativo ?? '');
       const comprobanteCompleto = `${v.tipo_comprobante} #${correlativoStr}`.toLowerCase();
       const clienteStr = (v.cliente_nombre || 'consumidor final').toLowerCase();
+      
       return (
         correlativoStr.includes(termino) ||
         comprobanteCompleto.includes(termino) ||
         clienteStr.includes(termino)
       );
     });
-  }, [ventas, busqueda]);
+  }, [ventas, busqueda, sucursalFiltro]);
 
   // Cálculo de páginas sobre el resultado filtrado
   const totalPaginas = Math.max(1, Math.ceil(ventasFiltradas.length / porPagina));
@@ -297,7 +113,7 @@ export default function VentasHistorialPage() {
 
   const imprimirComprobante = async (venta) => {
     if (venta?.detalles && venta?.pagos) {
-      abrirVentanaImpresion(venta);
+      abrirVentanaImpresion(venta, { esReimpresion: true });
       return;
     }
 
@@ -305,7 +121,7 @@ export default function VentasHistorialPage() {
     setError('');
     try {
       const data = await obtenerDetalleVenta(venta.id_venta);
-      abrirVentanaImpresion(data);
+      abrirVentanaImpresion(data, { esReimpresion: true });
     } catch (err) {
       setError(err.message || 'No se pudo preparar la impresión de la factura');
     } finally {
@@ -356,16 +172,35 @@ export default function VentasHistorialPage() {
           />
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {/* Filtro por Sucursal */}
+          <select
+            value={sucursalFiltro}
+            onChange={(e) => {
+              setSucursalFiltro(e.target.value);
+              setPaginaActual(1);
+            }}
+            aria-label="Filtrar por sucursal"
+            className="input w-auto text-sm"
+          >
+            <option value="">Todas las sucursales</option>
+            {sucursalesDisponibles.map((suc) => (
+              <option key={suc.id} value={suc.id}>
+                {suc.nombre}
+              </option>
+            ))}
+          </select>
+
           <select
             value={estadoFiltro}
             onChange={(e) => setEstadoFiltro(e.target.value)}
-            className="input w-auto"
+            className="input w-auto text-sm"
           >
             <option value="">Todos los estados</option>
             <option value="EMITIDA">Emitidas</option>
             <option value="ANULADA">Anuladas</option>
           </select>
+
           <select
             value={porPagina}
             onChange={(e) => {
@@ -373,7 +208,7 @@ export default function VentasHistorialPage() {
               setPaginaActual(1);
             }}
             aria-label="Registros por página"
-            className="input w-auto"
+            className="input w-auto text-sm"
           >
             <option value={10}>10 por página</option>
             <option value={20}>20 por página</option>
@@ -395,6 +230,7 @@ export default function VentasHistorialPage() {
             <thead className="border-b border-line bg-muted text-xs font-semibold uppercase tracking-wider text-fg-muted">
               <tr>
                 <th className="px-4 py-3">Comprobante</th>
+                <th className="px-4 py-3">Sucursal</th>
                 <th className="px-4 py-3">Fecha y hora</th>
                 <th className="px-4 py-3">Cliente</th>
                 <th className="px-4 py-3 text-right">Total</th>
@@ -405,13 +241,13 @@ export default function VentasHistorialPage() {
             <tbody className="divide-y divide-line">
               {cargando ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-fg-muted">
+                  <td colSpan={7} className="px-4 py-8 text-center text-fg-muted">
                     Cargando ventas...
                   </td>
                 </tr>
               ) : ventasPaginadas.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-fg-muted">
+                  <td colSpan={7} className="px-4 py-8 text-center text-fg-muted">
                     No se encontraron ventas con los criterios actuales.
                   </td>
                 </tr>
@@ -422,6 +258,9 @@ export default function VentasHistorialPage() {
                     <tr key={v.id_venta} className="transition-colors hover:bg-muted/50">
                       <td className="px-4 py-3 font-mono font-semibold text-fg">
                         {v.tipo_comprobante} #{v.correlativo}
+                      </td>
+                      <td className="px-4 py-3 text-fg-muted">
+                        {v.sucursal_nombre || '—'}
                       </td>
                       <td className="px-4 py-3 text-fg-muted">
                         {new Date(v.fecha_emision).toLocaleString('es-SV')}
@@ -603,7 +442,7 @@ export default function VentasHistorialPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-fg-muted">Sin pagos registrados.</p>
+                  <p className="px-3.5 py-2.5 text-xs text-fg-muted">Sin pagos registrados.</p>
                 )}
               </div>
 
