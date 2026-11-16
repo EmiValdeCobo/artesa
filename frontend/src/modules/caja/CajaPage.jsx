@@ -53,6 +53,7 @@ export default function CajaPage() {
   const puedeAbrir = tiene('CAJA_ABRIR_TURNO');
   const puedeMover = tiene('CAJA_MOVIMIENTOS');
   const puedeCerrar = tiene('CAJA_CERRAR_TURNO');
+  const puedeCerrarCualquiera = tiene('CAJA_CERRAR_CUALQUIER_TURNO');
   const puedeVerCuadres = tiene('CAJA_VER_CUADRES');
 
   // Estados generales de la pantalla
@@ -84,6 +85,7 @@ export default function CajaPage() {
 
   // Cierre de turno y arqueo
   const [mostrarCierre, setMostrarCierre] = useState(false);
+  const [turnoParaCierre, setTurnoParaCierre] = useState(null);
   const [formCierre, setFormCierre] = useState({ efectivo: '0.00', tarjeta: '0.00', digital: '0.00' });
   const [guardandoCierre, setGuardandoCierre] = useState(false);
   const [errorCierre, setErrorCierre] = useState(null);
@@ -274,8 +276,9 @@ export default function CajaPage() {
   };
 
   // ─── Cierre de turno y arqueo ───────────────────────────────────────────────
-  const abrirModalCierre = () => {
+  const abrirModalCierre = (turnoObjetivo = null) => {
     setErrorCierre(null);
+    setTurnoParaCierre(turnoObjetivo || turno);
     // Pre-llenamos con 0.00
     setFormCierre({ efectivo: '0.00', tarjeta: '0.00', digital: '0.00' });
     setMostrarCierre(true);
@@ -285,7 +288,8 @@ export default function CajaPage() {
     e.preventDefault();
     setErrorCierre(null);
 
-    if (!turno?.id_turno) return;
+    const turnoActivoACerrar = turnoParaCierre || turno;
+    if (!turnoActivoACerrar?.id_turno) return;
 
     const efectivoLimpio = formCierre.efectivo.trim();
     const tarjetaLimpia = formCierre.tarjeta.trim();
@@ -318,7 +322,7 @@ export default function CajaPage() {
 
     setGuardandoCierre(true);
     try {
-      const resultadoCuadre = await cajaApi.cerrarTurno(turno.id_turno, {
+      const resultadoCuadre = await cajaApi.cerrarTurno(turnoActivoACerrar.id_turno, {
         efectivo: efectivoLimpio,
         tarjeta: tarjetaLimpia,
         digital: digitalLimpio,
@@ -328,8 +332,11 @@ export default function CajaPage() {
       setMostrarCierre(false);
       setCuadreDetalle(resultadoCuadre);
       setMostrarCuadre(true);
-      setTurno(null);
-      setMovimientos([]);
+      if (turno?.id_turno === turnoActivoACerrar.id_turno) {
+        setTurno(null);
+        setMovimientos([]);
+      }
+      setTurnoParaCierre(null);
       if (puedeVerCuadres) {
         cargarCuadresHistorial();
       }
@@ -468,18 +475,34 @@ export default function CajaPage() {
       clave: 'acciones',
       titulo: 'Acciones',
       alinear: 'right',
-      render: (c) => (
-        <Button
-          variante="ghost"
-          onClick={() => verDetalleCuadre(c.id_turno)}
-          className="!px-2.5 !py-1 text-xs"
-          icono={Eye}
-        >
-          Ver cuadre
-        </Button>
-      ),
+      render: (c) => {
+        const esAbierto = c.estado === 'ABIERTO';
+        const puedeCerrarEste = esAbierto && (puedeCerrarCualquiera || (puedeCerrar && (c.id_usuario === usuario?.id || c.cajero === usuario?.username)));
+        return (
+          <div className="flex items-center justify-end gap-1.5">
+            {puedeCerrarEste && (
+              <Button
+                variante="danger"
+                onClick={() => abrirModalCierre(c)}
+                className="!px-2.5 !py-1 text-xs"
+                icono={Lock}
+              >
+                Cerrar turno
+              </Button>
+            )}
+            <Button
+              variante="ghost"
+              onClick={() => verDetalleCuadre(c.id_turno)}
+              className="!px-2.5 !py-1 text-xs"
+              icono={Eye}
+            >
+              Ver cuadre
+            </Button>
+          </div>
+        );
+      },
     },
-  ], [verDetalleCuadre]);
+  ], [verDetalleCuadre, puedeCerrarCualquiera, puedeCerrar, usuario]);
 
   // ─── Render principal ────────────────────────────────────────────────────────
   if (cargando) {
@@ -1038,7 +1061,10 @@ export default function CajaPage() {
       {/* ─── MODAL: CIERRE DE TURNO Y ARQUEO ──────────────────────────────────── */}
       {mostrarCierre && (
         <Dialogo
-          onCerrar={() => setMostrarCierre(false)}
+          onCerrar={() => {
+            setMostrarCierre(false);
+            setTurnoParaCierre(null);
+          }}
           tamano="md"
           labelledBy="cierre-titulo"
           describedBy="cierre-descripcion"
@@ -1046,7 +1072,8 @@ export default function CajaPage() {
           <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-danger">
-                Finalización de turno · {turno?.caja}
+                Finalización de turno · {(turnoParaCierre || turno)?.caja}
+                {(turnoParaCierre || turno)?.cajero ? ` (${(turnoParaCierre || turno)?.cajero})` : ''}
               </p>
               <h2 id="cierre-titulo" className="mt-1 text-xl font-semibold">
                 Arqueo y cierre de caja
@@ -1057,7 +1084,10 @@ export default function CajaPage() {
             </div>
             <button
               type="button"
-              onClick={() => setMostrarCierre(false)}
+              onClick={() => {
+                setMostrarCierre(false);
+                setTurnoParaCierre(null);
+              }}
               className="rounded-md p-1.5 text-fg-muted hover:bg-muted hover:text-fg"
               aria-label="Cerrar modal"
             >
@@ -1076,15 +1106,15 @@ export default function CajaPage() {
               <p className="font-semibold text-fg">Referencia del sistema:</p>
               <div className="flex justify-between">
                 <span>Efectivo esperado en gaveta:</span>
-                <span className="font-bold text-fg">{formatoDinero(turno?.esperado_efectivo)}</span>
+                <span className="font-bold text-fg">{formatoDinero((turnoParaCierre || turno)?.esperado_efectivo)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Vouchers de tarjeta registrados:</span>
-                <span className="font-medium text-fg">{formatoDinero(turno?.ventas_tarjeta)}</span>
+                <span className="font-medium text-fg">{formatoDinero((turnoParaCierre || turno)?.ventas_tarjeta)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Pagos digitales registrados:</span>
-                <span className="font-medium text-fg">{formatoDinero(turno?.ventas_digital)}</span>
+                <span className="font-medium text-fg">{formatoDinero((turnoParaCierre || turno)?.ventas_digital)}</span>
               </div>
             </div>
 
