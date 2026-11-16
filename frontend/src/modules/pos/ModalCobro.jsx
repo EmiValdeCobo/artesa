@@ -74,6 +74,7 @@ export default function ModalCobro({
   );
 
   const faltanteCentavos = Math.max(totalCentavos - sumaPagosCentavos, 0);
+  const sobranteCentavos = Math.max(sumaPagosCentavos - totalCentavos, 0);
 
   // Vuelto: solo si hay EFECTIVO y el monto_recibido supera el monto del pago en efectivo
   const vueltoCentavos = useMemo(() => {
@@ -90,7 +91,8 @@ export default function ModalCobro({
 
   const puedeConfirmar = items.length > 0
     && faltanteCentavos === 0
-    && sumaPagosCentavos >= totalCentavos
+    && sobranteCentavos === 0
+    && sumaPagosCentavos === totalCentavos
     && !enviando;
 
   // ── Mutadores de pagos ───────────────────────────────────────────────────
@@ -98,7 +100,18 @@ export default function ModalCobro({
     setPagos((prev) => prev.map((p, i) => (i === idx ? { ...p, [campo]: valor } : p)));
   }, []);
 
-  const agregarPago = () => setPagos((prev) => [...prev, pagoVacio()]);
+  const agregarPago = () => {
+    const restante = Math.max(totalCentavos - sumaPagosCentavos, 0);
+    setPagos((prev) => [
+      ...prev,
+      {
+        metodo: 'TARJETA',
+        monto: restante > 0 ? desCentavos(restante) : '',
+        monto_recibido: '',
+        referencia: '',
+      },
+    ]);
+  };
 
   const quitarPago = (idx) => setPagos((prev) => prev.filter((_, i) => i !== idx));
 
@@ -317,6 +330,13 @@ export default function ModalCobro({
                 <AlertCircle size={15} /> Falta por cubrir
               </span>
               <span className="font-bold tabular-nums">{formatoMoneda(Number(desCentavos(faltanteCentavos)))}</span>
+            </div>
+          ) : sobranteCentavos > 0 ? (
+            <div className="flex items-center justify-between text-danger">
+              <span className="flex items-center gap-1.5 font-medium">
+                <AlertCircle size={15} /> Montos exceden el total
+              </span>
+              <span className="font-bold tabular-nums">+{formatoMoneda(Number(desCentavos(sobranteCentavos)))}</span>
             </div>
           ) : (
             <div className="flex items-center justify-between text-success">
