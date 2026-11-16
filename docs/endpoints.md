@@ -77,11 +77,13 @@ Un token de cliente nunca alcanza el middleware de permisos de administración: 
 
 Caja: un solo turno `ABIERTO` por caja y por cajero (409; lo garantizan los índices únicos de la BD). Solo el cajero dueño del turno registra movimientos y solo en turnos abiertos; un `EGRESO` mayor al efectivo esperado devuelve 409. Los montos viajan como número o texto con máximo 2 decimales y se devuelven como string.
 
-Inventario: cada escritura se ejecuta con `withTransaction` y `app.user_id`; cambios de existencias y mermas llaman las funciones SQL existentes para serializar el stock y dejar kardex. Las consultas operativas filtran sucursales asignadas. El costo promedio requiere `INV_VER_COSTOS`; `costo_unitario` del Kárdex requiere conjuntamente `INV_VER_KARDEX` y `INV_VER_COSTOS`. `/api/inventario/movimientos` devuelve hasta 500 movimientos recientes después de aplicar el aislamiento por sucursal. El esquema inicial ya incluye 12 productos elaborados, 3 de reventa y sus recetas.
+Inventario: cada escritura se ejecuta con `withTransaction` y `app.user_id`; cambios de existencias y mermas llaman las funciones SQL existentes para serializar el stock y dejar kardex. Recetas, movimientos, mermas y stock mínimo aceptan cantidades enteras positivas únicamente; las cantidades decimales se rechazan en Zod antes de llegar a PostgreSQL. Las consultas operativas filtran sucursales asignadas. El costo promedio requiere `INV_VER_COSTOS`; `costo_unitario` del Kárdex requiere conjuntamente `INV_VER_KARDEX` y `INV_VER_COSTOS`. `/api/inventario/movimientos` devuelve hasta 500 movimientos recientes después de aplicar el aislamiento por sucursal. El esquema inicial ya incluye 12 productos elaborados, 3 de reventa y sus recetas.
 
 Proveedores: los bodies y filtros inválidos responden 400; la edición y desactivación de IDs inexistentes responden 404, y desactivar uno ya inactivo responde 409. El listado excluye `deleted_at` y devuelve activos e inactivos salvo filtro `activo`; no se impone unicidad a NRC/NIT porque la BD no la define. No hay endpoint de reactivación en T30; desactivar conserva filas y referencias de facturas. Las altas, ediciones y desactivaciones dejan bitácora cuando se aplica `008_compras_bitacora_proveedores.sql`. El listado de lectura también acepta `COM_REGISTRAR_COMPRA` para cargar el selector de facturas; la gestión mantiene `COM_GESTIONAR_PROVEEDORES`.
 
-Registro de factura de compra (T31/T33): `POST /api/compras` exige autenticación admin y `COM_REGISTRAR_COMPRA`. Los campos comunes son `idProveedor` e `idSucursal` enteros positivos, `numeroFactura` de hasta 50 caracteres, `fechaEmision` calendario `AAAA-MM-DD` y `condicionPago` `CONTADO` o `CREDITO`. Si se omite `tipoCosto`, se asume `COSTO`; COSTO requiere en cada detalle `idInsumo` entero positivo. GASTO exige `tipoCosto:"GASTO"`, una o más líneas con `descripcion` no vacía de hasta 150 caracteres y prohíbe `idInsumo`. En ambos tipos, `cantidad` es string decimal positiva (hasta 8 enteros y 4 decimales) y `costoUnitario` es string decimal no negativo (hasta 6 enteros y 6 decimales). La respuesta es HTTP 201 `{ "id_compra": "uuid" }`; los errores de validación son 400, falta de sesión 401, falta de permiso 403, referencias inexistentes 404, referencias inactivas 409 y factura duplicada 409. PostgreSQL calcula subtotal, IVA, total y vencimiento mediante `compras.fn_registrar_compra`.
+Registro de factura de compra (T31/T33): `POST /api/compras` exige autenticación admin y `COM_REGISTRAR_COMPRA`. Los campos comunes son `idProveedor` e `idSucursal` enteros positivos, `numeroFactura` de hasta 50 caracteres, `fechaEmision` calendario `AAAA-MM-DD` dentro de los últimos seis meses calendario y no futura, y `condicionPago` `CONTADO` o `CREDITO`. Si se omite `tipoCosto`, se asume `COSTO`; COSTO requiere en cada detalle `idInsumo` entero positivo. GASTO exige `tipoCosto:"GASTO"`, una o más líneas con `descripcion` no vacía de hasta 150 caracteres y prohíbe `idInsumo`. En ambos tipos, `cantidad` es string entero positivo de hasta 8 dígitos y `costoUnitario` es string decimal no negativo (hasta 6 enteros y 6 decimales); se rechaza la compra si todos los costos unitarios son cero. El total calculado por PostgreSQL debe ser mayor que cero. La respuesta es HTTP 201 `{ "id_compra": "uuid" }`; los errores de validación son 400, falta de sesión 401, falta de permiso 403, referencias inexistentes 404, referencias inactivas 409 y factura duplicada 409. PostgreSQL calcula subtotal, IVA, total y vencimiento mediante `compras.fn_registrar_compra`.
+
+Las facturas `CONTADO` registran, dentro de la misma transacción, un pago automático por el total de PostgreSQL con método `EFECTIVO`, fecha `CURRENT_DATE` y el usuario autenticado. El trigger de pagos actualiza el estado a `PAGADO`; si falla el pago o el total es cero, se revierte la factura completa. Las facturas `CREDITO` permanecen `PENDIENTE` y no generan pago automático.
 
 En GASTO se transforma cada detalle a `{id_insumo:null,descripcion,cantidad,costo_unitario}`. El trigger existente omite inventario cuando `id_insumo IS NULL`, por lo que no aumenta stock, no actualiza costo promedio ni genera Kardex. No se agregaron tablas, funciones, permisos, rutas de negocio, migraciones ni bitácora. Las facturas GASTO permanecen en `compras.facturas_compra` y son compatibles con los pagos T32. Para completar las vistas, la lectura del catálogo de insumos permite `COM_REGISTRAR_COMPRA`; la respuesta conserva el costo enmascarado si falta `INV_VER_COSTOS`.
 
@@ -92,7 +94,7 @@ Ejemplo de compra GASTO:
   "idProveedor": 1,
   "idSucursal": 1,
   "numeroFactura": "GAS-001",
-  "fechaEmision": "2026-11-13",
+  "fechaEmision": "2026-11-15",
   "condicionPago": "CONTADO",
   "tipoCosto": "GASTO",
   "items": [
@@ -108,18 +110,18 @@ Pagos a proveedores y consulta operativa (T32): `GET /api/compras/cuentas-por-pa
   "idProveedor": 1,
   "idSucursal": 1,
   "numeroFactura": "FAC-001-2026",
-  "fechaEmision": "2026-11-12",
+  "fechaEmision": "2026-11-15",
   "condicionPago": "CREDITO",
   "tipoCosto": "COSTO",
   "items": [
-    { "idInsumo": 3, "cantidad": "50.0000", "costoUnitario": "1.250000" }
+    { "idInsumo": 3, "cantidad": "50", "costoUnitario": "1.250000" }
   ]
 }
 ```
 
 Con éxito devuelve `201` y JSON directo `{ "id_compra": "<UUID>" }`. Devuelve `400` para validación o regla SQL, `401` sin sesión, `403` sin tipo admin o permiso, `404` si proveedor/sucursal/insumo no existe o está eliminado, `409` si una referencia está inactiva o el número de factura ya existe para ese proveedor. El service comprueba proveedor y sucursal dentro de la transacción; en COSTO también comprueba insumos activos/no eliminados. Para `CONTADO`, PostgreSQL fija el vencimiento a la fecha de emisión; para `CREDITO`, suma los días de crédito del proveedor. PostgreSQL calcula importes y vencimiento. El trigger de detalle actualiza costo promedio y stock/Kárdex solo para los detalles COSTO con insumo; en GASTO el insumo es `NULL` y el trigger retorna sin afectar inventario. Facturas y detalles no generan bitácora; pagos y CxP corresponden a T32.
 
-El body de alta y edición usa `razonSocial` (1–150 caracteres), `nrc` y `nit` (1–20), `contacto` (opcional, hasta 100), `telefono` (opcional, hasta 20) y `diasCredito` (entero >= 0). Ejemplo:
+El body de alta y edición usa `razonSocial` (1–150 caracteres), `nrc` con formato `123456-7`, `nit` tradicional con formato `0614-123456-123-1`, `contacto` (opcional, hasta 100), `telefono` (opcional y, si se envía, formato `2222-3333`) y `diasCredito` (entero >= 0). Los espacios externos se recortan; no se impone unicidad a NIT/NRC.
 
 ```json
 {
@@ -132,7 +134,7 @@ El body de alta y edición usa `razonSocial` (1–150 caracteres), `nrc` y `nit`
 }
 ```
 
-GET devuelve un arreglo de objetos con `id_proveedor`, `razon_social`, `nrc`, `nit`, `contacto`, `telefono`, `dias_credito`, `activo` y `modificado_en`; POST devuelve ese mismo objeto con HTTP 201 y PUT con HTTP 200. DELETE responde 204 sin cuerpo y solo cambia `activo`. No hay endpoint de reactivación. Errores: 400 para body, query o ID inválidos; 401 sin sesión; 403 sin tipo admin o permiso; 404 para proveedor inexistente o eliminado; 409 al desactivar uno ya inactivo. NRC/NIT duplicados se aceptan mientras el esquema no establezca restricciones.
+GET devuelve un arreglo de objetos con `id_proveedor`, `razon_social`, `nrc`, `nit`, `contacto`, `telefono`, `dias_credito`, `activo` y `modificado_en`; POST devuelve ese mismo objeto con HTTP 201 y PUT con HTTP 200. DELETE responde 204 sin cuerpo y solo cambia `activo`. No hay endpoint de reactivación. Errores: 400 para body, query o ID inválidos; 401 sin sesión; 403 sin tipo admin o permiso; 404 para proveedor inexistente o eliminado; 409 al desactivar uno ya inactivo. Se validan NRC `123456-7`, NIT tradicional `0614-123456-123-1` y, si se envía, teléfono `2222-3333`; NRC/NIT duplicados se aceptan mientras el esquema no establezca restricciones.
 
 Cierre de turno: solo el cajero dueño, una vez (409 si ya está cerrado). Llama a `pos.fn_cerrar_turno`; las diferencias son `contado - esperado` (negativo = FALTANTE). Reportes: sin fechas usan los últimos 30 días; rango máximo 366 días; cada usuario ve solo sus sucursales (el rol ADMIN ve todas). Preparación: el estado solo avanza ABIERTA → EN_PREPARACION → LISTA → ENTREGADA.
 

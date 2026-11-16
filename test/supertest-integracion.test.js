@@ -35,7 +35,7 @@ test('supertest: ruta parametrizada de stock procesa :id en lugar de param inexi
   const res = await request(app)
     .post('/api/inventario/insumos/10/movimientos')
     .set('Accept', 'application/json')
-    .send({ cantidad: '5.0000', tipo: 'AJUSTE', motivo: 'Conteo' });
+    .send({ cantidad: '5', tipo: 'AJUSTE', motivo: 'Conteo' });
 
   // Pasa por router y middlewares sin fallo 500 de referencia
   assert.notEqual(res.status, 500);

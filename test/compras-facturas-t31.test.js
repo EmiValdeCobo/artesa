@@ -8,15 +8,35 @@ const body = {
   idProveedor: 3,
   idSucursal: 1,
   numeroFactura: 'FAC-001-2026',
-  fechaEmision: '2026-11-12',
+  fechaEmision: fechaLocalHoy(),
   condicionPago: 'CREDITO',
-  items: [{ idInsumo: 8, cantidad: '50.0000', costoUnitario: '1.250000' }],
+  items: [{ idInsumo: 8, cantidad: '50', costoUnitario: '1.250000' }],
 };
+
+function fechaLocalHoy() {
+  const partes = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/El_Salvador', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date());
+  const valor = Object.fromEntries(partes.map(({ type, value }) => [type, value]));
+  return `${valor.year}-${valor.month}-${valor.day}`;
+}
+
+function sumarDias(fecha, dias) {
+  const [anio, mes, dia] = fecha.split('-').map(Number);
+  return new Date(Date.UTC(anio, mes - 1, dia + dias)).toISOString().slice(0, 10);
+}
+
+function restarSeisMeses(fecha) {
+  const [anio, mes, dia] = fecha.split('-').map(Number);
+  const limite = new Date(Date.UTC(anio, mes - 7, 1));
+  const diaLimite = Math.min(dia, new Date(Date.UTC(limite.getUTCFullYear(), limite.getUTCMonth() + 1, 0)).getUTCDate());
+  return `${limite.getUTCFullYear()}-${String(limite.getUTCMonth() + 1).padStart(2, '0')}-${String(diaLimite).padStart(2, '0')}`;
+}
 
 test('T31 schema: acepta factura COSTO y fija tipoCosto por defecto', () => {
   const parsed = registrarCompraSchema.parse(body);
   assert.equal(parsed.tipoCosto, 'COSTO');
-  assert.deepEqual(parsed.items[0], { idInsumo: 8, cantidad: '50.0000', costoUnitario: '1.250000' });
+  assert.deepEqual(parsed.items[0], { idInsumo: 8, cantidad: '50', costoUnitario: '1.250000' });
 });
 
 test('T31 schema: mantiene COSTO y rechaza propiedades no declaradas o detalles GASTO', () => {
@@ -36,8 +56,13 @@ test('T31 schema: admite CONTADO y CREDITO para calcular vencimiento en PostgreS
   assert.equal(registrarCompraSchema.parse({ ...body, condicionPago: 'CREDITO' }).condicionPago, 'CREDITO');
 });
 
-test('T31 schema: valida fecha calendario ISO, incluidos años bisiestos', () => {
-  assert.equal(registrarCompraSchema.parse({ ...body, fechaEmision: '2024-02-29' }).fechaEmision, '2024-02-29');
+test('T31 schema: valida calendario ISO y rango operativo de fecha', () => {
+  const hoy = fechaLocalHoy();
+  assert.equal(registrarCompraSchema.parse({ ...body, fechaEmision: hoy }).fechaEmision, hoy);
+  const limite = restarSeisMeses(hoy);
+  assert.equal(registrarCompraSchema.parse({ ...body, fechaEmision: limite }).fechaEmision, limite);
+  assert.throws(() => registrarCompraSchema.parse({ ...body, fechaEmision: sumarDias(limite, -1) }));
+  assert.throws(() => registrarCompraSchema.parse({ ...body, fechaEmision: sumarDias(hoy, 1) }));
   for (const fechaEmision of ['0000-01-01', '2025-02-29', '2026-04-31', '12/11/2026', '2026-13-01']) {
     assert.throws(() => registrarCompraSchema.parse({ ...body, fechaEmision }));
   }
@@ -49,14 +74,15 @@ test('T31 schema: requiere al menos un insumo por factura COSTO', () => {
 });
 
 test('T31 schema: conserva cantidades/costos como strings y aplica precisión NUMERIC', () => {
-  for (const cantidad of ['0', '0.0000', '-1', '1.12345', '123456789']) {
+  for (const cantidad of ['0', '0.0000', '-1', '1.5', '2.25', '10.0001', '', '1.12345', '123456789']) {
     assert.throws(() => registrarCompraSchema.parse({ ...body, items: [{ ...body.items[0], cantidad }] }));
   }
+  assert.equal(registrarCompraSchema.parse({ ...body, items: [{ ...body.items[0], cantidad: '25' }] }).items[0].cantidad, '25');
   for (const costoUnitario of ['-1', '1.1234567', '1234567']) {
     assert.throws(() => registrarCompraSchema.parse({ ...body, items: [{ ...body.items[0], costoUnitario }] }));
   }
   assert.equal(typeof registrarCompraSchema.parse(body).items[0].costoUnitario, 'string');
-  assert.equal(registrarCompraSchema.parse({ ...body, items: [{ ...body.items[0], costoUnitario: '0' }] }).items[0].costoUnitario, '0');
+  assert.throws(() => registrarCompraSchema.parse({ ...body, items: [{ ...body.items[0], costoUnitario: '0' }] }));
 });
 
 test('T31 routes: POST /api/compras exige autenticación admin, permiso, Zod y asyncHandler', async () => {
@@ -134,11 +160,30 @@ test('T31 no añade auditoría, migraciones ni modifica el schema inicial', asyn
   assert.doesNotMatch(`${service}\n${repository}`, /bitacora|fn_auditar/i);
 });
 
-test('T31 conserva separados los endpoints de T32 y no implementa frontend', async () => {
+test('T31 registra el pago automático CONTADO en el repository sin modificar pagos manuales T32', async () => {
   const route = await leer('backend/src/modules/compras/facturas/facturas.routes.js');
   const repository = await leer('backend/src/modules/compras/facturas/facturas.repository.js');
-  assert.doesNotMatch(route, /pagos|cuentas-por-pagar|gastos/i);
-  assert.doesNotMatch(repository, /pagos_proveedor|COM_PAGAR_PROVEEDOR/);
+  assert.doesNotMatch(route, /cuentas-por-pagar|gastos/i);
+  assert.match(repository, /INSERT INTO compras\.pagos_proveedor/);
+  assert.match(repository, /SELECT id_compra, CURRENT_DATE, total, 'EFECTIVO', NULL, \$2::uuid/);
+  assert.match(repository, /compras\.fn_registrar_compra/);
+  assert.doesNotMatch(repository, /COM_PAGAR_PROVEEDOR/);
+  assert.doesNotMatch(route, /frontend/i);
+});
+
+test('T31 service: CONTADO paga en la transacción y verifica el estado activado por trigger', async () => {
+  const service = await leer('backend/src/modules/compras/facturas/facturas.service.js');
+  const insercion = service.indexOf('repo.insertarPagoContado(idCompra, userId, transaction)');
+  const validacion = service.indexOf("repo.obtenerEstadoPago(idCompra, transaction) !== 'PAGADO'");
+  const inicioTransaccion = service.indexOf('withTransaction(async (transaction)');
+  const finTransaccion = service.indexOf('}, userId)', inicioTransaccion);
+  assert.ok(insercion > inicioTransaccion && insercion < finTransaccion);
+  assert.ok(validacion > insercion);
+  assert.match(service, /repo\.obtenerCompra\(idCompra, transaction\)[\s\S]*montoPositivo\(compra\.total\)/);
+  assert.match(service, /throw new AppError\('La compra debe tener un total mayor que cero', 400\)/);
+  assert.match(service, /compra\.estado_pago !== 'PENDIENTE'/);
+  assert.match(service, /\}, userId\)/);
+  assert.match(service, /catch \(error\) \{\s*throw mapearErrorCompra\(error\);/);
 });
 
 const gasto = {
@@ -150,6 +195,17 @@ const gasto = {
     { descripcion: 'Internet', cantidad: '2', costoUnitario: '35.000000' },
   ],
 };
+
+test('T31/T33 schema: rechaza COSTO y GASTO con todos los costos unitarios en cero', () => {
+  assert.throws(() => registrarCompraSchema.parse({
+    ...body,
+    items: [{ ...body.items[0], costoUnitario: '0.000000' }, { ...body.items[0], idInsumo: 9, costoUnitario: '0' }],
+  }));
+  assert.throws(() => registrarCompraSchema.parse({
+    ...gasto,
+    items: gasto.items.map((item) => ({ ...item, costoUnitario: '0' })),
+  }));
+});
 
 test('T33 schema: acepta GASTO con varios detalles y conserva decimales como strings', () => {
   const parsed = registrarCompraSchema.parse(gasto);

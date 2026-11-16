@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { actualizarInsumoSchema } from '../backend/src/modules/inventario/inventario.schemas.js';
+import { actualizarInsumoSchema, mermaSchema, minimoSchema, recetaSchema, stockSchema } from '../backend/src/modules/inventario/inventario.schemas.js';
 
 const leer = (archivo) => readFile(new URL(`../${archivo}`, import.meta.url), 'utf8');
 
@@ -11,6 +11,19 @@ test('inventario: el kardex conserva autenticación admin y usa INV_VER_KARDEX',
   assert.match(routes, /router\.get\('\/movimientos', requirePermiso\('INV_VER_KARDEX'\)/);
   assert.match(routes, /router\.get\('\/stock', requirePermiso\('INV_VER_STOCK', 'INV_GESTIONAR_INSUMOS'\)/);
   assert.match(routes, /router\.get\('\/alertas', requirePermiso\('INV_VER_STOCK'\)/);
+});
+
+test('inventario: recetas, movimientos, mermas y stock mínimo aceptan enteros positivos y rechazan decimales', () => {
+  assert.equal(stockSchema.parse({ idSucursal: 1, idInsumo: 2, cantidad: '25', tipo: 'AJUSTE', motivo: 'Conteo' }).cantidad, '25');
+  assert.equal(mermaSchema.parse({ idSucursal: 1, cantidad: 5, motivo: 'Dañado' }).cantidad, '5');
+  assert.equal(minimoSchema.parse({ idSucursal: 1, stockMinimo: '10' }).stockMinimo, '10');
+  assert.equal(recetaSchema.parse({ componentes: [{ idInsumo: 2, cantidadRequerida: '3' }] }).componentes[0].cantidadRequerida, '3');
+  for (const cantidad of ['0', '-1', '0.0008', '1.5', '2.25', '10.0001', '']) {
+    assert.throws(() => stockSchema.parse({ idSucursal: 1, idInsumo: 2, cantidad, tipo: 'AJUSTE', motivo: 'Conteo' }));
+    assert.throws(() => mermaSchema.parse({ idSucursal: 1, cantidad, motivo: 'Dañado' }));
+    assert.throws(() => minimoSchema.parse({ idSucursal: 1, stockMinimo: cantidad }));
+    assert.throws(() => recetaSchema.parse({ componentes: [{ idInsumo: 2, cantidadRequerida: cantidad }] }));
+  }
 });
 
 test('inventario: desactivar insumo y unidad devuelve 409 con dependencias activas', async () => {
@@ -47,10 +60,10 @@ test('inventario: margen usa precio neto de IVA y costo en aritmética entera', 
   const { calcularMargen, calcularMargenDolares, calcularCostoReceta, calcularSubtotalLinea } = await import('../frontend/src/modules/inventario/costeo.js');
   assert.equal(calcularMargen('3.50', '2.0000'), 35.4);
   assert.equal(calcularMargenDolares('3.50', '4.0000'), '-0.9027');
-  assert.equal(calcularCostoReceta([{ cantidad_requerida: '0.5000', costo_promedio: '2.1234' }]), '1.0617');
+  assert.equal(calcularCostoReceta([{ cantidad_requerida: '1', costo_promedio: '2.1234' }]), '2.1234');
   // calcularSubtotalLinea usa BigInt (anti-float) y devuelve string con 4 decimales
-  assert.equal(typeof calcularSubtotalLinea('0.5000', '2.1234'), 'string');
-  assert.equal(calcularSubtotalLinea('0.5000', '2.1234'), '1.0617');
+  assert.equal(typeof calcularSubtotalLinea('1', '2.1234'), 'string');
+  assert.equal(calcularSubtotalLinea('1', '2.1234'), '2.1234');
   // Soporta campos NUMERIC(12,6) devueltos por PostgreSQL sin colapsar a 0n
   assert.equal(calcularSubtotalLinea('10', '0.033000'), '0.3300');
   assert.equal(calcularCostoReceta([

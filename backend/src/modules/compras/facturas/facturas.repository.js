@@ -73,3 +73,38 @@ export const registrarCompra = async (datos, idUsuario, transaction) => {
   );
   return rows[0]?.id_compra;
 };
+
+export const obtenerCompra = async (idCompra, transaction) => {
+  const rows = await select(
+    `SELECT total::text AS total, estado_pago
+     FROM compras.facturas_compra
+     WHERE id_compra = $1::uuid
+     FOR UPDATE`,
+    [idCompra],
+    transaction,
+  );
+  return rows[0] ?? null;
+};
+
+export const insertarPagoContado = async (idCompra, idUsuario, transaction) => {
+  const rows = await select(
+    `INSERT INTO compras.pagos_proveedor
+       (id_compra, fecha_pago, monto, metodo, referencia, id_usuario)
+     SELECT id_compra, CURRENT_DATE, total, 'EFECTIVO', NULL, $2::uuid
+     FROM compras.facturas_compra
+     WHERE id_compra = $1::uuid
+     RETURNING id_pago`,
+    [idCompra, idUsuario],
+    transaction,
+  );
+  return rows[0]?.id_pago;
+};
+
+export const obtenerEstadoPago = async (idCompra, transaction) => {
+  const rows = await select(
+    'SELECT estado_pago FROM compras.facturas_compra WHERE id_compra = $1::uuid',
+    [idCompra],
+    transaction,
+  );
+  return rows[0]?.estado_pago;
+};
