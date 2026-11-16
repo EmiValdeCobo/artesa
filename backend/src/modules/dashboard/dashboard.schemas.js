@@ -10,7 +10,7 @@ const dias = (max, porDefecto) => z.coerce
   .max(max, `Máximo ${max} días`)
   .default(porDefecto);
 
-export const ventasDiariasQuery = z.strictObject({ dias: dias(90, 14), sucursal });
+export const ventasDiariasQuery = z.strictObject({ dias: z.coerce.number().int().refine((v) => [7, 14, 30].includes(v), 'Selecciona 7, 14 o 30 días').default(14), sucursal });
 
 export const topProductosQuery = z.strictObject({
   dias: dias(90, 7),

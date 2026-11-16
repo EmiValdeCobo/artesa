@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { TooltipContenido, TooltipFlotante } from '../../../components/display/Tooltip.jsx';
-import { capitalizar, etiquetaDia, etiquetaDiaLarga, formatoDinero, formatoEntero } from '../../../utils/formato.js';
+import { capitalizar, etiquetaDia, etiquetaDiaLarga, formatoCentavos, formatoDinero, formatoEntero } from '../../../utils/formato.js';
 import { calcularEje, formatoEje } from '../lib/ejes.js';
 
 // Gráfica de barras en SVG propio (el proyecto no permite añadir librerías de gráficos sin consultar al Tech Lead).
@@ -35,7 +35,7 @@ export function LeyendaVentas({ className = '' }) {
   );
 }
 
-export default function GraficaVentas({ serie, hoy }) {
+export default function GraficaVentas({ serie, hoy, centavos = false, mostrarTicketPromedio = true }) {
   const marco = useRef(null);
   const columnas = useRef([]);
   const ancho = useAncho(marco);
@@ -61,7 +61,8 @@ export default function GraficaVentas({ serie, hoy }) {
   const indiceHoy = serie.findIndex((f) => f.fecha === hoy);
   const cadaEtiqueta = Math.max(1, Math.ceil(SEPARACION_ETIQUETAS / paso));
 
-  const textoDe = (f) => `${capitalizar(etiquetaDiaLarga(f.fecha))}${f.fecha === hoy ? ' (en curso)' : ''}: ${formatoDinero(f.total)} en ${f.tickets} ${f.tickets === 1 ? 'ticket' : 'tickets'}`;
+  const mostrarDinero = centavos ? formatoCentavos : formatoDinero;
+  const textoDe = (f) => `${capitalizar(etiquetaDiaLarga(f.fecha))}${f.fecha === hoy ? ' (en curso)' : ''}: ${mostrarDinero(f.total)} en ${f.tickets} ${f.tickets === 1 ? 'ticket' : 'tickets'}`;
 
   const alTeclear = (e, i) => {
     const destino = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: n - 1 }[e.key];
@@ -87,7 +88,7 @@ export default function GraficaVentas({ serie, hoy }) {
           {eje.marcas.map((marca) => (
             <g key={marca}>
               <line x1={M.izquierda} x2={ancho - M.derecha} y1={yDe(marca)} y2={yDe(marca)} className={marca === 0 ? 'stroke-fg-muted' : 'stroke-line'} strokeWidth="1" strokeDasharray={marca === 0 ? undefined : '2 4'} />
-              <text x={M.izquierda - 10} y={yDe(marca) + 4} textAnchor="end" className="fill-fg-muted tabular-nums" fontSize="12">{formatoEje(marca, eje.paso)}</text>
+              <text x={M.izquierda - 10} y={yDe(marca) + 4} textAnchor="end" className="fill-fg-muted tabular-nums" fontSize="12">{centavos ? formatoCentavos(Math.round(marca)) : formatoEje(marca, eje.paso)}</text>
             </g>
           ))}
 
@@ -106,7 +107,7 @@ export default function GraficaVentas({ serie, hoy }) {
             else if (bajoCursor) relleno = 'fill-(--serie-1)';
             return (
               <g key={f.fecha} opacity={activo !== null && !bajoCursor ? 0.6 : 1}>
-                <rect x={x} y={base - alto} width={anchoBarra} height={alto} className={`anim-barra ${relleno}`} style={{ '--retardo': `${Math.min(i * 22, 400)}ms` }} fill={esHoy ? `url(#${idRayas})` : undefined}
+              <rect x={x} y={base - alto} width={anchoBarra} height={alto} className={relleno} fill={esHoy ? `url(#${idRayas})` : undefined}
                   strokeWidth={esHoy ? 1.5 : 0} stroke={esHoy ? 'var(--serie-1)' : undefined} rx={Math.min(6, anchoBarra / 2)} />
                 {(indiceHoy - i) % cadaEtiqueta === 0 && (
                   <text x={xCentro(i)} y={ALTO - 9} textAnchor="middle" fontSize="12" className={esHoy ? 'fill-(--serie-1-texto) font-bold' : bajoCursor ? 'fill-fg font-semibold' : 'fill-fg-muted'}>{etiquetaDia(f.fecha)}</text>
@@ -117,7 +118,7 @@ export default function GraficaVentas({ serie, hoy }) {
 
           {indiceHoy >= 0 && activo === null && (
             <text x={indiceHoy === n - 1 ? xCentro(indiceHoy) + anchoBarra / 2 : xCentro(indiceHoy)} y={yDe(Number(serie[indiceHoy].total)) - 7}
-              textAnchor={indiceHoy === n - 1 ? 'end' : 'middle'} fontSize="13" paintOrder="stroke" stroke="var(--bg-surface)" strokeWidth="4" strokeLinejoin="round" className="fill-(--serie-1-texto) font-bold tabular-nums">{formatoDinero(serie[indiceHoy].total)}</text>
+              textAnchor={indiceHoy === n - 1 ? 'end' : 'middle'} fontSize="13" paintOrder="stroke" stroke="var(--bg-surface)" strokeWidth="4" strokeLinejoin="round" className="fill-(--serie-1-texto) font-bold tabular-nums">{mostrarDinero(serie[indiceHoy].total)}</text>
           )}
 
           {serie.map((f, i) => (
@@ -141,9 +142,11 @@ export default function GraficaVentas({ serie, hoy }) {
             <TooltipContenido
               etiqueta={capitalizar(etiquetaDiaLarga(fActivo.fecha))}
               categoria={fActivo.fecha === hoy ? 'Ventas · día en curso' : 'Ventas'}
-              valor={formatoDinero(fActivo.total)}
+              valor={mostrarDinero(fActivo.total)}
               unidad="USD con IVA"
-              filas={[['Tickets', formatoEntero(fActivo.tickets)], ['Ticket promedio', fActivo.tickets ? formatoDinero(fActivo.ticketPromedio) : '—']]}
+              filas={mostrarTicketPromedio
+                ? [['Tickets', formatoEntero(fActivo.tickets)], ['Ticket promedio', fActivo.tickets ? mostrarDinero(fActivo.ticketPromedio) : '—']]
+                : [['Tickets', formatoEntero(fActivo.tickets)]]}
             />
           )}
         </TooltipFlotante>
@@ -152,7 +155,7 @@ export default function GraficaVentas({ serie, hoy }) {
       <table className="sr-only">
         <caption>Ventas por día</caption>
         <thead><tr><th scope="col">Día</th><th scope="col">Total</th><th scope="col">Tickets</th></tr></thead>
-        <tbody>{serie.map((f) => <tr key={f.fecha}><th scope="row">{etiquetaDiaLarga(f.fecha)}</th><td>{formatoDinero(f.total)}</td><td>{f.tickets}</td></tr>)}</tbody>
+        <tbody>{serie.map((f) => <tr key={f.fecha}><th scope="row">{etiquetaDiaLarga(f.fecha)}</th><td>{mostrarDinero(f.total)}</td><td>{f.tickets}</td></tr>)}</tbody>
       </table>
     </figure>
   );
