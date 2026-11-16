@@ -8,16 +8,16 @@ import { traducirError } from '../../errors/traducirError.js';
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 const METODOS = [
-  { valor: 'EFECTIVO',       texto: 'Efectivo',      icono: Banknote },
-  { valor: 'TARJETA',        texto: 'Tarjeta',       icono: CreditCard },
-  { valor: 'TRANSFERENCIA',  texto: 'Transferencia', icono: ArrowRightLeft },
-  { valor: 'BITCOIN_CHIVO',  texto: 'Bitcoin/Chivo', icono: Smartphone },
+  { valor: 'EFECTIVO', texto: 'Efectivo', icono: Banknote },
+  { valor: 'TARJETA', texto: 'Tarjeta', icono: CreditCard },
+  { valor: 'TRANSFERENCIA', texto: 'Transferencia', icono: ArrowRightLeft },
+  { valor: 'BITCOIN_CHIVO', texto: 'Bitcoin/Chivo', icono: Smartphone },
 ];
 
 const BILLETES = [
   { etiqueta: 'Exacto', multiplicador: null },
-  { etiqueta: '$1',  valor: 1 },
-  { etiqueta: '$5',  valor: 5 },
+  { etiqueta: '$1', valor: 1 },
+  { etiqueta: '$5', valor: 5 },
   { etiqueta: '$10', valor: 10 },
   { etiqueta: '$20', valor: 20 },
   { etiqueta: '$50', valor: 50 },
@@ -25,9 +25,9 @@ const BILLETES = [
 ];
 
 // Dinero: nunca float. Operamos con centavos (enteros) y convertimos a string "0.00".
-const aCentavos  = (n) => Math.round((Number(n) || 0) * 100);
+const aCentavos = (n) => Math.round((Number(n) || 0) * 100);
 const desCentavos = (c) => (c / 100).toFixed(2);
-const fmtStr      = (n) => (Number(n) || 0).toFixed(2);
+const fmtStr = (n) => (Number(n) || 0).toFixed(2);
 
 // Utilidad para limpiar y formatear entradas numéricas de dinero automáticamente con ceros (ej: "5" -> "0.05" o manejado como centavos)
 const formatearEntradaDinero = (valorRaw) => {
@@ -37,14 +37,13 @@ const formatearEntradaDinero = (valorRaw) => {
   return (centavos / 100).toFixed(2);
 };
 
-// Utilidad para limpiar y validar porcentaje (0 a 100)
+// Utilidad para limpiar y validar porcentaje sin usar parseFloat (cumpliendo regla anti-float)
 const formatearEntradaPorcentaje = (valorRaw) => {
-  const limpio = String(valorRaw ?? '').replace(/[^\d.]/g, '');
-  if (limpio === '' || limpio === '.') return '';
-  const num = parseFloat(limpio);
-  if (isNaN(num)) return '';
+  const limpio = String(valorRaw ?? '').replace(/[^\d]/g, ''); // Solo números enteros para el porcentaje
+  if (!limpio) return '';
+  const num = Number(limpio);
   if (num > 100) return '100';
-  return limpio;
+  return String(num);
 };
 
 const pagoVacio = () => ({ metodo: 'EFECTIVO', monto: '', monto_recibido: '', referencia: '' });
@@ -60,10 +59,10 @@ export default function ModalCobro({
   descuentoGlobal = '0.00',
   onVentaExitosa,
 }) {
-  const [pagos, setPagos]               = useState([pagoVacio()]);
+  const [pagos, setPagos] = useState([pagoVacio()]);
   const [porcentajeDesc, setPorcentajeDesc] = useState(''); // Descuento por porcentaje (ej: '10' para 10%)
-  const [enviando, setEnviando]         = useState(false);
-  const [errorEnvio, setErrorEnvio]     = useState(null);
+  const [enviando, setEnviando] = useState(false);
+  const [errorEnvio, setErrorEnvio] = useState(null);
   const primerInputRef = useRef(null);
 
   // ── Resetear pagos al abrir con el monto total por defecto ─────────────
@@ -80,14 +79,14 @@ export default function ModalCobro({
 
   // ── Cálculos derivados (totales, faltante, vuelto) ───────────────────────
   const { subtotal, iva, total: totalBruto } = calcularTotales(items);
-  
+
   // Cálculo del descuento monetario basado en el porcentaje ingresado sobre el subtotal (o total bruto)
   const descPorcentajeNum = Number(porcentajeDesc) || 0;
   const descuentoCentavos = Math.round(aCentavos(subtotal) * (descPorcentajeNum / 100));
   const descuentoEfectivoStr = desCentavos(descuentoCentavos);
 
-  const totalCentavos     = Math.max(aCentavos(totalBruto) - descuentoCentavos, 0);
-  const totalFinal        = desCentavos(totalCentavos);
+  const totalCentavos = Math.max(aCentavos(totalBruto) - descuentoCentavos, 0);
+  const totalFinal = desCentavos(totalCentavos);
 
   const sumaPagosCentavos = useMemo(
     () => pagos.reduce((s, p) => s + aCentavos(p.monto), 0),
@@ -217,7 +216,7 @@ export default function ModalCobro({
               <dt className="text-fg-muted">IVA ({IVA * 100}%)</dt>
               <dd className="tabular-nums">{formatoMoneda(iva)}</dd>
             </div>
-            
+
             {/* Descuento por porcentaje */}
             <div className="flex items-center justify-between gap-2">
               <dt className="text-fg-muted flex items-center gap-1">
