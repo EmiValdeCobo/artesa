@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, Plus, Trash2, X } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
 import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
@@ -101,6 +101,8 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
   const titulo = gasto ? 'Gastos operativos' : 'Registrar factura de compra';
   const { usuario, tiene } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [borradorAviso, setBorradorAviso] = useState(() => Boolean(location.state?.borrador?.items?.length));
   const sucursales = useMemo(() => usuario?.sucursales ?? [], [usuario?.sucursales]);
   const puedeVerCuentas = tiene('COM_VER_CXP');
   const [proveedores, setProveedores] = useState([]);
@@ -111,6 +113,7 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
   const [error, setError] = useState(null);
   const [resultado, setResultado] = useState(false);
   const [recargarClave, setRecargarClave] = useState(0);
+  const borradorAplicado = useRef(false);
 
   useEffect(() => {
     let activo = true;
@@ -124,6 +127,23 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
         if (!activo) return;
         setProveedores(datos[0]);
         setInsumos(gasto ? [] : datos[1]);
+        // Borrador sugerido desde las alertas de stock mínimo: prellena líneas y sucursal;
+        // nada se envía al backend hasta que el usuario guarde la factura.
+        const borrador = location.state?.borrador;
+        if (!gasto && !borradorAplicado.current && borrador?.items?.length) {
+          borradorAplicado.current = true;
+          setForm((actual) => ({
+            ...actual,
+            idSucursal: String(borrador.idSucursal || actual.idSucursal || sucursales[0]?.id_sucursal || ''),
+            items: borrador.items.map((linea) => ({
+              idInsumo: String(linea.idInsumo),
+              cantidad: linea.cantidad ?? '',
+              costoUnitario: linea.costoUnitario ?? '',
+              origen: linea.origen,
+              unidad: linea.unidad,
+            })),
+          }));
+        }
         setForm((actual) => ({
           ...actual,
           idProveedor: actual.idProveedor || String(datos[0][0]?.id_proveedor ?? ''),
@@ -137,7 +157,7 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
     }
     cargarCatalogos();
     return () => { activo = false; };
-  }, [gasto, sucursales]);
+  }, [gasto, sucursales, location.state?.borrador]);
 
   const lineasValidas = useMemo(() => form.items.every((linea) => (
     gasto
@@ -194,6 +214,12 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
           : 'Registra una factura de insumos para actualizar las existencias de la sucursal.'}
         acciones={<Button variante="ghost" icono={ArrowLeft} onClick={() => navigate(-1)}>Volver</Button>}
       />
+      {borradorAviso && !resultado && (
+        <div role="status" className="flex items-start justify-between gap-3 rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 text-sm text-warning">
+          <p><strong>Borrador sugerido.</strong> Revisa los datos antes de guardar: las cantidades se calcularon con lo que falta para llegar al mínimo y el costo promedio conocido. Elige el proveedor y confirma con «Registrar factura»; si sales de esta pantalla el borrador se descarta.</p>
+          <button type="button" className="btn-ghost min-h-8 shrink-0 !p-1.5" onClick={() => setBorradorAviso(false)} aria-label="Cerrar aviso de borrador"><X size={15} aria-hidden="true" /></button>
+        </div>
+      )}
       {error && <BannerError error={{ titulo: 'No se pudo guardar la factura', mensaje: error, accion: '' }} />}
       {resultado && (
         <div role="status" className="rounded-xl border border-success/30 bg-success-soft p-4 text-sm text-success">
@@ -225,7 +251,7 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
                 {gasto
                   ? <label className="flex h-full flex-col text-sm font-medium">Concepto<input className="input mt-1.5 h-10" placeholder="Ej. servicio de internet" value={linea.descripcion} onChange={(evento) => editarLinea(indice, 'descripcion', evento.target.value)} maxLength={150} required /></label>
                   : <Select etiqueta="Insumo" value={linea.idInsumo} onChange={(evento) => editarLinea(indice, 'idInsumo', evento.target.value)} placeholder="Selecciona insumo" opciones={insumos.map((item) => ({ valor: String(item.id_insumo), texto: `${item.nombre} · ${item.unidad_codigo}` }))} />}
-                <label className="flex h-full flex-col text-sm font-medium">Cantidad<input className="input mt-1.5 h-10" type="number" min="0.0001" step="0.0001" value={linea.cantidad} onChange={(evento) => editarLinea(indice, 'cantidad', evento.target.value)} required /></label>
+                <label className="flex h-full flex-col text-sm font-medium">Cantidad<input className="input mt-1.5 h-10" type="number" min="0.0001" step="0.0001" value={linea.cantidad} onChange={(evento) => editarLinea(indice, 'cantidad', evento.target.value)} required />{linea.origen === 'faltante' && <span className="mt-1 block text-xs font-normal text-fg-muted">Faltante para llegar al mínimo{linea.unidad ? ` (${linea.unidad})` : ''}</span>}</label>
                 <label className="flex h-full flex-col text-sm font-medium">Costo por unidad<input className="input mt-1.5 h-10" type="number" min="0" step="0.000001" value={linea.costoUnitario} onChange={(evento) => editarLinea(indice, 'costoUnitario', evento.target.value)} required /><span className="mt-1 block text-xs font-normal text-fg-muted">USD, sin IVA</span></label>
                 <Button variante="ghost" icono={Trash2} aria-label={`Quitar ${gasto ? 'concepto' : 'insumo'} ${indice + 1}`} disabled={form.items.length === 1} onClick={() => setForm((actual) => ({ ...actual, items: actual.items.filter((_, posicion) => posicion !== indice) }))} />
               </div>
