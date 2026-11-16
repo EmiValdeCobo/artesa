@@ -91,7 +91,8 @@ test('inventario: frontend API y catálogos diferencian control de estado vs bot
   // Productos UI: acciones separadas en tabla y tarjetas + filtro Todos / Activos / Inactivos
   assert.match(productosUi, /handleToggleEstado/);
   assert.match(productosUi, /handleEliminarProducto/);
-  assert.match(productosUi, /titulo="Eliminar producto"/);
+  assert.match(productosUi, /texto=\{`Eliminar producto \$\{producto\.nombre\}`\}/);
+  assert.match(productosUi, /etiqueta={`Eliminar producto \$\{producto\.nombre\}`}/);
   assert.match(productosUi, /filtroEstado/);
   assert.match(productosUi, />\s*Todos\s*</);
   assert.match(productosUi, />\s*Activos\s*</);

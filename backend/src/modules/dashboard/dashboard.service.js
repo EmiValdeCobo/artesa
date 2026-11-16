@@ -5,6 +5,8 @@ import { alertasPermitidas, interpretarParametros, modoVentas, proyectarTopProdu
 
 const ORDEN_SEVERIDAD = { critica: 0, aviso: 1, info: 2 };
 const MAX_ALERTAS = 30;
+const CACHE_TTL_MS = 30_000;
+const cacheVentas = new Map();
 
 // Contexto de cada petición: permisos y alcance se leen de la BD EN CADA llamada (no del token ni del cliente),
 // así quitar un permiso o una sucursal surte efecto de inmediato.
@@ -28,14 +30,22 @@ export async function ventasDiarias(idUsuario, { dias, sucursal }) {
   const modo = modoVentas(ctx.permisos);
   if (!modo) throw new AppError('No tienes permiso para ver las ventas', 403);
 
+  const cacheKey = JSON.stringify([idUsuario, dias, sucursal ?? null, modo, ctx.zona, ctx.sucursalIds, [...ctx.permisos].sort()]);
+  const cacheada = cacheVentas.get(cacheKey);
+  if (cacheada && cacheada.expira > Date.now()) return cacheada.datos;
+
   const base = { modo, dias, zonaHoraria: ctx.zona, sucursales: ctx.sucursales, generadoEn: new Date().toISOString() };
   if (ctx.sucursales.length === 0) return { ...base, estado: 'sin_sucursal', resumen: null, serie: [] };
 
   const filtro = { zona: ctx.zona, dias, sucursalIds: ctx.sucursalIds, idUsuario: modo === 'propio' ? idUsuario : null };
-  const [serie, r] = await Promise.all([repo.ventasPorDia(filtro), repo.resumenVentas(filtro)]);
+  const [serie, r, panel] = await Promise.all([
+    repo.ventasPorDia(filtro), repo.resumenVentas(filtro), repo.resumenVentasPanel(filtro),
+  ]);
+  const zonaOffset = new Intl.DateTimeFormat('en-US', { timeZone: ctx.zona, timeZoneName: 'longOffset' })
+    .formatToParts(new Date()).find((parte) => parte.type === 'timeZoneName')?.value.replace('GMT', '') || '+00:00';
 
-  // Todos los importes y la variación llegan ya calculados por PostgreSQL (NUMERIC como string): aquí no se suma dinero.
-  return {
+  // El resumen previo conserva NUMERIC como string; la forma nueva publica importes en centavos enteros, ambos calculados en PostgreSQL.
+  const resultado = {
     ...base,
     estado: r.periodo_tickets === 0 ? 'sin_datos' : 'ok',
     resumen: {
@@ -48,7 +58,15 @@ export async function ventasDiarias(idUsuario, { dias, sucursal }) {
       periodo: { total: r.periodo_total, tickets: r.periodo_tickets },
     },
     serie: serie.map((f) => ({ fecha: f.fecha, total: f.total, tickets: f.tickets, ticketPromedio: f.ticket_promedio })),
+    asOf: `${panel.hora_local}${zonaOffset}`,
+    today: panel.today,
+    comparison: panel.comparison,
+    series: panel.series,
+    period: panel.period,
   };
+  if (cacheVentas.size >= 256) cacheVentas.delete(cacheVentas.keys().next().value);
+  cacheVentas.set(cacheKey, { datos: resultado, expira: Date.now() + CACHE_TTL_MS });
+  return resultado;
 }
 
 // ---------- Top de productos ----------

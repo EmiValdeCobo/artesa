@@ -53,18 +53,18 @@ export default function TopProductosPanel({ cols, orden, sucursal }) {
                 onFocus={(e) => anclar(i, e.currentTarget)}
                 onBlur={() => setActivo(null)}
                 style={{ '--retardo': `${i * 50}ms` }}
-                className={`anim-entrar grid cursor-default grid-cols-[1.75rem_1fr_6rem] items-center gap-x-3 rounded-xl px-2 py-3 outline-offset-0 transition-colors motion-reduce:transition-none ${bajoCursor ? 'bg-muted' : ''}`}
+                className={`anim-entrar grid min-w-0 cursor-default grid-cols-[1.75rem_minmax(0,1fr)_max-content] items-center gap-x-3 rounded-xl px-2 py-3 outline-offset-0 transition-colors motion-reduce:transition-none ${bajoCursor ? 'bg-muted' : ''}`}
               >
                 <span className="font-display text-xl font-bold tabular-nums" style={{ color: lider ? 'var(--serie-1-texto)' : 'var(--serie-5-texto)' }}>{prod.posicion}</span>
                 <div className="min-w-0">
-                  <p className={`line-clamp-2 text-base sm:text-sm ${lider ? 'font-bold' : 'font-medium'}`}>{prod.nombre}</p>
+                  <p title={prod.nombre} className={`line-clamp-2 min-w-0 break-words text-base sm:text-sm ${lider ? 'font-bold' : 'font-medium'}`}>{prod.nombre}</p>
                   <div className="mt-1.5 h-2.5 rounded-full bg-line/70" aria-hidden="true">
                     <div className="anim-barra-x h-full rounded-full transition-[filter] motion-reduce:transition-none" style={{ width: `${(prod.unidades / maximo) * 100}%`, '--retardo': `${120 + i * 60}ms`, background: lider ? 'var(--serie-1)' : 'var(--serie-5)', filter: bajoCursor ? 'brightness(1.12) saturate(1.1)' : undefined }} />
                   </div>
                 </div>
-                <div className="text-right tabular-nums">
-                  <p className="text-base font-bold sm:text-sm">{formatoEntero(prod.unidades)} <span className="text-xs font-normal text-fg-muted">uds.</span></p>
-                  <p className="text-sm text-fg-muted sm:text-xs">{datos.incluyeImportes ? formatoDinero(prod.ingreso) : `${prod.participacionPct} %`}</p>
+                <div className="min-w-max whitespace-nowrap text-right tabular-nums">
+                  <p className="text-[clamp(.7rem,1vw,.9rem)] font-bold">{formatoEntero(prod.unidades)} <span className="text-xs font-normal text-fg-muted">u.</span></p>
+                  <p className="text-[clamp(.65rem,.9vw,.8rem)] text-fg-muted">{datos.incluyeImportes ? formatoDinero(prod.ingreso) : `${prod.participacionPct} %`}</p>
                 </div>
               </li>
             );
@@ -76,10 +76,10 @@ export default function TopProductosPanel({ cols, orden, sucursal }) {
               etiqueta={p.nombre}
               categoria="Unidades vendidas"
               valor={formatoEntero(p.unidades)}
-              unidad={`uds. · ${periodoCorto(dias)}`}
+              unidad={`u. · ${periodoCorto(dias)}`}
               filas={[
                 ['Puesto', `${p.posicion} de ${total}`],
-                ['Participación', `${p.participacionPct} % de ${formatoEntero(datos.totalUnidades)} uds.`],
+                ['Participación', `${p.participacionPct} % de ${formatoEntero(datos.totalUnidades)} u.`],
                 ...(datos.incluyeImportes ? [['Importe bruto con IVA', formatoDinero(p.ingreso)]] : []),
               ]}
             />

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Boxes, PackageMinus, Scale, Search, Store, X } from 'lucide-react';
+import { ICONOS } from '../../config/iconos.js';
 import { api } from '../../api/client.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
@@ -7,7 +9,7 @@ import BannerError from '../../components/feedback/BannerError.jsx';
 import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
 import CampoTexto from '../../components/forms/CampoTexto.jsx';
-import { Button, Card, Select, Spinner, Table } from '../../components/ui/index.js';
+import { BotonIcono, Button, Card, Select, Spinner, Table } from '../../components/ui/index.js';
 import Metrica from '../../components/display/Metrica.jsx';
 import Pestanas from '../../components/navigation/Pestanas.jsx';
 import { traducirError } from '../../errors/traducirError.js';
@@ -30,7 +32,11 @@ function esCantidadPositiva(valor) {
 export default function InventarioPage() {
   const { usuario, tiene } = useAuth();
   const { notificar } = useAlert();
+  const navigate = useNavigate();
   const sucursales = usuario?.sucursales ?? SUCURSALES_VACIAS;
+  const puedeComprar = tiene('COM_REGISTRAR_COMPRA');
+  const [insumosPorNombre, setInsumosPorNombre] = useState({});
+  const [seleccion, setSeleccion] = useState(() => new Set());
   const [idSucursal, setIdSucursal] = useState(() => String(sucursales[0]?.id_sucursal ?? ''));
   const [stock, setStock] = useState([]);
   const [alertas, setAlertas] = useState([]);
@@ -98,6 +104,7 @@ export default function InventarioPage() {
       const insumos = await api.get('/inventario/insumos');
       if (!Array.isArray(insumos)) throw new Error('La respuesta de insumos no tiene un formato válido');
       setTiposPorInsumo(Object.fromEntries(insumos.map((insumo) => [String(insumo.id_insumo), insumo.tipo_insumo])));
+      setInsumosPorNombre(Object.fromEntries(insumos.map((insumo) => [insumo.nombre, insumo])));
       setTiposListos(true);
     } catch (error) {
       setTiposListos(false);
@@ -160,6 +167,39 @@ export default function InventarioPage() {
     setIdSucursal(evento.target.value);
     setIdInsumo('');
     setErrorMerma(null);
+    setSeleccion(new Set());
+  };
+
+  // Las alertas no traen id_insumo: se resuelve por nombre contra el catálogo (mismo criterio del backend).
+  const insumoDeAlerta = useCallback((fila) => insumosPorNombre[fila.insumo] ?? null, [insumosPorNombre]);
+
+  const alternarSeleccion = (fila) => {
+    const insumo = insumoDeAlerta(fila);
+    if (!insumo) return;
+    setSeleccion((actual) => {
+      const siguiente = new Set(actual);
+      const clave = String(insumo.id_insumo);
+      if (!siguiente.delete(clave)) siguiente.add(clave);
+      return siguiente;
+    });
+  };
+
+  // Abre el formulario de compra como borrador: nada se envía hasta que el usuario guarde la factura.
+  // El sistema no registra proveedor habitual ni último costo por insumo; se prellena el costo promedio
+  // cuando el usuario tiene permiso de ver costos y el proveedor queda por elegir.
+  const crearBorradorCompra = (filas) => {
+    const items = filas
+      .map((fila) => ({ fila, insumo: insumoDeAlerta(fila) }))
+      .filter(({ insumo }) => insumo && insumo.activo !== false)
+      .map(({ fila, insumo }) => ({
+        idInsumo: String(insumo.id_insumo),
+        cantidad: String(Math.max(1, Math.ceil(Number(fila.faltante) || 0))),
+        costoUnitario: insumo.costo_promedio != null ? String(insumo.costo_promedio) : '',
+        origen: 'faltante',
+        unidad: String(insumo.unidad_codigo ?? fila.unidad ?? '').toLowerCase(),
+      }));
+    if (!items.length) return;
+    navigate('/compras/registrar', { state: { borrador: { idSucursal, items, desdeAlertas: true } } });
   };
 
   const registrarMerma = async (evento) => {
@@ -185,22 +225,57 @@ export default function InventarioPage() {
     }
   };
 
+  const unidadCorta = (codigo) => String(codigo ?? '').toLowerCase();
+
   const columnasStock = [
     { clave: 'insumo', titulo: 'Insumo' },
-    { clave: 'unidad', titulo: 'Unidad' },
+    { clave: 'unidad', titulo: 'Unidad', render: (fila) => unidadCorta(fila.unidad) },
     { clave: 'stock_actual', titulo: 'Stock actual', alinear: 'right', render: (fila) => formatearUnidades(fila.stock_actual) },
     { clave: 'stock_minimo', titulo: 'Stock mínimo', alinear: 'right', render: (fila) => formatearUnidades(fila.stock_minimo) },
   ];
 
+  const seleccionables = alertas.filter((fila) => insumoDeAlerta(fila));
+  const todasSeleccionadas = seleccionables.length > 0 && seleccionables.every((fila) => seleccion.has(String(insumoDeAlerta(fila).id_insumo)));
+  const alternarTodas = () => setSeleccion(
+    todasSeleccionadas ? new Set() : new Set(seleccionables.map((fila) => String(insumoDeAlerta(fila).id_insumo))),
+  );
+
   const columnasAlertas = [
+    ...(puedeComprar ? [{
+      clave: '_sel', titulo: 'Seleccionar',
+      encabezado: (
+        <input type="checkbox" className="h-4 w-4 align-middle accent-primary" checked={todasSeleccionadas}
+          onChange={alternarTodas} aria-label="Seleccionar todos los insumos en alerta" />
+      ),
+      render: (fila) => {
+        const insumo = insumoDeAlerta(fila);
+        if (!insumo) return null;
+        const clave = String(insumo.id_insumo);
+        return <input type="checkbox" className="h-4 w-4 accent-primary" checked={seleccion.has(clave)}
+          onChange={() => alternarSeleccion(fila)} aria-label={`Seleccionar ${fila.insumo}`} />;
+      },
+    }] : []),
     { clave: 'insumo', titulo: 'Insumo' },
-    { clave: 'unidad', titulo: 'Unidad' },
+    { clave: 'unidad', titulo: 'Unidad', render: (fila) => unidadCorta(fila.unidad) },
     { clave: 'nivel', titulo: 'Nivel', render: (fila) => (
-      <EstadoBadge tipo={fila.nivel === 'AGOTADO' ? 'error' : 'alerta'}>{fila.nivel}</EstadoBadge>
+      <EstadoBadge tipo={fila.nivel === 'AGOTADO' ? 'error' : 'alerta'}>
+        {fila.nivel === 'AGOTADO' ? 'Agotado' : 'Bajo mínimo'}
+      </EstadoBadge>
     ) },
     { clave: 'stock_actual', titulo: 'Actual', alinear: 'right', render: (fila) => formatearUnidades(fila.stock_actual) },
     { clave: 'stock_minimo', titulo: 'Mínimo', alinear: 'right', render: (fila) => formatearUnidades(fila.stock_minimo) },
     { clave: 'faltante', titulo: 'Faltante', alinear: 'right', render: (fila) => formatearUnidades(fila.faltante) },
+    ...(puedeComprar ? [{
+      clave: '_comprar', titulo: 'Acciones',
+      render: (fila) => (
+        <BotonIcono
+          icono={ICONOS.comprar}
+          etiqueta={`Comprar a proveedor: ${fila.insumo}`}
+          disabled={!insumoDeAlerta(fila)}
+          onClick={() => crearBorradorCompra([fila])}
+        />
+      ),
+    }] : []),
   ];
 
   const pestanas = [
@@ -242,14 +317,22 @@ export default function InventarioPage() {
 
       {pestana === 'alertas' && (
         <section role="tabpanel" id="panel-alertas" aria-labelledby="tab-alertas" className="space-y-4">
-          <Card titulo="Alertas de stock mínimo" descripcion="Niveles y cantidades informados por el backend para esta sucursal.">
+          <Card
+            titulo="Alertas de stock mínimo"
+            descripcion="Insumos que están agotados o por debajo de su mínimo en esta sucursal."
+            acciones={puedeComprar && seleccion.size > 0 ? (
+              <Button variante="secondary" icono={ICONOS.comprar} onClick={() => crearBorradorCompra(seleccionables.filter((fila) => seleccion.has(String(insumoDeAlerta(fila).id_insumo))))}>
+                Crear compra con seleccionados ({seleccion.size})
+              </Button>
+            ) : null}
+          >
             {errorAlertas && <BannerError className="mb-4" error={errorAlertas} onReintentar={() => cargarSucursal(idSucursal)} />}
             {cargandoAlertas ? <Spinner texto="Cargando alertas…" />
               : errorAlertas ? null
                 : alertas.length === 0 ? <EstadoVacio icono={AlertTriangle} titulo="No hay alertas de stock">
-                  El backend no reporta insumos bajo su mínimo en esta sucursal.
+                  Ningún insumo está por debajo de su mínimo en esta sucursal.
                 </EstadoVacio>
-                  : <Table columnas={columnasAlertas} filas={alertas} idFila="insumo" vacio="No hay alertas para mostrar." />}
+                  : <Table columnas={columnasAlertas} filas={alertas} idFila="insumo" vacio="No hay alertas para mostrar." scrollVertical={false} />}
           </Card>
         </section>
       )}

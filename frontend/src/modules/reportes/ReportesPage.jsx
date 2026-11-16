@@ -22,6 +22,8 @@ import Metrica from '../../components/display/Metrica.jsx';
 import Pestanas from '../../components/navigation/Pestanas.jsx';
 import { Button, Card, Select, Table } from '../../components/ui/index.js';
 import { ICONOS } from '../../config/iconos.js';
+import { formatoCentavos as formatearCentavos, formatoDecimal, formatoDinero, formatoEntero } from '../../utils/formato.js';
+import GraficaTendencia, { LeyendaTendencia } from './GraficaTendencia.jsx';
 
 function fechaLocal(fecha = new Date()) {
   const anio = fecha.getFullYear();
@@ -36,7 +38,6 @@ fechaInicio.setDate(fechaInicio.getDate() - 29);
 const INICIO = fechaLocal(fechaInicio);
 const FORMATO_FECHA = new Intl.DateTimeFormat('es-SV', { day: '2-digit', month: 'short', year: 'numeric' });
 const FORMATO_FECHA_HORA = new Intl.DateTimeFormat('es-SV', { dateStyle: 'short', timeStyle: 'short' });
-const FORMATO_NUMERO = new Intl.NumberFormat('es-SV');
 const ETIQUETAS_PAGO = { EFECTIVO: 'Efectivo', TARJETA: 'Tarjeta', BITCOIN_CHIVO: 'Bitcoin / Chivo', TRANSFERENCIA: 'Transferencia' };
 
 // PostgreSQL entrega NUMERIC como string. Los importes se agregan en centavos BigInt;
@@ -53,18 +54,6 @@ function aCentavos(valor) {
 
 function sumarImportes(filas, campo) {
   return filas.reduce((total, fila) => total + aCentavos(fila[campo]), 0n);
-}
-
-function formatearCentavos(centavos) {
-  const negativo = centavos < 0n;
-  const absoluto = negativo ? -centavos : centavos;
-  const entero = FORMATO_NUMERO.format(Number(absoluto / 100n));
-  const decimales = String(absoluto % 100n).padStart(2, '0');
-  return `${negativo ? '−' : ''}$${entero}.${decimales}`;
-}
-
-function formatearDinero(valor) {
-  return formatearCentavos(aCentavos(valor));
 }
 
 function formatearFecha(valor, incluirHora = false) {
@@ -170,39 +159,50 @@ function TablaPaginada({ filas, columnas, idFila = '_fila', vacio, tamano = 12 }
   );
 }
 
-function GraficoVentas({ serie }) {
-  const maximo = serie.reduce((max, punto) => punto.ventas > max ? punto.ventas : max, 0n);
-  if (!serie.length) {
-    return <p className="py-12 text-center text-sm text-fg-muted">No hay ventas suficientes para construir la tendencia.</p>;
-  }
-
+function ResumenTendencia({ serie, hoy }) {
+  const cerrados = serie.filter((punto) => punto.fecha !== hoy);
+  if (!cerrados.length) return null;
+  const total = cerrados.reduce((suma, punto) => suma + BigInt(punto.total), 0n);
+  const promedio = total / BigInt(cerrados.length);
+  const mejor = cerrados.reduce((mayor, punto) => (punto.total > mayor.total ? punto : mayor));
+  const mejorEtiqueta = /^\d{4}-\d{2}-\d{2}$/.test(mejor.fecha)
+    ? new Date(`${mejor.fecha}T12:00:00`).toLocaleDateString('es-SV', { weekday: 'short', day: 'numeric', month: 'short' }).replaceAll('.', '')
+    : mejor.etiqueta;
   return (
-    <div className="w-full min-w-0 pb-1">
-      <div className="grid h-56 w-full min-w-0 items-end gap-1 border-b border-line px-1 pt-5 sm:gap-2" style={{ gridTemplateColumns: `repeat(${serie.length}, minmax(0, 1fr))` }}>
-        {serie.map((punto, indice) => {
-          const altura = maximo > 0n ? Number((punto.ventas * 100n) / maximo) : 0;
-          return (
-            <div key={punto.clave} className="flex h-full min-w-0 flex-col items-center justify-end gap-1" title={`${punto.etiqueta}: ${formatearCentavos(punto.ventas)} · ${punto.tickets} tickets`}>
-              <span className="text-[9px] tabular-nums text-fg-muted sm:text-[10px]">{altura >= 18 ? `${altura}%` : ''}</span>
-              <div
-                className="w-full min-h-1 rounded-t-md transition-[height]"
-                style={{
-                  height: `${Math.max(3, altura)}%`,
-                  backgroundColor: indice === serie.length - 1 ? 'var(--chart-focus)' : 'var(--chart-neutral)',
-                }}
-                aria-label={`${punto.etiqueta}: ${formatearCentavos(punto.ventas)}`}
-              />
-              <span className="w-full truncate text-center text-[8px] text-fg-muted sm:text-[10px]">{punto.etiqueta}</span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+    <p className="mb-3 flex flex-wrap items-baseline gap-x-5 gap-y-1 text-sm">
+      <span>Total del rango: <strong className="tabular-nums">{formatearCentavos(total)}</strong></span>
+      <span className="text-fg-muted">Promedio diario: <strong className="text-fg tabular-nums">{formatearCentavos(promedio)}</strong></span>
+      <span className="text-fg-muted">Mejor día: <strong className="text-fg tabular-nums">{mejorEtiqueta} · {formatearCentavos(BigInt(mejor.total))}</strong></span>
+    </p>
   );
 }
 
-function ResumenProductos({ productos }) {
-  if (!productos.length) return <p className="py-10 text-center text-sm text-fg-muted">No hay productos vendidos en este período.</p>;
+function GraficoSucursales({ filas, cargando, error }) {
+  if (cargando) return <p className="py-8 text-center text-sm text-fg-muted" role="status">Cargando comparación…</p>;
+  if (error) return <p className="py-8 text-center text-sm text-danger" role="alert">No se pudo cargar la comparación por sucursal.</p>;
+  if (!filas.length) return <p className="py-8 text-center text-sm text-fg-muted">Sin datos en este rango</p>;
+  const maximo = filas.reduce((mayor, fila) => fila.ventas > mayor ? fila.ventas : mayor, 0n) || 1n;
+  return <ul className="space-y-4">
+    {filas.map((fila, indice) => {
+      const ancho = Number((fila.ventas * 100n) / maximo);
+      return <li key={fila.id_sucursal ?? fila.sucursal} className="min-w-0">
+        <div className="mb-1 flex min-w-0 items-baseline justify-between gap-3 text-sm">
+          <span title={fila.sucursal} className="min-w-0 truncate font-medium">{fila.sucursal}</span>
+          <span className="shrink-0 whitespace-nowrap font-semibold tabular-nums">{formatearCentavos(fila.ventas)}</span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-muted" role="img" aria-label={`${fila.sucursal}: ${formatearCentavos(fila.ventas)}`}>
+          <div className="h-full rounded-full" style={{ width: `${Math.max(2, ancho)}%`, backgroundColor: indice === 0 ? 'var(--chart-focus)' : 'var(--chart-neutral)' }} />
+        </div>
+        <p className="mt-1 text-right text-xs text-fg-muted">{formatoEntero(fila.tickets)} tickets</p>
+      </li>;
+    })}
+  </ul>;
+}
+
+function ResumenProductos({ productos, cargando, error }) {
+  if (cargando) return <p className="py-8 text-center text-sm text-fg-muted" role="status">Cargando productos más vendidos…</p>;
+  if (error) return <p className="py-8 text-center text-sm text-danger" role="alert">No se pudo cargar el ranking de productos.</p>;
+  if (!productos.length) return <p className="py-8 text-center text-sm text-fg-muted">Sin datos en este rango</p>;
   const maximo = Math.max(...productos.map((fila) => Number(fila.unidades) || 0), 1);
   return (
     <ol className="space-y-4">
@@ -212,12 +212,12 @@ function ResumenProductos({ productos }) {
           <li key={`${fila.nombre}-${indice}`}>
             <div className="mb-1.5 flex items-baseline justify-between gap-3 text-sm">
               <span className="min-w-0 truncate font-medium"><span className="mr-2 text-xs text-fg-muted">{String(indice + 1).padStart(2, '0')}</span>{fila.nombre}</span>
-              <span className="shrink-0 tabular-nums text-fg-muted">{FORMATO_NUMERO.format(unidades)} u.</span>
+              <span className="shrink-0 tabular-nums text-fg-muted">{formatoEntero(unidades)} u.</span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-muted" role="img" aria-label={`${fila.nombre}: ${unidades} unidades`}>
               <div className="h-full rounded-full" style={{ width: `${Math.max(2, (unidades / maximo) * 100)}%`, backgroundColor: indice === 0 ? 'var(--chart-focus)' : 'var(--chart-neutral)' }} />
             </div>
-            <p className="mt-1 text-right text-xs text-fg-muted">{formatearDinero(fila.ingreso)}</p>
+            <p className="mt-1 text-right text-xs text-fg-muted">{formatoDinero(fila.ingreso)}</p>
           </li>
         );
       })}
@@ -225,8 +225,10 @@ function ResumenProductos({ productos }) {
   );
 }
 
-function ResumenMetodosPago({ metodos }) {
-  if (!metodos.length) return <p className="py-8 text-center text-sm text-fg-muted">No hay pagos registrados para el período.</p>;
+function ResumenMetodosPago({ metodos, cargando, error }) {
+  if (cargando) return <p className="py-8 text-center text-sm text-fg-muted" role="status">Cargando métodos de pago…</p>;
+  if (error) return <p className="py-8 text-center text-sm text-danger" role="alert">No se pudieron cargar los métodos de pago.</p>;
+  if (!metodos.length) return <p className="py-8 text-center text-sm text-fg-muted">Sin datos en este rango</p>;
   const total = sumarImportes(metodos, 'total');
   return (
     <ul className="space-y-4">
@@ -242,7 +244,7 @@ function ResumenMetodosPago({ metodos }) {
             <div className="h-2 overflow-hidden rounded-full bg-muted" role="img" aria-label={`${ETIQUETAS_PAGO[fila.metodo] ?? fila.metodo}: ${porcentaje}% del ingreso`}>
               <div className="h-full rounded-full" style={{ width: `${Math.max(2, porcentaje)}%`, backgroundColor: indice === 0 ? 'var(--chart-focus)' : 'var(--chart-neutral)' }} />
             </div>
-            <p className="mt-1 text-xs text-fg-muted">{FORMATO_NUMERO.format(Number(fila.tickets) || 0)} tickets que utilizaron este método · {porcentaje}% del ingreso</p>
+            <p className="mt-1 text-xs text-fg-muted">{formatoEntero(Number(fila.tickets) || 0)} tickets que utilizaron este método · {porcentaje}% del ingreso</p>
           </li>
         );
       })}
@@ -279,6 +281,7 @@ export default function ReportesPage() {
   const puedeVerCuadres = tiene('CAJA_VER_CUADRES');
   const puedeVerCuentas = tiene('COM_VER_CXP');
   const controladorCarga = useRef(null);
+  const cacheReportes = useRef(new Map());
   const [desde, setDesde] = useState(INICIO);
   const [hasta, setHasta] = useState(HOY);
   const [idSucursal, setIdSucursal] = useState('');
@@ -303,6 +306,14 @@ export default function ReportesPage() {
     const consulta = new URLSearchParams({ desde: filtros.desde, hasta: filtros.hasta });
     if (filtros.idSucursal) consulta.set('idSucursal', filtros.idSucursal);
     const query = consulta.toString();
+    const claveCache = `${query}|${puedeVerMargen}|${puedeVerCuadres}|${puedeVerCuentas}`;
+    const guardado = cacheReportes.current.get(claveCache);
+    if (guardado && guardado.hasta > Date.now()) {
+      setDatos(guardado.datos);
+      setCargando(false);
+      return;
+    }
+    cacheReportes.current.delete(claveCache);
     const parametrosStock = filtros.idSucursal ? `?idSucursal=${encodeURIComponent(filtros.idSucursal)}` : '';
     const consultas = [
       { clave: 'ventas', etiqueta: 'Ventas diarias', promesa: api.get(`/reportes/ventas-diarias?${query}`, { signal: controlador.signal }) },
@@ -327,6 +338,10 @@ export default function ReportesPage() {
         fallos.push(`${etiqueta}: ${resultado.reason?.message ?? 'error desconocido'}`);
       }
     });
+    if (!fallos.length) {
+      if (cacheReportes.current.size >= 8) cacheReportes.current.delete(cacheReportes.current.keys().next().value);
+      cacheReportes.current.set(claveCache, { datos: siguientes, hasta: Date.now() + 30_000 });
+    }
     setDatos(siguientes);
     setErrores(fallos);
     setCargando(false);
@@ -346,8 +361,13 @@ export default function ReportesPage() {
     return { total, tickets, promedio };
   }, [datos.ventas]);
 
-  const serieVentas = useMemo(() => agruparVentas(datos.ventas, desde, hasta), [datos.ventas, desde, hasta]);
+  const serieVentas = useMemo(() => agruparVentas(datos.ventas, desde, hasta)
+    .map((punto) => ({ fecha: punto.clave, etiqueta: punto.etiqueta, total: Number(punto.ventas), tickets: punto.tickets })),
+  [datos.ventas, desde, hasta]);
   const ventasSucursal = useMemo(() => construirVentasSucursal(datos.ventas), [datos.ventas]);
+  const errorVentas = errores.some((mensaje) => mensaje.startsWith('Ventas diarias:'));
+  const errorProductos = errores.some((mensaje) => mensaje.startsWith('Productos más vendidos:'));
+  const errorMetodosPago = errores.some((mensaje) => mensaje.startsWith('Ventas por método de pago:'));
   const alertasAgotadas = datos.alertas.filter((fila) => fila.nivel === 'AGOTADO').length;
   const alertasBajoMinimo = datos.alertas.length - alertasAgotadas;
   const saldoPendiente = sumarImportes(datos.cuentas, 'saldo');
@@ -363,10 +383,10 @@ export default function ReportesPage() {
     { clave: 'fecha', titulo: 'Fecha', render: (fila) => formatearFecha(String(fila.fecha).slice(0, 10)) },
     { clave: 'sucursal', titulo: 'Sucursal' },
     { clave: 'tickets', titulo: 'Tickets', alinear: 'right' },
-    { clave: 'subtotal', titulo: 'Subtotal', alinear: 'right', render: (fila) => formatearDinero(fila.subtotal) },
-    { clave: 'iva', titulo: 'IVA', alinear: 'right', render: (fila) => formatearDinero(fila.iva) },
-    { clave: 'total', titulo: 'Total', alinear: 'right', render: (fila) => <span className="font-semibold tabular-nums">{formatearDinero(fila.total)}</span> },
-    { clave: 'ticket_promedio', titulo: 'Ticket promedio', alinear: 'right', render: (fila) => formatearDinero(fila.ticket_promedio) },
+    { clave: 'subtotal', titulo: 'Subtotal', alinear: 'right', render: (fila) => formatoDinero(fila.subtotal) },
+    { clave: 'iva', titulo: 'IVA', alinear: 'right', render: (fila) => formatoDinero(fila.iva) },
+    { clave: 'total', titulo: 'Total', alinear: 'right', render: (fila) => <span className="font-semibold tabular-nums">{formatoDinero(fila.total)}</span> },
+    { clave: 'ticket_promedio', titulo: 'Ticket promedio', alinear: 'right', render: (fila) => formatoDinero(fila.ticket_promedio) },
   ];
 
   const filasCsv = [
@@ -435,26 +455,29 @@ export default function ReportesPage() {
         </div>
         <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Metrica icono={Banknote} valor={cargando ? '…' : formatearCentavos(resumen.total)} etiqueta="Venta total con IVA" tono="primario" />
-          <Metrica icono={ReceiptText} valor={cargando ? '…' : FORMATO_NUMERO.format(resumen.tickets)} etiqueta="Tickets emitidos" tono="info" />
+          <Metrica icono={ReceiptText} valor={cargando ? '…' : formatoEntero(resumen.tickets)} etiqueta="Tickets emitidos" tono="info" />
           <Metrica icono={TrendingUp} valor={cargando ? '…' : formatearCentavos(resumen.promedio)} etiqueta="Ticket promedio ponderado" tono="exito" />
           <Metrica icono={Store} valor={cargando ? '…' : ventasSucursal.length} etiqueta="Sucursales con ventas" tono="neutro" />
         </div>
       </section>}
 
-      {seccionActiva === 'ventas' && <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
-        <Card titulo="Tendencia de ventas" descripcion="Cada barra representa ingresos del día. La altura muestra su proporción respecto al día con más ventas; el valor exacto aparece al enfocar o pasar el cursor.">
-          <GraficoVentas serie={serieVentas} />
-          <div className="mt-3 flex items-center justify-between gap-3 text-xs text-fg-muted">
-            <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: 'var(--chart-neutral)' }} />Períodos anteriores</span>
-            <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: 'var(--chart-focus)' }} />Período más reciente</span>
-          </div>
-        </Card>
+      {seccionActiva === 'ventas' && <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
+        <div className="min-w-0 space-y-4">
+          <Card titulo="Tendencia de ventas" descripcion="Ventas por día con su monto en dólares. Pasa el cursor sobre una barra (o enfócala con el teclado) para ver el detalle.">
+            <ResumenTendencia serie={serieVentas} hoy={HOY} />
+            <GraficaTendencia serie={serieVentas} hoy={HOY} cargando={cargando} error={errorVentas} />
+            <LeyendaTendencia className="mt-3" />
+          </Card>
+          <Card titulo="Ventas por sucursal" descripcion="Comparación del total vendido y los tickets por sucursal en el rango seleccionado.">
+            <GraficoSucursales filas={ventasSucursal} cargando={cargando} error={errorVentas} />
+          </Card>
+        </div>
         <div className="space-y-4">
           <Card titulo="Productos más vendidos" descripcion="Ranking por unidades; el ingreso se muestra debajo de cada barra.">
-            <ResumenProductos productos={datos.productos} />
+            <ResumenProductos productos={datos.productos} cargando={cargando} error={errorProductos} />
           </Card>
           <Card titulo="Ventas por método de pago" descripcion="Distribución del ingreso cobrado; un ticket puede incluir varios métodos.">
-            <ResumenMetodosPago metodos={datos.metodosPago} />
+            <ResumenMetodosPago metodos={datos.metodosPago} cargando={cargando} error={errorMetodosPago} />
           </Card>
         </div>
       </div>}
@@ -466,7 +489,7 @@ export default function ReportesPage() {
           vacio="No hay ventas por sucursal en este período."
           columnas={[
             { clave: 'sucursal', titulo: 'Sucursal', render: (fila) => <span className="font-semibold">{fila.sucursal}</span> },
-            { clave: 'tickets', titulo: 'Tickets', alinear: 'right', render: (fila) => FORMATO_NUMERO.format(fila.tickets) },
+            { clave: 'tickets', titulo: 'Tickets', alinear: 'right', render: (fila) => formatoEntero(fila.tickets) },
             { clave: 'ventasTexto', titulo: 'Ventas', alinear: 'right', render: (fila) => <span className="font-semibold tabular-nums">{fila.ventasTexto}</span> },
             { clave: 'ticketPromedio', titulo: 'Ticket promedio', alinear: 'right' },
           ]}
@@ -508,10 +531,10 @@ export default function ReportesPage() {
               vacio="No hay información de costos para productos activos."
               columnas={[
                 { clave: 'nombre', titulo: 'Producto' },
-                { clave: 'precio_sin_iva', titulo: 'Precio sin IVA', alinear: 'right', render: (fila) => formatearDinero(fila.precio_sin_iva) },
-                { clave: 'costo_receta', titulo: 'Costo estimado', alinear: 'right', render: (fila) => formatearDinero(fila.costo_receta) },
-                { clave: 'margen', titulo: 'Margen', alinear: 'right', render: (fila) => <span className="font-semibold tabular-nums">{formatearDinero(fila.margen)}</span> },
-                { clave: 'margen_pct', titulo: 'Margen %', alinear: 'right', render: (fila) => `${Number(fila.margen_pct ?? 0).toLocaleString('es-SV', { maximumFractionDigits: 2 })}%` },
+                { clave: 'precio_sin_iva', titulo: 'Precio sin IVA', alinear: 'right', render: (fila) => formatoDinero(fila.precio_sin_iva) },
+                { clave: 'costo_receta', titulo: 'Costo estimado', alinear: 'right', render: (fila) => formatoDinero(fila.costo_receta) },
+                { clave: 'margen', titulo: 'Margen', alinear: 'right', render: (fila) => <span className="font-semibold tabular-nums">{formatoDinero(fila.margen)}</span> },
+                { clave: 'margen_pct', titulo: 'Margen %', alinear: 'right', render: (fila) => `${formatoDecimal(fila.margen_pct ?? 0)}%` },
               ]}
             />
           </Card>
@@ -567,9 +590,9 @@ export default function ReportesPage() {
                   { clave: 'num_factura', titulo: 'Factura' },
                   { clave: 'tipo_costo', titulo: 'Tipo', render: (fila) => fila.tipo_costo === 'COSTO' ? 'Costo' : 'Gasto' },
                   { clave: 'fecha_vencimiento', titulo: 'Vencimiento', render: (fila) => formatearFecha(String(fila.fecha_vencimiento).slice(0, 10)) },
-                  { clave: 'total', titulo: 'Total', alinear: 'right', render: (fila) => formatearDinero(fila.total) },
-                  { clave: 'pagado', titulo: 'Pagado', alinear: 'right', render: (fila) => formatearDinero(fila.pagado) },
-                  { clave: 'saldo', titulo: 'Saldo', alinear: 'right', render: (fila) => <span className="font-semibold tabular-nums">{formatearDinero(fila.saldo)}</span> },
+                  { clave: 'total', titulo: 'Total', alinear: 'right', render: (fila) => formatoDinero(fila.total) },
+                  { clave: 'pagado', titulo: 'Pagado', alinear: 'right', render: (fila) => formatoDinero(fila.pagado) },
+                  { clave: 'saldo', titulo: 'Saldo', alinear: 'right', render: (fila) => <span className="font-semibold tabular-nums">{formatoDinero(fila.saldo)}</span> },
                   { clave: 'estado_pago', titulo: 'Estado', render: (fila) => {
                     const parcial = fila.estado_pago === 'PARCIAL';
                     const vencida = Number(fila.dias_vencida) > 0;

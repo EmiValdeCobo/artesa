@@ -31,7 +31,7 @@ test('UI/UX: CatalogoProductosPage implementa badge alineado, costo whitespace-n
 
   // 1. Alineación uniforme del badge de ingredientes bajo el nombre y h-9 en acciones
   assert.match(codigo, /setProductoPrevisualizar\(p\)/, 'El badge abre la previsualización al hacer clic');
-  assert.match(codigo, /h-9.*whitespace-nowrap/, 'El botón Editar receta y acciones tienen h-9 y whitespace-nowrap');
+  assert.match(codigo, /!size-10[\s\S]*?whitespace-nowrap/, 'Las acciones táctiles miden al menos 40 px y el badge no se parte');
   assert.match(codigo, /font-mono whitespace-nowrap[\s\S]*?p\.costo_teorico/, 'Columna costo usa whitespace-nowrap y formato 2 decimales');
 
   // 2. Modal de Previsualización Rápida

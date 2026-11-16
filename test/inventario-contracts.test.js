@@ -42,7 +42,7 @@ test('inventario: desactivar insumo y unidad devuelve 409 con dependencias activ
   assert.match(insumosUi, /Mostrar inactivos/);
   assert.match(productosUi, /Mostrar inactivos/);
   assert.match(insumosUi, /Reactivar insumo/);
-  assert.match(productosUi, /Reactivar producto/);
+  assert.match(productosUi, /producto\.activo === false \? 'Reactivar' : 'Desactivar'/);
 });
 
 test('inventario: drawer limita reventa a insumos disponibles y muestra su vínculo', async () => {
@@ -237,7 +237,8 @@ test('inventario UI: CatalogoInsumosPage, CatalogoProductosPage y EditorRecetasP
   assert.match(productosPage, /vista === 'tabla'/);
   assert.match(productosPage, /vista === 'cuadricula'/);
   assert.match(productosPage, /formatoDinero\(p\.precio_venta\)/);
-  assert.match(productosPage, /\/catalogo\/productos\/\$\{p\.id_producto\}\/receta/);
+  assert.match(productosPage, /\/catalogo\/productos\/\$\{producto\.id_producto\}\/receta/);
+  assert.match(productosPage, /function AccionesProducto/);
   assert.match(productosPage, /Elaborado \(Receta\)/);
   assert.match(productosPage, /Reventa/);
 

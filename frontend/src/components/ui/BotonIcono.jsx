@@ -8,7 +8,7 @@ const TONOS = {
   neutro: 'btn-ghost',
   aviso: 'btn-ghost text-warning',
   exito: 'btn-ghost text-success',
-  peligro: 'btn-danger',
+  peligro: 'btn-danger-outline',
 };
 
 const BotonIcono = forwardRef(function BotonIcono(

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutGrid, List, ChefHat, ShoppingBag, Pencil, Layers, Power, PowerOff, Tag, Plus, Search, X, Trash2, AlertTriangle,
+  LayoutGrid, List, ChefHat, ShoppingBag, Pencil, Power, PowerOff, Tag, Plus, Search, X, Trash2, AlertTriangle,
 } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -12,7 +12,9 @@ import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
 import CampoError from '../../components/forms/CampoError.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
+import AccionConTooltip from '../../components/display/AccionConTooltip.jsx';
 import { BotonIcono, Button, Card, Select, Table } from '../../components/ui/index.js';
+import './catalogo-productos.css';
 import { ICONOS } from '../../config/iconos.js';
 import { formatoDinero, formatearUnidades } from '../../utils/formato.js';
 import { aplicarMascara, completarDecimales, propsMascara } from '../../utils/mascaras.js';
@@ -266,14 +268,9 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
             Cerrar
           </button>
           {tienePermisoRecetas && (
-            <button
-              type="button"
-              onClick={() => onEditarReceta(producto.id_producto)}
-              className="bg-primary hover:bg-primary-hover text-on-accent px-5 py-2.5 rounded-xl font-semibold shadow-sm flex items-center gap-2 transition-colors cursor-pointer text-sm"
-            >
-              <Layers size={16} aria-hidden="true" />
-              Editar receta completa
-            </button>
+            <AccionConTooltip texto="Editar receta completa">
+              <BotonIcono icono={ChefHat} className="!size-10" etiqueta={`Editar receta de ${producto.nombre}`} onClick={() => onEditarReceta(producto.id_producto)} />
+            </AccionConTooltip>
           )}
         </div>
       </div>
@@ -318,16 +315,36 @@ function CatalogoSkeleton() {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const BadgeTipo = ({ esElaborado }) =>
   esElaborado ? (
-    <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-primary-soft text-primary-text">
+    <span className="inline-flex whitespace-nowrap items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-primary-soft text-primary-text">
       <ChefHat size={12} aria-hidden="true" />
       Elaborado (Receta)
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-secondary-soft text-secondary-text">
+    <span className="inline-flex whitespace-nowrap items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-secondary-soft text-secondary-text">
       <ShoppingBag size={12} aria-hidden="true" />
       Reventa
     </span>
   );
+
+function AccionesProducto({ producto, tiene, navegar, editar, cambiarEstado, eliminar }) {
+  const { es_elaborado: esElaborado } = producto;
+  return (
+    <div className="acciones-producto flex min-w-[178px] shrink-0 flex-nowrap items-center justify-end gap-1">
+      {esElaborado && tiene('INV_GESTIONAR_RECETAS') ? <AccionConTooltip texto={Number(producto.n_ingredientes) === 0 ? 'Crear receta' : 'Editar receta'}>
+        <BotonIcono icono={ChefHat} className="!size-10 shrink-0" etiqueta={`${Number(producto.n_ingredientes) === 0 ? 'Crear receta' : 'Editar receta'} de ${producto.nombre}`} onClick={() => navegar(`/catalogo/productos/${producto.id_producto}/receta`)} />
+      </AccionConTooltip> : <span className="size-10 shrink-0" aria-hidden="true" />}
+      {tiene('INV_GESTIONAR_PRODUCTOS') && <AccionConTooltip texto={`Editar producto ${producto.nombre}`}>
+        <BotonIcono icono={ICONOS.editar} className="!size-10 shrink-0" etiqueta={`Editar producto ${producto.nombre}`} onClick={() => editar(producto)} />
+      </AccionConTooltip>}
+      {tiene('INV_GESTIONAR_PRODUCTOS') && <AccionConTooltip texto={`${producto.activo === false ? 'Reactivar' : 'Desactivar'} producto ${producto.nombre}`}>
+        <BotonIcono icono={producto.activo === false ? ICONOS.activar : ICONOS.desactivar} tono={producto.activo === false ? 'exito' : 'aviso'} className="!size-10 shrink-0" etiqueta={`${producto.activo === false ? 'Reactivar' : 'Desactivar'} producto ${producto.nombre}`} onClick={() => cambiarEstado(producto)} />
+      </AccionConTooltip>}
+      {tiene('INV_GESTIONAR_PRODUCTOS') && <AccionConTooltip texto={`Eliminar producto ${producto.nombre}`}>
+        <BotonIcono icono={ICONOS.eliminar} tono="peligro" className="!size-10 shrink-0" etiqueta={`Eliminar producto ${producto.nombre}`} onClick={() => eliminar(producto)} />
+      </AccionConTooltip>}
+    </div>
+  );
+}
 
 // Mensaje local (validación de formulario o de conexión) con la misma forma que
 // espera BannerError, para no mezclar errores de servidor con texto plano.
@@ -654,42 +671,13 @@ export default function CatalogoProductosPage() {
   const columnas = [
     {
       clave: 'nombre',
-      titulo: 'Nombre del producto',
+      titulo: 'Producto',
       render: (p) => (
-        <div className="space-y-1">
-          <span className="font-semibold text-fg block leading-tight">{p.nombre}</span>
-          <div className="flex items-center gap-2 flex-wrap">
-            {p.es_elaborado ? (
-              Number(p.n_ingredientes) === 0 ? (
-                <span
-                  title="No se puede vender hasta que tenga al menos un ingrediente"
-                  className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold bg-warning-soft text-warning"
-                >
-                  <AlertTriangle size={11} aria-hidden="true" />
-                  Sin receta
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setProductoPrevisualizar(p);
-                  }}
-                  title="Clic para previsualizar ingredientes de la receta"
-                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-success-soft text-success hover:bg-success/20 transition-colors cursor-pointer border border-success/30 shadow-xs"
-                >
-                  <ChefHat size={12} aria-hidden="true" />
-                  <span>{formatearUnidades(p.n_ingredientes)} ingredientes</span>
-                </button>
-              )
-            ) : (
-              <span className="inline-flex items-center gap-1 text-xs text-fg-muted">
-                <ShoppingBag size={11} aria-hidden="true" />
-                Insumo: {p.insumo_reventa ?? '—'}
-              </span>
-            )}
+        <div className="producto-tabla min-w-0">
+          <span className="nombre-producto-tabla block truncate font-semibold leading-tight text-fg" title={p.nombre}>{p.nombre}</span>
+          <div className="flex min-w-0 items-center">
             {p.codigo_barra && (
-              <span className="font-mono text-xs text-fg-muted">
+              <span className="codigo-producto-tabla truncate font-mono text-xs text-fg-muted">
                 {p.codigo_barra}
               </span>
             )}
@@ -710,11 +698,12 @@ export default function CatalogoProductosPage() {
     {
       clave: 'tipo',
       titulo: 'Tipo',
-      render: (p) => <div><BadgeTipo esElaborado={p.es_elaborado} />{!p.es_elaborado && <p className="mt-1 text-xs text-fg-muted">{p.insumo_reventa ?? '—'}</p>}</div>,
+      render: (p) => <div className="tipo-producto-tabla"><BadgeTipo esElaborado={p.es_elaborado} />{!p.es_elaborado && p.insumo_reventa && p.insumo_reventa !== p.nombre && <p className="mt-0.5 truncate text-xs text-fg-muted" title={p.insumo_reventa}>Insumo: {p.insumo_reventa}</p>}</div>,
     },
     {
       clave: 'precio_venta',
-      titulo: 'Precio venta (con IVA)',
+      titulo: 'Precio',
+      descripcion: 'Precio de venta con IVA',
       alinear: 'right',
       render: (p) => (
         <span className="font-mono font-bold whitespace-nowrap text-primary-text">
@@ -734,7 +723,8 @@ export default function CatalogoProductosPage() {
     },
     {
       clave: 'margen',
-      titulo: 'Margen sobre precio sin IVA',
+      titulo: 'Margen',
+      descripcion: 'Margen sobre el precio sin IVA',
       alinear: 'right',
       render: (p) => (
         <span className="font-mono whitespace-nowrap text-fg">
@@ -755,37 +745,8 @@ export default function CatalogoProductosPage() {
       clave: '_acciones',
       titulo: 'Acciones',
       alinear: 'right',
-      render: (p) => (
-        <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
-          {p.es_elaborado && tiene('INV_GESTIONAR_RECETAS') && (
-            <button
-              type="button"
-              className="btn-ghost !px-2.5 text-xs font-semibold text-primary-text hover:bg-primary-soft h-9 inline-flex items-center whitespace-nowrap"
-              title={Number(p.n_ingredientes) === 0 ? 'Crear receta' : 'Editar receta'}
-              onClick={() => navigate(`/catalogo/productos/${p.id_producto}/receta`)}
-            >
-              <Layers size={14} className="mr-1.5 shrink-0" aria-hidden="true" />
-              <span>{Number(p.n_ingredientes) === 0 ? 'Crear receta' : 'Editar receta'}</span>
-            </button>
-          )}
-          {tiene('INV_GESTIONAR_PRODUCTOS') && (
-            <BotonIcono icono={ICONOS.editar} className="h-9 w-9" etiqueta={`Editar producto ${p.nombre}`} titulo="Editar producto" onClick={() => abrirEditar(p)} />
-          )}
-          {tiene('INV_GESTIONAR_PRODUCTOS') && (
-            <BotonIcono
-              icono={p.activo === false ? ICONOS.activar : ICONOS.desactivar}
-              tono={p.activo === false ? 'exito' : 'aviso'}
-              className="h-9 w-9"
-              etiqueta={`${p.activo === false ? 'Reactivar' : 'Desactivar'} producto ${p.nombre}`}
-              titulo={p.activo === false ? 'Reactivar producto' : 'Desactivar producto'}
-              onClick={() => handleToggleEstado(p)}
-            />
-          )}
-          {tiene('INV_GESTIONAR_PRODUCTOS') && (
-            <BotonIcono icono={ICONOS.eliminar} tono="peligro" className="h-9 w-9" etiqueta={`Eliminar producto ${p.nombre}`} titulo="Eliminar producto" onClick={() => handleEliminarProducto(p)} />
-          )}
-        </div>
-      ),
+      ancho: 'acciones',
+      render: (p) => <AccionesProducto producto={p} tiene={tiene} navegar={navigate} editar={abrirEditar} cambiarEstado={handleToggleEstado} eliminar={handleEliminarProducto} />,
     },
   ];
 
@@ -812,8 +773,8 @@ export default function CatalogoProductosPage() {
       {pendientesReceta.length > 0 && <div className="flex items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning-soft px-4 py-3 text-sm"><span>{pendientesReceta.length} productos elaborados aún no tienen receta y no se pueden vender</span><Button variante="ghost" onClick={() => setFiltroReceta('SIN_RECETA')}>Ver pendientes</Button></div>}
 
       {/* Barra de Filtros y Controles */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-        <div className="flex-1 min-w-56">
+        <div className="flex min-w-0 flex-wrap items-end gap-3">
+        <div className="min-w-0 flex-[1_1_16rem]">
           <label htmlFor="buscar-producto" className="mb-1 block text-sm font-medium text-fg">
             Buscar producto
           </label>
@@ -823,14 +784,14 @@ export default function CatalogoProductosPage() {
               id="buscar-producto"
               type="search"
               className="input pl-9"
-              placeholder="Buscar por nombre o código de barras…"
+              placeholder="Buscar producto"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
             />
           </div>
         </div>
 
-        <div className="min-w-48">
+        <div className="min-w-0 flex-[1_1_11rem]">
           <Select
             etiqueta="Tipo de producto"
             opciones={opcionesTipo}
@@ -839,9 +800,9 @@ export default function CatalogoProductosPage() {
           />
         </div>
 
-        <div className="min-w-48"><Select etiqueta="Receta" opciones={opcionesReceta} value={filtroReceta} onChange={(e) => setFiltroReceta(e.target.value)} /></div>
+        <div className="min-w-0 flex-[1_1_9rem]"><Select etiqueta="Receta" opciones={opcionesReceta} value={filtroReceta} onChange={(e) => setFiltroReceta(e.target.value)} /></div>
 
-        <div className="min-w-48">
+        <div className="min-w-0 flex-[1_1_11rem]">
           <Select
             etiqueta="Categoría"
             opciones={opcionesCategoria}
@@ -877,7 +838,7 @@ export default function CatalogoProductosPage() {
         <p className="text-sm text-fg-muted" aria-live="polite">
           {productosFiltrados.length} {productosFiltrados.length === 1 ? 'producto encontrado' : 'productos encontrados'}
         </p>
-        <div className="flex items-center gap-3">
+              <div className="flex min-w-0 flex-wrap items-center gap-3">
           <div className="inline-flex rounded-lg border border-line bg-muted/30 p-0.5 text-xs font-medium" role="group" aria-label="Filtro por estado">
             <button
               type="button"
@@ -926,23 +887,25 @@ export default function CatalogoProductosPage() {
             filas={productosFiltrados}
             idFila="id_producto"
             vacio="Sin productos disponibles."
+            scrollVertical={false}
+            maxAltura=""
+            className="catalogo-tabla"
           />
         </Card>
       ) : (
         /* Vista Cuadrícula */
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid min-w-0 grid-cols-[repeat(auto-fill,minmax(min(100%,17rem),1fr))] gap-4">
           {productosFiltrados.map((p) => {
             const nombreCat = p.nombre_categoria ?? categorias.find((c) => String(c.id_categoria) === String(p.id_categoria))?.nombre ?? 'Sin categoría';
             return (
               <div
                 key={p.id_producto}
-                className={`card flex flex-col justify-between transition-shadow hover:shadow-md ${p.activo === false ? 'opacity-60 bg-muted/40' : ''}`}
+                className={`card flex min-w-0 flex-col overflow-hidden transition-shadow hover:shadow-md ${p.activo === false ? 'opacity-60 bg-muted/40' : ''}`}
               >
                 <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="font-semibold text-fg text-base leading-snug">{p.nombre}</h3>
-                      {!p.es_elaborado && <p className="text-xs text-fg-muted">Insumo: {p.insumo_reventa ?? '—'}</p>}
+                  <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h3 title={p.nombre} className="line-clamp-2 min-h-[2.7em] break-words font-semibold text-fg text-base leading-snug">{p.nombre}</h3>
                       {p.es_elaborado && (
                         Number(p.n_ingredientes) === 0 ? (
                           <span
@@ -971,53 +934,26 @@ export default function CatalogoProductosPage() {
                         <p className="font-mono text-xs text-fg-muted mt-0.5">{p.codigo_barra}</p>
                       )}
                     </div>
-                    <BadgeTipo esElaborado={p.es_elaborado} />
+                    <div className="shrink-0"><BadgeTipo esElaborado={p.es_elaborado} /></div>
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-fg-muted bg-muted px-2.5 py-1 rounded-md">
+                  <div className="mt-4 flex min-w-0 flex-wrap items-center justify-between gap-2">
+                    <span title={nombreCat} className="inline-flex min-w-0 max-w-full items-center gap-1.5 truncate text-xs font-medium text-fg-muted bg-muted px-2.5 py-1 rounded-md">
                       <Tag size={12} aria-hidden="true" />
                       {nombreCat}
                     </span>
-                    <span className="text-xl font-bold font-mono text-primary-text">
+                    <span className="shrink-0 whitespace-nowrap text-xl font-bold font-mono tabular-nums text-primary-text">
                       {formatoDinero(p.precio_venta)}
                     </span>
                   </div>
                 </div>
 
-                <div className="mt-5 pt-3 border-t border-line flex items-center justify-between gap-2">
+                <div className="mt-auto pt-3 border-t border-line flex min-w-0 flex-wrap items-center justify-between gap-2">
                   <EstadoBadge tipo={p.activo !== false ? 'exito' : 'error'}>
                     {p.activo !== false ? 'Activo' : 'Inactivo'}
                   </EstadoBadge>
 
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    {p.es_elaborado && tiene('INV_GESTIONAR_RECETAS') && (
-                      <Button
-                        variante="ghost"
-                        className="!px-2.5 text-xs text-primary-text font-semibold hover:bg-primary-soft h-9 inline-flex items-center whitespace-nowrap"
-                        onClick={() => navigate(`/catalogo/productos/${p.id_producto}/receta`)}
-                        icono={Layers}
-                      >
-                        {Number(p.n_ingredientes) === 0 ? 'Crear receta' : 'Editar receta'}
-                      </Button>
-                    )}
-                    {tiene('INV_GESTIONAR_PRODUCTOS') && (
-                      <BotonIcono icono={ICONOS.editar} className="h-9 w-9" etiqueta={`Editar producto ${p.nombre}`} titulo="Editar producto" onClick={() => abrirEditar(p)} />
-                    )}
-                    {tiene('INV_GESTIONAR_PRODUCTOS') && (
-                      <BotonIcono
-                        icono={p.activo === false ? ICONOS.activar : ICONOS.desactivar}
-                        tono={p.activo === false ? 'exito' : 'aviso'}
-                        className="h-9 w-9"
-                        etiqueta={`${p.activo === false ? 'Reactivar' : 'Desactivar'} producto ${p.nombre}`}
-                        titulo={p.activo === false ? 'Reactivar producto' : 'Desactivar producto'}
-                        onClick={() => handleToggleEstado(p)}
-                      />
-                    )}
-                    {tiene('INV_GESTIONAR_PRODUCTOS') && (
-                      <BotonIcono icono={ICONOS.eliminar} tono="peligro" className="h-9 w-9" etiqueta={`Eliminar producto ${p.nombre}`} titulo="Eliminar producto" onClick={() => handleEliminarProducto(p)} />
-                    )}
-                  </div>
+                  <AccionesProducto producto={p} tiene={tiene} navegar={navigate} editar={abrirEditar} cambiarEstado={handleToggleEstado} eliminar={handleEliminarProducto} />
                 </div>
               </div>
             );

@@ -1,0 +1,60 @@
+.catalogo-tabla table {
+  min-width: 1160px;
+  table-layout: fixed;
+}
+
+.catalogo-tabla th,
+.catalogo-tabla td {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.catalogo-tabla th { font-size: .75rem; }
+.catalogo-tabla th[data-col='nombre'], .catalogo-tabla td[data-col='nombre'] { width: 25%; min-width: 260px; }
+.catalogo-tabla th[data-col='categoria'], .catalogo-tabla td[data-col='categoria'] { width: 13%; }
+.catalogo-tabla th[data-col='tipo'], .catalogo-tabla td[data-col='tipo'] { width: 14%; }
+.catalogo-tabla th[data-col='precio_venta'], .catalogo-tabla td[data-col='precio_venta'] { width: 12%; }
+.catalogo-tabla th[data-col='costo_teorico'], .catalogo-tabla td[data-col='costo_teorico'] { width: 10%; }
+.catalogo-tabla th[data-col='margen'], .catalogo-tabla td[data-col='margen'] { width: 12%; }
+.catalogo-tabla th[data-col='estado'], .catalogo-tabla td[data-col='estado'] { width: 9%; }
+.catalogo-tabla th[data-col='_acciones'], .catalogo-tabla td[data-col='_acciones'] { width: 210px; }
+.catalogo-tabla td { height: 68px; padding: .65rem .75rem; vertical-align: middle; }
+.catalogo-tabla th { padding: .75rem; }
+.catalogo-tabla td[data-col='nombre'], .catalogo-tabla td[data-col='categoria'], .catalogo-tabla td[data-col='tipo'], .catalogo-tabla td[data-col='estado'] { overflow: hidden; }
+.catalogo-tabla td[data-col='precio_venta'], .catalogo-tabla td[data-col='costo_teorico'], .catalogo-tabla td[data-col='margen'] { text-align: right; font-variant-numeric: tabular-nums; }
+.catalogo-tabla td[data-col='_acciones'] { overflow: visible; }
+.catalogo-tabla .acciones-producto { width: 178px; min-width: 178px; gap: 6px; }
+.catalogo-tabla .acciones-producto > * { flex: 0 0 40px; }
+.catalogo-tabla .nombre-producto-tabla { max-width: 100%; }
+.catalogo-tabla .tipo-producto-tabla { min-width: 0; }
+
+@media (max-width: 1023px) {
+  .catalogo-tabla table { min-width: 980px; }
+  .catalogo-tabla th[data-col='costo_teorico'], .catalogo-tabla td[data-col='costo_teorico'],
+  .catalogo-tabla th[data-col='margen'], .catalogo-tabla td[data-col='margen'] { display: none; }
+  .catalogo-tabla th[data-col='nombre'], .catalogo-tabla td[data-col='nombre'] { width: 30%; min-width: 260px; }
+  .catalogo-tabla th[data-col='categoria'], .catalogo-tabla td[data-col='categoria'] { width: 15%; }
+  .catalogo-tabla th[data-col='tipo'], .catalogo-tabla td[data-col='tipo'] { width: 17%; }
+  .catalogo-tabla th[data-col='precio_venta'], .catalogo-tabla td[data-col='precio_venta'] { width: 16%; }
+  .catalogo-tabla th[data-col='estado'], .catalogo-tabla td[data-col='estado'] { width: 12%; }
+}
+
+@media (max-width: 767px) {
+  .catalogo-tabla table { min-width: 0; border-collapse: separate; border-spacing: 0 .625rem; }
+  .catalogo-tabla thead { display: none; }
+  .catalogo-tabla tbody { display: grid; gap: .625rem; padding: .5rem; }
+  .catalogo-tabla tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; border: 1px solid var(--border-color); border-radius: .75rem; background: var(--bg-surface); overflow: hidden; }
+  .catalogo-tabla td { display: block; width: auto !important; min-width: 0 !important; height: auto; padding: .45rem .625rem; white-space: normal; text-align: left; }
+  .catalogo-tabla td::before { content: attr(data-label); display: block; margin-bottom: .2rem; color: var(--text-secondary); font-size: .65rem; font-weight: 600; }
+  .catalogo-tabla td[data-col='nombre'] { grid-column: 1 / -1; }
+  .catalogo-tabla td[data-col='categoria'] { grid-column: 1; }
+  .catalogo-tabla td[data-col='tipo'] { grid-column: 2; }
+  .catalogo-tabla td[data-col='precio_venta'] { grid-column: 1; }
+  .catalogo-tabla td[data-col='estado'] { grid-column: 2; }
+  .catalogo-tabla td[data-col='_acciones'] { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
+  .catalogo-tabla td[data-col='nombre']::before { content: none; }
+  .catalogo-tabla td[data-col='categoria'], .catalogo-tabla td[data-col='tipo'], .catalogo-tabla td[data-col='estado'] { overflow: hidden; }
+  .catalogo-tabla td[data-col='precio_venta'] { text-align: left; }
+  .catalogo-tabla td[data-col='_acciones']::before { margin-right: auto; }
+  .catalogo-tabla .acciones-producto { width: 178px; min-width: 178px; }
+}

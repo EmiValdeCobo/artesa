@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, CircleAlert, Info, KeyRound, Layers, Lock, Plus, Save, Search, Undo2 } from 'lucide-react';
+import { ChevronDown, CircleAlert, Info, KeyRound, Layers, Lock, Plus, Save, Search, Undo2, Users } from 'lucide-react';
 import { BotonIcono, Select } from '../../components/ui/index.js';
 import { ICONOS } from '../../config/iconos.js';
 import { api } from '../../api/client.js';
@@ -567,7 +567,7 @@ export default function RolesPermisosPage() {
           )}
         </div>
       ) : (
-        <div role="tabpanel" id="panel-permisos" aria-labelledby="tab-permisos" className="card mt-7 overflow-hidden !p-0">
+        <div role="tabpanel" id="panel-permisos" aria-labelledby="tab-permisos" className="card mt-7 !p-0">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line p-4 sm:p-5">
             <div>
               <h2 className="font-semibold">Catálogo de permisos</h2>
@@ -584,11 +584,12 @@ export default function RolesPermisosPage() {
               </div>
             </div>
           </div>
-          <div className="max-h-[560px] overflow-x-auto overflow-y-auto scroll-fino">
-            <table className="w-full min-w-3xl text-left text-sm">
+          {/* Sin scroll interno: la tabla crece con la página y el encabezado queda sticky al viewport. */}
+          <div>
+            <table className="w-full min-w-0 text-left text-sm">
               <caption className="sr-only">Catálogo de permisos con sus módulos y roles asignados</caption>
               <thead className="sticky top-0 z-10 border-b border-line bg-muted text-xs uppercase tracking-wide text-fg-muted shadow-xs">
-                <tr><th scope="col" className="bg-muted px-5 py-3 font-semibold">Código</th><th scope="col" className="bg-muted px-5 py-3 font-semibold">Módulo</th><th scope="col" className="bg-muted px-5 py-3 font-semibold">Descripción</th><th scope="col" className="bg-muted px-5 py-3 font-semibold">Roles</th><th scope="col" className="bg-muted px-5 py-3 text-right font-semibold">Acciones</th></tr>
+                <tr><th scope="col" className="bg-muted px-5 py-3 font-semibold">Código</th><th scope="col" className="hidden bg-muted px-5 py-3 font-semibold sm:table-cell">Módulo</th><th scope="col" className="bg-muted px-5 py-3 font-semibold">Descripción</th><th scope="col" className="hidden bg-muted px-5 py-3 font-semibold md:table-cell">Roles</th><th scope="col" className="bg-muted px-5 py-3 text-right font-semibold">Acciones</th></tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {permisosFiltrados.map((permiso) => {
@@ -597,11 +598,21 @@ export default function RolesPermisosPage() {
                   return (
                     <tr key={permiso.id_permiso} className="hover:bg-muted/60">
                       <td className="px-5 py-4 font-mono text-xs font-medium">{permiso.codigo}</td>
-                      <td className="px-5 py-4"><Insignia variante="primario">{infoModulo(permiso.modulo).etiqueta}</Insignia></td>
+                      <td className="hidden px-5 py-4 sm:table-cell"><Insignia variante="primario">{infoModulo(permiso.modulo).etiqueta}</Insignia></td>
                       <td className="max-w-xs px-5 py-4 text-fg-muted">{permiso.descripcion || '—'}</td>
-                      <td className="max-w-56 px-5 py-4 text-xs">
+                      <td className="hidden max-w-56 px-5 py-4 text-xs md:table-cell">
                         {conPermiso.length
-                          ? <span className="text-fg-muted" title={conPermiso.map((rol) => rol.nombre).join(', ')}>{conPermiso.slice(0, 2).map((rol) => rol.nombre).join(', ')}{conPermiso.length > 2 && ` +${conPermiso.length - 2}`}</span>
+                          ? <span className="group relative inline-block">
+                              <button type="button" className="cursor-help text-left text-fg-muted underline decoration-dotted underline-offset-2"
+                                aria-label={`Roles con este permiso: ${conPermiso.map((rol) => rol.nombre).join(', ')}`}>
+                                {conPermiso.slice(0, 2).map((rol) => rol.nombre).join(', ')}{conPermiso.length > 2 && ` +${conPermiso.length - 2}`}
+                              </button>
+                              {conPermiso.length > 2 && (
+                                <span role="tooltip" className="pointer-events-none absolute left-0 top-full z-20 mt-1 hidden w-max max-w-64 rounded-lg bg-fg px-3 py-2 text-xs font-normal text-background shadow-lg group-hover:block group-focus-within:block">
+                                  {conPermiso.map((rol) => rol.nombre).join(', ')}
+                                </span>
+                              )}
+                            </span>
                           : <Insignia variante="aviso">Sin asignar</Insignia>}
                       </td>
                       <td className="px-5 py-4">
