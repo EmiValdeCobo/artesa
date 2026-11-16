@@ -1,16 +1,16 @@
 import { Inbox } from 'lucide-react';
 
-const COLUMNAS = { 3: 'lg:col-span-3', 4: 'lg:col-span-4', 5: 'lg:col-span-5', 6: 'lg:col-span-6', 7: 'lg:col-span-7', 8: 'lg:col-span-8', 12: 'lg:col-span-12' };
+const COLUMNAS = { 3: 'xl:col-span-3', 4: 'xl:col-span-4', 5: 'xl:col-span-5', 6: 'xl:col-span-6', 7: 'xl:col-span-7', 8: 'xl:col-span-8', 12: 'xl:col-span-12' };
 
 // Contenedor de cada bloque: rejilla de 12 columnas, tarjeta redondeada con un punto de color de la paleta en el título.
-export function Panel({ titulo, cols = 6, orden = 0, acciones = null, acento = 1, children }) {
+export function Panel({ titulo, cols = 6, orden = 0, acciones = null, acento = 1, contenedorConsultas = false, presentacion = '', children }) {
   return (
-    <section aria-label={titulo} style={{ '--retardo': `${orden * 70}ms`, '--panel-acento': `var(--serie-${acento})` }} className={`anim-entrar panel-dash col-span-12 min-w-0 overflow-hidden border border-line bg-surface ${COLUMNAS[cols] ?? COLUMNAS[6]}`}>
-      <div className="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 px-6 pt-4">
-        <h2 className="flex items-center gap-2.5 text-base font-bold"><span aria-hidden="true" className="h-2.5 w-2.5 rounded-full" style={{ background: `var(--serie-${acento})` }} />{titulo}</h2>
+    <section aria-label={titulo} style={{ '--retardo': `${orden * 70}ms`, ...(acento ? { '--panel-acento': `var(--serie-${acento})` } : {}) }} className={`panel-dash col-span-12 min-w-0 overflow-hidden border border-line bg-surface ${presentacion} ${contenedorConsultas ? 'panel-ventas' : ''} ${COLUMNAS[cols] ?? COLUMNAS[6]}`}>
+      <div className="flex min-h-14 min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 pt-4 sm:px-6">
+        <h2 className="flex items-center gap-2.5 text-base font-bold">{acento && <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full" style={{ background: `var(--serie-${acento})` }} />}{titulo}</h2>
         {acciones}
       </div>
-      <div className="p-6 pt-4">{children}</div>
+      <div className="min-w-0 p-4 pt-4 sm:p-6 sm:pt-4">{children}</div>
     </section>
   );
 }
@@ -18,14 +18,14 @@ export function Panel({ titulo, cols = 6, orden = 0, acciones = null, acento = 1
 // Selector de periodo: botones con aria-pressed (el estado no depende solo del color).
 export function SelectorPeriodo({ valor, opciones, onCambiar, etiqueta }) {
   return (
-    <div role="group" aria-label={etiqueta} className="flex overflow-hidden rounded-full border border-line bg-muted p-0.5 text-sm sm:text-xs">
+    <div role="group" aria-label={etiqueta} className="flex max-w-full min-w-0 rounded-full border border-line bg-muted p-0.5 text-xs">
       {opciones.map(([v, texto]) => (
         <button
           key={v}
           type="button"
           aria-pressed={valor === v}
           onClick={() => onCambiar(v)}
-          className={`min-h-9 whitespace-nowrap rounded-full px-4 py-2 font-semibold transition-colors motion-reduce:transition-none ${valor === v ? 'bg-primary text-on-accent' : 'text-fg-muted hover:bg-primary-soft hover:text-primary-text'}`}
+          className={`min-h-9 whitespace-nowrap rounded-full px-3 py-2 font-semibold transition-colors motion-reduce:transition-none ${valor === v ? 'bg-primary text-on-accent' : 'text-fg-muted hover:bg-primary-soft hover:text-primary-text'}`}
         >
           {texto}
         </button>

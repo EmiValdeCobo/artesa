@@ -65,7 +65,7 @@ export default function AlertasPanel({ cols, titulo, orden, sucursal }) {
               {datos.resumen.critica > 0 && <><strong className="font-semibold text-danger">{datos.resumen.critica} {datos.resumen.critica === 1 ? 'crítica' : 'críticas'}</strong>{datos.resumen.aviso > 0 ? ' · ' : ''}</>}
               {datos.resumen.aviso > 0 && <strong className="font-semibold text-warning">{datos.resumen.aviso} {datos.resumen.aviso === 1 ? 'aviso' : 'avisos'}</strong>}
             </p>
-            <ul className="grid gap-x-6 lg:grid-cols-2">
+            <ul className="grid min-w-0 gap-x-6 xl:grid-cols-2">
               {datos.alertas.map((a) => {
                 const { Icono, texto, clase } = SEVERIDAD[a.severidad] || SEVERIDAD.aviso;
                 const ruta = resolverRutaAlerta(a);
@@ -95,7 +95,7 @@ export default function AlertasPanel({ cols, titulo, orden, sucursal }) {
                         {a.titulo}
                       </p>
                       <p className="mt-0.5 text-sm text-fg-muted">{a.detalle}</p>
-                      <p className="mt-1.5 text-xs font-medium uppercase tracking-[0.1em] text-fg-muted">
+                      <p className="mt-1.5 min-w-0 break-words text-xs font-medium uppercase tracking-[0.1em] text-fg-muted">
                         {a.modulo} · {a.sucursal}
                       </p>
                     </div>

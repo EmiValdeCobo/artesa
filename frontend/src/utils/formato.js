@@ -10,6 +10,9 @@ const moneda = new Intl.NumberFormat('es-SV', {
 });
 const moneda0 = new Intl.NumberFormat('es-SV', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const entero = new Intl.NumberFormat('es-SV');
+const decimal = new Intl.NumberFormat('es-SV', { maximumFractionDigits: 2 });
+const partesMoneda = moneda.formatToParts(0);
+const simboloMoneda = partesMoneda.find((parte) => parte.type === 'currency')?.value ?? '$';
 
 export const capitalizar = (texto) => texto.charAt(0).toUpperCase() + texto.slice(1);
 export const formatoDinero = (valor) => {
@@ -19,6 +22,15 @@ export const formatoDinero = (valor) => {
 };
 export const formatoDineroCorto = (valor) => moneda0.format(valor ?? 0);
 export const formatoEntero = (valor) => entero.format(valor ?? 0);
+export const formatoDecimal = (valor) => decimal.format(valor ?? 0);
+export const formatoCentavos = (centavos) => {
+  const valor = typeof centavos === 'bigint' ? centavos : BigInt(centavos ?? 0);
+  const negativo = valor < 0n;
+  const absoluto = negativo ? -valor : valor;
+  const parteEntera = entero.format(absoluto / 100n);
+  const decimales = String(absoluto % 100n).padStart(2, '0');
+  return `${negativo ? '−' : ''}${simboloMoneda}${parteEntera}.${decimales}`;
+};
 
 /**
  * Formatea cantidades físicas/conteos como números enteros sin decimales (ej. 1, 18, 250, 50),

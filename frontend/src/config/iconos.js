@@ -1,6 +1,6 @@
 import {
   BarChart3, BookOpen, ClipboardCheck, Edit3, Eye, KeyRound, LayoutDashboard, Lock, Package, Plus, Power, PowerOff,
-  RefreshCw, Ruler, Save, ScrollText, Search, Settings, ShieldCheck, Store, Trash2, Undo2, UserCheck, Users, UserX, X,
+  RefreshCw, Ruler, Save, ScrollText, Search, Settings, ShieldCheck, ShoppingCart, Store, Trash2, Undo2, UserCheck, Users, UserX, X,
 } from 'lucide-react';
 
 // Iconografía única de la administración. La referencia es el módulo de Usuarios:
@@ -33,5 +33,6 @@ export const ICONOS = {
   reportes: BarChart3,
   catalogo: BookOpen,
   insumo: Package,
+  comprar: ShoppingCart,
   unidad: Ruler,
 };
