@@ -29,6 +29,9 @@ const ComprasPage = lazy(() => import('./modules/compras/ComprasPage.jsx'));
 const ProveedoresPage = lazy(() => import('./modules/compras/ProveedoresPage.jsx'));
 const CuentasPorPagarPage = lazy(() => import('./modules/compras/CuentasPorPagarPage.jsx'));
 const CompraFacturaPage = lazy(() => import('./modules/compras/CompraFacturaPage.jsx'));
+const PuestosPage = lazy(() => import('./modules/rrhh/PuestosPage.jsx'));
+const EmpleadosPage = lazy(() => import('./modules/rrhh/EmpleadosPage.jsx'));
+const PlanillasPage = lazy(() => import('./modules/rrhh/PlanillasPage.jsx'));
 
 function CargandoPantalla() {
   return (
@@ -75,9 +78,9 @@ export default function App() {
         <Route path="empresa/sucursales" element={<ProtectedRoute permiso="EMP_GESTIONAR_SUCURSALES"><SucursalesPage /></ProtectedRoute>} />
         <Route path="empresa/parametros" element={<ProtectedRoute permiso="EMP_EDITAR_PARAMETROS"><ParametrosPage /></ProtectedRoute>} />
         <Route path="seguridad/bitacora" element={<ProtectedRoute permiso="SEG_VER_BITACORA"><BitacoraPage /></ProtectedRoute>} />
-        <Route path="rrhh/empleados" element={<ProtectedRoute permiso="RRHH_GESTIONAR_EMPLEADOS"><PendienteApiPage titulo="Empleados" descripcion="Gestión del personal por sucursal." endpoints={["GET/POST /api/empleados (no existe)", "PUT /api/empleados/:id (no existe)"]} /></ProtectedRoute>} />
-        <Route path="rrhh/puestos" element={<ProtectedRoute permiso="RRHH_GESTIONAR_EMPLEADOS"><PendienteApiPage titulo="Puestos" descripcion="Catálogo de puestos y salarios base." endpoints={["GET/POST /api/puestos (no existe)", "PUT /api/puestos/:id (no existe)"]} /></ProtectedRoute>} />
-        <Route path="rrhh" element={<ProtectedRoute permiso="RRHH_VER_PLANILLA"><PendienteApiPage titulo="RR. HH. y planilla" descripcion="Empleados, períodos y procesamiento de planillas." endpoints={["GET /api/planillas (no existe)", "POST /api/planillas (no existe)"]} /></ProtectedRoute>} />
+        <Route path="rrhh/empleados" element={<ProtectedRoute permiso="RRHH_GESTIONAR_EMPLEADOS"><EmpleadosPage /></ProtectedRoute>} />
+        <Route path="rrhh/puestos" element={<ProtectedRoute permiso="RRHH_GESTIONAR_EMPLEADOS"><PuestosPage /></ProtectedRoute>} />
+        <Route path="rrhh" element={<ProtectedRoute permiso="RRHH_VER_PLANILLA"><PlanillasPage /></ProtectedRoute>} />
         <Route path="compras/proveedores" element={<ProtectedRoute permiso="COM_GESTIONAR_PROVEEDORES"><ProveedoresPage /></ProtectedRoute>} />
         <Route path="compras/cuentas-por-pagar" element={<ProtectedRoute permiso="COM_VER_CXP"><CuentasPorPagarPage /></ProtectedRoute>} />
         <Route path="compras/registrar" element={<ProtectedRoute permiso="COM_REGISTRAR_COMPRA"><CompraFacturaPage key="COSTO" /></ProtectedRoute>} />
