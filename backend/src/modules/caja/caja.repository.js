@@ -71,7 +71,9 @@ export async function buscarTurnoActual(idUsuario) {
 // Bloquea la fila del turno hasta terminar la transacción: serializa movimientos concurrentes.
 export async function bloquearTurno(transaction, idTurno) {
   const [turno] = await consultar(
-    'SELECT id_turno, id_usuario, estado FROM pos.turnos_caja WHERE id_turno = $1::uuid FOR UPDATE',
+    `SELECT t.id_turno, t.id_usuario, t.estado, c.id_sucursal
+     FROM pos.turnos_caja t JOIN pos.cajas c ON c.id_caja = t.id_caja
+     WHERE t.id_turno = $1::uuid FOR UPDATE OF t`,
     [idTurno],
     transaction,
   );
