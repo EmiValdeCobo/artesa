@@ -1,15 +1,66 @@
 import { useState, useEffect } from 'react';
-import { Minus, Plus, Trash2, ReceiptText, UserCheck, Building2, Search, X, Sparkles } from 'lucide-react';
+import {
+  Minus,
+  Plus,
+  Trash2,
+  ReceiptText,
+  UserCheck,
+  Building2,
+  Search,
+  X,
+  Sparkles,
+  UserPlus,
+} from 'lucide-react';
+import Dialogo from '../../components/Dialogo.jsx';
 import { Button } from '../../components/ui/index.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { calcularTotales, formatoMoneda, IVA } from './impuestos.js';
-import { listarClientes } from './posApi.js';
+import { listarClientes, crearCliente } from './posApi.js';
 
 // El crédito fiscal requiere POS_EMITIR_CCF (permiso distinto de POS_COBRAR).
 const TIPOS_DOC = [
   { valor: 'FACTURA', texto: 'Consumidor final' },
   { valor: 'CCF', texto: 'Crédito fiscal (CCF)', permiso: 'POS_EMITIR_CCF' },
 ];
+
+const FORM_CLIENTE_INICIAL = {
+  nombre_razon_social: '',
+  tipo_documento: '',
+  num_documento: '',
+  nrc: '',
+  giro_economico: '',
+  direccion: '',
+  telefono: '',
+  email: '',
+};
+
+const REGLAS_DOCUMENTO = {
+  DUI: { regex: /^\d{8}-\d$/, placeholder: '00000000-0', maxLength: 10 },
+  NIT: { regex: /^(\d{4}-\d{6}-\d{3}-\d|\d{8}-\d)$/, placeholder: '0614-290190-101-2', maxLength: 17 },
+  PASAPORTE: { regex: /^[A-Za-z0-9]{6,12}$/, placeholder: 'A12345678', maxLength: 12 },
+};
+
+const REGEX_NRC = /^\d{2,8}-\d$/;
+const REGEX_TELEFONO_SV = /^[267]\d{3}-?\d{4}$/;
+const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+function formatearPorMascara(valor, grupos) {
+  const digitos = valor.replace(/\D/g, '');
+  const partes = [];
+  let indice = 0;
+  for (const tamano of grupos) {
+    if (indice >= digitos.length) break;
+    partes.push(digitos.slice(indice, indice + tamano));
+    indice += tamano;
+  }
+  return partes.join('-');
+}
+
+function formatearNrc(valor) {
+  const digitos = valor.replace(/\D/g, '').slice(0, 9);
+  if (digitos.length <= 1) return digitos;
+  return `${digitos.slice(0, -1)}-${digitos.slice(-1)}`;
+}
 
 export default function Carrito({
   items,
@@ -22,14 +73,22 @@ export default function Carrito({
 }) {
   const { tiene } = useAuth();
   const puedeVerClientes = tiene('POS_GESTIONAR_CLIENTES') || tiene('POS_COBRAR');
+  const puedeCrearClientes = tiene('POS_GESTIONAR_CLIENTES') || tiene('POS_COBRAR');
   const tipos = TIPOS_DOC.filter((t) => !t.permiso || tiene(t.permiso));
   const { subtotal, iva, total } = calcularTotales(items);
   const unidades = items.reduce((n, i) => n + i.cantidad, 0);
 
+  // Buscador de clientes
   const [buscandoCliente, setBuscandoCliente] = useState(false);
   const [terminoCliente, setTerminoCliente] = useState('');
   const [resultadosCliente, setResultadosCliente] = useState([]);
   const [cargandoClientes, setCargandoClientes] = useState(false);
+
+  // Modal de registro rápido de cliente
+  const [modalNuevoCliente, setModalNuevoCliente] = useState(false);
+  const [formCliente, setFormCliente] = useState(FORM_CLIENTE_INICIAL);
+  const [errorCliente, setErrorCliente] = useState('');
+  const [guardandoCliente, setGuardandoCliente] = useState(false);
 
   const esCCF = tipoDocumento === 'CCF';
   const clienteValidoParaCCF = Boolean(
@@ -60,6 +119,128 @@ export default function Carrito({
     if (onSeleccionarCliente) onSeleccionarCliente(c);
     setBuscandoCliente(false);
     setTerminoCliente('');
+  };
+
+  const abrirModalNuevoCliente = () => {
+    setFormCliente({
+      ...FORM_CLIENTE_INICIAL,
+      nombre_razon_social: terminoCliente.trim(),
+    });
+    setErrorCliente('');
+    setModalNuevoCliente(true);
+  };
+
+  const handleCambioFormCliente = (e) => {
+    const { name, value } = e.target;
+
+    if (name === 'tipo_documento') {
+      setFormCliente((prev) => ({ ...prev, tipo_documento: value, num_documento: '' }));
+      return;
+    }
+
+    if (name === 'num_documento') {
+      let limpio = value;
+      if (formCliente.tipo_documento === 'DUI') {
+        limpio = formatearPorMascara(value, [8, 1]);
+      } else if (formCliente.tipo_documento === 'NIT') {
+        const soloDigitos = value.replace(/\D/g, '');
+        limpio =
+          soloDigitos.length <= 9
+            ? formatearPorMascara(soloDigitos, [8, 1])
+            : formatearPorMascara(soloDigitos, [4, 6, 3, 1]);
+      } else if (formCliente.tipo_documento === 'PASAPORTE') {
+        limpio = value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 12);
+      }
+      setFormCliente((prev) => ({ ...prev, num_documento: limpio }));
+      return;
+    }
+
+    if (name === 'nrc') {
+      setFormCliente((prev) => ({ ...prev, nrc: formatearNrc(value) }));
+      return;
+    }
+
+    if (name === 'telefono') {
+      setFormCliente((prev) => ({ ...prev, telefono: formatearPorMascara(value, [4, 4]) }));
+      return;
+    }
+
+    setFormCliente((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const reglaDocActual = REGLAS_DOCUMENTO[formCliente.tipo_documento] ?? null;
+
+  const handleGuardarNuevoCliente = async (e) => {
+    e.preventDefault();
+    setErrorCliente('');
+
+    const nombreTrim = formCliente.nombre_razon_social.trim();
+    const docTrim = formCliente.num_documento.trim();
+    const nrcTrim = formCliente.nrc.trim();
+    const giroTrim = formCliente.giro_economico.trim();
+    const telTrim = formCliente.telefono.trim();
+    const emailTrim = formCliente.email.trim();
+
+    if (nombreTrim.length < 2) {
+      setErrorCliente('El nombre o razón social debe tener al menos 2 caracteres.');
+      return;
+    }
+    if (docTrim && !formCliente.tipo_documento) {
+      setErrorCliente('Selecciona el tipo de documento (DUI, NIT o Pasaporte).');
+      return;
+    }
+    if (formCliente.tipo_documento && !docTrim) {
+      setErrorCliente(`Ingresa el número de ${formCliente.tipo_documento}.`);
+      return;
+    }
+    if (reglaDocActual && docTrim && !reglaDocActual.regex.test(docTrim)) {
+      setErrorCliente(`Formato inválido para ${formCliente.tipo_documento} (ej. ${reglaDocActual.placeholder}).`);
+      return;
+    }
+    if (esCCF && (!nrcTrim || !giroTrim)) {
+      setErrorCliente('Para emitir Crédito Fiscal (CCF), tanto el NRC como el Giro Económico son obligatorios.');
+      return;
+    }
+    if ((nrcTrim && !giroTrim) || (!nrcTrim && giroTrim)) {
+      setErrorCliente('Si ingresas datos fiscales CCF, debes completar tanto el NRC como el Giro Económico.');
+      return;
+    }
+    if (nrcTrim && !REGEX_NRC.test(nrcTrim)) {
+      setErrorCliente('NRC inválido: debe tener de 2 a 8 dígitos, guion y dígito verificador (ej. 123456-7).');
+      return;
+    }
+    if (telTrim && !REGEX_TELEFONO_SV.test(telTrim)) {
+      setErrorCliente('Teléfono inválido: debe tener 8 dígitos de El Salvador iniciando con 2, 6 o 7.');
+      return;
+    }
+    if (emailTrim && !REGEX_EMAIL.test(emailTrim)) {
+      setErrorCliente('El correo electrónico no tiene un formato válido.');
+      return;
+    }
+
+    const payload = {
+      nombre_razon_social: nombreTrim,
+      tipo_documento: formCliente.tipo_documento || null,
+      num_documento: docTrim || null,
+      nrc: nrcTrim || null,
+      giro_economico: giroTrim || null,
+      direccion: formCliente.direccion.trim() || null,
+      telefono: telTrim || null,
+      email: emailTrim || null,
+    };
+
+    setGuardandoCliente(true);
+    try {
+      const creado = await crearCliente(payload);
+      const clienteAfiliado = creado?.cliente ?? creado ?? { id_cliente: Date.now(), ...payload };
+      elegirCliente(clienteAfiliado);
+      setModalNuevoCliente(false);
+      setFormCliente(FORM_CLIENTE_INICIAL);
+    } catch (err) {
+      setErrorCliente(err.message || 'No se pudo registrar y afiliar el cliente.');
+    } finally {
+      setGuardandoCliente(false);
+    }
   };
 
   return (
@@ -93,21 +274,32 @@ export default function Carrito({
                 <X size={12} /> Quitar
               </button>
             ) : (
-              <button
-                type="button"
-                onClick={() => setBuscandoCliente((prev) => !prev)}
-                className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary-text hover:underline"
-              >
-                <Search size={12} /> {buscandoCliente ? 'Cerrar' : 'Afiliar cliente'}
-              </button>
+              <div className="inline-flex items-center gap-2.5">
+                {puedeCrearClientes && (
+                  <button
+                    type="button"
+                    onClick={abrirModalNuevoCliente}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary-text hover:underline"
+                  >
+                    <UserPlus size={12} /> Nuevo
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setBuscandoCliente((prev) => !prev)}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-fg-muted hover:text-fg hover:underline"
+                >
+                  <Search size={12} /> {buscandoCliente ? 'Cerrar' : 'Buscar'}
+                </button>
+              </div>
             )}
           </div>
 
           {clienteSeleccionado ? (
-            <div className="mt-1.5 flex items-start justify-between gap-2 rounded-md bg-surface p-2 border border-line">
+            <div className="mt-1.5 flex items-start justify-between gap-2 rounded-md border border-line bg-surface p-2">
               <div className="min-w-0">
-                <p className="truncate font-semibold text-fg flex items-center gap-1">
-                  {clienteSeleccionado.nrc ? <Building2 size={13} className="text-primary-text shrink-0" /> : <Sparkles size={13} className="text-primary-text shrink-0" />}
+                <p className="flex items-center gap-1 truncate font-semibold text-fg">
+                  {clienteSeleccionado.nrc ? <Building2 size={13} className="shrink-0 text-primary-text" /> : <Sparkles size={13} className="shrink-0 text-primary-text" />}
                   {clienteSeleccionado.nombre_razon_social}
                 </p>
                 <p className="text-[11px] text-fg-muted">
@@ -126,7 +318,7 @@ export default function Carrito({
               <button
                 type="button"
                 onClick={() => setBuscandoCliente(true)}
-                className="text-[11px] font-medium text-primary-text hover:underline shrink-0"
+                className="shrink-0 text-[11px] font-medium text-primary-text hover:underline"
               >
                 Cambiar
               </button>
@@ -134,7 +326,7 @@ export default function Carrito({
           ) : (
             <p className="mt-1 text-[11px] text-fg-muted">
               {esCCF
-                ? 'Selecciona un cliente con NRC y giro registrado.'
+                ? 'Selecciona o registra un cliente con NRC y giro.'
                 : 'Sin afiliar: se emitirá como Consumidor Final.'}
             </p>
           )}
@@ -151,13 +343,24 @@ export default function Carrito({
                   className="input w-full !py-1.5 pl-7 pr-2 text-xs"
                 />
               </div>
-              <div className="max-h-36 overflow-y-auto divide-y divide-line rounded-md border border-line bg-surface">
+              <div className="max-h-36 divide-y divide-line overflow-y-auto rounded-md border border-line bg-surface">
                 {cargandoClientes ? (
                   <p className="p-2 text-center text-[11px] text-fg-muted">Buscando clientes...</p>
                 ) : resultadosCliente.length === 0 ? (
-                  <p className="p-2 text-center text-[11px] text-fg-muted">
-                    No se encontraron clientes registrados.
-                  </p>
+                  <div className="space-y-1.5 p-2.5 text-center">
+                    <p className="text-[11px] text-fg-muted">
+                      No se encontraron clientes registrados.
+                    </p>
+                    {puedeCrearClientes && (
+                      <button
+                        type="button"
+                        onClick={abrirModalNuevoCliente}
+                        className="inline-flex items-center gap-1 rounded-md bg-primary-soft px-2.5 py-1 text-[11px] font-semibold text-primary-text hover:opacity-90"
+                      >
+                        <UserPlus size={12} /> Registrar y afiliar ahora
+                      </button>
+                    )}
+                  </div>
                 ) : (
                   resultadosCliente.map((c) => (
                     <button
@@ -223,6 +426,176 @@ export default function Carrito({
           <Button disabled={!items.length || bloqueoPorCCF} onClick={onCobrar}>Cobrar {formatoMoneda(total)}</Button>
         </div>
       </footer>
+
+      {/* Modal rápido de registro y afiliación de cliente */}
+      {modalNuevoCliente && (
+        <Dialogo
+          onCerrar={() => !guardandoCliente && setModalNuevoCliente(false)}
+          tamano="lg"
+          labelledBy="titulo-afiliar-cliente-pos"
+        >
+          <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">
+                POS · Afiliación Rápida
+              </p>
+              <h2 id="titulo-afiliar-cliente-pos" className="mt-1 text-xl font-semibold text-fg">
+                Registrar y afiliar cliente al pedido
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => setModalNuevoCliente(false)}
+              className="rounded-md p-1.5 text-fg-muted hover:bg-muted hover:text-fg"
+              aria-label="Cerrar modal"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <form onSubmit={handleGuardarNuevoCliente} className="space-y-4 p-5">
+            {errorCliente && (
+              <div className="rounded-xl border border-danger/30 bg-danger-soft px-3 py-2 text-xs text-danger">
+                {errorCliente}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <label className="mb-1 block text-xs font-semibold text-fg">
+                  Nombre o Razón Social <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="nombre_razon_social"
+                  required
+                  maxLength={150}
+                  value={formCliente.nombre_razon_social}
+                  onChange={handleCambioFormCliente}
+                  placeholder="Ej. Inversiones Café S.A. de C.V."
+                  className="input w-full"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-fg">Tipo de documento</label>
+                <select
+                  name="tipo_documento"
+                  value={formCliente.tipo_documento}
+                  onChange={handleCambioFormCliente}
+                  className="input w-full"
+                >
+                  <option value="">Ninguno</option>
+                  <option value="DUI">DUI (El Salvador)</option>
+                  <option value="NIT">NIT / DUI Homologado</option>
+                  <option value="PASAPORTE">Pasaporte</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-fg">Número de documento</label>
+                <input
+                  type="text"
+                  name="num_documento"
+                  disabled={!formCliente.tipo_documento}
+                  maxLength={reglaDocActual?.maxLength ?? 20}
+                  value={formCliente.num_documento}
+                  onChange={handleCambioFormCliente}
+                  placeholder={reglaDocActual ? `Ej. ${reglaDocActual.placeholder}` : 'Selecciona tipo primero'}
+                  className="input w-full disabled:cursor-not-allowed disabled:opacity-50"
+                />
+              </div>
+
+              <div className="rounded-xl border border-line bg-muted/40 p-4 text-center sm:col-span-2">
+                <p className="mb-3 text-xs font-semibold text-primary-text">
+                  Datos fiscales para Crédito Fiscal (CCF) {esCCF ? '— Obligatorios para este comprobante' : '— Opcional'}
+                </p>
+                <div className="mx-auto grid max-w-xl grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col items-center">
+                    <label className="mb-1.5 block text-xs font-medium text-fg">
+                      NRC {esCCF && <span className="text-danger">*</span>}
+                    </label>
+                    <input
+                      type="text"
+                      name="nrc"
+                      maxLength={10}
+                      value={formCliente.nrc}
+                      onChange={handleCambioFormCliente}
+                      placeholder="123456-7"
+                      className="input w-full text-center font-mono"
+                    />
+                    <span className="mt-1 text-[11px] text-fg-muted">2 a 8 dígitos + guion + dígito</span>
+                  </div>
+
+                  <div className="flex flex-col items-center">
+                    <label className="mb-1.5 block text-xs font-medium text-fg">
+                      Giro económico {esCCF && <span className="text-danger">*</span>}
+                    </label>
+                    <input
+                      type="text"
+                      name="giro_economico"
+                      maxLength={150}
+                      value={formCliente.giro_economico}
+                      onChange={handleCambioFormCliente}
+                      placeholder="Ej. Servicios de alimentación"
+                      className="input w-full text-center"
+                    />
+                    <span className="mt-1 text-[11px] text-fg-muted">Actividad registrada en MH</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-fg">Teléfono</label>
+                <input
+                  type="text"
+                  name="telefono"
+                  maxLength={9}
+                  value={formCliente.telefono}
+                  onChange={handleCambioFormCliente}
+                  placeholder="2222-0000"
+                  className="input w-full"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-fg">Correo electrónico</label>
+                <input
+                  type="email"
+                  name="email"
+                  maxLength={120}
+                  value={formCliente.email}
+                  onChange={handleCambioFormCliente}
+                  placeholder="facturacion@empresa.com"
+                  className="input w-full"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="mb-1 block text-xs font-semibold text-fg">Dirección fiscal / entrega</label>
+                <input
+                  type="text"
+                  name="direccion"
+                  maxLength={500}
+                  value={formCliente.direccion}
+                  onChange={handleCambioFormCliente}
+                  placeholder="Colonia, calle, municipio..."
+                  className="input w-full"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2.5 border-t border-line pt-4">
+              <Button variante="ghost" disabled={guardandoCliente} onClick={() => setModalNuevoCliente(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" variante="primary" cargando={guardandoCliente}>
+                Guardar y afiliar al pedido
+              </Button>
+            </div>
+          </form>
+        </Dialogo>
+      )}
     </aside>
   );
 }

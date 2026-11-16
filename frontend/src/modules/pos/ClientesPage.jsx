@@ -482,17 +482,14 @@ export default function ClientesPage() {
                 )}
               </div>
 
-              <div className="rounded-xl border border-line bg-muted/40 p-3.5 sm:col-span-2">
-                <p className="mb-2.5 text-xs font-semibold text-primary-text">
+             <div className="rounded-xl border border-line bg-muted/40 p-4 text-center sm:col-span-2">
+                <p className="mb-3 text-xs font-semibold text-primary-text">
                   Datos fiscales para Crédito Fiscal (CCF) — Obligatorios ambos si emite CCF
                 </p>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="group">
-                    <label className="mb-1 flex items-center justify-between text-xs font-medium text-fg">
-                      <span>NRC</span>
-                      <span className="text-[11px] text-fg-muted opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-                        2 a 8 dígitos + guion + 1 dígito
-                      </span>
+                <div className="mx-auto grid max-w-xl grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="group flex flex-col items-center">
+                    <label className="mb-1.5 block text-xs font-medium text-fg">
+                      NRC
                     </label>
                     <input
                       type="text"
@@ -502,15 +499,16 @@ export default function ClientesPage() {
                       value={form.nrc}
                       onChange={handleChange}
                       placeholder="123456-7"
-                      className="input w-full"
+                      className="input w-full text-center font-mono"
                     />
+                    <span className="mt-1 text-[11px] text-fg-muted">
+                      2 a 8 dígitos + guion + dígito
+                    </span>
                   </div>
-                  <div className="group">
-                    <label className="mb-1 flex items-center justify-between text-xs font-medium text-fg">
-                      <span>Giro económico</span>
-                      <span className="text-[11px] text-fg-muted opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-                        Actividad registrada en MH
-                      </span>
+
+                  <div className="group flex flex-col items-center">
+                    <label className="mb-1.5 block text-xs font-medium text-fg">
+                      Giro económico
                     </label>
                     <input
                       type="text"
@@ -520,8 +518,11 @@ export default function ClientesPage() {
                       value={form.giro_economico}
                       onChange={handleChange}
                       placeholder="Ej. Servicios de alimentación"
-                      className="input w-full"
+                      className="input w-full text-center"
                     />
+                    <span className="mt-1 text-[11px] text-fg-muted">
+                      Actividad registrada en MH
+                    </span>
                   </div>
                 </div>
               </div>
