@@ -22,6 +22,10 @@ function validarInsumos(insumos, items) {
   }
 }
 
+function montoPositivo(monto) {
+  return /[1-9]/.test(String(monto).replace('.', ''));
+}
+
 function mapearErrorCompra(error) {
   if (error.esAppError) return error;
   const pg = error.original ?? error.parent ?? error;
@@ -46,6 +50,20 @@ export async function registrarCompra(datos, userId) {
       }
       const idCompra = await repo.registrarCompra(datos, userId, transaction);
       if (!idCompra) throw new AppError('La base de datos no devolvió el identificador de la factura', 500);
+      const compra = await repo.obtenerCompra(idCompra, transaction);
+      if (!compra) throw new AppError('No se pudo recuperar el total calculado de la factura', 500);
+      if (!montoPositivo(compra.total)) throw new AppError('La compra debe tener un total mayor que cero', 400);
+
+      if (datos.condicionPago === 'CONTADO') {
+        const idPago = await repo.insertarPagoContado(idCompra, userId, transaction);
+        if (!idPago) throw new AppError('No se pudo registrar el pago automático de la factura', 500);
+        if (await repo.obtenerEstadoPago(idCompra, transaction) !== 'PAGADO') {
+          throw new AppError('No se pudo confirmar el pago total de la factura', 500);
+        }
+      } else if (compra.estado_pago !== 'PENDIENTE') {
+        throw new AppError('La factura a crédito no quedó pendiente de pago', 500);
+      }
+
       return idCompra;
     }, userId);
   } catch (error) {

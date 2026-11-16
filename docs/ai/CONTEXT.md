@@ -26,10 +26,10 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (li
 | Módulo | BD | Backend | Frontend |
 |---|---|---|---|
 | auth / seguridad | listo | login, CRUD RBAC, usuarios y API /bitacora con métricas y severidad | Bitácora con filtros (severidad), analítica, roles (ADMIN solo lectura) y captura 409 |
-| inventario | listo | CRUD unidades/insumos/productos, stock, mermas, alertas y Kárdex; separación de activo (PATCH :id/estado) vs soft delete (DELETE :id) | Existencias/kárdex por sucursal; catálogos con control de estado y eliminación diferenciados, filtros Todos/Activos/Inactivos y alertas de recetas |
+| inventario | listo | CRUD unidades/insumos/productos, stock, mermas, alertas y Kárdex; cantidades físicas recibidas por API (recetas, movimientos, mermas y stock mínimo) validadas como enteros positivos | Existencias/kárdex por sucursal; catálogos con control de estado y eliminación diferenciados, filtros Todos/Activos/Inactivos y alertas de recetas |
 | pos | listo | cola de preparación, órdenes (T02), ventas (T17), anulación (`fn_anular_venta`) y clientes CCF (T18) | catálogo, carrito, clientes CCF, historial de ventas y pantalla de cobro con pagos mixtos/vuelto (T19) listos; ticket especializado (T46) |
 | caja | listo | turnos, movimientos, cierre y cuadre (T05/T06/T22) con tolerancia configurable | pantalla de caja integrada desde develop |
-| compras | listo | T30 proveedores; T31 facturas COSTO; T32 pagos/CxP; T33 registro backend GASTO | Proveedores y facturas COSTO/GASTO; historial CxP por estado, gastos operativos con filtros y total pagado |
+| compras | listo | T30 proveedores con formatos salvadoreños; T31 valida cantidades enteras, fechas en rango y total positivo, CONTADO registra pago EFECTIVO en la misma transacción; T32 pagos/CxP; T33 registro backend GASTO | Proveedores y facturas COSTO/GASTO; historial CxP por estado, gastos operativos con filtros y total pagado |
 | rrhh | listo | CRUD de puestos/empleados y planillas mensuales, cálculo SQL, PDFs y permisos; pendiente extensión fiscal anual | pantallas de puestos/empleados pendientes |
 | reportes | vistas listas + consultas de método de pago, cuadre y CxP | ventas diarias, top productos, métodos de pago, alertas, margen, cuadre y CxP; alcance por `id_sucursal` | panel con tendencias, comparativos, tablas paginadas y exportación CSV/PDF |
 | empresa | listo | CRUD sucursales y edición parámetros | sucursales y parámetros |

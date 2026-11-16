@@ -87,14 +87,14 @@ Aplica la integración según la rama donde te encuentres:
 
 #### Si estás ubicado directamente en la rama `develop`:
 ```bash
-# Integra únicamente en avance rápido o merge limpio sin rebase
-git merge --no-rebase origin/develop
+# Integra únicamente con merge limpio sin rebase
+git merge origin/develop
 ```
 
 #### Si estás en una rama de trabajo (`feature/...` u otra):
 ```bash
 # Integra origin/develop preservando el historial de commits
-git merge origin/develop --no-rebase -m "🔀 merge(git): sincronizar cambios desde origin/develop"
+git merge origin/develop -m "🔀 merge(git): sincronizar cambios desde origin/develop"
 ```
 
 ### 5. Resolución de Conflictos (si se presentan)
