@@ -21,6 +21,8 @@ import {
   TrendingUp,
   TrendingDown,
   Eye,
+  ShoppingBag,
+  Package,
 } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -35,6 +37,7 @@ import Pestanas from '../../components/navigation/Pestanas.jsx';
 import { Button, Card, Select, Spinner, Table } from '../../components/ui/index.js';
 import { formatoDinero, horaDe, etiquetaDiaLarga, haceCuanto } from '../../utils/formato.js';
 import { cajaApi } from '../../api/caja.api.js';
+import { listarVentas, obtenerDetalleVenta } from '../pos/posApi.js';
 
 const PATRON_MONTO = /^\d{1,8}(\.\d{1,2})?$/;
 
@@ -63,7 +66,7 @@ export default function CajaPage() {
   const [turno, setTurno] = useState(null);
 
   // Pestañas
-  const [pestanaActiva, setPestanaActiva] = useState('movimientos');
+  const [pestanaActiva, setPestanaActiva] = useState('ventas-turno');
 
   // Movimientos del turno
   const [movimientos, setMovimientos] = useState([]);
@@ -101,6 +104,13 @@ export default function CajaPage() {
   const [filtroDesdeCuadre, setFiltroDesdeCuadre] = useState('');
   const [filtroHastaCuadre, setFiltroHastaCuadre] = useState('');
 
+  // Historial de ventas del turno activo
+  const [ventasTurno, setVentasTurno] = useState([]);
+  const [cargandoVentasTurno, setCargandoVentasTurno] = useState(false);
+  const [ventaDetalleSeleccionada, setVentaDetalleSeleccionada] = useState(null);
+  const [cargandoDetalleVenta, setCargandoDetalleVenta] = useState(false);
+  const [mostrarDetalleVenta, setMostrarDetalleVenta] = useState(false);
+
   // ─── Carga de datos ──────────────────────────────────────────────────────────
   const cargarMovimientos = useCallback(async (idTurno) => {
     setCargandoMovimientos(true);
@@ -111,6 +121,19 @@ export default function CajaPage() {
       console.error('Error al cargar movimientos de caja:', err);
     } finally {
       setCargandoMovimientos(false);
+    }
+  }, []);
+
+  const cargarVentasTurno = useCallback(async (idTurno) => {
+    if (!idTurno) return;
+    setCargandoVentasTurno(true);
+    try {
+      const lista = await listarVentas({ idTurno });
+      setVentasTurno(lista || []);
+    } catch (err) {
+      console.error('Error al cargar ventas del turno:', err);
+    } finally {
+      setCargandoVentasTurno(false);
     }
   }, []);
 
@@ -127,12 +150,14 @@ export default function CajaPage() {
       setTurno(turnoActivo);
       if (turnoActivo?.id_turno) {
         await cargarMovimientos(turnoActivo.id_turno);
+        await cargarVentasTurno(turnoActivo.id_turno);
       }
     } catch (err) {
       // 404 es el estado normal cuando el usuario no tiene turno abierto
       if (err.status === 404 || /no tienes un turno abierto/i.test(err.message || '')) {
         setTurno(null);
         setMovimientos([]);
+        setVentasTurno([]);
       } else {
         setErrorCarga({
           titulo: 'No se pudo cargar la información de caja',
@@ -148,7 +173,7 @@ export default function CajaPage() {
         setCargando(false);
       }
     }
-  }, [cargarMovimientos]);
+  }, [cargarMovimientos, cargarVentasTurno]);
 
   const cargarCuadresHistorial = useCallback(async () => {
     if (!puedeVerCuadres) return;
@@ -335,6 +360,7 @@ export default function CajaPage() {
       if (turno?.id_turno === turnoActivoACerrar.id_turno) {
         setTurno(null);
         setMovimientos([]);
+        setVentasTurno([]);
       }
       setTurnoParaCierre(null);
       if (puedeVerCuadres) {
@@ -357,18 +383,34 @@ export default function CajaPage() {
     }
   }, [notificar]);
 
+  const verDetalleVenta = useCallback(async (idVenta) => {
+    setCargandoDetalleVenta(true);
+    try {
+      const detalle = await obtenerDetalleVenta(idVenta);
+      setVentaDetalleSeleccionada(detalle?.data ?? detalle);
+      setMostrarDetalleVenta(true);
+    } catch (err) {
+      notificar.error(err.message || 'No se pudo cargar el detalle de la venta.');
+    } finally {
+      setCargandoDetalleVenta(false);
+    }
+  }, [notificar]);
+
   // ─── Pestañas y columnas ─────────────────────────────────────────────────────
   const pestanasVisibles = useMemo(() => {
     const lista = [];
     if (turno) {
-      lista.push({ clave: 'movimientos', texto: 'Movimientos de caja', icono: Wallet, total: movimientos.length });
+      lista.push({ clave: 'ventas-turno', texto: 'Historial de ventas', icono: ShoppingBag, total: ventasTurno.length });
       lista.push({ clave: 'ventas', texto: 'Medios de pago y ventas', icono: Receipt });
-    }
-    if (puedeVerCuadres) {
+      if (puedeVerCuadres) {
+        lista.push({ clave: 'cuadres', texto: 'Historial de cuadres', icono: History, total: cuadres.length });
+      }
+      lista.push({ clave: 'movimientos', texto: 'Movimientos de caja', icono: Wallet, total: movimientos.length });
+    } else if (puedeVerCuadres) {
       lista.push({ clave: 'cuadres', texto: 'Historial de cuadres', icono: History, total: cuadres.length });
     }
     return lista;
-  }, [turno, movimientos.length, puedeVerCuadres, cuadres.length]);
+  }, [turno, movimientos.length, ventasTurno.length, puedeVerCuadres, cuadres.length]);
 
   const columnasMovimientos = useMemo(() => [
     {
@@ -503,6 +545,67 @@ export default function CajaPage() {
       },
     },
   ], [verDetalleCuadre, puedeCerrarCualquiera, puedeCerrar, usuario]);
+
+  const columnasVentasTurno = useMemo(() => [
+    {
+      clave: 'fecha_emision',
+      titulo: 'Fecha / Hora',
+      render: (v) => (
+        <div>
+          <p className="font-medium text-fg">{horaDe(v.fecha_emision)}</p>
+          <p className="text-xs text-fg-muted">{haceCuanto(v.fecha_emision, Date.now())}</p>
+        </div>
+      ),
+    },
+    {
+      clave: 'comprobante',
+      titulo: 'Comprobante',
+      render: (v) => (
+        <div>
+          <p className="font-medium text-fg">{v.tipo_comprobante}</p>
+          <p className="text-xs text-fg-muted">{v.correlativo}</p>
+        </div>
+      ),
+    },
+    {
+      clave: 'cajero',
+      titulo: 'Cajero',
+      render: (v) => <span className="text-xs text-fg-muted">{v.cajero_username}</span>,
+    },
+    {
+      clave: 'total_venta',
+      titulo: 'Total',
+      alinear: 'right',
+      render: (v) => (
+        <span className="font-semibold text-success">{formatoDinero(v.total)}</span>
+      ),
+    },
+    {
+      clave: 'estado',
+      titulo: 'Estado',
+      render: (v) => (
+        <EstadoBadge tipo={v.estado === 'ANULADA' ? 'peligro' : 'exito'}>
+          {v.estado === 'ANULADA' ? 'Anulada' : 'Válida'}
+        </EstadoBadge>
+      ),
+    },
+    {
+      clave: 'acciones',
+      titulo: 'Acciones',
+      alinear: 'right',
+      render: (v) => (
+        <Button
+          variante="ghost"
+          onClick={() => verDetalleVenta(v.id_venta)}
+          className="!px-2.5 !py-1 text-xs"
+          icono={Eye}
+          cargando={cargandoDetalleVenta}
+        >
+          Ver detalle
+        </Button>
+      ),
+    },
+  ], [verDetalleVenta, cargandoDetalleVenta]);
 
   // ─── Render principal ────────────────────────────────────────────────────────
   if (cargando) {
@@ -715,6 +818,40 @@ export default function CajaPage() {
                 </p>
               </Card>
             </div>
+          )}
+
+          {/* PESTAÑA: HISTORIAL DE VENTAS DEL TURNO */}
+          {pestanaActiva === 'ventas-turno' && turno && (
+            <Card
+              titulo="Ventas realizadas en este turno"
+              descripcion="Listado de todas las ventas cobradas durante el turno activo. Haz clic en «Ver detalle» para ver los productos de cada venta."
+              acciones={
+                <Button
+                  variante="ghost"
+                  onClick={() => cargarVentasTurno(turno.id_turno)}
+                  cargando={cargandoVentasTurno}
+                  icono={RefreshCw}
+                  className="!px-3 !py-1.5 text-xs"
+                >
+                  Recargar
+                </Button>
+              }
+              sinPadding
+            >
+              <Table
+                columnas={columnasVentasTurno}
+                filas={ventasTurno}
+                idFila="id_venta"
+                cargando={cargandoVentasTurno}
+                vacio={
+                  <EstadoVacio
+                    icono={ShoppingBag}
+                    mensaje="No hay ventas registradas en este turno."
+                    descripcion="Las ventas aparecerán aquí en cuanto se registre algún cobro en el punto de venta."
+                  />
+                }
+              />
+            </Card>
           )}
 
           {/* PESTAÑA: HISTORIAL DE CUADRES */}
@@ -1367,6 +1504,126 @@ export default function CajaPage() {
           </div>
         </Dialogo>
       )}
+
+      {/* ─── MODAL: DETALLE DE VENTA ──────────────────────────────────────── */}
+      {mostrarDetalleVenta && ventaDetalleSeleccionada && (
+        <Dialogo
+          onCerrar={() => { setMostrarDetalleVenta(false); setVentaDetalleSeleccionada(null); }}
+          tamano="lg"
+          labelledBy="detalle-venta-titulo"
+        >
+          {/* Encabezado */}
+          <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary-text">
+                <ShoppingBag size={20} aria-hidden="true" />
+              </span>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">
+                  Detalle de venta
+                </p>
+                <h2 id="detalle-venta-titulo" className="mt-0.5 text-lg font-semibold text-fg">
+                  {ventaDetalleSeleccionada.tipo_comprobante} — {ventaDetalleSeleccionada.correlativo}
+                </h2>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setMostrarDetalleVenta(false); setVentaDetalleSeleccionada(null); }}
+              className="rounded-md p-1.5 text-fg-muted hover:bg-muted hover:text-fg"
+              aria-label="Cerrar detalle"
+            >
+              <X size={18} aria-hidden="true" />
+            </button>
+          </div>
+
+          <div className="space-y-5 overflow-y-auto p-5" style={{ maxHeight: '70vh' }}>
+            {/* Metadatos */}
+            <div className="flex flex-wrap items-center gap-3 text-xs text-fg-muted">
+              <span className="flex items-center gap-1">
+                <Clock size={13} aria-hidden="true" />
+                {etiquetaDiaLarga(ventaDetalleSeleccionada.fecha_emision?.slice(0, 10))} — {horaDe(ventaDetalleSeleccionada.fecha_emision)}
+              </span>
+              <EstadoBadge tipo={ventaDetalleSeleccionada.estado === 'ANULADA' ? 'peligro' : 'exito'}>
+                {ventaDetalleSeleccionada.estado === 'ANULADA' ? 'Anulada' : 'Válida'}
+              </EstadoBadge>
+              {ventaDetalleSeleccionada.cajero_username && (
+                <span>Cajero: <strong className="text-fg">{ventaDetalleSeleccionada.cajero_username}</strong></span>
+              )}
+            </div>
+
+            {/* Tabla de productos */}
+            <div>
+              <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-fg">
+                <Package size={15} aria-hidden="true" />
+                Productos / servicios
+              </h3>
+              {ventaDetalleSeleccionada.detalles?.length > 0 ? (
+                <div className="overflow-hidden rounded-lg border border-line">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-line bg-muted">
+                        <th className="px-3.5 py-2 text-left text-xs font-semibold uppercase tracking-wider text-fg-muted">Producto</th>
+                        <th className="px-3.5 py-2 text-right text-xs font-semibold uppercase tracking-wider text-fg-muted">Cant.</th>
+                        <th className="px-3.5 py-2 text-right text-xs font-semibold uppercase tracking-wider text-fg-muted">P. Unit.</th>
+                        <th className="px-3.5 py-2 text-right text-xs font-semibold uppercase tracking-wider text-fg-muted">Subtotal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ventaDetalleSeleccionada.detalles.map((d, i) => (
+                        <tr key={i} className="border-b border-line last:border-0">
+                          <td className="px-3.5 py-2.5 font-medium text-fg">{d.nombre_producto}</td>
+                          <td className="px-3.5 py-2.5 text-right text-fg-muted">{d.cantidad}</td>
+                          <td className="px-3.5 py-2.5 text-right text-fg-muted">{formatoDinero(d.precio_unitario)}</td>
+                          <td className="px-3.5 py-2.5 text-right font-semibold text-fg">{formatoDinero(d.subtotal_linea)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="rounded-lg border border-line p-4 text-sm text-fg-muted">Sin detalle de productos disponible.</p>
+              )}
+            </div>
+
+            {/* Desglose de pagos */}
+            {ventaDetalleSeleccionada.pagos?.length > 0 && (
+              <div>
+                <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-fg">
+                  <CircleDollarSign size={15} aria-hidden="true" />
+                  Medios de pago
+                </h3>
+                <div className="space-y-1.5">
+                  {ventaDetalleSeleccionada.pagos.map((p, i) => (
+                    <div key={i} className="flex items-center justify-between rounded-md border border-line px-3.5 py-2 text-sm">
+                      <span className="text-fg-muted">{p.metodo}</span>
+                      <span className="font-semibold text-fg">{formatoDinero(p.monto)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Total */}
+            <div className="flex items-center justify-between rounded-xl bg-primary-soft px-4 py-3">
+              <span className="text-sm font-semibold text-primary-text">Total de la venta</span>
+              <span className="text-2xl font-bold text-primary-text">
+                {formatoDinero(ventaDetalleSeleccionada.total)}
+              </span>
+            </div>
+
+            <div className="flex justify-end pt-1">
+              <Button
+                variante="primary"
+                onClick={() => { setMostrarDetalleVenta(false); setVentaDetalleSeleccionada(null); }}
+              >
+                Cerrar
+              </Button>
+            </div>
+          </div>
+        </Dialogo>
+      )}
     </div>
   );
 }
+
