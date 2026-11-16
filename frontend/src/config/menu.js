@@ -22,7 +22,7 @@ export const menu = [
       { ruta: '/compras/registrar', texto: 'Registrar factura', permiso: 'COM_REGISTRAR_COMPRA' },
       { ruta: '/compras/proveedores', texto: 'Proveedores', permiso: 'COM_GESTIONAR_PROVEEDORES' },
       { ruta: '/compras/cuentas-por-pagar', texto: 'Cuentas por pagar', permiso: 'COM_VER_CXP' },
-      { ruta: '/compras/gastos', texto: 'Compras tipo gasto', permiso: 'COM_REGISTRAR_COMPRA' },
+      { ruta: '/compras/gastos', texto: 'Gastos operativos', permiso: 'COM_REGISTRAR_COMPRA' },
     ]},
   ]},
   { seccion: 'Gestión', items: [
