@@ -80,9 +80,9 @@ export default function App() {
         <Route path="rrhh" element={<ProtectedRoute permiso="RRHH_VER_PLANILLA"><PendienteApiPage titulo="RR. HH. y planilla" descripcion="Empleados, períodos y procesamiento de planillas." endpoints={["GET /api/planillas (no existe)", "POST /api/planillas (no existe)"]} /></ProtectedRoute>} />
         <Route path="compras/proveedores" element={<ProtectedRoute permiso="COM_GESTIONAR_PROVEEDORES"><ProveedoresPage /></ProtectedRoute>} />
         <Route path="compras/cuentas-por-pagar" element={<ProtectedRoute permiso="COM_VER_CXP"><CuentasPorPagarPage /></ProtectedRoute>} />
-        <Route path="compras/registrar" element={<ProtectedRoute permiso="COM_REGISTRAR_COMPRA"><CompraFacturaPage /></ProtectedRoute>} />
+        <Route path="compras/registrar" element={<ProtectedRoute permiso="COM_REGISTRAR_COMPRA"><CompraFacturaPage key="COSTO" /></ProtectedRoute>} />
         <Route path="compras" element={<ProtectedRoute permiso="COM_VER_CXP"><ComprasPage /></ProtectedRoute>} />
-        <Route path="compras/gastos" element={<ProtectedRoute permiso="COM_REGISTRAR_COMPRA"><CompraFacturaPage tipoCosto="GASTO" /></ProtectedRoute>} />
+        <Route path="compras/gastos" element={<ProtectedRoute permiso="COM_REGISTRAR_COMPRA"><CompraFacturaPage key="GASTO" tipoCosto="GASTO" /></ProtectedRoute>} />
         <Route
           path="seguridad"
           element={
