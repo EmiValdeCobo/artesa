@@ -1,0 +1,214 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { CircleCheck, CircleDashed, Monitor } from 'lucide-react';
+import { api } from '../../api/client.js';
+import Dialogo from '../../components/Dialogo.jsx';
+import BannerError from '../../components/feedback/BannerError.jsx';
+import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
+import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
+import { useAlert } from '../../components/feedback/AlertProvider.jsx';
+import { BotonIcono, Button, Spinner } from '../../components/ui/index.js';
+import { ICONOS } from '../../config/iconos.js';
+import { traducirError } from '../../errors/traducirError.js';
+import { enteroParaInput, formatearUnidades } from '../../utils/formato.js';
+import { aplicarMascara, propsMascara } from '../../utils/mascaras.js';
+
+// Valores iniciales del formulario: el mínimo vigente o, si la sucursal es nueva, el sugerido
+// (mayor mínimo de las demás sucursales activas); la carga inicial cubre lo que falta para ese mínimo.
+function armarFilas(insumos) {
+  return Object.fromEntries(insumos.map((i) => {
+    const minimo = Number(enteroParaInput(i.stock_minimo)) > 0 ? enteroParaInput(i.stock_minimo) : enteroParaInput(i.stock_minimo_sugerido);
+    const faltante = Math.max(Number(minimo || 0) - Number(enteroParaInput(i.stock_actual) || 0), 0);
+    return [i.id_insumo, { stockMinimo: minimo === '0' ? '' : minimo, cantidadInicial: faltante ? String(faltante) : '' }];
+  }));
+}
+
+function Requisito({ cumplido, titulo, children }) {
+  const Icono = cumplido ? CircleCheck : CircleDashed;
+  return (
+    <li className={`flex items-start gap-3 rounded-lg border p-3.5 ${cumplido ? 'border-success/30 bg-success-soft/40' : 'border-warning/30 bg-warning-soft/40'}`}>
+      <Icono size={18} aria-hidden="true" className={`mt-0.5 shrink-0 ${cumplido ? 'text-success' : 'text-warning'}`} />
+      <div className="min-w-0 text-sm">
+        <p className="font-semibold">{titulo}</p>
+        <div className="mt-0.5 text-xs text-fg-muted">{children}</div>
+      </div>
+    </li>
+  );
+}
+
+export default function AperturaSucursalDialogo({ sucursal, onCerrar }) {
+  const { notificar } = useAlert();
+  const [estado, setEstado] = useState(null);
+  const [filas, setFilas] = useState({});
+  const [cargando, setCargando] = useState(true);
+  const [guardando, setGuardando] = useState(false);
+  const [confirmado, setConfirmado] = useState(false);
+  const [error, setError] = useState(null);
+
+  const cargar = useCallback(async () => {
+    setCargando(true);
+    setError(null);
+    try {
+      const datos = await api.get(`/empresa/sucursales/${sucursal.id_sucursal}/apertura`);
+      setEstado(datos);
+      setFilas(armarFilas(datos.insumos));
+    } catch (err) {
+      setError(traducirError(err));
+    } finally {
+      setCargando(false);
+    }
+  }, [sucursal.id_sucursal]);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  const actualizar = (idInsumo, campo, valor) => {
+    setFilas((actuales) => ({ ...actuales, [idInsumo]: { ...actuales[idInsumo], [campo]: aplicarMascara('entero', valor) } }));
+    setConfirmado(false);
+  };
+
+  // Vista previa por fila (cantidades físicas enteras): el veredicto definitivo lo devuelve el backend.
+  const previa = useMemo(() => Object.fromEntries((estado?.insumos ?? []).map((i) => {
+    const f = filas[i.id_insumo] ?? {};
+    const minimo = Number(f.stockMinimo || 0);
+    const resultante = Number(enteroParaInput(i.stock_actual) || 0) + Number(f.cantidadInicial || 0);
+    return [i.id_insumo, { minimo, resultante, cubierto: minimo > 0 && resultante >= minimo }];
+  })), [estado, filas]);
+
+  const sinMinimo = (estado?.insumos ?? []).filter((i) => !previa[i.id_insumo]?.minimo).length;
+  const cubiertosPrevia = Object.values(previa).filter((p) => p.cubierto).length;
+  const total = estado?.insumos.length ?? 0;
+
+  async function confirmar(evento) {
+    evento.preventDefault();
+    if (!confirmado || sinMinimo) return;
+    setGuardando(true);
+    setError(null);
+    try {
+      const items = estado.insumos.map((i) => ({
+        idInsumo: i.id_insumo,
+        stockMinimo: filas[i.id_insumo].stockMinimo,
+        cantidadInicial: filas[i.id_insumo].cantidadInicial || '0',
+      }));
+      const datos = await api.post(`/empresa/sucursales/${sucursal.id_sucursal}/apertura`, { items });
+      setEstado(datos);
+      setFilas(armarFilas(datos.insumos));
+      setConfirmado(false);
+      if (datos.lista) notificar.exito(`${sucursal.nombre} está lista para operar`);
+      else notificar.advertencia('Stock registrado, pero la sucursal aún no cumple todos los requisitos');
+    } catch (err) {
+      setError(traducirError(err));
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  const admins = estado?.usuarios.filter((u) => u.rol === 'ADMIN') ?? [];
+
+  return (
+    <Dialogo onCerrar={() => !guardando && onCerrar()} tamano="xl" cerrarConFondo={false} labelledBy="apertura-titulo" describedBy="apertura-descripcion">
+      <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4 sm:px-6">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">Empresa · Apertura de sucursal</p>
+          <h2 id="apertura-titulo" className="mt-1 text-xl font-semibold">{sucursal.nombre} <span className="font-mono text-sm text-fg-muted">{sucursal.codigo_establecimiento}</span></h2>
+          <p id="apertura-descripcion" className="mt-1 text-sm text-fg-muted">
+            Revisa el personal, la caja y el stock mínimo que necesita para operar. Confirma antes de habilitarla en el POS.
+          </p>
+        </div>
+        <BotonIcono icono={ICONOS.cerrar} etiqueta="Cerrar apertura" onClick={onCerrar} disabled={guardando} />
+      </div>
+
+      <div className="space-y-5 p-5 sm:p-6">
+        <BannerError error={error} onReintentar={estado ? undefined : cargar} onCerrar={estado ? () => setError(null) : undefined} />
+
+        {cargando ? <Spinner /> : estado && (
+          <>
+            {estado.lista
+              ? <EstadoBadge tipo="exito">Lista para operar</EstadoBadge>
+              : <EstadoBadge tipo="alerta">Pendiente de requisitos</EstadoBadge>}
+
+            <ul className="grid gap-3 sm:grid-cols-3" aria-label="Requisitos de apertura">
+              <Requisito cumplido={estado.usuarios.length > 0} titulo={`Personal asignado (${estado.usuarios.length})`}>
+                {admins.length ? `Administración global: ${admins.map((u) => u.username).join(', ')}` : 'Sin administrador asignado'}
+                {estado.usuarios.length > admins.length && <span className="block">+ {estado.usuarios.length - admins.length} usuario(s) de la sucursal</span>}
+              </Requisito>
+              <Requisito cumplido={estado.cajas.length > 0} titulo={`Caja POS (${estado.cajas.length})`}>
+                {estado.cajas.length
+                  ? estado.cajas.map((c) => <span key={c.id_caja} className="flex items-center gap-1"><Monitor size={12} aria-hidden="true" />{c.nombre_identificador} · {c.codigo_punto_venta}</span>)
+                  : 'Sin caja configurada'}
+              </Requisito>
+              <Requisito cumplido={total > 0 && estado.insumos.every((i) => i.cubierto)} titulo={`Stock mínimo (${estado.insumos.filter((i) => i.cubierto).length}/${total})`}>
+                {total ? 'Insumos cubiertos según lo registrado en la sucursal.' : 'El catálogo activo no tiene recetas ni productos de reventa.'}
+              </Requisito>
+            </ul>
+
+            {!estado.sucursal.activa && <p className="text-sm text-warning">La sucursal está inactiva: actívala para que pueda operar.</p>}
+
+            {total === 0 ? (
+              <EstadoVacio icono={ICONOS.insumo} titulo="No hay insumos requeridos">
+                Registra productos con receta o de reventa en el Catálogo para calcular el stock mínimo.
+              </EstadoVacio>
+            ) : (
+              <form noValidate onSubmit={confirmar} className="space-y-4">
+                <div className="max-h-[45dvh] overflow-auto rounded-lg border border-line scroll-fino">
+                  <table className="w-full min-w-[640px] text-left text-sm">
+                    <thead className="sticky top-0 z-10 border-b border-line bg-muted text-xs uppercase tracking-wide text-fg-muted">
+                      <tr>
+                        <th scope="col" className="px-4 py-3 font-semibold">Insumo</th>
+                        <th scope="col" className="px-4 py-3 text-right font-semibold">Stock actual</th>
+                        <th scope="col" className="px-4 py-3 font-semibold">Mínimo para operar</th>
+                        <th scope="col" className="px-4 py-3 font-semibold">Carga inicial</th>
+                        <th scope="col" className="px-4 py-3 font-semibold">Resultado</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-line">
+                      {estado.insumos.map((i) => {
+                        const f = filas[i.id_insumo] ?? {};
+                        const p = previa[i.id_insumo] ?? {};
+                        return (
+                          <tr key={i.id_insumo} className="hover:bg-muted/60">
+                            <td className="px-4 py-3">
+                              <p className="font-medium">{i.insumo}</p>
+                              <p className="text-xs text-fg-muted">{i.tipo_insumo.toLowerCase()} · {i.unidad}{Number(i.stock_minimo_sugerido) > 0 && ` · sugerido ${formatearUnidades(i.stock_minimo_sugerido)}`}</p>
+                            </td>
+                            <td className="px-4 py-3 text-right tabular-nums">{formatearUnidades(i.stock_actual)}</td>
+                            <td className="px-4 py-3">
+                              <input {...propsMascara('entero')} className="input h-9 w-28 aria-invalid:border-danger" value={f.stockMinimo ?? ''} onChange={(e) => actualizar(i.id_insumo, 'stockMinimo', e.target.value)}
+                                aria-label={`Stock mínimo de ${i.insumo} en ${i.unidad}`} aria-invalid={!f.stockMinimo || undefined} />
+                            </td>
+                            <td className="px-4 py-3">
+                              <input {...propsMascara('entero')} className="input h-9 w-28" value={f.cantidadInicial ?? ''} onChange={(e) => actualizar(i.id_insumo, 'cantidadInicial', e.target.value)}
+                                aria-label={`Carga inicial de ${i.insumo} en ${i.unidad}`} />
+                            </td>
+                            <td className="px-4 py-3">
+                              <EstadoBadge tipo={p.cubierto ? 'exito' : 'alerta'}>{p.cubierto ? `Cubierto (${formatearUnidades(p.resultante)})` : 'Falta stock'}</EstadoBadge>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <p className="text-xs text-fg-muted" aria-live="polite">
+                  Vista previa: {cubiertosPrevia} de {total} insumos cubiertos.{sinMinimo > 0 && ` Define el mínimo de ${sinMinimo} insumo(s) (entero mayor a cero).`} La carga se registra como movimiento «Inventario inicial» en el Kárdex.
+                </p>
+
+                <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-line bg-muted/50 p-3.5">
+                  <input type="checkbox" className="mt-0.5 h-4 w-4 accent-primary" checked={confirmado} disabled={sinMinimo > 0} onChange={(e) => setConfirmado(e.target.checked)} />
+                  <span>
+                    <span className="block text-sm font-medium">Confirmo que la sucursal cuenta con el stock mínimo requerido para operar</span>
+                    <span className="mt-0.5 block text-xs text-fg-muted">Se guardarán los umbrales de alerta y la carga inicial indicada.</span>
+                  </span>
+                </label>
+
+                <div className="flex flex-col-reverse justify-end gap-2 border-t border-line pt-4 sm:flex-row">
+                  <Button variante="ghost" onClick={onCerrar} disabled={guardando}>{estado.lista ? 'Cerrar' : 'Completar después'}</Button>
+                  <Button type="submit" icono={ICONOS.apertura} cargando={guardando} disabled={!confirmado || sinMinimo > 0}>Confirmar y cargar stock</Button>
+                </div>
+              </form>
+            )}
+          </>
+        )}
+      </div>
+    </Dialogo>
+  );
+}
