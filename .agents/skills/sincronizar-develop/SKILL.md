@@ -57,11 +57,11 @@ git rev-list HEAD..origin/develop --count
 ### 4. Integración mediante Merge (Sin Rebase)
 - **Si estás ubicado en `develop`**:
   ```bash
-  git merge --no-rebase origin/develop
+  git merge origin/develop
   ```
 - **Si estás en una rama de trabajo (`feature/...`)**:
   ```bash
-  git merge origin/develop --no-rebase -m "🔀 merge(git): sincronizar cambios desde origin/develop"
+  git merge origin/develop -m "🔀 merge(git): sincronizar cambios desde origin/develop"
   ```
 
 ### 5. Manejo de Conflictos
