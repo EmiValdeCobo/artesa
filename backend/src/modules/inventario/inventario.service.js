@@ -143,10 +143,10 @@ export const guardarReceta = (id, d, uid) => run(() => withTransaction(async (t)
 }, uid));
 export async function listarStock(userId, idSucursal) { const ids = idSucursal ? [idSucursal] : (await repo.sucursalesAsignadas(userId)).map((x) => x.id_sucursal); if (idSucursal) await validarSucursal(userId, idSucursal); return repo.stockSucursal(idSucursal ?? null).then((rows) => rows.filter((r) => ids.includes(r.id_sucursal))); }
 export async function listarAlertas(userId, idSucursal) { const ids = idSucursal ? [idSucursal] : (await repo.sucursalesAsignadas(userId)).map((x) => x.id_sucursal); if (idSucursal) await validarSucursal(userId, idSucursal); const rows = await repo.alertas(idSucursal ?? null); return rows.filter((r) => ids.includes(r.id_sucursal)); }
-export async function listarMovimientos(userId, idSucursal, idInsumo) {
-  if (idSucursal) await validarSucursal(userId, idSucursal);
+export async function listarMovimientos(userId, filtros) {
+  if (filtros.idSucursal) await validarSucursal(userId, filtros.idSucursal);
   const verCostos = await repo.usuarioTienePermiso(userId, 'INV_VER_COSTOS');
-  return repo.movimientos(userId, idSucursal ?? null, idInsumo ?? null, verCostos);
+  return repo.movimientos(userId, filtros, verCostos);
 }
 export const configurarMinimo = (idInsumo, d, uid) => run(() => withTransaction(async (t) => { await validarSucursal(uid, d.idSucursal, t); if (!(await repo.buscarInsumo(idInsumo, t))) throw new AppError('Insumo no encontrado', 404); return repo.configurarMinimo(d.idSucursal, idInsumo, d.stockMinimo, t); }, uid));
 export const ingresarStock = (idInsumo, d, uid) => run(() => withTransaction(async (t) => { await validarSucursal(uid, d.idSucursal, t); const i = await repo.buscarInsumo(idInsumo, t); if (!i?.activo) throw new AppError('Insumo no existe o está inactivo', 404); return repo.moverStock(t, { ...d, idInsumo, idUsuario: uid }); }, uid));

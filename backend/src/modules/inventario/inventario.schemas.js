@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { camposPaginacion } from '../../utils/paginacion.js';
 
 const id = z.coerce.number().int().positive();
 const enteroPositivo = (max) => z.union([z.number(), z.string()]).transform((v) => String(v).trim())
@@ -97,3 +98,17 @@ export const stockSchema = z.object({ idSucursal: id, idInsumo: id, cantidad: en
 export const minimoSchema = z.object({ idSucursal: id, stockMinimo: enteroPositivo(10) });
 export const mermaSchema = z.object({ idSucursal: id, cantidad: enteroPositivo(10), motivo: z.string().trim().min(3).max(500) });
 export const cambiarEstadoSchema = z.object({ activo: z.boolean().optional() });
+const tiposMovimiento = z.enum(['VENTA', 'ANULACION_VENTA', 'COMPRA', 'MERMA', 'AJUSTE', 'INVENTARIO_INICIAL', 'TRASLADO_ENTRADA', 'TRASLADO_SALIDA']);
+export const filtrosMovimientosSchema = z.object({
+  idSucursal: id.optional(),
+  idInsumo: id.optional(),
+  desde: z.iso.date().optional(),
+  hasta: z.iso.date().optional(),
+  tipos: z.string().transform((value) => value.split(',')).pipe(z.array(tiposMovimiento).max(8)).default([]),
+  direccion: z.enum(['todos', 'entradas', 'salidas']).default('todos'),
+  q: z.string().trim().max(120).optional(),
+  ...camposPaginacion,
+}).refine(({ desde, hasta }) => !desde || !hasta || desde <= hasta, {
+  message: 'La fecha desde debe ser anterior o igual a hasta',
+  path: ['desde'],
+});

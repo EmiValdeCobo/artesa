@@ -141,18 +141,24 @@ test('inventario: el costo unitario requiere acceso al kardex y permiso INV_VER_
   assert.doesNotMatch(repository, /SELECT\s+m\.\*/i);
 });
 
-test('inventario: sucursal e insumo se filtran en SQL antes del límite de movimientos', async () => {
+test('inventario: sucursal, insumo y filtros del Kárdex se aplican en SQL antes de paginar', async () => {
   const repository = await leer('backend/src/modules/inventario/inventario.repository.js');
   const sql = repository.match(/const SQL_MOVIMIENTOS_SIN_COSTO = `([\s\S]*?)`;/)?.[1];
   assert.ok(sql);
-  const asignacion = sql.indexOf('seguridad.usuario_sucursal');
-  const filtroSucursal = sql.indexOf('$2::int');
-  const filtroInsumo = sql.indexOf('$3::int');
+  assert.match(repository, /const FILTROS_MOVIMIENTOS = `([\s\S]*?)`;/);
+  const filtros = repository.match(/const FILTROS_MOVIMIENTOS = `([\s\S]*?)`;/)[1];
+  const asignacion = filtros.indexOf('seguridad.usuario_sucursal');
+  const filtroSucursal = filtros.indexOf('$2::int');
+  const filtroInsumo = filtros.indexOf('$3::int');
+  const filtroFecha = filtros.indexOf('$4::date');
+  const filtroTipos = filtros.indexOf('ANY($6::text[])');
   const orden = sql.indexOf('ORDER BY m.creado_en DESC, m.id_movimiento DESC');
-  const limite = sql.indexOf('LIMIT 500');
+  const limite = sql.indexOf('LIMIT $9::int OFFSET $10::int');
   assert.ok(asignacion >= 0 && asignacion < filtroSucursal);
-  assert.ok(filtroSucursal < filtroInsumo && filtroInsumo < orden && orden < limite);
-  assert.match(repository, /\[idUsuario, idSucursal, idInsumo\]/);
+  assert.ok(filtroSucursal < filtroInsumo && filtroInsumo < filtroFecha && filtroFecha < filtroTipos);
+  assert.ok(orden >= 0 && orden < limite);
+  assert.match(repository, /\[\.\.\.binds, limit, \(page - 1\) \* limit\]/);
+  assert.doesNotMatch(repository, /LIMIT 500/);
   assert.match(repository, /sequelize\.query\(sql, \{ bind, transaction, type: QueryTypes\.SELECT \}\)/);
 });
 

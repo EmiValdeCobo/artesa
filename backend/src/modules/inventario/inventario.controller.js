@@ -1,5 +1,6 @@
 import * as service from './inventario.service.js';
-import { idSchema } from './inventario.schemas.js';
+import { filtrosMovimientosSchema, idSchema } from './inventario.schemas.js';
+import { enviarHeadersPaginacion } from '../../utils/paginacion.js';
 
 const parseId = (value) => idSchema.parse(value);
 export const listarUnidades = async (_req, res) => res.json(await service.listarUnidades());
@@ -24,7 +25,12 @@ export const obtenerReceta = async (req, res) => res.json(await service.obtenerR
 export const guardarReceta = async (req, res) => res.json(await service.guardarReceta(parseId(req.params.id), req.body, req.user.id));
 export const listarStock = async (req, res) => res.json(await service.listarStock(req.user.id, req.query.idSucursal ? parseId(req.query.idSucursal) : null));
 export const listarAlertas = async (req, res) => res.json(await service.listarAlertas(req.user.id, req.query.idSucursal ? parseId(req.query.idSucursal) : null));
-export const listarMovimientos = async (req, res) => res.json(await service.listarMovimientos(req.user.id, req.query.idSucursal ? parseId(req.query.idSucursal) : null, req.query.idInsumo ? parseId(req.query.idInsumo) : null));
+export const listarMovimientos = async (req, res) => {
+  const filtros = filtrosMovimientosSchema.parse(req.query);
+  const resultado = await service.listarMovimientos(req.user.id, filtros);
+  enviarHeadersPaginacion(res, resultado.pagination);
+  res.json(resultado.data);
+};
 export const configurarMinimo = async (req, res) => res.json(await service.configurarMinimo(parseId(req.params.id), req.body, req.user.id));
 export const ingresarStock = async (req, res) => res.status(201).json(await service.ingresarStock(parseId(req.params.id), req.body, req.user.id));
 export const registrarMerma = async (req, res) => res.status(201).json(await service.registrarMerma(parseId(req.params.id), req.body, req.user.id));
