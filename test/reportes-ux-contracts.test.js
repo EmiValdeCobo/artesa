@@ -71,10 +71,11 @@ test('reportes: las consultas nuevas limitan los datos a sucursales visibles y a
   assert.match(repo, /JOIN visibles s ON s\.id_sucursal = ss\.id_sucursal/);
   assert.match(repo, /FROM pos\.pagos p/);
   assert.match(repo, /q\.id_sucursal IN \(SELECT id_sucursal FROM visibles/);
-  assert.match(repo, /listarCuentasPorPagar\(idUsuario, \{ \.\.\.filtros, estado: 'pendientes' \}, true\)/);
+  assert.match(repo, /listarCuentasPorPagar\(idUsuario, \{ \.\.\.filtros, estado: 'pendientes', periodoRecientePorDefecto: true \}\)/);
   assert.match(cxpRepo, /JOIN visibles s ON s\.id_sucursal = f\.id_sucursal/);
   assert.match(cxpRepo, /\$6::text = 'pendientes'/);
-  assert.match(cxpRepo, /LIMIT 500/);
+  assert.match(cxpRepo, /LIMIT \$7::int OFFSET \$8::int/);
+  assert.doesNotMatch(cxpRepo, /LIMIT 500/);
   assert.equal((repo.match(/LIMIT 500/g) || []).length, 1);
 });
 
