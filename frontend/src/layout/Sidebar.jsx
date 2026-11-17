@@ -10,7 +10,7 @@ import Logo from '../components/branding/Logo.jsx';
 
 /* ---------------------------------------------------------------------------
    Sidebar de artesa
-   - Fijo: ocupa el alto de la ventana; solo el <main> hace scroll.
+   - Escritorio: sticky y a la altura de la ventana; móvil: panel fijo deslizable.
    - Compacto: ítems de 36 px para que el menú completo quepa sin scroll en
      pantallas de laptop. Si aun así no cabe, el scroll es "invisible" y se
      avisa con un degradado + flecha en el borde (nadie se pierde).
@@ -272,7 +272,7 @@ export default function Sidebar({ mobileOpen, onClose }) {
 
   return <>
     {mobileOpen && <button type="button" aria-label="Cerrar navegación" onClick={onClose} className="fixed inset-0 z-40 bg-sidebar/60 lg:hidden" />}
-    <aside className={`fixed inset-y-0 left-0 z-50 flex h-dvh shrink-0 flex-col bg-sidebar text-on-sidebar shadow-xl transition-[width,transform] duration-300 motion-reduce:transition-none lg:sticky lg:top-0 lg:z-20 lg:translate-x-0 lg:shadow-none ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} ${colapsado ? 'w-[4.5rem]' : 'w-64'}`}>
+    <aside className={`fixed inset-y-0 left-0 z-50 flex h-dvh shrink-0 flex-col bg-sidebar text-on-sidebar shadow-xl transition-[width,transform] duration-300 motion-reduce:transition-none lg:sticky lg:top-0 lg:bottom-auto lg:h-dvh lg:self-start lg:z-20 lg:translate-x-0 lg:shadow-none ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} ${colapsado ? 'w-[4.5rem]' : 'w-64'}`}>
 
       <header className={`relative flex h-16 shrink-0 items-center border-b border-white/10 ${colapsado ? 'justify-center' : 'gap-3 px-4'}`}>
         <Logo variante="isotipo" tema="oscuro" className="h-9 w-auto shrink-0" />

@@ -6,12 +6,7 @@ import {
   Plus,
   RefreshCw,
   X,
-  Building2,
-  Briefcase,
-  Calendar,
   CreditCard,
-  CheckCircle2,
-  AlertCircle,
   Shield,
 } from 'lucide-react';
 import { rrhhApi } from '../../api/rrhh.api.js';
@@ -47,7 +42,7 @@ const FORMULARIO_VACIO = {
 };
 
 export default function EmpleadosPage() {
-  const { notificar, confirm } = useAlert();
+  const { notificar, notificarError, confirm } = useAlert();
 
   const [empleados, setEmpleados] = useState([]);
   const [puestos, setPuestos] = useState([]);
@@ -70,7 +65,6 @@ export default function EmpleadosPage() {
   const [formulario, setFormulario] = useState(FORMULARIO_VACIO);
   const [erroresForm, setErroresForm] = useState({});
   const [guardando, setGuardando] = useState(false);
-  const [errorModal, setErrorModal] = useState(null);
 
   const cargarDatos = useCallback(async (silencioso = false) => {
     if (silencioso) setActualizando(true);
@@ -110,7 +104,6 @@ export default function EmpleadosPage() {
       salarioNominal: puestos[0]?.salario_base || '365.00',
     });
     setErroresForm({});
-    setErrorModal(null);
     setModalAbierto(true);
   };
 
@@ -129,7 +122,6 @@ export default function EmpleadosPage() {
       activo: Boolean(emp.activo),
     });
     setErroresForm({});
-    setErrorModal(null);
     setModalAbierto(true);
   };
 
@@ -185,10 +177,14 @@ export default function EmpleadosPage() {
 
   const handleGuardar = async (e) => {
     e.preventDefault();
-    if (!validarFormulario()) return;
+    if (!validarFormulario()) {
+      notificar.advertencia('Corrige los errores en el formulario', {
+        mensaje: 'Revisa los campos marcados en rojo antes de guardar el empleado.',
+      });
+      return;
+    }
 
     setGuardando(true);
-    setErrorModal(null);
 
     const payload = {
       nombres: formulario.nombres.trim(),
@@ -214,13 +210,13 @@ export default function EmpleadosPage() {
       setModalAbierto(false);
       await cargarDatos(true);
     } catch (err) {
-      setErrorModal(err.message || 'No se pudo guardar el empleado.');
+      notificarError(err, { reintentar: () => handleGuardar(e) });
     } finally {
       setGuardando(false);
     }
   };
 
-  const toggleEstado = async (emp) => {
+  const toggleEstado = useCallback(async (emp) => {
     const accion = emp.activo ? 'desactivar' : 'activar';
     const seguro = await confirm(
       `¿Deseas ${accion} al empleado «${emp.nombres} ${emp.apellidos}»? ${
@@ -245,9 +241,9 @@ export default function EmpleadosPage() {
       }
       await cargarDatos(true);
     } catch (err) {
-      notificar.error(err.message || `No se pudo ${accion} al empleado.`);
+      notificarError(err, { reintentar: () => toggleEstado(emp) });
     }
-  };
+  }, [confirm, notificar, notificarError, cargarDatos]);
 
   // Filtrado
   const empleadosFiltrados = useMemo(() => {
@@ -312,6 +308,8 @@ export default function EmpleadosPage() {
       {
         clave: 'empleado',
         titulo: 'Empleado / Identificación',
+        tipo: 'texto',
+        valorOrden: (e) => `${e.apellidos || ''} ${e.nombres || ''}`.trim(),
         render: (e) => (
           <div>
             <p className="font-semibold text-fg">
@@ -327,6 +325,8 @@ export default function EmpleadosPage() {
       {
         clave: 'puesto_sucursal',
         titulo: 'Puesto y Sucursal',
+        tipo: 'texto',
+        valorOrden: (e) => `${e.puesto?.nombre || ''} ${e.sucursal?.nombre || ''}`.trim(),
         render: (e) => (
           <div>
             <p className="font-medium text-fg">{e.puesto?.nombre || '—'}</p>
@@ -338,6 +338,8 @@ export default function EmpleadosPage() {
         clave: 'salario_nominal',
         titulo: 'Salario Nominal',
         alinear: 'right',
+        tipo: 'dinero',
+        valorOrden: (e) => e.salario_nominal,
         render: (e) => (
           <span className="font-semibold text-fg">{formatoDinero(e.salario_nominal)}</span>
         ),
@@ -345,6 +347,8 @@ export default function EmpleadosPage() {
       {
         clave: 'fecha_ingreso',
         titulo: 'Ingreso',
+        tipo: 'fecha',
+        valorOrden: (e) => e.fecha_ingreso,
         render: (e) => (
           <span className="text-xs text-fg-muted">
             {e.fecha_ingreso ? e.fecha_ingreso.slice(0, 10) : '—'}
@@ -354,6 +358,8 @@ export default function EmpleadosPage() {
       {
         clave: 'usuario',
         titulo: 'Usuario',
+        tipo: 'texto',
+        valorOrden: (e) => e.usuario?.username || '',
         render: (e) => (
           <span className="text-xs text-fg-muted">
             {e.usuario?.username ? (
@@ -370,6 +376,8 @@ export default function EmpleadosPage() {
       {
         clave: 'activo',
         titulo: 'Estado',
+        tipo: 'booleano',
+        valorOrden: (e) => Boolean(e.activo),
         render: (e) => (
           <EstadoBadge tipo={e.activo ? 'exito' : 'inactivo'}>
             {e.activo ? 'Activo' : 'Inactivo'}
@@ -380,6 +388,7 @@ export default function EmpleadosPage() {
         clave: 'acciones',
         titulo: 'Acciones',
         alinear: 'right',
+        ordenable: false,
         render: (e) => (
           <div className="flex items-center justify-end gap-1.5">
             <BotonIcono
@@ -409,15 +418,12 @@ export default function EmpleadosPage() {
         ),
       },
     ],
-    []
+    [toggleEstado]
   );
 
   if (cargando) {
     return (
-      <div className="flex min-h-[400px] flex-col items-center justify-center gap-3">
-        <Spinner />
-        <p className="text-sm text-fg-muted">Cargando directorio de empleados…</p>
-      </div>
+      <Spinner texto="Cargando directorio de empleados…" className="min-h-[400px]" />
     );
   }
 
@@ -453,7 +459,7 @@ export default function EmpleadosPage() {
       )}
 
       {/* Métricas */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Metrica
           icono={Users}
           etiqueta="Total empleados"
@@ -470,7 +476,7 @@ export default function EmpleadosPage() {
           icono={UserX}
           etiqueta="Empleados inactivos"
           valor={metricas.inactivos}
-          tono="aviso"
+          tono="neutro"
         />
         <Metrica
           icono={CreditCard}
@@ -523,6 +529,7 @@ export default function EmpleadosPage() {
           columnas={columnas}
           filas={empleadosFiltrados}
           idFila="id_empleado"
+          idTabla="rrhh_empleados"
           vacio={
             <EstadoVacio
               icono={Users}
@@ -562,12 +569,6 @@ export default function EmpleadosPage() {
               <X size={18} aria-hidden="true" />
             </button>
           </div>
-
-          {errorModal && (
-            <div className="p-4 pb-0">
-              <BannerError error={{ titulo: 'No se pudo guardar el empleado', mensaje: errorModal }} />
-            </div>
-          )}
 
           <form onSubmit={handleGuardar} className="space-y-4 p-5">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

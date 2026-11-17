@@ -1,11 +1,12 @@
 // Tarjeta compacta con una cifra y su etiqueta (resúmenes al inicio de una pantalla).
-//   tono: primario · exito · aviso · info · neutro
+//   tono: primario · exito · aviso · info · neutro · peligro
 const TONOS = {
   primario: 'bg-primary-soft text-primary-text',
   exito: 'bg-success-soft text-success',
   aviso: 'bg-warning-soft text-warning',
   info: 'bg-info-soft text-info',
   neutro: 'bg-muted text-fg-muted',
+  peligro: 'bg-danger-soft text-danger',
 };
 
 export default function Metrica({ icono: Icono, valor, etiqueta, tono = 'primario' }) {

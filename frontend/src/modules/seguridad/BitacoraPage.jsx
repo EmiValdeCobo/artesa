@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '../../api/client.js';
 import BannerError from '../../components/feedback/BannerError.jsx';
 import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
@@ -32,6 +31,7 @@ export default function BitacoraPage() {
   const [fechas,setFechas]=useState({startDate:diasAntes(30),endDate:hoyLocal()});
   const [filtros,setFiltros]=useState({search:'',user:'',module:'',action:'',severity:''});
   const [pagina,setPagina]=useState(1);
+  const [porPagina,setPorPagina]=useState(25);
   const [respuesta,setRespuesta]=useState({data:[],pagination:{page:1,limit:25,total:0,totalPages:0}});
   const [metricas,setMetricas]=useState(null);
   const [cargando,setCargando]=useState(true);
@@ -53,7 +53,7 @@ export default function BitacoraPage() {
       const params = new URLSearchParams({
         ...queryBase,
         page: String(pagina),
-        limit: '25',
+        limit: String(porPagina),
         ...(filtros.search ? { search: filtros.search } : {}),
         ...(filtros.action ? { action: filtros.action } : {}),
         ...(filtros.severity ? { severity: filtros.severity } : {}),
@@ -66,7 +66,7 @@ export default function BitacoraPage() {
     } finally {
       if (!signal?.aborted) setCargando(false);
     }
-  }, [queryBase, pagina, filtros.search, filtros.action, filtros.severity]);
+  }, [queryBase, pagina, porPagina, filtros.search, filtros.action, filtros.severity]);
 
   const consultaMetricas = useCallback(async (signal) => {
     setCargandoMetricas(true);
@@ -107,20 +107,61 @@ export default function BitacoraPage() {
     };
   }, [consultaMetricas]);
   const cambiarFiltro=(campo,valor)=>{setFiltros(prev=>({...prev,[campo]:valor}));setPagina(1);};
-  const primeraFila=(pagina-1)*respuesta.pagination.limit+1;
-  const finFila=Math.min(pagina*respuesta.pagination.limit,respuesta.pagination.total);
-  const columnas=[
-    {clave:'creado_en',titulo:'Fecha y hora',render:f=><span className="whitespace-nowrap">{fechaLegible(f.creado_en)}</span>},
-    {clave:'usuario',titulo:'Usuario'},
-    {clave:'accion',titulo:'Acción',render:f=><span className="font-medium">{ACCION[f.accion]??f.accion}</span>},
-    {clave:'modulo',titulo:'Módulo',render:f=><span className="rounded-md bg-muted px-2 py-1 text-xs capitalize">{f.modulo}</span>},
-    {clave:'cliente',titulo:'IP / Dispositivo',render:f=><div className="max-w-[190px]"><p className="font-medium">{f.ip_cliente??'No registrada'}</p><p className="truncate text-xs text-fg-muted" title={f.agente_cliente}>{f.agente_cliente||'Dispositivo no registrado'}</p></div>},
-    {clave:'severidad',titulo:'Severidad',render:f=><EstadoBadge tipo={NIVEL[f.severidad]?.[0]??'info'}>{NIVEL[f.severidad]?.[1]??f.severidad}</EstadoBadge>},
-    {clave:'detalle',titulo:'',render:f=><BotonIcono icono={ICONOS.ver} etiqueta={`Ver detalle del registro ${f.id_bitacora}`} titulo="Ver detalle" onClick={()=>setSeleccionado(f)}/>},
+  const columnas = [
+    {
+      clave: 'creado_en',
+      titulo: 'Fecha y hora',
+      tipo: 'fecha',
+      valorOrden: (f) => f.creado_en,
+      render: (f) => <span className="whitespace-nowrap">{fechaLegible(f.creado_en)}</span>,
+    },
+    {
+      clave: 'usuario',
+      titulo: 'Usuario',
+      tipo: 'texto',
+    },
+    {
+      clave: 'accion',
+      titulo: 'Acción',
+      tipo: 'texto',
+      valorOrden: (f) => ACCION[f.accion] ?? f.accion,
+      render: (f) => <span className="font-medium">{ACCION[f.accion] ?? f.accion}</span>,
+    },
+    {
+      clave: 'modulo',
+      titulo: 'Módulo',
+      tipo: 'texto',
+      render: (f) => <span className="rounded-md bg-muted px-2 py-1 text-xs capitalize">{f.modulo}</span>,
+    },
+    {
+      clave: 'cliente',
+      titulo: 'IP / Dispositivo',
+      tipo: 'texto',
+      valorOrden: (f) => f.ip_cliente ?? '',
+      render: (f) => (
+        <div className="max-w-[190px]">
+          <p className="font-medium">{f.ip_cliente ?? 'No registrada'}</p>
+          <p className="truncate text-xs text-fg-muted" title={f.agente_cliente}>{f.agente_cliente || 'Dispositivo no registrado'}</p>
+        </div>
+      ),
+    },
+    {
+      clave: 'severidad',
+      titulo: 'Severidad',
+      tipo: 'texto',
+      valorOrden: (f) => f.severidad,
+      render: (f) => <EstadoBadge tipo={NIVEL[f.severidad]?.[0] ?? 'info'}>{NIVEL[f.severidad]?.[1] ?? f.severidad}</EstadoBadge>,
+    },
+    {
+      clave: 'detalle',
+      titulo: '',
+      ordenable: false,
+      render: (f) => <BotonIcono icono={ICONOS.ver} etiqueta={`Ver detalle del registro ${f.id_bitacora}`} titulo="Ver detalle" onClick={() => setSeleccionado(f)} />,
+    },
   ];
 
   return <div className="space-y-6 pb-8">
-    <EncabezadoPagina seccion="Seguridad · Auditoría" titulo="Bitácora de actividad" descripcion="Rastrea cambios, accesos y patrones operativos. El análisis se calcula en PostgreSQL sobre los filtros elegidos." acciones={<div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-xs text-fg-muted"><span className="h-2 w-2 rounded-full bg-success"/> Auditoría activa</div>} />
+    <EncabezadoPagina seccion="Administración · Bitácora" titulo="Bitácora de actividad" descripcion="Rastrea cambios, accesos y patrones operativos. El análisis se calcula en PostgreSQL sobre los filtros elegidos." acciones={<div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-xs text-fg-muted"><span className="h-2 w-2 rounded-full bg-success"/> Auditoría activa</div>} />
     <Card titulo="Filtros" descripcion="Combina período, operador, módulo, evento y texto libre."><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
       <label className="block text-sm font-medium">Desde<input className="input mt-1.5 h-10 py-0" type="date" value={fechas.startDate} max={fechas.endDate} onChange={e=>{setFechas(f=>({...f,startDate:e.target.value}));setPagina(1);}}/></label>
       <label className="block text-sm font-medium">Hasta<input className="input mt-1.5 h-10 py-0" type="date" value={fechas.endDate} min={fechas.startDate} max={hoyLocal()} onChange={e=>{setFechas(f=>({...f,endDate:e.target.value}));setPagina(1);}}/></label>
@@ -132,8 +173,28 @@ export default function BitacoraPage() {
     </div><div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-fg-muted">{respuesta.pagination.total.toLocaleString('es-SV')} eventos encontrados</p><Button variante="ghost" icono={ICONOS.actualizar} onClick={()=>{consultaLista();consultaMetricas();}}>Actualizar datos</Button></div></Card>
     <section aria-label="Indicadores de auditoría">{cargandoMetricas?<Card><Spinner texto="Calculando analítica de auditoría…"/></Card>:errorMetricas?<ErrorEnLinea texto={errorMetricas} reintentar={consultaMetricas}/>:metricas?<BitacoraMetricas metricas={{...metricas,granularidad}}/>:null}</section>
     <Card titulo="Registro de eventos" descripcion="Ordenado por fecha descendente; selecciona un evento para revisar sus diferencias." sinPadding>
-      {error?<div className="p-5"><ErrorEnLinea texto={error} reintentar={consultaLista}/></div>:<Table columnas={columnas} filas={respuesta.data} idFila="id_bitacora" cargando={cargando} vacio="No hay eventos para los filtros seleccionados." maxAltura="max-h-[620px]"/>}
-      {!cargando&&!error&&<footer className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-4"><p className="text-xs text-fg-muted">{respuesta.pagination.total?`Mostrando ${primeraFila}–${finFila} de ${respuesta.pagination.total.toLocaleString('es-SV')}`:'Sin resultados'}</p><nav aria-label="Paginación de bitácora" className="flex items-center gap-2"><Button variante="secondary" icono={ChevronLeft} aria-label="Página anterior" disabled={pagina<=1} onClick={()=>setPagina(p=>p-1)}/><span className="min-w-24 text-center text-xs text-fg-muted">Página {pagina} de {Math.max(1,respuesta.pagination.totalPages)}</span><Button variante="secondary" icono={ChevronRight} aria-label="Página siguiente" disabled={pagina>=respuesta.pagination.totalPages} onClick={()=>setPagina(p=>p+1)}/></nav></footer>}
+      {error ? (
+        <div className="p-5"><ErrorEnLinea texto={error} reintentar={consultaLista} /></div>
+      ) : (
+        <Table
+          columnas={columnas}
+          filas={respuesta.data}
+          idFila="id_bitacora"
+          idTabla="seguridad-bitacora"
+          cargando={cargando}
+          vacio="No hay eventos para los filtros seleccionados."
+          maxAltura="max-h-[620px]"
+          total={respuesta.pagination.total}
+          pagina={pagina}
+          porPagina={porPagina}
+          onCambiarPagina={(nuevaPagina) => setPagina(nuevaPagina)}
+          onCambiarPorPagina={(nuevoLimite) => {
+            setPorPagina(nuevoLimite);
+            setPagina(1);
+          }}
+          opcionesFilasPorPagina={[10, 25, 50, 100]}
+        />
+      )}
     </Card>
     {seleccionado&&<DetalleRegistro registro={seleccionado} onCerrar={()=>setSeleccionado(null)}/>}
   </div>;

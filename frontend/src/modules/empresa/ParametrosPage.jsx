@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../api/client.js';
+import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
 import CampoError from '../../components/forms/CampoError.jsx';
 import { Button, Card, Select, Table } from '../../components/ui/index.js';
@@ -21,11 +22,12 @@ const validar = (tipo, valor) => {
 };
 
 export default function ParametrosPage() {
+  const { notificar, notificarError } = useAlert();
   const [filas, setFilas] = useState([]);
   const [valores, setValores] = useState({});
   const [errores, setErrores] = useState({});
   const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState(null);
+  const [errorCarga, setErrorCarga] = useState(null);
   const [guardando, setGuardando] = useState('');
 
   async function cargar() {
@@ -34,9 +36,9 @@ export default function ParametrosPage() {
       const data = await api.get('/empresa/parametros');
       setFilas(data.map((x) => ({ ...x, tipo: tipoDe(x.valor) })));
       setValores(Object.fromEntries(data.map((x) => [x.clave, x.valor])));
-      setError(null);
+      setErrorCarga(null);
     } catch (e) {
-      setError(e.message);
+      setErrorCarga(e.message);
     } finally {
       setCargando(false);
     }
@@ -46,24 +48,38 @@ export default function ParametrosPage() {
   async function guardar(fila) {
     const mensaje = validar(fila.tipo, valores[fila.clave]);
     setErrores((actual) => ({ ...actual, [fila.clave]: mensaje }));
-    if (mensaje) return;
+    if (mensaje) {
+      notificar.advertencia('Valor inválido', {
+        mensaje,
+        accion: 'Corrige el valor ingresado antes de guardar.',
+      });
+      return;
+    }
     setGuardando(fila.clave);
     try {
       const data = await api.put('/empresa/parametros', { clave: fila.clave, valor: String(valores[fila.clave]).trim() });
       setFilas((p) => p.map((x) => (x.clave === fila.clave ? { ...data, tipo: x.tipo } : x)));
-      setError(null);
+      notificar.exito('Parámetro guardado', { mensaje: `Se actualizó el valor de «${fila.clave}».` });
     } catch (e) {
-      setError(e.message);
+      notificarError(e, { reintentar: () => guardar(fila) });
     } finally {
       setGuardando('');
     }
   }
 
   const columnas = [
-    { clave: 'clave', titulo: 'Parámetro', render: (f) => <div className="min-w-48"><p className="font-medium">{f.clave}</p><p className="text-xs text-fg-muted">{f.descripcion}</p></div> },
+    {
+      clave: 'clave',
+      titulo: 'Parámetro',
+      tipo: 'texto',
+      valorOrden: (f) => f.clave,
+      render: (f) => <div className="min-w-48"><p className="font-medium">{f.clave}</p><p className="text-xs text-fg-muted">{f.descripcion}</p></div>,
+    },
     {
       clave: 'valor',
       titulo: 'Valor',
+      tipo: 'texto',
+      valorOrden: (f) => String(valores[f.clave] ?? f.valor),
       render: (f) => (
         <div className="w-full max-w-xs">
           {f.tipo === 'booleano' ? (
@@ -83,6 +99,7 @@ export default function ParametrosPage() {
       clave: 'acciones',
       titulo: 'Acciones',
       alinear: 'right',
+      ordenable: false,
       render: (f) => (
         <Button icono={ICONOS.guardar} cargando={guardando === f.clave} disabled={guardando !== '' || valores[f.clave] === f.valor} onClick={() => guardar(f)} aria-label={`Guardar ${f.clave}`}>Guardar</Button>
       ),
@@ -91,10 +108,20 @@ export default function ParametrosPage() {
 
   return (
     <div className="space-y-6">
-      <EncabezadoPagina seccion="Empresa" titulo="Parámetros" descripcion="Configuración fiscal y operativa definida por el sistema." />
-      {error && <BannerError error={{ titulo: 'No se pudo guardar o cargar el parámetro', mensaje: error, accion: '' }} />}
+      <EncabezadoPagina seccion="Administración · Parámetros" titulo="Parámetros" descripcion="Configuración fiscal y operativa definida por el sistema." />
+      {errorCarga && <BannerError error={{ titulo: 'No se pudieron cargar los parámetros', mensaje: errorCarga, accion: 'Reintenta la operación.' }} onReintentar={cargar} />}
       <Card titulo="Parámetros del negocio" descripcion="Los valores se guardan en la configuración central del negocio.">
-        <Table cargando={cargando} filas={filas} idFila="clave" columnas={columnas} maxAltura="" vacio="No hay parámetros configurados." />
+        <Table
+          cargando={cargando}
+          filas={filas}
+          idFila="clave"
+          idTabla="empresa-parametros"
+          ordenInicial={{ clave: 'clave', direccion: 'asc' }}
+          filasPorPaginaInicial={25}
+          columnas={columnas}
+          maxAltura=""
+          vacio="No hay parámetros configurados."
+        />
       </Card>
     </div>
   );

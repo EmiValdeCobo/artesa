@@ -1,6 +1,6 @@
 /* ============================================================================
-   artesa · Tema del Dashboard (inicio)
-   Alcance: SOLO lo que vive dentro de <div class="tema-dashboard">. No toca index.css ni otras pantallas.
+   artesa · Estilos propios del Dashboard (inicio)
+   La paleta de series vive globalmente en index.css para reutilizarse en todas las gráficas.
 
    Tipografía: la MISMA del resto del sistema (Montserrat, definida en index.css). No se importa ninguna
    fuente adicional; los titulares y cifras (font-display) usan Montserrat para no romper la coherencia.
@@ -19,13 +19,6 @@
   --font-display: var(--font-sans);
   font-family: var(--font-sans);
 
-  --serie-1: #b15c3d; --serie-1-texto: #984a2f;
-  --serie-2: #9f6c2b;      --serie-2-texto: #7a5224;
-  --serie-3: #756a5d;  --serie-3-texto: #5a4f45;
-  --serie-4: #c97752; --serie-4-texto: #7b3b27;
-  --serie-5: #9a8e7f;  --serie-5-texto: #5a4f45; /* contexto: días cerrados */
-  --serie-6: #c58a38;      --serie-6-texto: #7a5224;
-  --serie-hoy-fondo: #fbf1ec;
   --ocre-decorativo: #e1a651; /* solo reglas y detalles, nunca dato */
   --panel-sombra: 0 1px 2px rgb(50 31 25 / .05), 0 10px 24px -16px rgb(50 31 25 / .35);
 
@@ -50,13 +43,6 @@
 }
 
 .dark .tema-dashboard {
-  --serie-1: #de9776; --serie-1-texto: #de9776;
-  --serie-2: #e8b866;      --serie-2-texto: #edc173;
-  --serie-3: #bfb5a7;  --serie-3-texto: #ddd6cb;
-  --serie-4: #c97752; --serie-4-texto: #ebbca7;
-  --serie-5: #9a8e7f;  --serie-5-texto: #bfb5a7;
-  --serie-6: #edc173;      --serie-6-texto: #f4d79c;
-  --serie-hoy-fondo: #44211a;
   --panel-sombra: 0 10px 24px -16px rgb(0 0 0 / .7);
 }
 

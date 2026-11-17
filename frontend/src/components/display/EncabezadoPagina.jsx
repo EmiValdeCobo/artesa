@@ -5,7 +5,10 @@
 // El rótulo usa `text-primary-text` (no `text-primary`): el token está pensado para texto pequeño y
 // cumple AA en claro (5,7:1) y oscuro (7,6:1); `text-primary` queda en 4,3:1 / 3,9:1.
 //
-//   <EncabezadoPagina seccion="Inventario" titulo="Kárdex" descripcion="Auditoría de movimientos."
+// Convención del rótulo `seccion`: "Grupo · Módulo", tomados tal cual de config/menu.js
+// (grupo = Operación/Gestión/Administración; módulo = submenú padre o, si no tiene, el ítem).
+// Ej.: "Operación · Compras", "Gestión · RR. HH.", "Administración · Usuarios y roles". Inicio usa solo "Inicio".
+//   <EncabezadoPagina seccion="Operación · Inventario" titulo="Kárdex" descripcion="Auditoría de movimientos."
 //     acciones={<Button>Nuevo</Button>} />
 export default function EncabezadoPagina({ seccion, titulo, descripcion, acciones = null, className = '' }) {
   return (

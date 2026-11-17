@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import {
-  aplicarMascara, completarDecimales, mascaraCodigo, mascaraDecimal, mascaraEntero, mascaraTelefono, mostrarTelefono, validarMascara,
+  aplicarMascara, completarDecimales, mascaraCodigo, mascaraDecimal, mascaraEntero, mascaraNrc, mascaraReferenciaPago, mascaraTelefono, propsMascara, mostrarTelefono, validarMascara,
 } from '../frontend/src/utils/mascaras.js';
 
 const leer = (archivo) => readFile(new URL(`../${archivo}`, import.meta.url), 'utf8');
@@ -31,6 +31,20 @@ test('máscaras: código, enteros y montos sin float', () => {
   assert.equal(completarDecimales(''), '');
   assert.equal(aplicarMascara('monto', '9999999999.999'), '9999999999.99');
   assert.equal(validarMascara('correo', 'a@b'), 'Escribe un correo válido, por ejemplo nombre@dominio.com.');
+});
+
+test('máscaras: NRC 123456-7 y referencia de pago numérica de hasta 12 dígitos', () => {
+  assert.equal(mascaraNrc('1234567'), '123456-7');
+  assert.equal(mascaraNrc('123456-7'), '123456-7');
+  assert.equal(mascaraNrc('NRC 12345678'), '123456-7');
+  assert.equal(mascaraNrc('12345'), '12345');
+  assert.equal(validarMascara('nrc', '123456-7'), '');
+  assert.equal(validarMascara('nrc', '12345-7'), 'El NRC debe tener 7 dígitos con formato 123456-7.');
+  assert.equal(mascaraReferenciaPago('AB-1234 5678 9012 3456'), '123456789012');
+  assert.equal(aplicarMascara('referenciaPago', '0012'), '0012');
+  assert.equal(validarMascara('referenciaPago', '123456789012'), '');
+  assert.deepEqual(propsMascara('nrc'), { type: 'text', inputMode: 'numeric', placeholder: '123456-7', maxLength: 8 });
+  assert.equal(propsMascara('referenciaPago').maxLength, 12);
 });
 
 test('UI compartida: BotonIcono usa etiqueta como aria-label/title y CustomSelect pinta el menú en un portal', async () => {

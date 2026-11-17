@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Lock, X } from 'lucide-react';
 import { api } from '../../api/client.js';
-import BannerError from '../../components/feedback/BannerError.jsx';
 import Dialogo from '../../components/Dialogo.jsx';
+import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import { traducirError } from '../../errors/traducirError.js';
 import Insignia from '../../components/branding/Insignia.jsx';
 import { motivoBloqueoRevocar } from './rbac.js';
@@ -12,14 +12,13 @@ import { motivoBloqueoRevocar } from './rbac.js';
 //   desmarcar → DELETE /seguridad/roles/:id/permisos/:idPermiso (204)
 // Es la vista inversa de la matriz de la pestaña Roles (que guarda todo junto con PUT).
 export default function AsignarPermisoDialogo({ permiso, roles, usuarioSesion, onCambio, onRolDesactualizado, onClose }) {
+  const { notificar, notificarError } = useAlert();
   const [pendientes, setPendientes] = useState([]); // roles con una petición en curso
-  const [error, setError] = useState(null);
 
   const tiene = (rol) => rol.permisos.some((item) => item.id_permiso === permiso.id_permiso);
 
   const alternar = async (rol) => {
     if (pendientes.includes(rol.id_rol)) return;
-    setError(null);
     setPendientes((actuales) => [...actuales, rol.id_rol]);
     const asignado = tiene(rol);
     try {
@@ -27,13 +26,15 @@ export default function AsignarPermisoDialogo({ permiso, roles, usuarioSesion, o
       if (asignado) {
         await api.delete(ruta);
         onCambio(rol.id_rol, rol.permisos.filter((item) => item.id_permiso !== permiso.id_permiso));
+        notificar.exito(`Permiso «${permiso.codigo}» quitado de ${rol.nombre}`);
       } else {
-        onCambio(rol.id_rol, await api.post(ruta, {}));
+        const nuevosPermisos = await api.post(ruta, {});
+        onCambio(rol.id_rol, nuevosPermisos);
+        notificar.exito(`Permiso «${permiso.codigo}» asignado a ${rol.nombre}`);
       }
     } catch (err) {
+      notificarError(err, { reintentar: () => alternar(rol) });
       const u = traducirError(err);
-      if (u.id === 'SESION_EXPIRADA') return;
-      setError(u);
       // 404/409: el rol, el permiso o la asignación cambiaron en otra sesión → se vuelve a cargar todo.
       if (['ROL_NO_ENCONTRADO', 'PERMISO_NO_ENCONTRADO', 'ASIGNACION_DUPLICADA', 'ASIGNACION_NO_EXISTE'].includes(u.id)) onRolDesactualizado();
     } finally {
@@ -54,7 +55,6 @@ export default function AsignarPermisoDialogo({ permiso, roles, usuarioSesion, o
       </div>
 
       <div className="space-y-4 p-5 sm:p-6">
-        <BannerError error={error} onCerrar={() => setError(null)} />
         <ul className="max-h-72 space-y-1.5 overflow-y-auto pr-1 scroll-fino" aria-label="Roles">
           {roles.map((rol) => {
             const asignado = tiene(rol);

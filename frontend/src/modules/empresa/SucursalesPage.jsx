@@ -54,12 +54,12 @@ function normalizarTexto(valor) {
   return String(valor ?? '').trim().toLocaleLowerCase('es');
 }
 
-function FormularioSucursal({ formulario, setFormulario, errores, setErrores, guardando, editando, errorGuardado, onCancelar, onGuardar }) {
+function FormularioSucursal({ formulario, setFormulario, errores, setErrores, guardando, editando, onCancelar, onGuardar }) {
   return (
     <Dialogo onCerrar={onCancelar} tamano="lg" labelledBy="sucursal-dialogo-titulo" describedBy="sucursal-dialogo-descripcion">
       <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4 sm:px-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">Empresa · Sucursales</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">Administración · Sucursales</p>
           <h2 id="sucursal-dialogo-titulo" className="mt-1 text-xl font-semibold">
             {editando ? 'Editar sucursal' : 'Registrar sucursal'}
           </h2>
@@ -69,8 +69,6 @@ function FormularioSucursal({ formulario, setFormulario, errores, setErrores, gu
         </div>
         <BotonIcono icono={ICONOS.cerrar} etiqueta="Cerrar formulario" onClick={onCancelar} />
       </div>
-
-      {errorGuardado && <div className="px-5 pt-4 sm:px-6"><BannerError error={{ titulo: 'No se pudo guardar la sucursal', mensaje: errorGuardado, accion: '' }} /></div>}
 
       <form noValidate onSubmit={onGuardar} className="space-y-5 p-5 sm:p-6">
         <div className="grid gap-4 sm:grid-cols-2">
@@ -128,12 +126,10 @@ function FormularioSucursal({ formulario, setFormulario, errores, setErrores, gu
 }
 
 export default function SucursalesPage() {
-  const { notificar } = useAlert();
+  const { confirm, notificar, notificarError } = useAlert();
   const [filas, setFilas] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState(null);
-  const [errorEstado, setErrorEstado] = useState(null);
-  const [errorGuardado, setErrorGuardado] = useState(null);
   const [busqueda, setBusqueda] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState('todas');
   const [formulario, setFormulario] = useState(FORMULARIO_VACIO);
@@ -186,7 +182,6 @@ export default function SucursalesPage() {
     setEditando(null);
     setFormulario(FORMULARIO_VACIO);
     setErrores({});
-    setErrorGuardado(null);
     setModalAbierto(true);
   }
 
@@ -201,7 +196,6 @@ export default function SucursalesPage() {
       activa: fila.activa,
     });
     setErrores({});
-    setErrorGuardado(null);
     setModalAbierto(true);
   }
 
@@ -210,7 +204,6 @@ export default function SucursalesPage() {
     setModalAbierto(false);
     setEditando(null);
     setFormulario(FORMULARIO_VACIO);
-    setErrorGuardado(null);
   }
 
   async function guardar(evento) {
@@ -218,9 +211,14 @@ export default function SucursalesPage() {
     const encontrados = validarSucursal(formulario);
     setErrores(encontrados);
     const primero = CAMPOS.find((campo) => encontrados[campo.clave]);
-    if (primero) { document.getElementById(idCampo(primero.clave))?.focus(); return; }
+    if (primero) {
+      document.getElementById(idCampo(primero.clave))?.focus();
+      notificar.advertencia('Campos requeridos incompletos', {
+        mensaje: 'Revisa los campos señalados en el formulario.',
+      });
+      return;
+    }
     setGuardando(true);
-    setErrorGuardado(null);
     const editandoId = editando;
     const datos = { ...formulario, telefono: formulario.telefono || null };
     try {
@@ -239,21 +237,33 @@ export default function SucursalesPage() {
       // Una sucursal nueva pasa directo al flujo de apertura (personal, caja y stock mínimo para operar).
       if (!editandoId) setApertura(guardada);
     } catch (error) {
-      setErrorGuardado(error.message);
+      notificarError(error, { reintentar: () => guardar(evento) });
     } finally {
       setGuardando(false);
     }
   }
 
   async function alternarEstado(fila) {
+    if (fila.activa) {
+      const confirmado = await confirm(
+        `¿Desactivar la sucursal "${fila.nombre}"? No se considerará operativa pero se conservará en el historial.`,
+        { destructivo: true, titulo: 'Desactivar sucursal', etiquetaAceptar: 'Desactivar' },
+      );
+      if (!confirmado) return;
+    } else {
+      const confirmado = await confirm(
+        `¿Reactivar la sucursal "${fila.nombre}"? Volverá a estar operativa en el sistema.`,
+        { tipo: 'pregunta', titulo: 'Activar sucursal', etiquetaAceptar: 'Activar' },
+      );
+      if (!confirmado) return;
+    }
     setCambiandoEstado(fila.id_sucursal);
-    setErrorEstado(null);
     try {
       const actualizada = await api.patch(`/empresa/sucursales/${fila.id_sucursal}/estado`, { activa: !fila.activa });
       setFilas((actuales) => actuales.map((item) => item.id_sucursal === fila.id_sucursal ? { ...item, ...actualizada } : item));
       notificar.exito(actualizada.activa ? 'Sucursal activada' : 'Sucursal desactivada');
     } catch (error) {
-      setErrorEstado(error.message);
+      notificarError(error, { reintentar: () => alternarEstado(fila) });
     } finally {
       setCambiandoEstado(null);
     }
@@ -263,11 +273,14 @@ export default function SucursalesPage() {
     {
       clave: 'codigo_establecimiento',
       titulo: 'Código',
+      tipo: 'texto',
       render: (fila) => <span className="inline-flex rounded-md bg-muted px-2.5 py-1 font-mono text-xs font-semibold tracking-wide">{fila.codigo_establecimiento}</span>,
     },
     {
       clave: 'nombre',
       titulo: 'Establecimiento',
+      tipo: 'texto',
+      valorOrden: (fila) => fila.nombre,
       render: (fila) => (
         <div className="min-w-44">
           <p className="font-semibold text-fg">{fila.nombre}</p>
@@ -278,21 +291,32 @@ export default function SucursalesPage() {
         </div>
       ),
     },
-    { clave: 'departamento', titulo: 'Departamento', render: (fila) => fila.departamento || '—' },
+    {
+      clave: 'departamento',
+      titulo: 'Departamento',
+      tipo: 'texto',
+      valorOrden: (fila) => fila.departamento || '',
+      render: (fila) => fila.departamento || '—',
+    },
     {
       clave: 'telefono',
       titulo: 'Contacto',
+      tipo: 'texto',
+      valorOrden: (fila) => fila.telefono || '',
       render: (fila) => <span className="inline-flex items-center gap-1.5 text-fg-muted">{fila.telefono ? <><Phone size={13} aria-hidden="true" />{mostrarTelefono(fila.telefono)}</> : '—'}</span>,
     },
     {
       clave: 'activa',
       titulo: 'Estado',
+      tipo: 'booleano',
+      valorOrden: (fila) => Boolean(fila.activa),
       render: (fila) => <EstadoBadge tipo={fila.activa ? 'exito' : 'alerta'}>{fila.activa ? 'Activa' : 'Inactiva'}</EstadoBadge>,
     },
     {
       clave: 'acciones',
       titulo: 'Acciones',
       alinear: 'right',
+      ordenable: false,
       render: (fila) => (
         <div className="flex justify-end gap-2">
           <BotonIcono icono={ICONOS.apertura} etiqueta={`Apertura y stock mínimo de ${fila.nombre}`} titulo="Apertura y stock mínimo" onClick={() => setApertura(fila)} />
@@ -314,16 +338,15 @@ export default function SucursalesPage() {
   return (
     <div className="space-y-6">
       <EncabezadoPagina
-        seccion="Empresa"
+        seccion="Administración · Sucursales"
         titulo="Sucursales"
         descripcion="Organiza los establecimientos, consulta sus datos y controla cuáles están operativos."
         acciones={<Button icono={ICONOS.crear} onClick={abrirNueva}>Nueva sucursal</Button>}
       />
 
       {errorCarga && <BannerError error={{ titulo: 'No se pudieron cargar los establecimientos', mensaje: errorCarga, accion: '' }} />}
-      {errorEstado && <BannerError error={{ titulo: 'No se pudo cambiar el estado de la sucursal', mensaje: errorEstado, accion: '' }} />}
 
-      <section aria-label="Resumen de sucursales" className="grid gap-3 sm:grid-cols-3">
+      <section aria-label="Resumen de sucursales" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Metrica icono={ICONOS.sucursal} valor={cargando ? '…' : filas.length} etiqueta="Establecimientos registrados" tono="primario" />
         <Metrica icono={Building2} valor={cargando ? '…' : activas} etiqueta="Sucursales activas" tono="exito" />
         <Metrica icono={ICONOS.desactivar} valor={cargando ? '…' : inactivas} etiqueta="Sucursales inactivas" tono="neutro" />
@@ -362,6 +385,8 @@ export default function SucursalesPage() {
           cargando={cargando}
           filas={sucursalesFiltradas}
           idFila="id_sucursal"
+          idTabla="empresa-sucursales"
+          ordenInicial={{ clave: 'codigo_establecimiento', direccion: 'asc' }}
           vacio={filas.length ? 'No hay sucursales que coincidan con los filtros.' : 'Todavía no hay establecimientos registrados. Crea la primera sucursal para comenzar.'}
           columnas={columnas}
         />
@@ -375,7 +400,6 @@ export default function SucursalesPage() {
           setErrores={setErrores}
           guardando={guardando}
           editando={editando}
-          errorGuardado={errorGuardado}
           onCancelar={cerrarFormulario}
           onGuardar={guardar}
         />

@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Lock, X } from 'lucide-react';
-import BannerError from '../../components/feedback/BannerError.jsx';
+import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import CampoError, { idError } from '../../components/forms/CampoError.jsx';
 import Dialogo from '../../components/Dialogo.jsx';
 import { LIMITES, descripcionONull, validarRol } from './rbac.js';
@@ -11,7 +11,8 @@ const describir = (errores, campo) => (errores[campo] ? idError(idCampo(campo)) 
 
 // Crear (rol = null) o editar un rol. En roles del sistema solo se puede cambiar la descripción:
 // renombrarlos rompería referencias como el rol ADMIN.
-export default function RolModal({ rol, roles, guardando, error, onDescartarError, onClose, onSubmit }) {
+export default function RolModal({ rol, roles, guardando, onClose, onSubmit }) {
+  const { notificar } = useAlert();
   const [formulario, setFormulario] = useState({ nombre: rol?.nombre ?? '', descripcion: rol?.descripcion ?? '' });
   const [errores, setErrores] = useState({});
   const nombreRef = useRef(null);
@@ -24,13 +25,6 @@ export default function RolModal({ rol, roles, guardando, error, onDescartarErro
     if (campo) document.getElementById(idCampo(campo))?.focus();
   };
 
-  // Errores que devuelve el servidor (nombre duplicado, validación…): se marcan junto a su campo.
-  useEffect(() => {
-    if (!error?.campos) return;
-    setErrores(error.campos);
-    enfocarPrimero(error.campos);
-  }, [error]);
-
   const actualizar = (campo, valor) => {
     setFormulario((actual) => ({ ...actual, [campo]: valor }));
     setErrores(({ [campo]: _quitado, ...resto }) => resto);
@@ -40,7 +34,13 @@ export default function RolModal({ rol, roles, guardando, error, onDescartarErro
     event.preventDefault();
     const encontrados = validarRol(formulario, { roles, idActual: rol?.id_rol ?? null });
     setErrores(encontrados);
-    if (Object.keys(encontrados).length) { enfocarPrimero(encontrados); return; }
+    if (Object.keys(encontrados).length) {
+      enfocarPrimero(encontrados);
+      notificar.advertencia('Campos requeridos incompletos', {
+        mensaje: 'Revisa los campos señalados en el formulario.',
+      });
+      return;
+    }
     ultimoEnvio.current = { nombre: formulario.nombre.trim(), descripcion: descripcionONull(formulario.descripcion) };
     onSubmit(ultimoEnvio.current);
   };
@@ -61,8 +61,6 @@ export default function RolModal({ rol, roles, guardando, error, onDescartarErro
 
       <form noValidate onSubmit={enviar}>
         <div className="space-y-5 p-5 sm:p-6">
-          <BannerError error={error} onCerrar={onDescartarError} onReintentar={() => ultimoEnvio.current && onSubmit(ultimoEnvio.current)} />
-
           <div>
             <label htmlFor={idCampo('nombre')} className="block text-sm font-medium">Nombre del rol</label>
             <input id={idCampo('nombre')} ref={nombreRef} className={`input mt-1.5 ${claseInvalida} disabled:cursor-not-allowed disabled:bg-muted`} value={formulario.nombre}

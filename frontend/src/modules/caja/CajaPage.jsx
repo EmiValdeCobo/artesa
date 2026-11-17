@@ -41,16 +41,9 @@ import { listarVentas, obtenerDetalleVenta } from '../pos/posApi.js';
 
 const PATRON_MONTO = /^\d{1,8}(\.\d{1,2})?$/;
 
-const avisoLocal = (mensaje, titulo = 'Revisa la información') => ({
-  titulo,
-  mensaje,
-  accion: '',
-  categoria: 'usuario',
-});
-
 export default function CajaPage() {
   const { usuario, tiene } = useAuth();
-  const { notificar, confirm } = useAlert();
+  const { notificar, notificarError, confirm } = useAlert();
 
   // Permisos específicos de caja
   const puedeAbrir = tiene('CAJA_ABRIR_TURNO');
@@ -78,20 +71,17 @@ export default function CajaPage() {
   const [cargandoCajas, setCargandoCajas] = useState(false);
   const [formApertura, setFormApertura] = useState({ idCaja: '', montoApertura: '0.00' });
   const [guardandoApertura, setGuardandoApertura] = useState(false);
-  const [errorApertura, setErrorApertura] = useState(null);
 
   // Registro de movimiento
   const [mostrarMovimiento, setMostrarMovimiento] = useState(false);
   const [formMovimiento, setFormMovimiento] = useState({ tipo: 'EGRESO', concepto: '', monto: '' });
   const [guardandoMovimiento, setGuardandoMovimiento] = useState(false);
-  const [errorMovimiento, setErrorMovimiento] = useState(null);
 
   // Cierre de turno y arqueo
   const [mostrarCierre, setMostrarCierre] = useState(false);
   const [turnoParaCierre, setTurnoParaCierre] = useState(null);
   const [formCierre, setFormCierre] = useState({ efectivo: '0.00', tarjeta: '0.00', digital: '0.00' });
   const [guardandoCierre, setGuardandoCierre] = useState(false);
-  const [errorCierre, setErrorCierre] = useState(null);
 
   const handleCargarMontosEsperados = () => {
     const target = (turnoParaCierre && turnoParaCierre.id_turno) ? turnoParaCierre : turno;
@@ -218,7 +208,6 @@ export default function CajaPage() {
 
   // ─── Apertura de turno ───────────────────────────────────────────────────────
   const abrirModalApertura = async () => {
-    setErrorApertura(null);
     setFormApertura({ idCaja: '', montoApertura: '0.00' });
     setMostrarApertura(true);
     setCargandoCajas(true);
@@ -231,7 +220,7 @@ export default function CajaPage() {
         setFormApertura((prev) => ({ ...prev, idCaja: String(disponible.id_caja) }));
       }
     } catch (err) {
-      setErrorApertura(err.message || 'Error al obtener la lista de cajas.');
+      notificarError(err);
     } finally {
       setCargandoCajas(false);
     }
@@ -239,17 +228,16 @@ export default function CajaPage() {
 
   const handleAbrirTurno = async (e) => {
     e.preventDefault();
-    setErrorApertura(null);
 
     const idCajaNum = Number(formApertura.idCaja);
     if (!idCajaNum || idCajaNum <= 0) {
-      setErrorApertura('Debes seleccionar una caja válida.');
+      notificar.advertencia('Validación requerida', { mensaje: 'Debes seleccionar una caja válida.' });
       return;
     }
 
     const montoLimpio = formApertura.montoApertura.trim();
     if (!PATRON_MONTO.test(montoLimpio)) {
-      setErrorApertura('El monto de apertura debe ser un número positivo con hasta 2 decimales (ej: 50.00).');
+      notificar.advertencia('Monto inválido', { mensaje: 'El monto de apertura debe ser un número positivo con hasta 2 decimales (ej: 50.00).' });
       return;
     }
 
@@ -266,7 +254,7 @@ export default function CajaPage() {
         cargarMovimientos(nuevoTurno.id_turno);
       }
     } catch (err) {
-      setErrorApertura(err.message || 'No se pudo abrir el turno.');
+      notificarError(err);
     } finally {
       setGuardandoApertura(false);
     }
@@ -274,26 +262,24 @@ export default function CajaPage() {
 
   // ─── Registro de movimiento ──────────────────────────────────────────────────
   const abrirModalMovimiento = () => {
-    setErrorMovimiento(null);
     setFormMovimiento({ tipo: 'EGRESO', concepto: '', monto: '' });
     setMostrarMovimiento(true);
   };
 
   const handleRegistrarMovimiento = async (e) => {
     e.preventDefault();
-    setErrorMovimiento(null);
 
     if (!turno?.id_turno) return;
 
     const conceptoLimpio = formMovimiento.concepto.trim();
     if (conceptoLimpio.length < 3) {
-      setErrorMovimiento('El concepto debe tener al menos 3 caracteres descriptivos.');
+      notificar.advertencia('Concepto inválido', { mensaje: 'El concepto debe tener al menos 3 caracteres descriptivos.' });
       return;
     }
 
     const montoLimpio = formMovimiento.monto.trim();
     if (!PATRON_MONTO.test(montoLimpio) || Number(montoLimpio) <= 0) {
-      setErrorMovimiento('El monto debe ser un número mayor a cero con hasta 2 decimales.');
+      notificar.advertencia('Monto inválido', { mensaje: 'El monto debe ser un número mayor a cero con hasta 2 decimales.' });
       return;
     }
 
@@ -308,7 +294,7 @@ export default function CajaPage() {
       setMostrarMovimiento(false);
       await cargarTurno(true);
     } catch (err) {
-      setErrorMovimiento(err.message || 'No se pudo registrar el movimiento.');
+      notificarError(err);
     } finally {
       setGuardandoMovimiento(false);
     }
@@ -316,7 +302,6 @@ export default function CajaPage() {
 
   // ─── Cierre de turno y arqueo ───────────────────────────────────────────────
   const abrirModalCierre = (turnoObjetivo = null) => {
-    setErrorCierre(null);
     const objetivoValido = (turnoObjetivo && typeof turnoObjetivo === 'object' && turnoObjetivo.id_turno)
       ? turnoObjetivo
       : null;
@@ -328,7 +313,6 @@ export default function CajaPage() {
 
   const handleCerrarTurno = async (e) => {
     e.preventDefault();
-    setErrorCierre(null);
 
     const turnoActivoACerrar = turnoParaCierre || turno;
     if (!turnoActivoACerrar?.id_turno) return;
@@ -338,15 +322,15 @@ export default function CajaPage() {
     const digitalLimpio = formCierre.digital.trim();
 
     if (!PATRON_MONTO.test(efectivoLimpio)) {
-      setErrorCierre('El conteo de efectivo debe ser un monto válido (ej: 0.00).');
+      notificar.advertencia('Conteo inválido', { mensaje: 'El conteo de efectivo debe ser un monto válido (ej: 0.00).' });
       return;
     }
     if (!PATRON_MONTO.test(tarjetaLimpia)) {
-      setErrorCierre('El conteo de vouchers de tarjeta debe ser un monto válido (ej: 0.00).');
+      notificar.advertencia('Conteo inválido', { mensaje: 'El conteo de vouchers de tarjeta debe ser un monto válido (ej: 0.00).' });
       return;
     }
     if (!PATRON_MONTO.test(digitalLimpio)) {
-      setErrorCierre('El conteo de pagos digitales debe ser un monto válido (ej: 0.00).');
+      notificar.advertencia('Conteo inválido', { mensaje: 'El conteo de pagos digitales debe ser un monto válido (ej: 0.00).' });
       return;
     }
 
@@ -384,7 +368,7 @@ export default function CajaPage() {
         cargarCuadresHistorial();
       }
     } catch (err) {
-      setErrorCierre(err.message || 'No se pudo cerrar el turno.');
+      notificarError(err);
     } finally {
       setGuardandoCierre(false);
     }
@@ -396,9 +380,9 @@ export default function CajaPage() {
       setCuadreDetalle(cuadre);
       setMostrarCuadre(true);
     } catch (err) {
-      notificar.error(err.message || 'No se pudo cargar el detalle del cuadre.');
+      notificarError(err);
     }
-  }, [notificar]);
+  }, [notificarError]);
 
   const verDetalleVenta = useCallback(async (idVenta) => {
     setCargandoDetalleVenta(true);
@@ -407,11 +391,11 @@ export default function CajaPage() {
       setVentaDetalleSeleccionada(detalle?.data ?? detalle);
       setMostrarDetalleVenta(true);
     } catch (err) {
-      notificar.error(err.message || 'No se pudo cargar el detalle de la venta.');
+      notificarError(err);
     } finally {
       setCargandoDetalleVenta(false);
     }
-  }, [notificar]);
+  }, [notificarError]);
 
   // ─── Pestañas y columnas ─────────────────────────────────────────────────────
   const pestanasVisibles = useMemo(() => {
@@ -433,6 +417,8 @@ export default function CajaPage() {
     {
       clave: 'creado_en',
       titulo: 'Hora',
+      tipo: 'fecha',
+      valorOrden: (m) => m.creado_en,
       render: (m) => (
         <div>
           <p className="font-medium text-fg">{horaDe(m.creado_en)}</p>
@@ -443,6 +429,8 @@ export default function CajaPage() {
     {
       clave: 'tipo',
       titulo: 'Tipo',
+      tipo: 'texto',
+      valorOrden: (m) => m.tipo,
       render: (m) => (
         <span
           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
@@ -459,12 +447,16 @@ export default function CajaPage() {
     {
       clave: 'concepto',
       titulo: 'Concepto / Motivo',
+      tipo: 'texto',
+      valorOrden: (m) => m.concepto,
       render: (m) => <span className="text-sm font-medium text-fg">{m.concepto}</span>,
     },
     {
       clave: 'monto',
       titulo: 'Monto',
+      tipo: 'dinero',
       alinear: 'right',
+      valorOrden: (m) => m.monto,
       render: (m) => (
         <span className={`font-semibold ${m.tipo === 'INGRESO' ? 'text-success' : 'text-danger'}`}>
           {m.tipo === 'INGRESO' ? '+' : '-'}{formatoDinero(m.monto)}
@@ -474,6 +466,8 @@ export default function CajaPage() {
     {
       clave: 'usuario',
       titulo: 'Registrado por',
+      tipo: 'texto',
+      valorOrden: (m) => m.usuario,
       render: (m) => <span className="text-xs text-fg-muted">{m.usuario}</span>,
     },
   ], []);
@@ -482,6 +476,8 @@ export default function CajaPage() {
     {
       clave: 'abierto_en',
       titulo: 'Apertura / Cierre',
+      tipo: 'fecha',
+      valorOrden: (c) => c.abierto_en,
       render: (c) => (
         <div>
           <p className="font-medium text-fg">{etiquetaDiaLarga(c.abierto_en.slice(0, 10))}</p>
@@ -494,6 +490,8 @@ export default function CajaPage() {
     {
       clave: 'caja',
       titulo: 'Caja y Sucursal',
+      tipo: 'texto',
+      valorOrden: (c) => `${c.caja} ${c.sucursal}`,
       render: (c) => (
         <div>
           <p className="font-medium text-fg">{c.caja}</p>
@@ -504,11 +502,15 @@ export default function CajaPage() {
     {
       clave: 'cajero',
       titulo: 'Cajero',
+      tipo: 'texto',
+      valorOrden: (c) => c.cajero,
       render: (c) => <span className="text-xs text-fg-muted">{c.cajero}</span>,
     },
     {
       clave: 'estado',
       titulo: 'Estado',
+      tipo: 'texto',
+      valorOrden: (c) => c.estado,
       render: (c) => (
         <EstadoBadge tipo={c.estado === 'ABIERTO' ? 'info' : 'exito'}>
           {c.estado === 'ABIERTO' ? 'Abierto' : 'Cerrado'}
@@ -518,6 +520,8 @@ export default function CajaPage() {
     {
       clave: 'efectivo',
       titulo: 'Resultado Efectivo',
+      tipo: 'dinero',
+      valorOrden: (c) => c.efectivo?.diferencia ?? '0.00',
       render: (c) => {
         const ef = c.efectivo;
         if (!ef || !ef.resultado) return <span className="text-xs text-fg-muted">—</span>;
@@ -534,6 +538,7 @@ export default function CajaPage() {
       clave: 'acciones',
       titulo: 'Acciones',
       alinear: 'right',
+      ordenable: false,
       render: (c) => {
         const esAbierto = c.estado === 'ABIERTO';
         const puedeCerrarEste = esAbierto && (puedeCerrarCualquiera || (puedeCerrar && (c.id_usuario === usuario?.id || c.cajero === usuario?.username)));
@@ -567,6 +572,8 @@ export default function CajaPage() {
     {
       clave: 'fecha_emision',
       titulo: 'Fecha / Hora',
+      tipo: 'fecha',
+      valorOrden: (v) => v.fecha_emision,
       render: (v) => (
         <div>
           <p className="font-medium text-fg">{horaDe(v.fecha_emision)}</p>
@@ -577,6 +584,8 @@ export default function CajaPage() {
     {
       clave: 'comprobante',
       titulo: 'Comprobante',
+      tipo: 'texto',
+      valorOrden: (v) => `${v.tipo_comprobante} ${String(v.correlativo ?? '').padStart(10, '0')}`,
       render: (v) => (
         <div>
           <p className="font-medium text-fg">{v.tipo_comprobante}</p>
@@ -587,12 +596,16 @@ export default function CajaPage() {
     {
       clave: 'cajero',
       titulo: 'Cajero',
+      tipo: 'texto',
+      valorOrden: (v) => v.cajero_username,
       render: (v) => <span className="text-xs text-fg-muted">{v.cajero_username}</span>,
     },
     {
       clave: 'total_venta',
       titulo: 'Total',
+      tipo: 'dinero',
       alinear: 'right',
+      valorOrden: (v) => v.total,
       render: (v) => (
         <span className="font-semibold text-success">{formatoDinero(v.total)}</span>
       ),
@@ -600,6 +613,8 @@ export default function CajaPage() {
     {
       clave: 'estado',
       titulo: 'Estado',
+      tipo: 'texto',
+      valorOrden: (v) => v.estado,
       render: (v) => (
         <EstadoBadge tipo={v.estado === 'ANULADA' ? 'peligro' : 'exito'}>
           {v.estado === 'ANULADA' ? 'Anulada' : 'Válida'}
@@ -610,6 +625,7 @@ export default function CajaPage() {
       clave: 'acciones',
       titulo: 'Acciones',
       alinear: 'right',
+      ordenable: false,
       render: (v) => (
         <Button
           variante="ghost"
@@ -624,20 +640,113 @@ export default function CajaPage() {
     },
   ], [verDetalleVenta, cargandoDetalleVenta]);
 
+  const columnasConciliacion = useMemo(() => [
+    {
+      clave: 'medio',
+      titulo: 'Medio',
+      tipo: 'texto',
+      render: (fila) => <span className="font-medium text-fg">{fila.medio}</span>,
+    },
+    {
+      clave: 'esperado',
+      titulo: 'Esperado',
+      tipo: 'dinero',
+      alinear: 'right',
+      render: (fila) => <span className="font-medium">{formatoDinero(fila.esperado)}</span>,
+    },
+    {
+      clave: 'contado',
+      titulo: 'Contado',
+      tipo: 'dinero',
+      alinear: 'right',
+      render: (fila) => <span className="font-medium">{formatoDinero(fila.contado)}</span>,
+    },
+    {
+      clave: 'diferencia',
+      titulo: 'Diferencia',
+      tipo: 'dinero',
+      alinear: 'right',
+      render: (fila) => (
+        <span
+          className={`font-bold ${
+            fila.resultado === 'FALTANTE'
+              ? 'text-danger'
+              : fila.resultado === 'SOBRANTE'
+              ? 'text-info'
+              : fila.resultado === 'CUADRADO'
+              ? 'text-success'
+              : 'text-fg-muted'
+          }`}
+        >
+          {fila.resultado === 'SOBRANTE' ? '+' : ''}
+          {formatoDinero(fila.diferencia)}
+        </span>
+      ),
+    },
+    {
+      clave: 'resultado',
+      titulo: 'Estado',
+      tipo: 'texto',
+      alinear: 'center',
+      render: (fila) => (
+        <span
+          className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+            fila.resultado === 'CUADRADO'
+              ? 'bg-success-soft text-success'
+              : fila.resultado === 'SOBRANTE'
+              ? 'bg-info-soft text-info'
+              : fila.resultado === 'FALTANTE'
+              ? 'bg-danger-soft text-danger'
+              : 'bg-muted text-fg-muted'
+          }`}
+        >
+          {fila.resultado}
+        </span>
+      ),
+    },
+  ], []);
+
+  const columnasDetalleProductos = useMemo(() => [
+    {
+      clave: 'nombre_producto',
+      titulo: 'Producto',
+      tipo: 'texto',
+      render: (d) => <span className="font-medium text-fg">{d.nombre_producto}</span>,
+    },
+    {
+      clave: 'cantidad',
+      titulo: 'Cant.',
+      tipo: 'numero',
+      alinear: 'right',
+      render: (d) => <span className="text-fg-muted">{d.cantidad}</span>,
+    },
+    {
+      clave: 'precio_unitario',
+      titulo: 'P. Unit.',
+      tipo: 'dinero',
+      alinear: 'right',
+      render: (d) => <span className="text-fg-muted">{formatoDinero(d.precio_unitario)}</span>,
+    },
+    {
+      clave: 'subtotal_linea',
+      titulo: 'Subtotal',
+      tipo: 'dinero',
+      alinear: 'right',
+      render: (d) => <span className="font-semibold text-fg">{formatoDinero(d.subtotal_linea)}</span>,
+    },
+  ], []);
+
   // ─── Render principal ────────────────────────────────────────────────────────
   if (cargando) {
     return (
-      <div className="flex min-h-[400px] flex-col items-center justify-center gap-3">
-        <Spinner />
-        <p className="text-sm text-fg-muted">Cargando estado de caja y turnos…</p>
-      </div>
+      <Spinner texto="Cargando estado de caja y turnos…" className="min-h-[400px]" />
     );
   }
 
   return (
     <div className="space-y-6">
       <EncabezadoPagina
-        seccion="Operación · Caja"
+        seccion="Operación · Caja y turnos"
         titulo="Caja y turnos"
         descripcion="Gestión del ciclo operativo de caja: apertura de turnos, registro de entradas y salidas de efectivo, y arqueo con cuadre final."
         acciones={
@@ -725,7 +834,7 @@ export default function CajaPage() {
           </section>
 
           {/* Cuadrícula de métricas del turno */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <Metrica
               icono={Wallet}
               etiqueta="Fondo inicial"
@@ -796,10 +905,12 @@ export default function CajaPage() {
               sinPadding
             >
               <Table
+                idTabla="caja_movimientos"
                 columnas={columnasMovimientos}
                 filas={movimientos}
                 idFila="id_movimiento"
                 cargando={cargandoMovimientos}
+                ordenInicial={{ clave: 'creado_en', direccion: 'desc' }}
                 vacio="No se han registrado ingresos ni egresos extraordinarios durante este turno."
               />
             </Card>
@@ -856,10 +967,12 @@ export default function CajaPage() {
               sinPadding
             >
               <Table
+                idTabla="caja_ventas_turno"
                 columnas={columnasVentasTurno}
                 filas={ventasTurno}
                 idFila="id_venta"
                 cargando={cargandoVentasTurno}
+                ordenInicial={{ clave: 'fecha_emision', direccion: 'desc' }}
                 vacio={
                   <EstadoVacio
                     icono={ShoppingBag}
@@ -900,10 +1013,12 @@ export default function CajaPage() {
                 </Button>
               </div>
               <Table
+                idTabla="caja_cuadres"
                 columnas={columnasCuadres}
                 filas={cuadres}
                 idFila="id_turno"
                 cargando={cargandoCuadres}
+                ordenInicial={{ clave: 'abierto_en', direccion: 'desc' }}
                 vacio="No hay registros de cuadres que coincidan con los filtros."
               />
             </Card>
@@ -944,10 +1059,12 @@ export default function CajaPage() {
               sinPadding
             >
               <Table
+                idTabla="caja_cuadres"
                 columnas={columnasCuadres}
                 filas={cuadres}
                 idFila="id_turno"
                 cargando={cargandoCuadres}
+                ordenInicial={{ clave: 'abierto_en', direccion: 'desc' }}
                 vacio="No hay turnos registrados aún."
               />
             </Card>
@@ -966,7 +1083,7 @@ export default function CajaPage() {
           <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">
-                Operación · Caja
+                Operación · Caja y turnos
               </p>
               <h2 id="apertura-titulo" className="mt-1 text-xl font-semibold">
                 Abrir turno de caja
@@ -985,36 +1102,31 @@ export default function CajaPage() {
             </button>
           </div>
 
-          {errorApertura && (
-            <div className="p-4 pb-0">
-              <BannerError error={avisoLocal(errorApertura, 'No se pudo abrir el turno')} />
-            </div>
-          )}
-
           <form onSubmit={handleAbrirTurno} className="space-y-4 p-5">
             <div>
               <label htmlFor="apertura-caja" className="block text-sm font-medium text-fg">
                 Caja punto de venta <span className="text-danger">*</span>
               </label>
               {cargandoCajas ? (
-                <div className="mt-1.5 flex items-center gap-2 text-xs text-fg-muted">
-                  <Spinner /> Cargando cajas disponibles…
-                </div>
+                <Spinner texto="Cargando cajas disponibles…" className="mt-1.5 !justify-start !p-0 !text-xs" />
               ) : (
-                <select
-                  id="apertura-caja"
-                  value={formApertura.idCaja}
-                  onChange={(e) => setFormApertura({ ...formApertura, idCaja: e.target.value })}
-                  className="input mt-1.5 w-full"
-                  required
-                >
-                  <option value="" disabled>Selecciona una caja</option>
-                  {cajas.map((c) => (
-                    <option key={c.id_caja} value={c.id_caja} disabled={c.ocupada}>
-                      {c.sucursal} — {c.nombre_identificador} ({c.codigo_punto_venta}) {c.ocupada ? ' · [Ocupada por otro turno]' : ' · [Disponible]'}
-                    </option>
-                  ))}
-                </select>
+                <div className="mt-1.5">
+                  <Select
+                    id="apertura-caja"
+                    requerido
+                    value={formApertura.idCaja}
+                    onChange={(e) => setFormApertura({ ...formApertura, idCaja: e.target.value })}
+                    placeholder="Selecciona una caja"
+                    opciones={[
+                      { valor: '', texto: 'Selecciona una caja', deshabilitado: true },
+                      ...cajas.map((c) => ({
+                        valor: String(c.id_caja),
+                        texto: `${c.sucursal} — ${c.nombre_identificador} (${c.codigo_punto_venta}) ${c.ocupada ? ' · [Ocupada por otro turno]' : ' · [Disponible]'}`,
+                        deshabilitado: c.ocupada,
+                      })),
+                    ]}
+                  />
+                </div>
               )}
               {cajas.length > 0 && cajas.every((c) => c.ocupada) && (
                 <div className="mt-2 rounded-lg border border-warning/40 bg-warning-soft p-3 text-xs text-warning">
@@ -1106,12 +1218,6 @@ export default function CajaPage() {
               <X size={18} aria-hidden="true" />
             </button>
           </div>
-
-          {errorMovimiento && (
-            <div className="p-4 pb-0">
-              <BannerError error={avisoLocal(errorMovimiento, 'Error en el movimiento')} />
-            </div>
-          )}
 
           <form onSubmit={handleRegistrarMovimiento} className="space-y-4 p-5">
             <div>
@@ -1249,12 +1355,6 @@ export default function CajaPage() {
             </button>
           </div>
 
-          {errorCierre && (
-            <div className="p-4 pb-0">
-              <BannerError error={avisoLocal(errorCierre, 'No se pudo realizar el cierre')} />
-            </div>
-          )}
-
           <form onSubmit={handleCerrarTurno} className="space-y-4 p-5">
             <div className="rounded-lg bg-muted/60 p-3 text-xs text-fg-muted space-y-2">
               <div className="flex items-center justify-between gap-2">
@@ -1388,7 +1488,7 @@ export default function CajaPage() {
           <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">
-                Auditoría · Cuadre de caja
+                Operación · Caja y turnos
               </p>
               <h2 id="cuadre-titulo" className="mt-1 text-xl font-semibold">
                 Resumen de cuadre · {cuadreDetalle.caja}
@@ -1412,7 +1512,7 @@ export default function CajaPage() {
             <div className="rounded-xl border border-line bg-muted/40 p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <span className="text-xs font-semibold uppercase tracking-wider text-fg-muted">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-fg-muted">
                     Resultado del arqueo en efectivo
                   </span>
                   <div className="mt-1 flex items-center gap-2">
@@ -1451,59 +1551,40 @@ export default function CajaPage() {
               <h3 className="text-xs font-semibold uppercase tracking-wider text-fg-muted mb-2">
                 Conciliación por medio de pago
               </h3>
-              <div className="overflow-x-auto rounded-lg border border-line">
-                <table className="w-full text-left text-xs">
-                  <thead className="border-b border-line bg-muted font-semibold uppercase text-fg-muted">
-                    <tr>
-                      <th className="px-3.5 py-2.5">Medio</th>
-                      <th className="px-3.5 py-2.5 text-right">Esperado</th>
-                      <th className="px-3.5 py-2.5 text-right">Contado</th>
-                      <th className="px-3.5 py-2.5 text-right">Diferencia</th>
-                      <th className="px-3.5 py-2.5 text-center">Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-line">
-                    <tr>
-                      <td className="px-3.5 py-2.5 font-medium text-fg">Efectivo</td>
-                      <td className="px-3.5 py-2.5 text-right font-medium">{formatoDinero(cuadreDetalle.efectivo?.esperado)}</td>
-                      <td className="px-3.5 py-2.5 text-right font-medium">{formatoDinero(cuadreDetalle.efectivo?.contado)}</td>
-                      <td className={`px-3.5 py-2.5 text-right font-bold ${cuadreDetalle.efectivo?.resultado === 'FALTANTE' ? 'text-danger' : cuadreDetalle.efectivo?.resultado === 'SOBRANTE' ? 'text-info' : cuadreDetalle.efectivo?.resultado === 'CUADRADO' ? 'text-success' : 'text-fg-muted'}`}>
-                        {cuadreDetalle.efectivo?.resultado === 'SOBRANTE' ? '+' : ''}{formatoDinero(cuadreDetalle.efectivo?.diferencia)}
-                      </td>
-                      <td className="px-3.5 py-2.5 text-center">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${cuadreDetalle.efectivo?.resultado === 'CUADRADO' ? 'bg-success-soft text-success' : cuadreDetalle.efectivo?.resultado === 'SOBRANTE' ? 'bg-info-soft text-info' : cuadreDetalle.efectivo?.resultado === 'FALTANTE' ? 'bg-danger-soft text-danger' : 'bg-muted text-fg-muted'}`}>
-                          {cuadreDetalle.efectivo?.resultado || 'En curso'}
-                        </span>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-3.5 py-2.5 font-medium text-fg">Tarjeta</td>
-                      <td className="px-3.5 py-2.5 text-right font-medium">{formatoDinero(cuadreDetalle.tarjeta?.esperado)}</td>
-                      <td className="px-3.5 py-2.5 text-right font-medium">{formatoDinero(cuadreDetalle.tarjeta?.contado)}</td>
-                      <td className={`px-3.5 py-2.5 text-right font-bold ${cuadreDetalle.tarjeta?.resultado === 'FALTANTE' ? 'text-danger' : cuadreDetalle.tarjeta?.resultado === 'SOBRANTE' ? 'text-info' : cuadreDetalle.tarjeta?.resultado === 'CUADRADO' ? 'text-success' : 'text-fg-muted'}`}>
-                        {cuadreDetalle.tarjeta?.resultado === 'SOBRANTE' ? '+' : ''}{formatoDinero(cuadreDetalle.tarjeta?.diferencia)}
-                      </td>
-                      <td className="px-3.5 py-2.5 text-center">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${cuadreDetalle.tarjeta?.resultado === 'CUADRADO' ? 'bg-success-soft text-success' : cuadreDetalle.tarjeta?.resultado === 'SOBRANTE' ? 'bg-info-soft text-info' : cuadreDetalle.tarjeta?.resultado === 'FALTANTE' ? 'bg-danger-soft text-danger' : 'bg-muted text-fg-muted'}`}>
-                          {cuadreDetalle.tarjeta?.resultado || 'En curso'}
-                        </span>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-3.5 py-2.5 font-medium text-fg">Digital / Transferencias</td>
-                      <td className="px-3.5 py-2.5 text-right font-medium">{formatoDinero(cuadreDetalle.digital?.esperado)}</td>
-                      <td className="px-3.5 py-2.5 text-right font-medium">{formatoDinero(cuadreDetalle.digital?.contado)}</td>
-                      <td className={`px-3.5 py-2.5 text-right font-bold ${cuadreDetalle.digital?.resultado === 'FALTANTE' ? 'text-danger' : cuadreDetalle.digital?.resultado === 'SOBRANTE' ? 'text-info' : cuadreDetalle.digital?.resultado === 'CUADRADO' ? 'text-success' : 'text-fg-muted'}`}>
-                        {cuadreDetalle.digital?.resultado === 'SOBRANTE' ? '+' : ''}{formatoDinero(cuadreDetalle.digital?.diferencia)}
-                      </td>
-                      <td className="px-3.5 py-2.5 text-center">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${cuadreDetalle.digital?.resultado === 'CUADRADO' ? 'bg-success-soft text-success' : cuadreDetalle.digital?.resultado === 'SOBRANTE' ? 'bg-info-soft text-info' : cuadreDetalle.digital?.resultado === 'FALTANTE' ? 'bg-danger-soft text-danger' : 'bg-muted text-fg-muted'}`}>
-                          {cuadreDetalle.digital?.resultado || 'En curso'}
-                        </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div className="overflow-hidden rounded-lg border border-line">
+                <Table
+                  columnas={columnasConciliacion}
+                  filas={[
+                    {
+                      id: 'efectivo',
+                      medio: 'Efectivo',
+                      esperado: cuadreDetalle.efectivo?.esperado,
+                      contado: cuadreDetalle.efectivo?.contado,
+                      diferencia: cuadreDetalle.efectivo?.diferencia,
+                      resultado: cuadreDetalle.efectivo?.resultado || 'En curso',
+                    },
+                    {
+                      id: 'tarjeta',
+                      medio: 'Tarjeta',
+                      esperado: cuadreDetalle.tarjeta?.esperado,
+                      contado: cuadreDetalle.tarjeta?.contado,
+                      diferencia: cuadreDetalle.tarjeta?.diferencia,
+                      resultado: cuadreDetalle.tarjeta?.resultado || 'En curso',
+                    },
+                    {
+                      id: 'digital',
+                      medio: 'Digital / Transferencias',
+                      esperado: cuadreDetalle.digital?.esperado,
+                      contado: cuadreDetalle.digital?.contado,
+                      diferencia: cuadreDetalle.digital?.diferencia,
+                      resultado: cuadreDetalle.digital?.resultado || 'En curso',
+                    },
+                  ]}
+                  idFila="id"
+                  paginacion={false}
+                  scrollVertical={false}
+                  minAncho="min-w-[500px]"
+                />
               </div>
             </div>
 
@@ -1589,26 +1670,17 @@ export default function CajaPage() {
               </h3>
               {ventaDetalleSeleccionada.detalles?.length > 0 ? (
                 <div className="overflow-hidden rounded-lg border border-line">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-line bg-muted">
-                        <th className="px-3.5 py-2 text-left text-xs font-semibold uppercase tracking-wider text-fg-muted">Producto</th>
-                        <th className="px-3.5 py-2 text-right text-xs font-semibold uppercase tracking-wider text-fg-muted">Cant.</th>
-                        <th className="px-3.5 py-2 text-right text-xs font-semibold uppercase tracking-wider text-fg-muted">P. Unit.</th>
-                        <th className="px-3.5 py-2 text-right text-xs font-semibold uppercase tracking-wider text-fg-muted">Subtotal</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ventaDetalleSeleccionada.detalles.map((d, i) => (
-                        <tr key={i} className="border-b border-line last:border-0">
-                          <td className="px-3.5 py-2.5 font-medium text-fg">{d.nombre_producto}</td>
-                          <td className="px-3.5 py-2.5 text-right text-fg-muted">{d.cantidad}</td>
-                          <td className="px-3.5 py-2.5 text-right text-fg-muted">{formatoDinero(d.precio_unitario)}</td>
-                          <td className="px-3.5 py-2.5 text-right font-semibold text-fg">{formatoDinero(d.subtotal_linea)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <Table
+                    columnas={columnasDetalleProductos}
+                    filas={ventaDetalleSeleccionada.detalles.map((d, i) => ({
+                      ...d,
+                      _id: d.id_detalle ?? i,
+                    }))}
+                    idFila="_id"
+                    paginacion={false}
+                    scrollVertical={false}
+                    minAncho="min-w-[450px]"
+                  />
                 </div>
               ) : (
                 <p className="rounded-lg border border-line p-4 text-sm text-fg-muted">Sin detalle de productos disponible.</p>
