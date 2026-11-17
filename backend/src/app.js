@@ -12,7 +12,11 @@ import { contextoSolicitud } from './utils/requestContext.js';
 const app = express();
 app.set('trust proxy', env.trustProxy);
 app.use(helmet());
-app.use(cors({ origin: env.corsOrigin, credentials: true }));
+app.use(cors({
+  origin: env.corsOrigin,
+  credentials: true,
+  exposedHeaders: ['X-Page', 'X-Limit', 'X-Total', 'X-Total-Pages', 'X-Has-Next-Page', 'X-Has-Previous-Page'],
+}));
 app.use(cookieParser());
 app.use(express.json());
 if (env.nodeEnv !== 'test') {
