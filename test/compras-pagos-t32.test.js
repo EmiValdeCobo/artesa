@@ -41,7 +41,7 @@ test('T32 schema: parámetro de factura debe ser UUID', () => {
 });
 
 test('T32 schema: filtros CxP permiten consulta sin rango y validan rangos acotados', () => {
-  assert.deepEqual(filtrosCuentasPorPagarSchema.parse({}), { estado: 'pendientes' });
+  assert.deepEqual(filtrosCuentasPorPagarSchema.parse({}), { estado: 'pendientes', page: 1, limit: 50 });
   assert.equal(filtrosCuentasPorPagarSchema.parse({ idSucursal: '2' }).idSucursal, 2);
   for (const estado of ['pendientes', 'pagadas', 'todas']) {
     assert.equal(filtrosCuentasPorPagarSchema.parse({ estado }).estado, estado);
@@ -49,6 +49,10 @@ test('T32 schema: filtros CxP permiten consulta sin rango y validan rangos acota
   assert.throws(() => filtrosCuentasPorPagarSchema.parse({ estado: 'vencidas' }));
   assert.throws(() => filtrosCuentasPorPagarSchema.parse({ desde: '2026-01-01' }));
   assert.throws(() => filtrosCuentasPorPagarSchema.parse({ desde: '2025-01-01', hasta: '2026-11-13' }));
+  assert.equal(filtrosCuentasPorPagarSchema.parse({ page: '2', limit: '100' }).page, 2);
+  for (const query of [{ page: '0' }, { page: '-1' }, { page: '1.5' }, { page: 'abc' }, { limit: '101' }, { limit: '0' }]) {
+    assert.throws(() => filtrosCuentasPorPagarSchema.parse(query));
+  }
 });
 
 test('T32 routes: pago exige sesión admin, COM_PAGAR_PROVEEDOR, UUID, body Zod y asyncHandler', async () => {
@@ -135,8 +139,8 @@ test('T32 reportes y Compras reutilizan una consulta CxP común', async () => {
   const reportes = await leer('backend/src/modules/reportes/reportes.repository.js');
   const shared = await leer('backend/src/modules/compras/cuentas-por-pagar.repository.js');
   const cxpService = await leer('backend/src/modules/compras/cuentas-por-pagar/cuentas-por-pagar.service.js');
-  assert.match(reportes, /listarCuentasPorPagar\(idUsuario, \{ \.\.\.filtros, estado: 'pendientes' \}, true\)/);
-  assert.match(cxpService, /listarCuentasPorPagar\(userId, filtros, false\)/);
+  assert.match(reportes, /listarCuentasPorPagar\(idUsuario, \{ \.\.\.filtros, estado: 'pendientes', periodoRecientePorDefecto: true \}\)/);
+  assert.match(cxpService, /periodoRecientePorDefecto: false/);
   assert.match(shared, /\$6::text = 'pendientes'[\s\S]*f\.estado_pago IN \('PENDIENTE', 'PARCIAL'\)/);
   assert.match(shared, /\$6::text = 'pagadas'[\s\S]*f\.estado_pago = 'PAGADO'/);
   assert.match(shared, /\$6::text = 'todas'/);
@@ -146,7 +150,10 @@ test('T32 reportes y Compras reutilizan una consulta CxP común', async () => {
   assert.match(shared, /AS pagado/);
   assert.match(shared, /AS saldo/);
   assert.match(shared, /JOIN visibles s ON s\.id_sucursal = f\.id_sucursal/);
-  assert.match(shared, /LIMIT 500/);
+  assert.match(shared, /ORDER BY f\.fecha_vencimiento ASC, pr\.razon_social, f\.num_factura, f\.id_compra/);
+  assert.match(shared, /LIMIT \$7::int OFFSET \$8::int/);
+  assert.match(shared, /COUNT\(\*\) OVER\(\)::text AS __total/);
+  assert.doesNotMatch(shared, /LIMIT 500/);
 });
 
 test('T32 repositorio shared preserva ventana de 30 días de Reportes y deja CxP operativa sin rango fijo', async () => {
