@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Search, ShieldCheck, X } from 'lucide-react';
+import { Search, ShieldCheck } from 'lucide-react';
 import { api } from '../../api/client.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
@@ -8,7 +8,7 @@ import CampoError, { idError } from '../../components/forms/CampoError.jsx';
 import Dialogo from '../../components/Dialogo.jsx';
 import { traducirError } from '../../errors/traducirError.js';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
-import { BotonIcono, Select } from '../../components/ui/index.js';
+import { BotonIcono, Button, Select, Spinner, Table } from '../../components/ui/index.js';
 import { ICONOS } from '../../config/iconos.js';
 
 const formularioInicial = { username: '', password: '', idRol: '', sucursales: [] };
@@ -35,7 +35,8 @@ function validarFormulario(formulario, esEdicion) {
 const idCampo = (campo) => `usuario-${campo}`;
 const describir = (errores, campo) => (errores[campo] ? idError(idCampo(campo)) : undefined);
 
-function UsuarioModal({ usuario, roles, sucursales, guardando, error, onDescartarError, onClose, onSubmit }) {
+function UsuarioModal({ usuario, roles, sucursales, guardando, onClose, onSubmit }) {
+  const { notificar } = useAlert();
   const [formulario, setFormulario] = useState(usuario
     ? { username: usuario.username, password: '', idRol: String(usuario.id_rol), sucursales: usuario.sucursales.map((sucursal) => sucursal.id_sucursal) }
     : formularioInicial);
@@ -47,13 +48,6 @@ function UsuarioModal({ usuario, roles, sucursales, guardando, error, onDescarta
     const campo = ORDEN_CAMPOS.find((nombre) => mapa[nombre]);
     if (campo) document.getElementById(idCampo(campo))?.focus();
   };
-
-  // Errores que devuelve el servidor (usuario duplicado, rol inactivo…): se marcan junto a su campo.
-  useEffect(() => {
-    if (!error?.campos) return;
-    setErrores(error.campos);
-    enfocarPrimero(error.campos);
-  }, [error]);
 
   const actualizar = (campo, valor) => {
     setFormulario((actual) => ({ ...actual, [campo]: valor }));
@@ -70,7 +64,13 @@ function UsuarioModal({ usuario, roles, sucursales, guardando, error, onDescarta
     event.preventDefault();
     const encontrados = validarFormulario(formulario, Boolean(usuario));
     setErrores(encontrados);
-    if (Object.keys(encontrados).length) { enfocarPrimero(encontrados); return; }
+    if (Object.keys(encontrados).length) {
+      enfocarPrimero(encontrados);
+      notificar.advertencia('Campos requeridos incompletos', {
+        mensaje: 'Revisa los campos señalados en el formulario.',
+      });
+      return;
+    }
     ultimoEnvio.current = { ...formulario, idRol: Number(formulario.idRol), sucursales: formulario.sucursales.map(Number) };
     onSubmit(ultimoEnvio.current);
   };
@@ -89,8 +89,6 @@ function UsuarioModal({ usuario, roles, sucursales, guardando, error, onDescarta
 
       <form noValidate onSubmit={enviar}>
         <div className="space-y-5 p-5 sm:p-6">
-          <BannerError error={error} onCerrar={onDescartarError} onReintentar={() => ultimoEnvio.current && onSubmit(ultimoEnvio.current)} />
-
           <div>
             <label htmlFor={idCampo('username')} className="block text-sm font-medium">Nombre de usuario</label>
             <input id={idCampo('username')} ref={usernameRef} className={`input mt-1.5 ${claseInvalida}`} value={formulario.username} onChange={(event) => actualizar('username', event.target.value)}
@@ -126,8 +124,8 @@ function UsuarioModal({ usuario, roles, sucursales, guardando, error, onDescarta
         </div>
 
         <div className="sticky bottom-0 flex flex-col-reverse gap-2.5 border-t border-line bg-surface p-5 sm:flex-row sm:justify-end sm:p-6">
-          <button type="button" className="btn-ghost min-h-11 sm:min-h-10" onClick={onClose}>Cancelar</button>
-          <button type="submit" className="btn-primary min-h-11 sm:min-h-10" disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar usuario'}</button>
+          <Button variante="ghost" className="min-h-11 sm:min-h-10" onClick={onClose}>Cancelar</Button>
+          <Button type="submit" className="min-h-11 sm:min-h-10" disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar usuario'}</Button>
         </div>
       </form>
     </Dialogo>
@@ -142,7 +140,6 @@ export default function UsuariosPage() {
   const [sucursales, setSucursales] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState(null);       // la lista no cargó → mensaje en línea con "Reintentar"
-  const [errorGuardado, setErrorGuardado] = useState(null); // el formulario no se pudo guardar → dentro del formulario
   const [filtro, setFiltro] = useState('');
   const [usuarioEditando, setUsuarioEditando] = useState(null);
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -171,28 +168,19 @@ export default function UsuariosPage() {
 
   const usuariosFiltrados = useMemo(() => usuarios.filter((usuario) => `${usuario.username} ${usuario.rol}`.toLowerCase().includes(filtro.toLowerCase())), [usuarios, filtro]);
 
-  const cerrarModal = () => { setModalAbierto(false); setUsuarioEditando(null); setErrorGuardado(null); };
+  const cerrarModal = () => { setModalAbierto(false); setUsuarioEditando(null); };
 
   const guardarUsuario = async (datos) => {
     setGuardando(true);
-    setErrorGuardado(null);
     try {
       const actualizado = usuarioEditando
         ? await api.put(`/seguridad/usuarios/${usuarioEditando.id_usuario}`, datos)
         : await api.post('/seguridad/usuarios', datos);
       setUsuarios((actuales) => usuarioEditando ? actuales.map((item) => item.id_usuario === actualizado.id_usuario ? actualizado : item) : [actualizado, ...actuales]);
+      notificar.exito(usuarioEditando ? 'Usuario actualizado correctamente' : 'Usuario creado exitosamente');
       cerrarModal();
     } catch (err) {
-      const u = traducirError(err);
-      if (u.id === 'SESION_EXPIRADA') return; // lo atiende el aviso global y la redirección al login
-      if (u.canal === 'modal') {
-        // No sabemos si se guardó (tiempo agotado): se detiene al usuario y se refresca la lista para que lo verifique.
-        notificarError(u);
-        cerrarModal();
-        cargarDatos();
-      } else {
-        setErrorGuardado(u); // dentro del formulario, junto a los campos afectados
-      }
+      notificarError(err, { reintentar: () => guardarUsuario(datos) });
     } finally {
       setGuardando(false);
     }
@@ -213,6 +201,7 @@ export default function UsuariosPage() {
     try {
       await api.patch(`/seguridad/usuarios/${usuario.id_usuario}/${accion}`);
       setUsuarios((actuales) => actuales.map((item) => item.id_usuario === usuario.id_usuario ? { ...item, activo: accion === 'activar' } : item));
+      notificar.exito(accion === 'activar' ? `Usuario «${usuario.username}» activado` : `Usuario «${usuario.username}» desactivado`);
     } catch (err) {
       alFallarAccion(err, () => cambiarEstado(usuario, accion));
     }
@@ -220,7 +209,7 @@ export default function UsuariosPage() {
 
   const desactivar = async (usuario) => {
     if (String(usuario.id_usuario) === String(usuarioSesion?.id)) return avisarAutoproteccion('desactivar');
-    if (!await confirm(`¿Desactivar al usuario "${usuario.username}"? Podrá reactivarse después.`, { tipo: 'advertencia', titulo: 'Desactivar usuario', etiquetaAceptar: 'Desactivar' })) return;
+    if (!await confirm(`¿Desactivar al usuario "${usuario.username}"? Podrá reactivarse después.`, { destructivo: true, titulo: 'Desactivar usuario', etiquetaAceptar: 'Desactivar' })) return;
     cambiarEstado(usuario, 'desactivar');
   };
 
@@ -233,6 +222,7 @@ export default function UsuariosPage() {
     try {
       await api.delete(`/seguridad/usuarios/${usuario.id_usuario}/eliminar`);
       setUsuarios((actuales) => actuales.filter((item) => item.id_usuario !== usuario.id_usuario));
+      notificar.exito(`Usuario «${usuario.username}» eliminado definitivamente`);
     } catch (err) {
       alFallarAccion(err, () => ejecutarEliminar(usuario));
     }
@@ -246,46 +236,89 @@ export default function UsuariosPage() {
 
   return (
     <div className="mx-auto max-w-7xl">
-      <EncabezadoPagina seccion="Seguridad" titulo="Usuarios" descripcion="Administra cuentas, roles y sucursales de operación." acciones={<button type="button" className="btn-primary" disabled={Boolean(errorCarga) || cargando} onClick={() => { setUsuarioEditando(null); setModalAbierto(true); }}><Plus size={17} aria-hidden="true" /> Nuevo usuario</button>} />
+      <EncabezadoPagina seccion="Administración · Usuarios y roles" titulo="Usuarios" descripcion="Administra cuentas, roles y sucursales de operación." acciones={<Button icono={ICONOS.crear} disabled={Boolean(errorCarga) || cargando} onClick={() => { setUsuarioEditando(null); setModalAbierto(true); }}>Nuevo usuario</Button>} />
 
       {errorCarga ? (
-        <BannerError className="mt-7" error={errorCarga} onReintentar={cargarDatos} />
+        <BannerError className="mt-6" error={errorCarga} onReintentar={cargarDatos} />
       ) : (
-        <div className="card mt-7 p-0">
+        <div className="card mt-6 overflow-hidden !p-0">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line p-5">
             <div><h2 className="font-semibold">Cuentas del sistema</h2><p className="mt-1 text-xs text-fg-muted">{usuarios.length} cuentas registradas</p></div>
             <div className="relative w-full sm:w-72"><Search size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" aria-hidden="true" /><input className="input pl-9" value={filtro} onChange={(event) => setFiltro(event.target.value)} placeholder="Buscar usuario o rol…" aria-label="Buscar usuario" /></div>
           </div>
-          {cargando ? <p role="status" className="p-8 text-center text-sm text-fg-muted">Cargando usuarios…</p> : (
-            <div className="max-h-[560px] overflow-x-auto overflow-y-auto scroll-fino">
-              <table className="w-full min-w-[700px] text-left text-sm">
-                <thead className="sticky top-0 z-10 border-b border-line bg-muted text-xs uppercase tracking-wide text-fg-muted shadow-xs"><tr><th className="bg-muted px-5 py-3 font-semibold">Usuario</th><th className="bg-muted px-5 py-3 font-semibold">Rol</th><th className="bg-muted px-5 py-3 font-semibold">Sucursales</th><th className="bg-muted px-5 py-3 font-semibold">Estado</th><th className="bg-muted px-5 py-3 text-right font-semibold">Acciones</th></tr></thead>
-                <tbody className="divide-y divide-line">
-                  {usuariosFiltrados.map((usuario) => <tr key={usuario.id_usuario} className="hover:bg-muted/60">
-                    <td className="px-5 py-4 font-medium">{usuario.username}</td>
-                    <td className="px-5 py-4"><span className="inline-flex items-center gap-1.5 rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-primary-text"><ShieldCheck size={13} />{usuario.rol}</span></td>
-                    <td className="max-w-xs px-5 py-4 text-xs text-fg-muted">{usuario.sucursales.map((sucursal) => sucursal.nombre).join(', ') || 'Sin asignar'}</td>
-                    <td className="px-5 py-4"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${usuario.activo ? 'bg-success-soft text-success' : 'bg-muted text-fg-muted'}`}>{usuario.activo ? 'Activo' : 'Inactivo'}</span></td>
-                    <td className="px-5 py-4">
-                      <div className="flex justify-end gap-2">
-                        <BotonIcono icono={ICONOS.editar} etiqueta={`Editar ${usuario.username}`} titulo="Editar" onClick={() => { setUsuarioEditando(usuario); setModalAbierto(true); }} />
-                        {usuario.activo
-                          ? <BotonIcono icono={ICONOS.desactivarUsuario} tono="aviso" etiqueta={`Desactivar ${usuario.username}`} titulo="Desactivar" onClick={() => desactivar(usuario)} />
-                          : <BotonIcono icono={ICONOS.activarUsuario} tono="exito" etiqueta={`Activar ${usuario.username}`} titulo="Activar" onClick={() => activar(usuario)} />
-                        }
-                        <BotonIcono icono={ICONOS.eliminar} tono="peligro" etiqueta={`Eliminar ${usuario.username}`} titulo="Eliminar definitivamente" onClick={() => eliminar(usuario)} />
-                      </div>
-                    </td>
-                  </tr>)}
-                </tbody>
-              </table>
-              {!usuariosFiltrados.length && <p className="p-8 text-center text-sm text-fg-muted">{usuarios.length ? 'Ningún usuario coincide con tu búsqueda. Prueba con otro nombre o rol.' : 'Aún no hay usuarios registrados. Crea el primero con «Nuevo usuario».'}</p>}
-            </div>
+          {cargando ? <Spinner texto="Cargando usuarios…" /> : (
+            <Table
+              filas={usuariosFiltrados}
+              idFila="id_usuario"
+              idTabla="seguridad-usuarios"
+              ordenInicial={{ clave: 'username', direccion: 'asc' }}
+              minAncho="min-w-[700px]"
+              vacio={usuarios.length ? 'Ningún usuario coincide con tu búsqueda. Prueba con otro nombre o rol.' : 'Aún no hay usuarios registrados. Crea el primero con «Nuevo usuario».'}
+              columnas={[
+                {
+                  clave: 'username',
+                  titulo: 'Usuario',
+                  tipo: 'texto',
+                  render: (usuario) => <span className="font-medium">{usuario.username}</span>,
+                },
+                {
+                  clave: 'rol',
+                  titulo: 'Rol',
+                  tipo: 'texto',
+                  valorOrden: (usuario) => usuario.rol,
+                  render: (usuario) => (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-primary-text">
+                      <ShieldCheck size={13} aria-hidden="true" />
+                      {usuario.rol}
+                    </span>
+                  ),
+                },
+                {
+                  clave: 'sucursales',
+                  titulo: 'Sucursales',
+                  tipo: 'texto',
+                  clase: 'max-w-xs',
+                  valorOrden: (usuario) => (usuario.sucursales ?? []).map((sucursal) => sucursal.nombre).join(', ') || 'Sin asignar',
+                  render: (usuario) => (
+                    <span className="text-xs text-fg-muted">
+                      {(usuario.sucursales ?? []).map((sucursal) => sucursal.nombre).join(', ') || 'Sin asignar'}
+                    </span>
+                  ),
+                },
+                {
+                  clave: 'activo',
+                  titulo: 'Estado',
+                  tipo: 'booleano',
+                  valorOrden: (usuario) => Boolean(usuario.activo),
+                  render: (usuario) => (
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${usuario.activo ? 'bg-success-soft text-success' : 'bg-muted text-fg-muted'}`}>
+                      {usuario.activo ? 'Activo' : 'Inactivo'}
+                    </span>
+                  ),
+                },
+                {
+                  clave: 'acciones',
+                  titulo: 'Acciones',
+                  alinear: 'right',
+                  ordenable: false,
+                  render: (usuario) => (
+                    <div className="flex justify-end gap-2">
+                      <BotonIcono icono={ICONOS.editar} etiqueta={`Editar ${usuario.username}`} titulo="Editar" onClick={() => { setUsuarioEditando(usuario); setModalAbierto(true); }} />
+                      {usuario.activo
+                        ? <BotonIcono icono={ICONOS.desactivarUsuario} tono="aviso" etiqueta={`Desactivar ${usuario.username}`} titulo="Desactivar" onClick={() => desactivar(usuario)} />
+                        : <BotonIcono icono={ICONOS.activarUsuario} tono="exito" etiqueta={`Activar ${usuario.username}`} titulo="Activar" onClick={() => activar(usuario)} />
+                      }
+                      <BotonIcono icono={ICONOS.eliminar} tono="peligro" etiqueta={`Eliminar ${usuario.username}`} titulo="Eliminar definitivamente" onClick={() => eliminar(usuario)} />
+                    </div>
+                  ),
+                },
+              ]}
+            />
           )}
         </div>
       )}
 
-      {modalAbierto && <UsuarioModal usuario={usuarioEditando} roles={roles} sucursales={sucursales} guardando={guardando} error={errorGuardado} onDescartarError={() => setErrorGuardado(null)} onClose={cerrarModal} onSubmit={guardarUsuario} />}
+      {modalAbierto && <UsuarioModal usuario={usuarioEditando} roles={roles} sucursales={sucursales} guardando={guardando} onClose={cerrarModal} onSubmit={guardarUsuario} />}
     </div>
   );
 }

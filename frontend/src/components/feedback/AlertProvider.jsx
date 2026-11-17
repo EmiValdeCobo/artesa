@@ -28,7 +28,7 @@ const VISUAL = {
 };
 VISUAL.confirmacion = VISUAL.pregunta;
 
-const DURACION_TOAST = { exito: 5000, informacion: 6000, advertencia: 10000, error: 12000 };
+const DURACION_TOAST = { exito: 4000, informacion: 6000, advertencia: 10000, error: 12000 };
 const MAX_TOASTS = 4;
 
 function AlertDialog({ dialogo, cerrar }) {

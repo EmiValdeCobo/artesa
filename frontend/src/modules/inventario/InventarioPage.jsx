@@ -31,7 +31,7 @@ function esCantidadPositiva(valor) {
 
 export default function InventarioPage() {
   const { usuario, tiene } = useAuth();
-  const { notificar } = useAlert();
+  const { notificar, notificarError } = useAlert();
   const navigate = useNavigate();
   const sucursales = usuario?.sucursales ?? SUCURSALES_VACIAS;
   const puedeComprar = tiene('COM_REGISTRAR_COMPRA');
@@ -48,7 +48,6 @@ export default function InventarioPage() {
   const [cargandoAlertas, setCargandoAlertas] = useState(false);
   const [errorStock, setErrorStock] = useState(null);
   const [errorAlertas, setErrorAlertas] = useState(null);
-  const [errorMerma, setErrorMerma] = useState(null);
   const [idInsumo, setIdInsumo] = useState('');
   const [cantidad, setCantidad] = useState('');
   const [motivo, setMotivo] = useState('');
@@ -204,10 +203,23 @@ export default function InventarioPage() {
 
   const registrarMerma = async (evento) => {
     evento.preventDefault();
-    if (!puedeRegistrarMerma || !insumoSeleccionado) return;
+    if (!puedeRegistrarMerma || !insumoSeleccionado) {
+      if (!idInsumo) {
+        notificar.advertencia('Insumo requerido', { mensaje: 'Selecciona un insumo para registrar la merma.' });
+        return;
+      }
+      if (!cantidad.trim() || Number(cantidad) <= 0) {
+        notificar.advertencia('Cantidad inválida', { mensaje: 'Ingresa una cantidad mayor a cero.' });
+        return;
+      }
+      if (motivo.trim().length < 3) {
+        notificar.advertencia('Motivo requerido', { mensaje: 'Describe el motivo de la merma (mínimo 3 caracteres).' });
+        return;
+      }
+      return;
+    }
 
     setEnviando(true);
-    setErrorMerma(null);
     try {
       await api.post(`/inventario/insumos/${insumoSeleccionado.id_insumo}/mermas`, {
         idSucursal: Number(idSucursal),
@@ -219,7 +231,7 @@ export default function InventarioPage() {
       setMotivo('');
       await cargarSucursal(idSucursal);
     } catch (error) {
-      setErrorMerma(traducirError(error));
+      notificarError(error);
     } finally {
       setEnviando(false);
     }
@@ -228,10 +240,10 @@ export default function InventarioPage() {
   const unidadCorta = (codigo) => String(codigo ?? '').toLowerCase();
 
   const columnasStock = [
-    { clave: 'insumo', titulo: 'Insumo' },
-    { clave: 'unidad', titulo: 'Unidad', render: (fila) => unidadCorta(fila.unidad) },
-    { clave: 'stock_actual', titulo: 'Stock actual', alinear: 'right', render: (fila) => formatearUnidades(fila.stock_actual) },
-    { clave: 'stock_minimo', titulo: 'Stock mínimo', alinear: 'right', render: (fila) => formatearUnidades(fila.stock_minimo) },
+    { clave: 'insumo', titulo: 'Insumo', tipo: 'texto' },
+    { clave: 'unidad', titulo: 'Unidad', tipo: 'texto', valorOrden: (fila) => unidadCorta(fila.unidad), render: (fila) => unidadCorta(fila.unidad) },
+    { clave: 'stock_actual', titulo: 'Stock actual', tipo: 'numero', alinear: 'right', valorOrden: (fila) => fila.stock_actual, render: (fila) => formatearUnidades(fila.stock_actual) },
+    { clave: 'stock_minimo', titulo: 'Stock mínimo', tipo: 'numero', alinear: 'right', valorOrden: (fila) => fila.stock_minimo, render: (fila) => formatearUnidades(fila.stock_minimo) },
   ];
 
   const seleccionables = alertas.filter((fila) => insumoDeAlerta(fila));
@@ -243,6 +255,7 @@ export default function InventarioPage() {
   const columnasAlertas = [
     ...(puedeComprar ? [{
       clave: '_sel', titulo: 'Seleccionar',
+      ordenable: false,
       encabezado: (
         <input type="checkbox" className="h-4 w-4 align-middle accent-primary" checked={todasSeleccionadas}
           onChange={alternarTodas} aria-label="Seleccionar todos los insumos en alerta" />
@@ -255,18 +268,25 @@ export default function InventarioPage() {
           onChange={() => alternarSeleccion(fila)} aria-label={`Seleccionar ${fila.insumo}`} />;
       },
     }] : []),
-    { clave: 'insumo', titulo: 'Insumo' },
-    { clave: 'unidad', titulo: 'Unidad', render: (fila) => unidadCorta(fila.unidad) },
-    { clave: 'nivel', titulo: 'Nivel', render: (fila) => (
-      <EstadoBadge tipo={fila.nivel === 'AGOTADO' ? 'error' : 'alerta'}>
-        {fila.nivel === 'AGOTADO' ? 'Agotado' : 'Bajo mínimo'}
-      </EstadoBadge>
-    ) },
-    { clave: 'stock_actual', titulo: 'Actual', alinear: 'right', render: (fila) => formatearUnidades(fila.stock_actual) },
-    { clave: 'stock_minimo', titulo: 'Mínimo', alinear: 'right', render: (fila) => formatearUnidades(fila.stock_minimo) },
-    { clave: 'faltante', titulo: 'Faltante', alinear: 'right', render: (fila) => formatearUnidades(fila.faltante) },
+    { clave: 'insumo', titulo: 'Insumo', tipo: 'texto' },
+    { clave: 'unidad', titulo: 'Unidad', tipo: 'texto', valorOrden: (fila) => unidadCorta(fila.unidad), render: (fila) => unidadCorta(fila.unidad) },
+    {
+      clave: 'nivel',
+      titulo: 'Nivel',
+      tipo: 'texto',
+      valorOrden: (fila) => (fila.nivel === 'AGOTADO' ? 'Agotado' : 'Bajo mínimo'),
+      render: (fila) => (
+        <EstadoBadge tipo={fila.nivel === 'AGOTADO' ? 'error' : 'alerta'}>
+          {fila.nivel === 'AGOTADO' ? 'Agotado' : 'Bajo mínimo'}
+        </EstadoBadge>
+      ),
+    },
+    { clave: 'stock_actual', titulo: 'Actual', tipo: 'numero', alinear: 'right', valorOrden: (fila) => fila.stock_actual, render: (fila) => formatearUnidades(fila.stock_actual) },
+    { clave: 'stock_minimo', titulo: 'Mínimo', tipo: 'numero', alinear: 'right', valorOrden: (fila) => fila.stock_minimo, render: (fila) => formatearUnidades(fila.stock_minimo) },
+    { clave: 'faltante', titulo: 'Faltante', tipo: 'numero', alinear: 'right', valorOrden: (fila) => fila.faltante, render: (fila) => formatearUnidades(fila.faltante) },
     ...(puedeComprar ? [{
       clave: '_comprar', titulo: 'Acciones',
+      ordenable: false,
       render: (fila) => (
         <BotonIcono
           icono={ICONOS.comprar}
@@ -287,7 +307,7 @@ export default function InventarioPage() {
   if (!sucursales.length) {
     return (
       <div className="space-y-6">
-        <EncabezadoPagina seccion="Operación" titulo="Inventario" />
+        <EncabezadoPagina seccion="Operación · Inventario" titulo="Inventario" />
         <Card><EstadoVacio icono={Boxes} titulo="No tienes sucursales asignadas">
           Pide a una persona administradora que te asigne una sucursal para consultar el inventario.
         </EstadoVacio></Card>
@@ -297,7 +317,7 @@ export default function InventarioPage() {
 
   return (
     <div className="space-y-6">
-      <EncabezadoPagina seccion="Operación" titulo="Inventario" descripcion="Consulta existencias y alertas, y registra mermas de la sucursal seleccionada." acciones={<div className="w-full sm:max-w-xs">
+      <EncabezadoPagina seccion="Operación · Inventario" titulo="Inventario" descripcion="Consulta existencias y alertas, y registra mermas de la sucursal seleccionada." acciones={<div className="w-full sm:max-w-xs">
           <Select
             etiqueta="Sucursal"
             opciones={opcionesSucursal}
@@ -307,7 +327,7 @@ export default function InventarioPage() {
           />
         </div>} />
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Metrica icono={Boxes} valor={cargandoStock ? '…' : errorStock ? '—' : stock.length} etiqueta="Insumos en sucursal" tono="primario" />
         <Metrica icono={AlertTriangle} valor={cargandoAlertas ? '…' : errorAlertas ? '—' : alertas.length} etiqueta="Alertas activas" tono={alertas.length ? 'aviso' : 'exito'} />
         <Metrica icono={Store} valor={sucursalActiva?.nombre ?? '—'} etiqueta="Sucursal activa" tono="info" />
@@ -332,7 +352,7 @@ export default function InventarioPage() {
                 : alertas.length === 0 ? <EstadoVacio icono={AlertTriangle} titulo="No hay alertas de stock">
                   Ningún insumo está por debajo de su mínimo en esta sucursal.
                 </EstadoVacio>
-                  : <Table columnas={columnasAlertas} filas={alertas} idFila="insumo" vacio="No hay alertas para mostrar." scrollVertical={false} />}
+                  : <Table columnas={columnasAlertas} filas={alertas} idFila="insumo" vacio="No hay alertas para mostrar." scrollVertical={false} idTabla="inventario-alertas" />}
           </Card>
         </section>
       )}
@@ -395,7 +415,7 @@ export default function InventarioPage() {
                   : stockFiltrado.length === 0 ? <EstadoVacio icono={Search} titulo="No encontramos insumos">
                     Prueba con otro nombre o limpia la búsqueda.
                   </EstadoVacio>
-                    : <Table columnas={columnasStock} filas={stockFiltrado} idFila="id_insumo" vacio="No hay existencias para mostrar." />}
+                    : <Table columnas={columnasStock} filas={stockFiltrado} idFila="id_insumo" vacio="No hay existencias para mostrar." idTabla="inventario-stock" />}
           </Card>
         </section>
       )}
@@ -411,7 +431,6 @@ export default function InventarioPage() {
               <div className="mb-5 rounded-lg border border-line bg-muted/50 px-4 py-3 text-sm">
                 <span className="font-medium">Sucursal de la merma: </span>{sucursalActiva?.nombre ?? 'Sin sucursal seleccionada'}
               </div>
-              {errorMerma && <BannerError className="mb-4" error={errorMerma} onCerrar={() => setErrorMerma(null)} />}
               {cargandoStock ? <Spinner texto="Cargando insumos…" />
                 : errorStock ? <p className="text-sm text-fg-muted">No se puede cargar la lista de insumos hasta resolver el error de stock.</p>
                   : !stock.length ? <EstadoVacio icono={PackageMinus} titulo="No hay insumos disponibles para seleccionar">

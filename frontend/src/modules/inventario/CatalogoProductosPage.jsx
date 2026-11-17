@@ -121,7 +121,7 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
         {/* Tarjetas de Métricas Financieras (KPI Strip) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-5">
           {/* 1. Precio Venta (con IVA) */}
-          <div className="bg-white border border-line rounded-xl p-3.5 shadow-xs flex flex-col justify-between">
+          <div className="bg-surface border border-line rounded-xl p-3.5 shadow-xs flex flex-col justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-muted block mb-1">
               Precio Venta (con IVA)
             </span>
@@ -131,7 +131,7 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
           </div>
 
           {/* 2. Costo Teórico Total */}
-          <div className="bg-white border border-line rounded-xl p-3.5 shadow-xs flex flex-col justify-between">
+          <div className="bg-surface border border-line rounded-xl p-3.5 shadow-xs flex flex-col justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-muted block mb-1">
               Costo Teórico Total
             </span>
@@ -141,7 +141,7 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
           </div>
 
           {/* 3. Margen s/Neto */}
-          <div className="bg-white border border-line rounded-xl p-3.5 shadow-xs flex flex-col justify-between">
+          <div className="bg-surface border border-line rounded-xl p-3.5 shadow-xs flex flex-col justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-muted block mb-1">
               Margen s/Neto
             </span>
@@ -175,7 +175,7 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
         ) : cargando ? (
           <div className="space-y-3 py-4 animate-pulse" aria-busy="true">
             <div className="h-4 w-44 rounded bg-espresso-200/50" />
-            <div className="divide-y divide-line rounded-xl border border-line bg-white overflow-hidden">
+            <div className="divide-y divide-line rounded-xl border border-line bg-surface overflow-hidden">
               {[1, 2, 3].map((n) => (
                 <div key={n} className="flex items-center justify-between p-3.5">
                   <div className="h-4 w-36 rounded bg-espresso-200/40" />
@@ -187,14 +187,14 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
             </div>
           </div>
         ) : componentes.length === 0 ? (
-          <div className="py-8 px-4 text-center text-sm text-fg-muted bg-white rounded-xl border border-line">
+          <div className="py-8 px-4 text-center text-sm text-fg-muted bg-surface rounded-xl border border-line">
             Este producto aún no tiene ingredientes registrados en su receta.
           </div>
         ) : (
-          <div className="bg-white border border-line rounded-xl overflow-hidden shadow-xs">
+          <div className="bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
             <div className="max-h-72 overflow-y-auto scroll-fino">
               <table className="w-full text-left text-sm border-collapse">
-                <thead className="bg-muted text-[11px] font-semibold uppercase tracking-wider text-fg-muted sticky top-0 z-10 border-b border-line">
+                <thead className="sticky top-0 z-10 border-b border-line bg-muted text-xs font-semibold uppercase tracking-wide text-fg-muted">
                   <tr>
                     <th className="py-3 px-4">Ingrediente</th>
                     <th className="py-3 px-4 text-center">Cantidad</th>
@@ -260,13 +260,9 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
 
         {/* Pie de Acciones Equilibrado */}
         <div className="flex items-center justify-end gap-3 pt-5 mt-5 border-t border-line">
-          <button
-            type="button"
-            onClick={onCerrar}
-            className="border border-line bg-white text-fg hover:bg-muted px-4 py-2.5 rounded-xl font-medium transition-colors cursor-pointer text-sm"
-          >
+          <Button variante="ghost" onClick={onCerrar}>
             Cerrar
-          </button>
+          </Button>
           {tienePermisoRecetas && (
             <AccionConTooltip texto="Editar receta completa">
               <BotonIcono icono={ChefHat} className="!size-10" etiqueta={`Editar receta de ${producto.nombre}`} onClick={() => onEditarReceta(producto.id_producto)} />
@@ -346,8 +342,6 @@ function AccionesProducto({ producto, tiene, navegar, editar, cambiarEstado, eli
   );
 }
 
-// Mensaje local (validación de formulario o de conexión) con la misma forma que
-// espera BannerError, para no mezclar errores de servidor con texto plano.
 const avisoLocal = (mensaje, titulo = 'Revisa la información') => ({
   titulo,
   mensaje,
@@ -384,7 +378,7 @@ function SelectorTipoProducto({ form, setForm }) {
 export default function CatalogoProductosPage() {
   const navigate = useNavigate();
   const { tiene } = useAuth();
-  const { confirm, notificar } = useAlert();
+  const { confirm, notificar, notificarError } = useAlert();
 
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -408,7 +402,7 @@ export default function CatalogoProductosPage() {
   const [productoEditando, setProductoEditando] = useState(null);
   const [productoPrevisualizar, setProductoPrevisualizar] = useState(null);
   const [form, setForm] = useState(FORM_VACIO);
-  const [formError, setFormError] = useState(null);
+  const [errorNombre, setErrorNombre] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [drawerInsumoAbierto, setDrawerInsumoAbierto] = useState(false);
   const [valoresInsumo, setValoresInsumo] = useState({});
@@ -486,7 +480,7 @@ export default function CatalogoProductosPage() {
   const abrirCrear = () => {
     setProductoEditando(null);
     setForm(FORM_VACIO);
-    setFormError(null);
+    setErrorNombre(null);
     setDrawerAbierto(true);
   };
 
@@ -501,7 +495,7 @@ export default function CatalogoProductosPage() {
       id_insumo_reventa: p.id_insumo_reventa != null ? String(p.id_insumo_reventa) : '',
       activo: p.activo ?? true,
     });
-    setFormError(null);
+    setErrorNombre(null);
     setDrawerAbierto(true);
   };
 
@@ -509,7 +503,7 @@ export default function CatalogoProductosPage() {
     setDrawerAbierto(false);
     setProductoEditando(null);
     setForm(FORM_VACIO);
-    setFormError(null);
+    setErrorNombre(null);
   };
 
   useEffect(() => {
@@ -530,14 +524,20 @@ export default function CatalogoProductosPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setFormError(null);
+    setErrorNombre(null);
 
-    if (!form.nombre.trim()) return setFormError(avisoLocal('El nombre del producto es obligatorio.'));
+    if (!form.nombre.trim()) {
+      setErrorNombre('El nombre del producto es obligatorio.');
+      notificar.advertencia('Nombre requerido', { mensaje: 'El nombre del producto es obligatorio.' });
+      return;
+    }
     if (!form.precio_venta || Number(form.precio_venta) <= 0) {
-      return setFormError(avisoLocal('El precio de venta debe ser un número positivo.'));
+      notificar.advertencia('Precio inválido', { mensaje: 'El precio de venta debe ser un número positivo.' });
+      return;
     }
     if (!form.es_elaborado && !form.id_insumo_reventa) {
-      return setFormError(avisoLocal('Para productos de reventa, debes asociar un insumo correspondiente.'));
+      notificar.advertencia('Insumo requerido', { mensaje: 'Para productos de reventa, debes asociar un insumo correspondiente.' });
+      return;
     }
 
     setGuardando(true);
@@ -564,7 +564,7 @@ export default function CatalogoProductosPage() {
           navigate(`/catalogo/productos/${idCreado}/receta`);
           return;
         } else if (form.es_elaborado) {
-          notificar.advertencia('Producto creado. Agrega ahora los ingredientes de su receta cuando tengas el permiso INV_GESTIONAR_RECETAS.');
+          notificar.advertencia('Producto creado', { mensaje: 'Agrega ahora los ingredientes de su receta cuando tengas el permiso INV_GESTIONAR_RECETAS.' });
         } else {
           notificar.exito('Producto creado correctamente.');
         }
@@ -573,9 +573,10 @@ export default function CatalogoProductosPage() {
       cerrarDrawer();
       await cargarDatos();
     } catch (err) {
-      const traducido = traducirError(err);
-      if (traducido.id === 'DUPLICADO') traducido.campos = { nombre: traducido.mensaje };
-      setFormError(traducido);
+      const traducido = notificarError(err);
+      if (traducido?.id === 'DUPLICADO') {
+        setErrorNombre(traducido.mensaje || 'Ya existe un producto con ese nombre. Cambia el nombre o el código.');
+      }
     } finally {
       setGuardando(false);
     }
@@ -606,7 +607,7 @@ export default function CatalogoProductosPage() {
       );
       notificar.exito(nuevoEstado ? 'Producto habilitado correctamente.' : 'Producto desactivado correctamente.');
     } catch (err) {
-      notificar.error(traducirError(err));
+      notificarError(err);
     }
   };
 
@@ -631,7 +632,7 @@ export default function CatalogoProductosPage() {
       setProductos((prev) => prev.filter((item) => item.id_producto !== p.id_producto));
       notificar.exito('Producto eliminado del catálogo.');
     } catch (err) {
-      notificar.error(traducirError(err));
+      notificarError(err);
     }
   };
 
@@ -665,21 +666,46 @@ export default function CatalogoProductosPage() {
     { valor: '', texto: 'Selecciona un insumo de reventa…' },
     ...insumosReventa.map((i) => ({ valor: String(i.id_insumo), texto: i.nombre })),
   ];
-  const errorNombre = formError?.campos?.nombre || (formError?.id === 'DUPLICADO' ? 'Ya existe un producto con ese nombre. Cambia el nombre o el código.' : null);
 
   // ── Columnas de la tabla ────────────────────────────────────────────────────
   const columnas = [
     {
       clave: 'nombre',
       titulo: 'Producto',
+      tipo: 'texto',
+      valorOrden: (p) => p.nombre,
       render: (p) => (
         <div className="producto-tabla min-w-0">
           <span className="nombre-producto-tabla block truncate font-semibold leading-tight text-fg" title={p.nombre}>{p.nombre}</span>
-          <div className="flex min-w-0 items-center">
+          <div className="flex min-w-0 items-center gap-2">
             {p.codigo_barra && (
               <span className="codigo-producto-tabla truncate font-mono text-xs text-fg-muted">
                 {p.codigo_barra}
               </span>
+            )}
+            {p.es_elaborado && (
+              Number(p.n_ingredientes) === 0 ? (
+                <span
+                  title="Sin receta: no se puede vender"
+                  className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-warning-soft text-warning shrink-0"
+                >
+                  <AlertTriangle size={10} aria-hidden="true" />
+                  Sin receta
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setProductoPrevisualizar(p);
+                  }}
+                  title="Clic para previsualizar ingredientes de la receta"
+                  className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-success-soft text-success hover:bg-success/20 transition-colors cursor-pointer border border-success/30 shadow-xs shrink-0"
+                >
+                  <ChefHat size={10} aria-hidden="true" />
+                  <span>{formatearUnidades(p.n_ingredientes)} ing.</span>
+                </button>
+              )
             )}
           </div>
         </div>
@@ -688,6 +714,8 @@ export default function CatalogoProductosPage() {
     {
       clave: 'categoria',
       titulo: 'Categoría',
+      tipo: 'texto',
+      valorOrden: (p) => p.nombre_categoria ?? categorias.find((c) => String(c.id_categoria) === String(p.id_categoria))?.nombre ?? '',
       render: (p) => (
         <span className="inline-flex items-center gap-1 text-sm text-fg-muted">
           <Tag size={13} aria-hidden="true" />
@@ -698,13 +726,24 @@ export default function CatalogoProductosPage() {
     {
       clave: 'tipo',
       titulo: 'Tipo',
-      render: (p) => <div className="tipo-producto-tabla"><BadgeTipo esElaborado={p.es_elaborado} />{!p.es_elaborado && p.insumo_reventa && p.insumo_reventa !== p.nombre && <p className="mt-0.5 truncate text-xs text-fg-muted" title={p.insumo_reventa}>Insumo: {p.insumo_reventa}</p>}</div>,
+      tipo: 'texto',
+      valorOrden: (p) => (p.es_elaborado ? 'Elaborado' : 'Reventa'),
+      render: (p) => (
+        <div className="tipo-producto-tabla">
+          <BadgeTipo esElaborado={p.es_elaborado} />
+          {!p.es_elaborado && p.insumo_reventa && p.insumo_reventa !== p.nombre && (
+            <p className="mt-0.5 truncate text-xs text-fg-muted" title={p.insumo_reventa}>Insumo: {p.insumo_reventa}</p>
+          )}
+        </div>
+      ),
     },
     {
       clave: 'precio_venta',
       titulo: 'Precio',
+      tipo: 'dinero',
       descripcion: 'Precio de venta con IVA',
       alinear: 'right',
+      valorOrden: (p) => p.precio_venta,
       render: (p) => (
         <span className="font-mono font-bold whitespace-nowrap text-primary-text">
           {formatoDinero(p.precio_venta)}
@@ -714,7 +753,9 @@ export default function CatalogoProductosPage() {
     {
       clave: 'costo_teorico',
       titulo: 'Costo',
+      tipo: 'dinero',
       alinear: 'right',
+      valorOrden: (p) => p.costo_teorico,
       render: (p) => (
         <span className="font-mono whitespace-nowrap text-fg">
           {p.costo_teorico == null ? '—' : formatoDinero(p.costo_teorico)}
@@ -724,8 +765,10 @@ export default function CatalogoProductosPage() {
     {
       clave: 'margen',
       titulo: 'Margen',
+      tipo: 'numero',
       descripcion: 'Margen sobre el precio sin IVA',
       alinear: 'right',
+      valorOrden: (p) => calcularMargen(p.precio_venta, p.costo_teorico),
       render: (p) => (
         <span className="font-mono whitespace-nowrap text-fg">
           {p.costo_teorico == null ? '—' : `${calcularMargen(p.precio_venta, p.costo_teorico)?.toFixed(1) ?? '—'}%`}
@@ -735,6 +778,8 @@ export default function CatalogoProductosPage() {
     {
       clave: 'estado',
       titulo: 'Estado',
+      tipo: 'booleano',
+      valorOrden: (p) => p.activo !== false,
       render: (p) => (
         <EstadoBadge tipo={p.activo !== false ? 'exito' : 'error'}>
           {p.activo !== false ? 'Activo' : 'Inactivo'}
@@ -744,6 +789,7 @@ export default function CatalogoProductosPage() {
     {
       clave: '_acciones',
       titulo: 'Acciones',
+      ordenable: false,
       alinear: 'right',
       ancho: 'acciones',
       render: (p) => <AccionesProducto producto={p} tiene={tiene} navegar={navigate} editar={abrirEditar} cambiarEstado={handleToggleEstado} eliminar={handleEliminarProducto} />,
@@ -753,7 +799,7 @@ export default function CatalogoProductosPage() {
   return (
     <div className="space-y-6">
       <EncabezadoPagina
-        seccion="Inventario & Catálogo"
+        seccion="Operación · Catálogo"
         titulo="Catálogo de Productos"
         descripcion="Administración de productos elaborados con receta y artículos de reventa empaquetados"
         acciones={
@@ -886,6 +932,7 @@ export default function CatalogoProductosPage() {
             columnas={columnas}
             filas={productosFiltrados}
             idFila="id_producto"
+            idTabla="catalogo-productos"
             vacio="Sin productos disponibles."
             scrollVertical={false}
             maxAltura=""
@@ -1000,7 +1047,6 @@ export default function CatalogoProductosPage() {
                 onSubmit={handleSubmit}
                 className="flex flex-col gap-4 flex-1 overflow-y-auto px-6 py-5 scroll-fino"
               >
-                {formError && <BannerError error={formError} onCerrar={() => setFormError(null)} />}
                 <SelectorTipoProducto form={form} setForm={setForm} />
                 <div>
                   <label htmlFor="producto-nombre" className="mb-1 block text-sm font-medium text-fg">
@@ -1014,7 +1060,10 @@ export default function CatalogoProductosPage() {
                     maxLength={150}
                     required
                     value={form.nombre}
-                    onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
+                    onChange={(e) => {
+                      setErrorNombre(null);
+                      setForm((f) => ({ ...f, nombre: e.target.value }));
+                    }}
                   />
                   <CampoError id="producto-nombre" mensaje={errorNombre} />
                 </div>

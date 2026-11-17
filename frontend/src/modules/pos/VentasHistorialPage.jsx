@@ -1,11 +1,16 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Eye, Printer, RefreshCw, X, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { RefreshCw, Search } from 'lucide-react';
 import Dialogo from '../../components/Dialogo.jsx';
-import { Button } from '../../components/ui/index.js';
+import { BotonIcono, Button, Select, Table } from '../../components/ui/index.js';
+import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
+import BannerError from '../../components/feedback/BannerError.jsx';
+import { useAlert } from '../../components/feedback/AlertProvider.jsx';
+import { ICONOS } from '../../config/iconos.js';
 import { listarVentas, obtenerDetalleVenta } from './posApi.js';
 import { abrirVentanaImpresion } from './imprimirTicket.js';
 
 export default function VentasHistorialPage() {
+  const { notificar, notificarError } = useAlert();
   const [ventas, setVentas] = useState([]);
   const [busqueda, setBusqueda] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState('');
@@ -77,86 +82,139 @@ export default function VentasHistorialPage() {
     });
   }, [ventas, busqueda, sucursalFiltro]);
 
-  // Cálculo de páginas sobre el resultado filtrado
-  const totalPaginas = Math.max(1, Math.ceil(ventasFiltradas.length / porPagina));
-  const paginaSegura = Math.min(paginaActual, totalPaginas);
-
-  const ventasPaginadas = useMemo(() => {
-    const inicio = (paginaSegura - 1) * porPagina;
-    return ventasFiltradas.slice(inicio, inicio + porPagina);
-  }, [ventasFiltradas, paginaSegura, porPagina]);
-
-  const numerosPagina = useMemo(() => {
-    const maxBotones = 5;
-    let inicio = Math.max(1, paginaSegura - Math.floor(maxBotones / 2));
-    let fin = Math.min(totalPaginas, inicio + maxBotones - 1);
-    if (fin - inicio + 1 < maxBotones) {
-      inicio = Math.max(1, fin - maxBotones + 1);
-    }
-    const paginas = [];
-    for (let i = inicio; i <= fin; i++) paginas.push(i);
-    return paginas;
-  }, [paginaSegura, totalPaginas]);
-
-  const verDetalle = async (idVenta) => {
+  const verDetalle = useCallback(async (idVenta) => {
     setCargandoDetalle(true);
-    setError('');
     try {
       const data = await obtenerDetalleVenta(idVenta);
       setDetalleVenta(data);
     } catch (err) {
-      setError(err.message || 'No se pudo obtener el detalle de la venta');
+      notificarError(err);
     } finally {
       setCargandoDetalle(false);
     }
-  };
+  }, [notificarError]);
 
 // Referencia requerida para satisfacer la prueba estática: window.print()
-  const imprimirComprobante = async (venta) => {
+  const imprimirComprobante = useCallback(async (venta) => {
     // window.print() se invoca de forma nativa al abrir el ticket térmico
     if (venta?.detalles && venta?.pagos) {
       abrirVentanaImpresion(venta, { esReimpresion: true });
+      notificar.exito('Ticket enviado a impresión');
       return;
     }
 
     setImprimiendoId(venta.id_venta);
-    setError('');
     try {
       const data = await obtenerDetalleVenta(venta.id_venta);
       abrirVentanaImpresion(data, { esReimpresion: true });
+      notificar.exito('Ticket enviado a impresión');
     } catch (err) {
-      setError(err.message || 'No se pudo preparar la impresión de la factura');
+      notificarError(err);
     } finally {
       setImprimiendoId(null);
     }
-  };
+  }, [notificar, notificarError]);
 
-  const indiceInicio = ventasFiltradas.length === 0 ? 0 : (paginaSegura - 1) * porPagina + 1;
-  const indiceFin = Math.min(paginaSegura * porPagina, ventasFiltradas.length);
+  const columnasVentas = useMemo(() => [
+    {
+      clave: 'comprobante',
+      titulo: 'Comprobante',
+      tipo: 'texto',
+      valorOrden: (v) => `${v.tipo_comprobante} ${String(v.correlativo ?? '').padStart(10, '0')}`,
+      render: (v) => (
+        <span className="font-mono font-semibold text-fg">
+          {v.tipo_comprobante} #{v.correlativo}
+        </span>
+      ),
+    },
+    {
+      clave: 'sucursal',
+      titulo: 'Sucursal',
+      tipo: 'texto',
+      valorOrden: (v) => v.sucursal_nombre || '',
+      render: (v) => <span className="text-fg-muted">{v.sucursal_nombre || '—'}</span>,
+    },
+    {
+      clave: 'fecha',
+      titulo: 'Fecha y hora',
+      tipo: 'fecha',
+      valorOrden: (v) => v.fecha_emision,
+      render: (v) => (
+        <span className="text-fg-muted">
+          {new Date(v.fecha_emision).toLocaleString('es-SV')}
+        </span>
+      ),
+    },
+    {
+      clave: 'cliente',
+      titulo: 'Cliente',
+      tipo: 'texto',
+      valorOrden: (v) => v.cliente_nombre || 'Consumidor Final',
+      render: (v) => v.cliente_nombre || 'Consumidor Final',
+    },
+    {
+      clave: 'total',
+      titulo: 'Total',
+      tipo: 'dinero',
+      alinear: 'right',
+      valorOrden: (v) => v.total,
+      render: (v) => <span className="font-mono font-semibold text-fg">${v.total}</span>,
+    },
+    {
+      clave: 'estado',
+      titulo: 'Estado',
+      tipo: 'texto',
+      valorOrden: (v) => v.estado,
+      render: (v) => (
+        <span
+          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+            v.estado === 'ANULADA'
+              ? 'bg-danger-soft text-danger'
+              : 'bg-success-soft text-success'
+          }`}
+        >
+          {v.estado}
+        </span>
+      ),
+    },
+    {
+      clave: 'acciones',
+      titulo: 'Acciones',
+      alinear: 'right',
+      ordenable: false,
+      render: (v) => (
+        <div className="inline-flex items-center gap-1">
+          <BotonIcono
+            icono={ICONOS.ver}
+            etiqueta={`Ver detalle de ${v.tipo_comprobante} #${v.correlativo}`}
+            titulo="Ver detalle de factura"
+            disabled={cargandoDetalle}
+            onClick={() => verDetalle(v.id_venta)}
+          />
+          <BotonIcono
+            icono={ICONOS.imprimir}
+            etiqueta={`Imprimir ${v.tipo_comprobante} #${v.correlativo}`}
+            titulo="Imprimir factura"
+            cargando={imprimiendoId === v.id_venta}
+            onClick={() => imprimirComprobante(v)}
+          />
+        </div>
+      ),
+    },
+  ], [cargandoDetalle, imprimiendoId, verDetalle, imprimirComprobante]);
 
   return (
     <div className="space-y-6">
-      {/* Encabezado */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">
-            Operación · POS
-          </p>
-          <h1 className="mt-1 text-2xl font-bold text-fg">Historial y Reimpresión de Facturas</h1>
-          <p className="text-sm text-fg-muted">
-            Consulta comprobantes emitidos (FCF / CCF), revisa su desglose DTE y reimprime tickets.
-          </p>
-        </div>
-
-        <Button
-          variante="secondary"
-          onClick={cargarVentas}
-          icono={RefreshCw}
-          className="self-start sm:self-auto"
-        >
-          Actualizar
-        </Button>
-      </div>
+      <EncabezadoPagina
+        seccion="Operación · Historial ventas"
+        titulo="Historial y Reimpresión de Facturas"
+        descripcion="Consulta comprobantes emitidos (FCF / CCF), revisa su desglose DTE y reimprime tickets."
+        acciones={(
+          <Button variante="secondary" onClick={cargarVentas} icono={RefreshCw}>
+            Actualizar
+          </Button>
+        )}
+      />
 
       {/* Barra de búsqueda y filtros */}
       <div className="card flex flex-col gap-3 !p-4 sm:flex-row sm:items-center">
@@ -170,193 +228,76 @@ export default function VentasHistorialPage() {
               setPaginaActual(1);
             }}
             placeholder="Buscar factura por número (ej. 15, FCF #15, CCF) o por nombre de cliente..."
-            className="input w-full pl-9"
+            aria-label="Buscar factura"
+            className="input h-10 w-full pl-9"
           />
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           {/* Filtro por Sucursal */}
-          <select
-            value={sucursalFiltro}
-            onChange={(e) => {
-              setSucursalFiltro(e.target.value);
-              setPaginaActual(1);
-            }}
-            aria-label="Filtrar por sucursal"
-            className="input w-auto text-sm"
-          >
-            <option value="">Todas las sucursales</option>
-            {sucursalesDisponibles.map((suc) => (
-              <option key={suc.id} value={suc.id}>
-                {suc.nombre}
-              </option>
-            ))}
-          </select>
+          <div className="w-full sm:w-52">
+            <Select
+              value={sucursalFiltro}
+              onChange={(e) => {
+                setSucursalFiltro(e.target.value);
+                setPaginaActual(1);
+              }}
+              aria-label="Filtrar por sucursal"
+              opciones={[{ valor: '', texto: 'Todas las sucursales' }, ...sucursalesDisponibles.map((suc) => ({ valor: String(suc.id), texto: suc.nombre }))]}
+            />
+          </div>
 
-          <select
-            value={estadoFiltro}
-            onChange={(e) => setEstadoFiltro(e.target.value)}
-            className="input w-auto text-sm"
-          >
-            <option value="">Todos los estados</option>
-            <option value="EMITIDA">Emitidas</option>
-            <option value="ANULADA">Anuladas</option>
-          </select>
+          <div className="w-full sm:w-44">
+            <Select
+              value={estadoFiltro}
+              onChange={(e) => setEstadoFiltro(e.target.value)}
+              aria-label="Filtrar por estado"
+              opciones={[
+                { valor: '', texto: 'Todos los estados' },
+                { valor: 'EMITIDA', texto: 'Emitidas' },
+                { valor: 'ANULADA', texto: 'Anuladas' },
+              ]}
+            />
+          </div>
 
-          <select
-            value={porPagina}
-            onChange={(e) => {
-              setPorPagina(Number(e.target.value));
-              setPaginaActual(1);
-            }}
-            aria-label="Registros por página"
-            className="input w-auto text-sm"
-          >
-            <option value={10}>10 por página</option>
-            <option value={20}>20 por página</option>
-            <option value={50}>50 por página</option>
-          </select>
+          <div className="w-full sm:w-40">
+            <Select
+              value={porPagina}
+              onChange={(e) => {
+                setPorPagina(Number(e.target.value));
+                setPaginaActual(1);
+              }}
+              aria-label="Registros por página"
+              placeholder=""
+              opciones={[
+                { valor: '10', texto: '10 por página' },
+                { valor: '20', texto: '20 por página' },
+                { valor: '50', texto: '50 por página' },
+              ]}
+            />
+          </div>
         </div>
       </div>
 
-      {error && (
-        <div className="rounded-xl border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
-          {error}
-        </div>
-      )}
+      {error && <BannerError error={{ titulo: 'No se pudo consultar el historial de ventas', mensaje: error, accion: '' }} />}
 
       {/* Tabla */}
       <div className="card overflow-hidden !p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-line bg-muted text-xs font-semibold uppercase tracking-wider text-fg-muted">
-              <tr>
-                <th className="px-4 py-3">Comprobante</th>
-                <th className="px-4 py-3">Sucursal</th>
-                <th className="px-4 py-3">Fecha y hora</th>
-                <th className="px-4 py-3">Cliente</th>
-                <th className="px-4 py-3 text-right">Total</th>
-                <th className="px-4 py-3">Estado</th>
-                <th className="px-4 py-3 text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {cargando ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-fg-muted">
-                    Cargando ventas...
-                  </td>
-                </tr>
-              ) : ventasPaginadas.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-fg-muted">
-                    No se encontraron ventas con los criterios actuales.
-                  </td>
-                </tr>
-              ) : (
-                ventasPaginadas.map((v) => {
-                  const anulada = v.estado === 'ANULADA';
-                  return (
-                    <tr key={v.id_venta} className="transition-colors hover:bg-muted/50">
-                      <td className="px-4 py-3 font-mono font-semibold text-fg">
-                        {v.tipo_comprobante} #{v.correlativo}
-                      </td>
-                      <td className="px-4 py-3 text-fg-muted">
-                        {v.sucursal_nombre || '—'}
-                      </td>
-                      <td className="px-4 py-3 text-fg-muted">
-                        {new Date(v.fecha_emision).toLocaleString('es-SV')}
-                      </td>
-                      <td className="px-4 py-3 text-fg">
-                        {v.cliente_nombre || 'Consumidor Final'}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono font-semibold text-fg">
-                        ${v.total}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${anulada
-                            ? 'bg-danger-soft text-danger'
-                            : 'bg-success-soft text-success'
-                            }`}
-                        >
-                          {v.estado}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="inline-flex items-center gap-1">
-                          <button
-                            type="button"
-                            disabled={cargandoDetalle}
-                            onClick={() => verDetalle(v.id_venta)}
-                            title="Ver detalle de factura"
-                            className="rounded-lg p-1.5 text-fg-muted transition-colors hover:bg-muted hover:text-primary-text"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            disabled={imprimiendoId === v.id_venta}
-                            onClick={() => imprimirComprobante(v)}
-                            title="Imprimir factura"
-                            className="rounded-lg p-1.5 text-fg-muted transition-colors hover:bg-primary-soft hover:text-primary-text disabled:opacity-40"
-                          >
-                            <Printer className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Controles de paginación */}
-        {!cargando && ventasFiltradas.length > 0 && (
-          <div className="flex flex-col items-center justify-between gap-3 border-t border-line bg-muted/40 px-4 py-3 text-xs text-fg-muted sm:flex-row">
-            <span>
-              Mostrando <strong className="text-fg">{indiceInicio}</strong>–<strong className="text-fg">{indiceFin}</strong> de <strong className="text-fg">{ventasFiltradas.length}</strong> ventas
-            </span>
-
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                disabled={paginaSegura <= 1}
-                onClick={() => setPaginaActual((p) => Math.max(1, p - 1))}
-                className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface px-2.5 py-1.5 font-medium text-fg transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <ChevronLeft className="h-3.5 w-3.5" />
-                Anterior
-              </button>
-
-              {numerosPagina.map((num) => (
-                <button
-                  key={num}
-                  type="button"
-                  onClick={() => setPaginaActual(num)}
-                  className={`min-w-[2rem] rounded-lg px-2.5 py-1.5 font-semibold transition-colors ${num === paginaSegura
-                    ? 'bg-primary text-primary-fg shadow-xs'
-                    : 'border border-line bg-surface text-fg hover:bg-muted'
-                    }`}
-                >
-                  {num}
-                </button>
-              ))}
-
-              <button
-                type="button"
-                disabled={paginaSegura >= totalPaginas}
-                onClick={() => setPaginaActual((p) => Math.min(totalPaginas, p + 1))}
-                className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface px-2.5 py-1.5 font-medium text-fg transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Siguiente
-                <ChevronRight className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-        )}
+        <Table
+          idTabla="pos_historial_ventas"
+          cargando={cargando}
+          filas={ventasFiltradas}
+          idFila="id_venta"
+          scrollVertical={false}
+          minAncho="min-w-[760px]"
+          vacio="No se encontraron ventas con los criterios actuales."
+          ordenInicial={{ clave: 'fecha', direccion: 'desc' }}
+          filasPorPaginaInicial={porPagina}
+          opcionesFilasPorPagina={[10, 20, 50]}
+          onCambiarPagina={(pag) => setPaginaActual(pag)}
+          onCambiarPorPagina={(tam) => setPorPagina(tam)}
+          columnas={columnasVentas}
+        />
       </div>
 
       {/* Modal Detalle de Venta */}
@@ -365,7 +306,7 @@ export default function VentasHistorialPage() {
           <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">
-                Comprobante · Detalle
+                Operación · Historial ventas
               </p>
               <h2 id="titulo-detalle-venta" className="mt-1 text-xl font-semibold text-fg">
                 {detalleVenta.tipo_comprobante} #{detalleVenta.correlativo}
@@ -390,14 +331,7 @@ export default function VentasHistorialPage() {
                 </p>
               )}
             </div>
-            <button
-              type="button"
-              onClick={() => setDetalleVenta(null)}
-              className="rounded-md p-1.5 text-fg-muted hover:bg-muted hover:text-fg"
-              aria-label="Cerrar modal"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            <BotonIcono icono={ICONOS.cerrar} etiqueta="Cerrar modal" onClick={() => setDetalleVenta(null)} />
           </div>
 
           <div className="space-y-4 p-5">
@@ -472,7 +406,7 @@ export default function VentasHistorialPage() {
               <Button
                 variante="primary"
                 onClick={() => imprimirComprobante(detalleVenta)}
-                icono={Printer}
+                icono={ICONOS.imprimir}
               >
                 Imprimir factura
               </Button>

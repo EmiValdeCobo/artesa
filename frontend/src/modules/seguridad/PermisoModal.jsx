@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Lock, TriangleAlert, X } from 'lucide-react';
-import BannerError from '../../components/feedback/BannerError.jsx';
+import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import CampoError, { idError } from '../../components/forms/CampoError.jsx';
 import Dialogo from '../../components/Dialogo.jsx';
 import { LIMITES, descripcionONull, infoModulo, motivoBloqueoPermiso, validarPermiso } from './rbac.js';
@@ -11,7 +11,8 @@ const describir = (errores, campo) => (errores[campo] ? idError(idCampo(campo)) 
 
 // Crear (permiso = null) o editar un permiso del catálogo.
 // `modulos` son los módulos ya existentes (sugerencias); `permisos` sirve para detectar códigos repetidos.
-export default function PermisoModal({ permiso, permisos, modulos, guardando, error, onDescartarError, onClose, onSubmit }) {
+export default function PermisoModal({ permiso, permisos, modulos, guardando, onClose, onSubmit }) {
+  const { notificar } = useAlert();
   const [formulario, setFormulario] = useState({ codigo: permiso?.codigo ?? '', modulo: permiso?.modulo ?? '', descripcion: permiso?.descripcion ?? '' });
   const [errores, setErrores] = useState({});
   const codigoRef = useRef(null);
@@ -25,12 +26,6 @@ export default function PermisoModal({ permiso, permisos, modulos, guardando, er
     if (campo) document.getElementById(idCampo(campo))?.focus();
   };
 
-  useEffect(() => {
-    if (!error?.campos) return;
-    setErrores(error.campos);
-    enfocarPrimero(error.campos);
-  }, [error]);
-
   const actualizar = (campo, valor) => {
     setFormulario((actual) => ({ ...actual, [campo]: valor }));
     setErrores(({ [campo]: _quitado, ...resto }) => resto);
@@ -40,7 +35,13 @@ export default function PermisoModal({ permiso, permisos, modulos, guardando, er
     event.preventDefault();
     const encontrados = validarPermiso(formulario, { permisos, idActual: permiso?.id_permiso ?? null });
     setErrores(encontrados);
-    if (Object.keys(encontrados).length) { enfocarPrimero(encontrados); return; }
+    if (Object.keys(encontrados).length) {
+      enfocarPrimero(encontrados);
+      notificar.advertencia('Campos requeridos incompletos', {
+        mensaje: 'Revisa los campos señalados en el formulario.',
+      });
+      return;
+    }
     // El módulo se guarda en MAYÚSCULAS como los existentes, para que "Caja" y "CAJA" no formen dos grupos.
     ultimoEnvio.current = { codigo: formulario.codigo.trim(), modulo: formulario.modulo.trim().toUpperCase(), descripcion: descripcionONull(formulario.descripcion) };
     onSubmit(ultimoEnvio.current);
@@ -60,8 +61,6 @@ export default function PermisoModal({ permiso, permisos, modulos, guardando, er
 
       <form noValidate onSubmit={enviar}>
         <div className="space-y-5 p-5 sm:p-6">
-          <BannerError error={error} onCerrar={onDescartarError} onReintentar={() => ultimoEnvio.current && onSubmit(ultimoEnvio.current)} />
-
           <div>
             <label htmlFor={idCampo('codigo')} className="block text-sm font-medium">Código</label>
             <input id={idCampo('codigo')} ref={codigoRef} className={`input mt-1.5 font-mono text-sm uppercase ${claseInvalida} disabled:cursor-not-allowed disabled:bg-muted`} value={formulario.codigo}

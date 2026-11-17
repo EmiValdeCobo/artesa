@@ -3,12 +3,16 @@ import { useSearchParams } from 'react-router-dom';
 import { ArrowDown, ArrowUp, ArrowUpDown, Download, PackageSearch, Search, X } from 'lucide-react';
 import { api } from '../../api/client.js';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
-import { Button, Card, Select, Table } from '../../components/ui/index.js';
+import { BotonIcono, Button, Card, Select, Table } from '../../components/ui/index.js';
+import { ICONOS } from '../../config/iconos.js';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import { ZONA_NEGOCIO } from '../../config/negocio.js';
 import { formatoDinero, formatearUnidades } from '../../utils/formato.js';
+import { traducirError } from '../../errors/traducirError.js';
+import { ordenarFilas } from '../../utils/tabla.js';
 
 const TOPE_API = 500; // el endpoint devuelve como máximo los 500 movimientos más recientes
 
@@ -68,31 +72,11 @@ function BadgeMovimiento({ tipo }) {
   );
 }
 
-function EncabezadoOrdenable({ clave, titulo, orden, dirOrden, onOrdenar, className = '' }) {
-  const activo = orden === clave;
-  return (
-    <button
-      type="button"
-      onClick={() => onOrdenar(clave)}
-      className={`inline-flex items-center gap-1 uppercase tracking-wide ${activo ? 'text-fg' : ''} ${className}`}
-      aria-sort={activo ? (dirOrden === 'asc' ? 'ascending' : 'descending') : undefined}
-    >
-      {titulo}
-      {activo
-        ? (dirOrden === 'asc' ? <ArrowUp size={12} aria-hidden="true" /> : <ArrowDown size={12} aria-hidden="true" />)
-        : <ArrowUpDown size={12} aria-hidden="true" className="opacity-50" />}
-    </button>
-  );
-}
 
-function comparar(a, b, clave) {
-  if (clave === 'creado_en') return new Date(a.creado_en) - new Date(b.creado_en);
-  if (['cantidad', 'stock_resultante', 'costo_unitario'].includes(clave)) return Number(a[clave] ?? 0) - Number(b[clave] ?? 0);
-  return String(a[clave] ?? '').localeCompare(String(b[clave] ?? ''), 'es');
-}
 
 export default function KardexPage() {
   const { usuario, tiene } = useAuth();
+  const { notificar } = useAlert();
   const verCostos = tiene('INV_VER_COSTOS');
   const sucursales = useMemo(() => usuario?.sucursales ?? [], [usuario?.sucursales]);
   const [parametros, setParametros] = useSearchParams();
@@ -135,7 +119,7 @@ export default function KardexPage() {
   }, [sucursales, sucursal, fijar]);
 
   useEffect(() => {
-    api.get('/inventario/insumos').then(setInsumos).catch((e) => setError(e.message));
+    api.get('/inventario/insumos').then(setInsumos).catch((e) => setError(traducirError(e)));
   }, []);
 
   const cargar = useCallback(async () => {
@@ -147,7 +131,7 @@ export default function KardexPage() {
       if (insumo) q.set('idInsumo', insumo);
       setFilas(await api.get(`/inventario/movimientos?${q}`));
     } catch (e) {
-      setError(e.message);
+      setError(traducirError(e));
     } finally {
       setCargando(false);
     }
@@ -207,38 +191,27 @@ export default function KardexPage() {
     });
   }, [filas, desde, hasta, tiposSel, direccion, buscar]);
 
-  const ordenadas = useMemo(() => {
-    const lista = [...filtradas].sort((a, b) => comparar(a, b, orden));
-    if (dirOrden === 'desc') lista.reverse();
-    return lista;
-  }, [filtradas, orden, dirOrden]);
-
-  const paginas = Math.max(1, Math.ceil(ordenadas.length / tamanoPagina));
-  const paginaActual = Math.min(pagina, paginas - 1);
-  const visibles = ordenadas.slice(paginaActual * tamanoPagina, (paginaActual + 1) * tamanoPagina);
-
   const chips = useMemo(() => {
     const lista = [];
     if (insumo) lista.push({ clave: 'insumo', texto: `Insumo: ${insumos.find((i) => String(i.id_insumo) === insumo)?.nombre ?? insumo}`, quitar: () => fijar({ insumo: null }) });
     if (desde || hasta) lista.push({ clave: 'fechas', texto: `Fechas: ${desde || '…'} a ${hasta || '…'}`, quitar: () => fijar({ desde: null, hasta: null }) });
     tiposSel.forEach((tipo) => lista.push({ clave: `tipo-${tipo}`, texto: ETIQUETA_TIPO[tipo] ?? tipo, quitar: () => alternarTipo(tipo) }));
-    if (direccion !== 'todos') lista.push({ clave: 'direccion', texto: direccion === 'entradas' ? 'Solo entradas' : 'Solo salidas', quitar: () => fijar({ direccion: null }) });
-    if (buscar) lista.push({ clave: 'q', texto: `Buscar: “${buscar}”`, quitar: () => { setTextoBusqueda(''); fijar({ q: null }); } });
+    if (direccion !== 'todos') lista.push({ clave: 'direccion', texto: direccion === 'entradas' ? 'Solo entradas' : 'Solo salidas', quitar: () => fijar({ dir_mov: null }) });
+    if (buscar.trim()) lista.push({ clave: 'buscar', texto: `"${buscar.trim()}"`, quitar: () => fijar({ q: null }) });
     return lista;
-  }, [insumo, insumos, desde, hasta, tiposSel, direccion, buscar, fijar, alternarTipo]);
+  }, [insumos, insumo, desde, hasta, tiposSel, direccion, buscar, fijar, alternarTipo]);
 
   const limpiarFiltros = () => {
     setTextoBusqueda('');
     fijar({ insumo: null, desde: null, hasta: null, tipos: null, direccion: null, q: null });
   };
 
-  const encabezado = (clave, titulo) => (
-    <EncabezadoOrdenable clave={clave} titulo={titulo} orden={orden} dirOrden={dirOrden} onOrdenar={onOrdenar} />
-  );
-
-  const columnas = [
+  const columnas = useMemo(() => [
     {
-      clave: 'creado_en', titulo: 'Fecha', encabezado: encabezado('creado_en', 'Fecha'),
+      clave: 'creado_en',
+      titulo: 'Fecha',
+      tipo: 'fecha',
+      valorOrden: (f) => f.creado_en,
       render: (f) => {
         const fecha = new Date(f.creado_en);
         return Number.isNaN(fecha.getTime())
@@ -246,29 +219,68 @@ export default function KardexPage() {
           : <span className="whitespace-nowrap" title={f.creado_en}>{FORMATO_FECHA_HORA.format(fecha).replaceAll('.', '')}</span>;
       },
     },
-    { clave: 'sucursal', titulo: 'Sucursal', clase: 'hidden xl:table-cell' },
+    { clave: 'sucursal', titulo: 'Sucursal', tipo: 'texto', clase: 'hidden xl:table-cell' },
     {
-      clave: 'insumo', titulo: 'Insumo', encabezado: encabezado('insumo', 'Insumo'),
+      clave: 'insumo',
+      titulo: 'Insumo',
+      tipo: 'texto',
+      valorOrden: (f) => f.insumo,
       render: (f) => <span className="block max-w-56 truncate" title={f.insumo}>{f.insumo}</span>,
     },
-    { clave: 'tipo', titulo: 'Movimiento', encabezado: encabezado('tipo', 'Movimiento'), render: (f) => <BadgeMovimiento tipo={f.tipo} /> },
     {
-      clave: 'cantidad', titulo: 'Cantidad', alinear: 'right', encabezado: encabezado('cantidad', 'Cantidad'),
+      clave: 'tipo',
+      titulo: 'Movimiento',
+      tipo: 'texto',
+      valorOrden: (f) => ETIQUETA_TIPO[f.tipo] ?? f.tipo,
+      render: (f) => <BadgeMovimiento tipo={f.tipo} />,
+    },
+    {
+      clave: 'cantidad',
+      titulo: 'Cantidad',
+      tipo: 'numero',
+      alinear: 'right',
+      valorOrden: (f) => f.cantidad,
       render: (f) => {
         const n = Number(f.cantidad);
         const signo = n > 0 ? '+' : n < 0 ? '−' : '';
         return <span className={`whitespace-nowrap font-semibold ${n > 0 ? 'text-success' : n < 0 ? 'text-danger' : ''}`}>{signo}{formatearUnidades(Math.abs(n))}</span>;
       },
     },
-    { clave: 'stock_resultante', titulo: 'Saldo', alinear: 'right', clase: 'hidden md:table-cell', encabezado: encabezado('stock_resultante', 'Saldo'), render: (f) => formatearUnidades(f.stock_resultante) },
+    {
+      clave: 'stock_resultante',
+      titulo: 'Saldo',
+      tipo: 'numero',
+      alinear: 'right',
+      clase: 'hidden md:table-cell',
+      valorOrden: (f) => f.stock_resultante,
+      render: (f) => formatearUnidades(f.stock_resultante),
+    },
     ...(verCostos ? [{
-      clave: 'costo_unitario', titulo: 'Costo unitario (USD)', encabezado: encabezado('costo_unitario', 'Costo unit.'),
-      descripcion: 'Costo unitario en USD', alinear: 'right', clase: 'hidden lg:table-cell',
+      clave: 'costo_unitario',
+      titulo: 'Costo unitario (USD)',
+      tipo: 'dinero',
+      descripcion: 'Costo unitario en USD',
+      alinear: 'right',
+      clase: 'hidden lg:table-cell',
+      valorOrden: (f) => f.costo_unitario,
       render: (f) => (f.costo_unitario == null ? '—' : formatoDinero(f.costo_unitario)),
     }] : []),
-    { clave: 'motivo', titulo: 'Motivo', clase: 'hidden lg:table-cell', render: (f) => <span className="block max-w-72 whitespace-normal break-words">{f.motivo || '—'}</span> },
-    { clave: 'usuario', titulo: 'Usuario', clase: 'hidden xl:table-cell' },
-  ];
+    {
+      clave: 'motivo',
+      titulo: 'Motivo',
+      tipo: 'texto',
+      clase: 'hidden lg:table-cell',
+      valorOrden: (f) => f.motivo || '',
+      render: (f) => <span className="block max-w-72 whitespace-normal break-words">{f.motivo || '—'}</span>,
+    },
+    { clave: 'usuario', titulo: 'Usuario', tipo: 'texto', clase: 'hidden xl:table-cell' },
+  ], [verCostos]);
+
+  const ordenadas = useMemo(() => {
+    if (!orden) return filtradas;
+    const colActiva = columnas.find((c) => c.clave === orden);
+    return ordenarFilas(filtradas, orden, dirOrden, colActiva?.tipo ?? 'texto', colActiva?.valorOrden);
+  }, [filtradas, orden, dirOrden, columnas]);
 
   const exportarCsv = () => {
     if (!ordenadas.length) return;
@@ -287,23 +299,27 @@ export default function KardexPage() {
     enlace.click();
     enlace.remove();
     URL.revokeObjectURL(url);
+    notificar.exito('Kárdex exportado', { mensaje: `Se descargó el archivo con ${ordenadas.length} movimientos.` });
   };
 
   return (
     <div className="space-y-6">
       <EncabezadoPagina
-        seccion="Inventario"
+        seccion="Operación · Inventario"
         titulo="Kárdex"
         descripcion="Auditoría cronológica de entradas, salidas y ajustes de existencias."
         acciones={<Button variante="secondary" icono={Download} disabled={!ordenadas.length || cargando} onClick={exportarCsv}>Exportar CSV</Button>}
       />
       {error && (
         <BannerError
-          error={{ titulo: 'No se pudieron cargar los movimientos', mensaje: error, accion: '' }}
+          error={error}
+          onReintentar={cargar}
+          onCerrar={() => setError(null)}
         />
       )}
       <Card titulo="Filtrar movimientos" descripcion="Combina los filtros; se guardan en la dirección de la página para compartir la vista.">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {/* Fila 1: Sucursal, Insumo, Sentido y Búsqueda en columnas iguales (todos h-10). */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Select
             etiqueta="Sucursal"
             value={sucursal}
@@ -319,63 +335,71 @@ export default function KardexPage() {
             opciones={insumos.map((i) => ({ valor: String(i.id_insumo), texto: i.nombre }))}
             placeholder="Todos los insumos"
           />
-          <div>
-            <span className="mb-1.5 block text-sm font-medium">Rango de fechas</span>
-            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Atajos de rango de fechas">
-              {ATAJOS_FECHA.map((a) => (
-                <button key={a.clave} type="button" onClick={() => aplicarAtajo(a.clave)}
-                  className="min-h-9 rounded-full border border-line bg-surface px-3 text-xs font-semibold text-fg hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-                  {a.texto}
-                </button>
-              ))}
-            </div>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <label className="text-xs font-medium text-fg-muted">Desde
-                <input className="input mt-1 h-9 py-0 text-xs" type="date" value={desde} max={hasta || undefined} onChange={(e) => fijar({ desde: e.target.value || null })} aria-label="Fecha desde" />
-              </label>
-              <label className="text-xs font-medium text-fg-muted">Hasta
-                <input className="input mt-1 h-9 py-0 text-xs" type="date" value={hasta} min={desde || undefined} onChange={(e) => fijar({ hasta: e.target.value || null })} aria-label="Fecha hasta" />
-              </label>
-            </div>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
-            <Select
-              etiqueta="Sentido"
-              value={direccion}
-              onChange={(e) => fijar({ direccion: e.target.value === 'todos' ? null : e.target.value })}
-              opciones={[{ valor: 'todos', texto: 'Entradas y salidas' }, { valor: 'entradas', texto: 'Solo entradas' }, { valor: 'salidas', texto: 'Solo salidas' }]}
-              placeholder="Entradas y salidas"
-            />
-            <div>
-              <label htmlFor="kardex-buscar" className="mb-1.5 block text-sm font-medium">Buscar en motivo o referencia</label>
-              <div className="relative">
-                <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" aria-hidden="true" />
-                <input id="kardex-buscar" type="search" className="input h-10 pl-9 pr-9" placeholder="Ej. anulación, faltante…"
-                  value={textoBusqueda} onChange={(e) => cambiarBusqueda(e.target.value)} />
-                {textoBusqueda && (
-                  <button type="button" className="btn-ghost absolute right-1 top-1/2 min-h-8 -translate-y-1/2 !p-1.5" onClick={() => cambiarBusqueda('')} aria-label="Limpiar búsqueda">
-                    <X size={15} aria-hidden="true" />
-                  </button>
-                )}
-              </div>
+          <Select
+            etiqueta="Sentido"
+            value={direccion}
+            onChange={(e) => fijar({ direccion: e.target.value === 'todos' ? null : e.target.value })}
+            opciones={[{ valor: 'todos', texto: 'Entradas y salidas' }, { valor: 'entradas', texto: 'Solo entradas' }, { valor: 'salidas', texto: 'Solo salidas' }]}
+            placeholder="Entradas y salidas"
+          />
+          <div className="min-w-0">
+            <label htmlFor="kardex-buscar" className="mb-1.5 block text-sm font-medium">Buscar en motivo o referencia</label>
+            <div className="relative">
+              <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" aria-hidden="true" />
+              <input id="kardex-buscar" type="search" className="input h-10 pl-9 pr-9" placeholder="Ej. anulación, faltante…"
+                value={textoBusqueda} onChange={(e) => cambiarBusqueda(e.target.value)} />
+              {textoBusqueda && (
+                <BotonIcono icono={ICONOS.cerrar} etiqueta="Limpiar búsqueda" className="absolute right-1 top-1/2 min-h-8 -translate-y-1/2" onClick={() => cambiarBusqueda('')} />
+              )}
             </div>
           </div>
         </div>
 
-        <fieldset className="mt-4">
-          <legend className="mb-1.5 text-sm font-medium">Tipo de movimiento</legend>
-          <div className="flex flex-wrap gap-1.5">
-            {TIPOS_MOVIMIENTO.map((t) => {
-              const activo = tiposSel.has(t.valor);
-              return (
-                <button key={t.valor} type="button" aria-pressed={activo} onClick={() => alternarTipo(t.valor)}
-                  className={`min-h-9 rounded-full border px-3 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${activo ? 'border-primary bg-primary-soft text-primary-text' : 'border-line bg-surface text-fg hover:bg-muted'}`}>
-                  {t.etiqueta}
+        {/* Fila 2: atajos de rango y Desde/Hasta en una misma línea; envuelve en pantallas estrechas. */}
+        <fieldset className="mt-5 min-w-0">
+          <legend className="mb-1.5 text-sm font-medium">Rango de fechas</legend>
+          <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Atajos de rango de fechas">
+              {ATAJOS_FECHA.map((a) => (
+                <button key={a.clave} type="button" onClick={() => aplicarAtajo(a.clave)}
+                  className="h-10 rounded-full border border-line bg-surface px-3 text-xs font-semibold text-fg hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                  {a.texto}
                 </button>
-              );
-            })}
+              ))}
+            </div>
+            <div className="grid w-full grid-cols-2 gap-2 sm:w-auto">
+              <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-fg-muted">Desde
+                <input className="input h-10 py-0 text-sm sm:w-44" type="date" value={desde} max={hasta || undefined} onChange={(e) => fijar({ desde: e.target.value || null })} aria-label="Fecha desde" />
+              </label>
+              <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-fg-muted">Hasta
+                <input className="input h-10 py-0 text-sm sm:w-44" type="date" value={hasta} min={desde || undefined} onChange={(e) => fijar({ hasta: e.target.value || null })} aria-label="Fecha hasta" />
+              </label>
+            </div>
           </div>
         </fieldset>
+
+        {/* Fila 3: tipos de movimiento + «Limpiar filtros» a la derecha (solo si hay filtros aplicados, como antes). */}
+        <div className="mt-5 flex flex-wrap items-end justify-between gap-3">
+          <fieldset className="min-w-0 flex-1">
+            <legend className="mb-1.5 text-sm font-medium">Tipo de movimiento</legend>
+            <div className="flex flex-wrap gap-1.5">
+              {TIPOS_MOVIMIENTO.map((t) => {
+                const activo = tiposSel.has(t.valor);
+                return (
+                  <button key={t.valor} type="button" aria-pressed={activo} onClick={() => alternarTipo(t.valor)}
+                    className={`min-h-9 rounded-full border px-3 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${activo ? 'border-primary bg-primary-soft text-primary-text' : 'border-line bg-surface text-fg hover:bg-muted'}`}>
+                    {t.etiqueta}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+          {chips.length > 0 && (
+            <Button variante="ghost" icono={ICONOS.cerrar} onClick={limpiarFiltros} className="min-h-9 text-xs font-semibold">
+              Limpiar filtros
+            </Button>
+          )}
+        </div>
 
         {chips.length > 0 && (
           <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-3" aria-label="Filtros aplicados">
@@ -387,7 +411,6 @@ export default function KardexPage() {
                 </button>
               </span>
             ))}
-            <button type="button" onClick={limpiarFiltros} className="text-xs font-semibold text-primary-text underline-offset-2 hover:underline">Limpiar filtros</button>
           </div>
         )}
       </Card>
@@ -396,6 +419,7 @@ export default function KardexPage() {
         titulo="Movimientos registrados"
         descripcion={`${filtradas.length} de ${filas.length} movimientos${filas.length >= TOPE_API ? ` · se muestran solo los ${TOPE_API} más recientes que entrega el sistema` : ''}`}
         acciones={<Button variante="ghost" onClick={cargar} cargando={cargando}>Recargar</Button>}
+        className="min-w-0"
       >
         {filas.length >= TOPE_API && (
           <p className="mb-3 rounded-lg border border-warning/30 bg-warning-soft px-4 py-2.5 text-xs text-warning" role="status">
@@ -407,36 +431,25 @@ export default function KardexPage() {
             {filas.length ? 'Ajusta o limpia los filtros para ver más resultados.' : 'Cuando se registre actividad de inventario aparecerá aquí.'}
           </EstadoVacio>
         ) : (
-          <>
-            <Table
-              cargando={cargando}
-              filas={visibles}
-              idFila="id_movimiento"
-              vacio="No hay movimientos para estos filtros."
-              columnas={columnas}
-              scrollVertical={false}
-              horizontal={false}
-              minAncho="min-w-0"
-            />
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3 text-xs text-fg-muted">
-              <span aria-live="polite">
-                {ordenadas.length
-                  ? `Mostrando ${paginaActual * tamanoPagina + 1}–${Math.min((paginaActual + 1) * tamanoPagina, ordenadas.length)} de ${ordenadas.length}`
-                  : 'Sin resultados'}
-              </span>
-              <div className="flex items-center gap-2">
-                <Select
-                  aria-label="Movimientos por página"
-                  tamano="sm"
-                  value={String(tamanoPagina)}
-                  onChange={(e) => fijar({ tam: e.target.value === '25' ? null : e.target.value })}
-                  opciones={[25, 50, 100].map((n) => ({ valor: String(n), texto: `${n} por página` }))}
-                />
-                <Button variante="ghost" className="px-3 py-1.5" disabled={paginaActual === 0} onClick={() => fijar({ pagina: paginaActual - 1 || null })}>Anterior</Button>
-                <Button variante="ghost" className="px-3 py-1.5" disabled={paginaActual >= paginas - 1} onClick={() => fijar({ pagina: paginaActual + 1 })}>Siguiente</Button>
-              </div>
-            </div>
-          </>
+          <Table
+            cargando={cargando}
+            filas={filtradas}
+            idFila="id_movimiento"
+            vacio="No hay movimientos para estos filtros."
+            columnas={columnas}
+            scrollVertical={false}
+            horizontal
+            minAncho="min-w-0"
+            className="min-w-0 max-w-full scroll-fino [scrollbar-gutter:stable]"
+            idTabla="inventario-kardex"
+            paginacion={true}
+            filasPorPaginaInicial={tamanoPagina}
+            opcionesFilasPorPagina={[25, 50, 100]}
+            ordenInicial={{ clave: orden, direccion: dirOrden }}
+            onOrdenar={({ clave, direccion: dir }) => fijar({ orden: clave, dir })}
+            onCambiarPagina={(pag) => fijar({ pagina: pag <= 1 ? null : pag - 1 })}
+            onCambiarPorPagina={(tam) => fijar({ tam: tam === 25 ? null : tam })}
+          />
         )}
       </Card>
     </div>
