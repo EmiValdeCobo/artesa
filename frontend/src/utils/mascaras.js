@@ -28,6 +28,15 @@ export const mascaraNit = (valor) => {
   return `${d.slice(0, 4)}-${d.slice(4, 10)}-${d.slice(10, 13)}-${d.slice(13)}`;
 };
 
+// NRC salvadoreño (proveedores): 6 dígitos + dígito verificador, 123456-7 (8 caracteres con guion).
+export const mascaraNrc = (valor) => {
+  const d = soloDigitos(valor).slice(0, 7);
+  return d.length > 6 ? `${d.slice(0, 6)}-${d.slice(6)}` : d;
+};
+
+// Referencia de pago (autorización de tarjeta, transferencia o Chivo): solo dígitos, máximo 12.
+export const mascaraReferenciaPago = (valor) => soloDigitos(valor).slice(0, 12);
+
 // Código alfanumérico en mayúsculas y largo fijo (código de establecimiento DTE: M001).
 export const mascaraCodigo = (valor, largo = 4) => String(valor ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, largo);
 
@@ -59,6 +68,8 @@ export const PATRONES = {
   codigo: /^[A-Z0-9]{4}$/,
   dui: /^\d{8}-\d$/,
   nit: /^\d{4}-\d{6}-\d{3}-\d$/,
+  nrc: /^\d{6}-\d$/,
+  referenciaPago: /^\d{1,12}$/,
   correo: /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
   entero: /^\d+$/,
   monto: /^\d+(\.\d{1,2})?$/,
@@ -74,6 +85,8 @@ export function validarMascara(tipo, valor, { requerido = false } = {}) {
     codigo: 'El código debe tener 4 letras o números, por ejemplo M001.',
     dui: 'El DUI debe tener 9 dígitos con formato 00000000-0.',
     nit: 'El NIT debe tener 14 dígitos con formato 0000-000000-000-0.',
+    nrc: 'El NRC debe tener 7 dígitos con formato 123456-7.',
+    referenciaPago: 'La referencia debe tener solo números (máximo 12).',
     correo: 'Escribe un correo válido, por ejemplo nombre@dominio.com.',
     entero: 'Escribe un número entero sin decimales.',
     monto: 'Escribe un monto con hasta 2 decimales, por ejemplo 2.50.',
@@ -89,6 +102,8 @@ const CONFIG = {
   identificador: { aplicar: (v) => mascaraIdentificador(v), inputMode: 'text', autoCapitalize: 'characters', spellCheck: false },
   dui: { aplicar: mascaraDui, inputMode: 'numeric', placeholder: '00000000-0', maxLength: 10 },
   nit: { aplicar: mascaraNit, inputMode: 'numeric', placeholder: '0000-000000-000-0', maxLength: 17 },
+  nrc: { aplicar: mascaraNrc, inputMode: 'numeric', placeholder: '123456-7', maxLength: 8 },
+  referenciaPago: { aplicar: mascaraReferenciaPago, inputMode: 'numeric', placeholder: 'N.º de autorización', maxLength: 12, autoComplete: 'off' },
   entero: { aplicar: (v) => mascaraEntero(v), inputMode: 'numeric', placeholder: '0' },
   monto: { aplicar: (v) => mascaraDecimal(v, 2), inputMode: 'decimal', placeholder: '0.00' },
 };
