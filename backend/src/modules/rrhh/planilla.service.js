@@ -2,6 +2,7 @@ import { withTransaction } from '../../config/db.js';
 import { AppError } from '../../utils/AppError.js';
 import * as repo from './planilla.repository.js';
 import { generarPdf } from './planilla.pdf.js';
+import { centavos, formatoDinero } from './planilla.calculos.js';
 
 const pgError = (e) => {
   const pg = e.original ?? e.parent ?? e;
@@ -79,8 +80,14 @@ const usd = (v) => `$${Number(v).toFixed(2)}`;
 export async function pdfPlanilla(id) {
   const { planilla, empleados } = await obtener(id);
   if (!planilla.procesada) throw new AppError('Procese la planilla antes de descargar el PDF', 409);
+  const totalNetoCentavos = empleados.reduce(
+    (total, empleado) => total + centavos(empleado.salario_neto),
+    0,
+  );
+  const totalNeto = formatoDinero(totalNetoCentavos);
   const lines = [`Planilla mensual ${planilla.periodo_inicio}`, `Sucursal: ${empleados[0]?.sucursal ?? planilla.id_sucursal}`, 'ID | Nombre | Base | Bono | ISSS | AFP | Renta | Neto'];
   for (const e of empleados) lines.push(`${e.id_empleado.slice(0,8)} | ${(e.nombres+' '+e.apellidos).slice(0,24)} | ${usd(e.salario_bruto)} | ${usd(e.bonificaciones)} | ${usd(e.isss_laboral)} | ${usd(e.afp_laboral)} | ${usd(e.renta_retenida)} | ${usd(e.salario_neto)}`);
+  lines.push(`TOTAL NETO | | | | | | | ${usd(totalNeto)}`);
   return generarPdf(lines);
 }
 export async function pdfBoleta(id, empleadoId) {
