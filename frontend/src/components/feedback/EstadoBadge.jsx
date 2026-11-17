@@ -4,13 +4,16 @@ import { CheckCircle2, AlertTriangle, XCircle, Info, Loader2 } from 'lucide-reac
 const estilos = {
   exito:    { Icono: CheckCircle2,  clase: 'bg-success-soft text-success' }, // EMITIDA, ACEPTADO, PAGADA
   alerta:   { Icono: AlertTriangle, clase: 'bg-warning-soft text-warning' }, // stock bajo, PENDIENTE
+  aviso:    { Icono: AlertTriangle, clase: 'bg-warning-soft text-warning' }, // alias de alerta
   error:    { Icono: XCircle,       clase: 'bg-danger-soft text-danger' },   // ANULADA, RECHAZADO
+  peligro:  { Icono: XCircle,       clase: 'bg-danger-soft text-danger' },   // alias de error
   info:     { Icono: Info,          clase: 'bg-info-soft text-info' },       // ABIERTO, CONTINGENCIA
+  inactivo: { Icono: XCircle,       clase: 'bg-muted text-fg-muted' },       // inactivos / deshabilitados
   cargando: { Icono: Loader2,       clase: 'bg-muted text-fg-muted' },
 };
 
 export default function EstadoBadge({ tipo = 'info', children }) {
-  const { Icono, clase } = estilos[tipo];
+  const { Icono, clase } = estilos[tipo] || estilos.info;
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${clase}`}>
       <Icono size={14} aria-hidden="true" className={tipo === 'cargando' ? 'animate-spin' : ''} />

@@ -8,5 +8,13 @@ export const periodoSchema = z.object({
   periodo: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Use AAAA-MM'),
   ajustes: z.array(z.object({ idEmpleado, bonificaciones: monto.default('0'), otrosDescuentos: monto.default('0'), detalle: z.array(z.string().trim().min(1).max(150)).max(20).default([]) })).max(500).default([]),
 });
+
+export const ajusteSchema = z.object({
+  bonificaciones: monto.default('0'),
+  otrosDescuentos: monto.default('0'),
+  descripcion: z.string().trim().max(150).optional().nullable(),
+  detalle: z.array(z.string().trim().min(1).max(150)).max(20).optional(),
+});
+
 export const idPlanillaSchema = z.coerce.number().int().positive();
 export const idEmpleadoPlanillaSchema = z.uuid();

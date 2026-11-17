@@ -16,6 +16,19 @@ export async function crear({ idSucursal, inicio, fin, userId, ajustes }, t) {
 export async function bloquear(id, t) {
   return select('SELECT * FROM rrhh.planillas WHERE id_planilla=$1 FOR UPDATE', [id], t).then((x) => x[0] ?? null);
 }
+export async function guardarAjuste(idPlanilla, idEmpleado, { bonificaciones, otrosDescuentos, detalle }, t) {
+  return select(`
+    INSERT INTO rrhh.planilla_ajustes(id_planilla, id_empleado, bonificaciones, otros_descuentos, detalle)
+    VALUES($1, $2, $3, $4, $5::jsonb)
+    ON CONFLICT (id_planilla, id_empleado) DO UPDATE SET
+      bonificaciones = EXCLUDED.bonificaciones,
+      otros_descuentos = EXCLUDED.otros_descuentos,
+      detalle = EXCLUDED.detalle
+    RETURNING *`,
+    [idPlanilla, idEmpleado, bonificaciones, otrosDescuentos, JSON.stringify(detalle || [])],
+    t
+  );
+}
 export async function calcular(id, t) {
   return select('SELECT rrhh.fn_calcular_planilla($1) AS cantidad', [id], t).then((x) => Number(x[0].cantidad));
 }

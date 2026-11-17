@@ -170,6 +170,14 @@ export default function EmpleadosPage() {
     if (!formulario.fechaIngreso || !PATRONES.fecha.test(formulario.fechaIngreso)) {
       errs.fechaIngreso = 'Ingresa una fecha válida (AAAA-MM-DD).';
     }
+    if (formulario.idUsuario) {
+      const yaOcupado = empleados.find(
+        (e) => e.id_usuario === formulario.idUsuario && (!empleadoEditando || e.id_empleado !== empleadoEditando.id_empleado)
+      );
+      if (yaOcupado) {
+        errs.idUsuario = `El usuario seleccionado ya está asignado a ${yaOcupado.nombres} ${yaOcupado.apellidos}. Selecciona un usuario disponible o «Ninguno».`;
+      }
+    }
 
     setErroresForm(errs);
     return Object.keys(errs).length === 0;
@@ -276,6 +284,28 @@ export default function EmpleadosPage() {
     () => [{ valor: '', texto: 'Todos los puestos' }, ...puestos.map((p) => ({ valor: String(p.id_puesto), texto: p.nombre }))],
     [puestos]
   );
+  const opcionesUsuarios = useMemo(() => {
+    const empleadosPorUsuario = new Map();
+    empleados.forEach((e) => {
+      if (e.id_usuario && (!empleadoEditando || e.id_empleado !== empleadoEditando.id_empleado)) {
+        empleadosPorUsuario.set(e.id_usuario, `${e.nombres} ${e.apellidos}`);
+      }
+    });
+
+    const lista = [{ valor: '', texto: 'Ninguno (sin acceso de inicio de sesión)' }];
+    usuarios.forEach((u) => {
+      const nombreRol = typeof u.rol === 'string' ? u.rol : u.rol?.nombre || 'Sin rol';
+      const asignadoA = empleadosPorUsuario.get(u.id_usuario);
+      lista.push({
+        valor: u.id_usuario,
+        texto: asignadoA
+          ? `${u.username} (${nombreRol}) — Asignado a: ${asignadoA}`
+          : `${u.username} (${nombreRol}) [Disponible]`,
+        disabled: Boolean(asignadoA),
+      });
+    });
+    return lista;
+  }, [usuarios, empleados, empleadoEditando]);
 
   const columnas = useMemo(
     () => [
@@ -720,18 +750,16 @@ export default function EmpleadosPage() {
                 <Select
                   value={formulario.idUsuario}
                   onChange={(e) => setFormulario({ ...formulario, idUsuario: e.target.value })}
-                  opciones={[
-                    { valor: '', texto: 'Ninguno (sin acceso de inicio de sesión)' },
-                    ...usuarios.map((u) => ({
-                      valor: u.id_usuario,
-                      texto: `${u.username} (${u.rol?.nombre || 'Sin rol'})`,
-                    })),
-                  ]}
+                  opciones={opcionesUsuarios}
                 />
               </div>
-              <p className="mt-1 text-xs text-fg-muted">
-                Vincula este empleado a una cuenta de usuario para trazabilidad en turnos y ventas.
-              </p>
+              {erroresForm.idUsuario ? (
+                <p className="mt-1 text-xs text-danger">{erroresForm.idUsuario}</p>
+              ) : (
+                <p className="mt-1 text-xs text-fg-muted">
+                  Vincula este empleado a una cuenta de usuario para trazabilidad en turnos y ventas.
+                </p>
+              )}
             </div>
 
             <div className="flex justify-end gap-2.5 pt-3 border-t border-line">

@@ -28,6 +28,8 @@ export const rrhhApi = {
   crearPlanilla: (datos, opciones) => api.post('/rrhh/planillas', datos, opciones),
   calcularPlanilla: (id, opciones) => api.post(`/rrhh/planillas/${id}/calculo`, {}, opciones),
   procesarPlanilla: (id, opciones) => api.post(`/rrhh/planillas/${id}/procesamiento`, {}, opciones),
+  guardarAjuste: (idPlanilla, idEmpleado, datos, opciones) =>
+    api.put(`/rrhh/planillas/${idPlanilla}/ajustes/${idEmpleado}`, datos, opciones),
 
   // ─── Auxiliares para catálogos relacionados ──────────────────────────────────
   listarSucursales: (opciones) => api.get('/empresa/sucursales', opciones),

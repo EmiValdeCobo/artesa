@@ -5,7 +5,7 @@ import { validate } from '../../middlewares/validate.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import * as controller from './rrhh.controller.js';
 import { empleadoSchema, puestoSchema } from './rrhh.schemas.js';
-import { periodoSchema } from './planilla.schemas.js';
+import { ajusteSchema, periodoSchema } from './planilla.schemas.js';
 import * as planilla from './planilla.controller.js';
 
 const router = Router();
@@ -26,6 +26,7 @@ router.post('/planillas', requirePermiso('RRHH_CALCULAR_PLANILLA'), validate(per
 router.post('/planillas/:id/calculo', requirePermiso('RRHH_CALCULAR_PLANILLA'), asyncHandler(planilla.calcular));
 router.post('/planillas/:id/procesamiento', requirePermiso('RRHH_CALCULAR_PLANILLA'), asyncHandler(planilla.procesar));
 router.get('/planillas/:id', requirePermiso('RRHH_VER_PLANILLA'), asyncHandler(planilla.obtener));
+router.put('/planillas/:id/ajustes/:idEmpleado', requirePermiso('RRHH_CALCULAR_PLANILLA'), validate(ajusteSchema), asyncHandler(planilla.guardarAjuste));
 router.get('/planillas/:id/pdf', requirePermiso('RRHH_VER_PLANILLA'), asyncHandler(planilla.pdfPlanilla));
 router.get('/planillas/:id/empleados/:idEmpleado/boleta.pdf', requirePermiso('RRHH_VER_PLANILLA'), asyncHandler(planilla.pdfBoleta));
 export default router;

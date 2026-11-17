@@ -1,4 +1,4 @@
-﻿import test from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
@@ -25,13 +25,12 @@ test('frontend rutas: App.jsx protege cada ruta con su permiso RBAC exacto', asy
   assert.match(app, /path="compras" element={<ProtectedRoute permiso="COM_VER_CXP">/);
 });
 
-test('frontend rutas: módulos sin endpoints backend implementados usan PendienteApiPage explícito', async () => {
+test('frontend rutas: módulos RRHH implementados con páginas funcionales y protegidas', async () => {
   const app = await leer('frontend/src/App.jsx');
 
-  // Ninguna pantalla pendiente debe inventar llamadas falsas
-  assert.match(app, /path="rrhh\/empleados".*<PendienteApiPage/s);
-  assert.match(app, /path="rrhh\/puestos".*<PendienteApiPage/s);
-  assert.match(app, /path="rrhh".*<PendienteApiPage/s);
+  assert.match(app, /path="rrhh\/empleados".*<EmpleadosPage/s);
+  assert.match(app, /path="rrhh\/puestos".*<PuestosPage/s);
+  assert.match(app, /path="rrhh".*<PlanillasPage/s);
 });
 
 test('frontend code-splitting: App.jsx y AppLayout.jsx usan React.lazy y Suspense para dividir pantallas', async () => {

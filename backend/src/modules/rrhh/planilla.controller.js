@@ -1,5 +1,5 @@
 import * as service from './planilla.service.js';
-import { idEmpleadoPlanillaSchema, idPlanillaSchema, periodoSchema } from './planilla.schemas.js';
+import { ajusteSchema, idEmpleadoPlanillaSchema, idPlanillaSchema, periodoSchema } from './planilla.schemas.js';
 import { AppError } from '../../utils/AppError.js';
 
 const id = (value) => idPlanillaSchema.parse(value);
@@ -7,6 +7,17 @@ const pdf = (res, buffer, filename) => res.status(200).type('application/pdf').s
 export const crear = async (req, res) => res.status(201).json(await service.crear(periodoSchema.parse(req.body), req.user.id));
 export const calcular = async (req, res) => res.json(await service.calcular(id(req.params.id), req.user.id));
 export const procesar = async (req, res) => res.json(await service.procesar(id(req.params.id), req.user.id));
+export const guardarAjuste = async (req, res) => {
+  const idPlanilla = id(req.params.id);
+  const idEmpleado = idEmpleadoPlanillaSchema.parse(req.params.idEmpleado);
+  const datos = ajusteSchema.parse(req.body);
+  const detalleFinal = datos.detalle || (datos.descripcion ? [datos.descripcion] : []);
+  res.json(await service.guardarAjuste(idPlanilla, idEmpleado, {
+    bonificaciones: datos.bonificaciones,
+    otrosDescuentos: datos.otrosDescuentos,
+    detalle: detalleFinal,
+  }, req.user.id));
+};
 export const listar = async (req, res) => {
   const idSucursal = req.query.idSucursal == null ? undefined : Number(req.query.idSucursal);
   if (idSucursal !== undefined && (!Number.isInteger(idSucursal) || idSucursal < 1)) throw new AppError('idSucursal debe ser entero positivo', 400);

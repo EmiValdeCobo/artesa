@@ -36,6 +36,28 @@ export async function calcular(id, userId) {
     return { idPlanilla: id, empleados: cantidad, estado: 'CALCULADA' };
   }, userId); } catch (e) { throw pgError(e); }
 }
+export async function guardarAjuste(idPlanilla, idEmpleado, { bonificaciones, otrosDescuentos, detalle }, userId) {
+  try {
+    return await withTransaction(async (t) => {
+      const p = await repo.bloquear(idPlanilla, t);
+      if (!p) throw new AppError('Planilla no encontrada', 404);
+      if (p.procesada) throw new AppError('La planilla ya fue procesada y no admite cambios', 409);
+
+      const emp = await repo.empleadosActivos(p.id_sucursal, [idEmpleado], t);
+      if (!emp.length) throw new AppError('El empleado no pertenece a la sucursal o no está activo', 400);
+
+      await repo.guardarAjuste(idPlanilla, idEmpleado, { bonificaciones, otrosDescuentos, detalle }, t);
+
+      const conteo = await repo.conteoDetalles(idPlanilla, t);
+      let recalculada = false;
+      if (conteo > 0) {
+        await repo.calcular(idPlanilla, t);
+        recalculada = true;
+      }
+      return { ok: true, idPlanilla, idEmpleado, bonificaciones, recalculada };
+    }, userId);
+  } catch (e) { throw pgError(e); }
+}
 export async function procesar(id, userId) {
   try { return await withTransaction(async (t) => {
     const p = await repo.bloquear(id, t);
@@ -66,5 +88,6 @@ export async function pdfBoleta(id, empleadoId) {
   if (!planilla.procesada) throw new AppError('Procese la planilla antes de descargar el PDF', 409);
   const e = empleados.find((item) => item.id_empleado === empleadoId);
   if (!e) throw new AppError('Boleta no encontrada para esa planilla', 404);
-  return generarPdf([`Boleta de pago - ${planilla.periodo_inicio.slice(0,7)}`, `${e.nombres} ${e.apellidos}`, `DUI: ${e.dui}`, `Salario base bruto: ${usd(e.salario_bruto)}`, `Bonificaciones: ${usd(e.bonificaciones)}`, `ISSS laboral: ${usd(e.isss_laboral)}`, `AFP laboral: ${usd(e.afp_laboral)}`, `Retencion de renta: ${usd(e.renta_retenida)}`, `Otros descuentos: ${usd(e.otros_descuentos)}`, `Salario liquido: ${usd(e.salario_neto)}`]);
+  const descBono = Array.isArray(e.detalle) && e.detalle.length ? ` (${e.detalle[0]})` : '';
+  return generarPdf([`Boleta de pago - ${planilla.periodo_inicio.slice(0,7)}`, `${e.nombres} ${e.apellidos}`, `DUI: ${e.dui}`, `Salario base bruto: ${usd(e.salario_bruto)}`, `Bonificaciones${descBono}: ${usd(e.bonificaciones)}`, `ISSS laboral: ${usd(e.isss_laboral)}`, `AFP laboral: ${usd(e.afp_laboral)}`, `Retencion de renta: ${usd(e.renta_retenida)}`, `Otros descuentos: ${usd(e.otros_descuentos)}`, `Salario liquido: ${usd(e.salario_neto)}`]);
 }

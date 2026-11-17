@@ -17,6 +17,9 @@ import {
   TrendingDown,
   TrendingUp,
   User,
+  Gift,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import { rrhhApi } from '../../api/rrhh.api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -60,6 +63,13 @@ export default function PlanillasPage() {
   const [planillaSeleccionada, setPlanillaSeleccionada] = useState(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const [procesandoAccion, setProcesandoAccion] = useState(false);
+
+  // Modal Asignar / Editar Bono
+  const [modalBonoAbierto, setModalBonoAbierto] = useState(false);
+  const [empleadoParaBono, setEmpleadoParaBono] = useState(null);
+  const [formBono, setFormBono] = useState({ monto: '', descripcion: '' });
+  const [guardandoBono, setGuardandoBono] = useState(false);
+  const [errorBono, setErrorBono] = useState(null);
 
   const cargarPlanillas = useCallback(async (silencioso = false) => {
     if (silencioso) setActualizando(true);
@@ -198,6 +208,76 @@ export default function PlanillasPage() {
 
   const handleDescargarBoleta = (idPlanilla, idEmpleado) => {
     window.open(`/api/rrhh/planillas/${idPlanilla}/empleados/${idEmpleado}/boleta.pdf`, '_blank');
+  };
+
+  const abrirModalBono = (emp) => {
+    setEmpleadoParaBono(emp);
+    const montoActual = Number(emp.bonificaciones || 0) > 0 ? String(emp.bonificaciones) : '';
+    const descActual = Array.isArray(emp.detalle) ? (emp.detalle[0] || '') : (emp.detalle || '');
+    setFormBono({
+      monto: montoActual,
+      descripcion: descActual,
+    });
+    setErrorBono(null);
+    setModalBonoAbierto(true);
+  };
+
+  const handleGuardarBono = async (e) => {
+    e.preventDefault();
+    setErrorBono(null);
+
+    const montoLimpio = formBono.monto.trim();
+    if (!montoLimpio || !/^\d+(\.\d{1,2})?$/.test(montoLimpio) || Number(montoLimpio) <= 0) {
+      setErrorBono('Ingresa un monto de bono válido mayor a 0 (ej: 50.00).');
+      return;
+    }
+    if (!formBono.descripcion.trim()) {
+      setErrorBono('Ingresa una descripción o motivo para el bono.');
+      return;
+    }
+
+    setGuardandoBono(true);
+    try {
+      await rrhhApi.guardarAjuste(
+        planillaSeleccionada.planilla.id_planilla,
+        empleadoParaBono.id_empleado,
+        {
+          bonificaciones: montoLimpio,
+          descripcion: formBono.descripcion.trim(),
+        }
+      );
+      notificar.exito(`Bono asignado a ${empleadoParaBono.nombres} ${empleadoParaBono.apellidos}`);
+      setModalBonoAbierto(false);
+      await verDetallePlanilla(planillaSeleccionada.planilla.id_planilla);
+      await cargarPlanillas(true);
+    } catch (err) {
+      setErrorBono(err.message || 'No se pudo guardar el bono.');
+    } finally {
+      setGuardandoBono(false);
+    }
+  };
+
+  const handleQuitarBono = async () => {
+    setErrorBono(null);
+    setGuardandoBono(true);
+    try {
+      await rrhhApi.guardarAjuste(
+        planillaSeleccionada.planilla.id_planilla,
+        empleadoParaBono.id_empleado,
+        {
+          bonificaciones: '0',
+          descripcion: '',
+        }
+      );
+      notificar.exito(`Bono eliminado de ${empleadoParaBono.nombres} ${empleadoParaBono.apellidos}`);
+      setModalBonoAbierto(false);
+      await verDetallePlanilla(planillaSeleccionada.planilla.id_planilla);
+      await cargarPlanillas(true);
+    } catch (err) {
+      setErrorBono(err.message || 'No se pudo quitar el bono.');
+    } finally {
+      setGuardandoBono(false);
+    }
   };
 
   // Métricas
@@ -619,8 +699,44 @@ export default function PlanillasPage() {
                             <td className="px-3.5 py-2.5 text-right font-medium text-fg">
                               {formatoDinero(emp.salario_bruto)}
                             </td>
-                            <td className="px-3.5 py-2.5 text-right text-success">
-                              {Number(emp.bonificaciones) > 0 ? `+${formatoDinero(emp.bonificaciones)}` : '—'}
+                            <td className="px-3.5 py-2.5 text-right">
+                              {Number(emp.bonificaciones) > 0 ? (
+                                <div className="flex flex-col items-end">
+                                  <span className="font-semibold text-success">
+                                    +{formatoDinero(emp.bonificaciones)}
+                                  </span>
+                                  {(Array.isArray(emp.detalle) ? emp.detalle[0] : emp.detalle) ? (
+                                    <span
+                                      className="text-[10px] text-fg-muted italic truncate max-w-[120px]"
+                                      title={Array.isArray(emp.detalle) ? emp.detalle.join(' · ') : emp.detalle}
+                                    >
+                                      {Array.isArray(emp.detalle) ? emp.detalle[0] : emp.detalle}
+                                    </span>
+                                  ) : null}
+                                  {!planillaSeleccionada.planilla.procesada && puedeCalcular && (
+                                    <button
+                                      type="button"
+                                      onClick={() => abrirModalBono(emp)}
+                                      className="mt-0.5 inline-flex items-center gap-0.5 text-[10px] font-medium text-primary-text hover:underline"
+                                    >
+                                      <Pencil size={10} aria-hidden="true" />
+                                      Editar
+                                    </button>
+                                  )}
+                                </div>
+                              ) : !planillaSeleccionada.planilla.procesada && puedeCalcular ? (
+                                <button
+                                  type="button"
+                                  onClick={() => abrirModalBono(emp)}
+                                  className="inline-flex items-center gap-1 rounded bg-muted/60 px-2 py-0.5 text-[11px] font-medium text-primary-text hover:bg-primary-soft hover:text-primary transition-colors"
+                                  title="Asignar bono a este empleado"
+                                >
+                                  <Plus size={11} aria-hidden="true" />
+                                  Bono
+                                </button>
+                              ) : (
+                                <span className="text-fg-muted">—</span>
+                              )}
                             </td>
                             <td className="px-3.5 py-2.5 text-right text-danger">
                               -{formatoDinero(emp.isss_laboral)}
@@ -688,6 +804,118 @@ export default function PlanillasPage() {
               </div>
             </div>
           ) : null}
+        </Dialogo>
+      )}
+
+      {/* Modal: Asignar / Editar Bono */}
+      {modalBonoAbierto && empleadoParaBono && (
+        <Dialogo
+          onCerrar={() => setModalBonoAbierto(false)}
+          tamano="sm"
+          labelledBy="modal-bono-titulo"
+        >
+          <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">
+                Gestión de Bonos · RR. HH.
+              </p>
+              <h2 id="modal-bono-titulo" className="mt-1 text-lg font-bold text-fg">
+                Bono para {empleadoParaBono.nombres} {empleadoParaBono.apellidos}
+              </h2>
+              <p className="text-xs text-fg-muted">
+                DUI: {empleadoParaBono.dui} · Salario base: {formatoDinero(empleadoParaBono.salario_bruto)}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setModalBonoAbierto(false)}
+              className="rounded-md p-1.5 text-fg-muted hover:bg-muted hover:text-fg"
+              aria-label="Cerrar modal"
+            >
+              <X size={18} aria-hidden="true" />
+            </button>
+          </div>
+
+          {errorBono && (
+            <div className="p-4 pb-0">
+              <BannerError error={{ titulo: 'No se pudo guardar el bono', mensaje: errorBono }} />
+            </div>
+          )}
+
+          <form onSubmit={handleGuardarBono} className="space-y-4 p-5">
+            <div>
+              <label htmlFor="bono-monto" className="block text-sm font-medium text-fg">
+                Monto del bono ($) <span className="text-danger">*</span>
+              </label>
+              <input
+                id="bono-monto"
+                type="text"
+                inputMode="decimal"
+                placeholder="Ej: 50.00"
+                value={formBono.monto}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9.]/g, '');
+                  setFormBono({ ...formBono, monto: val });
+                }}
+                className="input mt-1.5 w-full font-mono"
+                required
+                autoFocus
+              />
+              <p className="mt-1 text-xs text-fg-muted">
+                El monto se suma a la base imponible y recalcula automáticamente ISSS, AFP y Renta.
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="bono-descripcion" className="block text-sm font-medium text-fg">
+                Descripción / Motivo del bono <span className="text-danger">*</span>
+              </label>
+              <input
+                id="bono-descripcion"
+                type="text"
+                maxLength={150}
+                placeholder="Ej: Cumplimiento de metas de ventas, puntualidad..."
+                value={formBono.descripcion}
+                onChange={(e) => setFormBono({ ...formBono, descripcion: e.target.value })}
+                className="input mt-1.5 w-full"
+                required
+              />
+              <p className="mt-1 text-xs text-fg-muted">
+                Se incluirá en el desglose de la planilla y en la boleta de pago del empleado.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between gap-2.5 pt-3 border-t border-line">
+              {Number(empleadoParaBono.bonificaciones || 0) > 0 ? (
+                <Button
+                  variante="ghost"
+                  type="button"
+                  className="text-danger hover:bg-danger-soft text-xs"
+                  onClick={handleQuitarBono}
+                  disabled={guardandoBono}
+                  icono={Trash2}
+                >
+                  Quitar bono
+                </Button>
+              ) : (
+                <div />
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  variante="ghost"
+                  type="button"
+                  onClick={() => setModalBonoAbierto(false)}
+                  disabled={guardandoBono}
+                >
+                  Cancelar
+                </Button>
+                <Button variante="primary" type="submit" cargando={guardandoBono} icono={Gift}>
+                  Guardar bono
+                </Button>
+              </div>
+            </div>
+          </form>
         </Dialogo>
       )}
     </div>
