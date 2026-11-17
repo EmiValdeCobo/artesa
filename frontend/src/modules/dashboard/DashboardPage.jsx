@@ -10,6 +10,7 @@ import './dashboard.css';
 import { CalendarDays } from "lucide-react";
 import { ICONOS } from "../../config/iconos.js";
 import { Select } from '../../components/ui/index.js';
+import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 
 
 /* Inicio. Rejilla de 12 columnas: cada bloque es un objeto en PANELES con los permisos que lo habilitan.
@@ -52,27 +53,22 @@ export default function DashboardPage() {
   const fechaISO = fechaISODelNegocio(ahora);
 
   return (
-    <div className="tema-dashboard">
-      <header className="flex flex-col gap-5 rounded-2xl border border-line bg-surface px-6 py-5 shadow-sm lg:flex-row lg:items-start lg:justify-between lg:gap-10">
-        <div className="min-w-0">
-          <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-(--serie-1-texto)">
-            <span aria-hidden="true" className="h-1 w-6 rounded-full bg-(--ocre-decorativo)" />
-            Inicio
-          </p>
-          <h1 className="mt-2 font-display text-3xl font-bold leading-[1.1] text-balance sm:text-4xl">
-            {saludoPorHora(horaNegocio(ahora))}, {usuario?.username ?? 'Usuario'}.
-          </h1>
-          <p className="mt-2 flex items-center gap-2 text-sm text-fg-muted">
+    <div className="tema-dashboard space-y-6">
+      <EncabezadoPagina
+        seccion="Operación · Inicio"
+        titulo={`${saludoPorHora(horaNegocio(ahora))}, ${usuario?.username ?? 'Usuario'}.`}
+        descripcion={(
+          <span className="inline-flex items-center gap-2">
             <CalendarDays aria-hidden="true" className="size-4 shrink-0" />
             <time dateTime={fechaISO}>{fecha}</time>
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-2 sm:min-w-64 lg:items-end">
+          </span>
+        )}
+        acciones={(
+        <div className="flex w-full flex-col sm:w-auto sm:min-w-64">
           <label
             htmlFor="selector-sucursal-dashboard"
             id="sucursales-label"
-            className="text-xs font-medium uppercase tracking-[0.18em] text-fg-muted"
+            className="mb-1.5 block text-sm font-medium text-fg"
           >
             Sucursal
           </label>
@@ -82,7 +78,7 @@ export default function DashboardPage() {
               <Select
                 id="selector-sucursal-dashboard"
                 aria-label="Seleccionar sucursal"
-                className="rounded-xl bg-canvas pl-9 font-semibold"
+                className="pl-9"
                 value={sucursalSeleccionada}
                 onChange={(e) => setSucursalSeleccionada(e.target.value)}
                 placeholder={puedeVerTodas ? 'Todas las sucursales' : ''}
@@ -96,8 +92,9 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
-      </header>
-      <div className="mt-6 grid grid-cols-12 gap-4" data-zona="graficas">
+        )}
+      />
+      <div className="grid grid-cols-12 gap-4" data-zona="graficas">
         {visibles.length ? (
           visibles.map(({ id, Componente }, i) => (
             <Componente

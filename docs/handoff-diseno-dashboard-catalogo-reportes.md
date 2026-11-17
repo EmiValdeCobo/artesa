@@ -90,6 +90,11 @@ El tono de peligro de `BotonIcono` ahora usa borde y fondo suave en vez de rojo 
 
 ## Verificación y pendientes
 
+### Reportes · tendencia de ventas a ancho completo (2026-11-16)
+
+- La tendencia ahora tiene una pestaña propia y es la pestaña inicial de Reportes. El gráfico ocupa el ancho de la tarjeta, separado de productos y métodos de pago.
+- El SVG usa un `viewBox` ligado al ancho observado y un tamaño visual fluido; así no empuja la página ni tapa tarjetas vecinas. Importes y ejes siguen en USD; la variación porcentual frente al promedio se explica en el tooltip al enfocar o pasar el cursor por cada día.
+
 - Build de Vite: correcto después de los ajustes.
 - Lint: cero errores; quedan dos warnings existentes en Caja y Compras, fuera del alcance.
 - Suite: 357/357 correcta al permitir los sockets locales de Supertest. Sin ese permiso, 6 pruebas de integración fallaron con `EACCES`.

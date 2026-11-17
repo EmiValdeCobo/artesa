@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { TooltipContenido, TooltipFlotante } from '../../components/display/Tooltip.jsx';
 import { capitalizar, etiquetaDia, etiquetaDiaLarga, formatoCentavos, formatoDineroCorto, formatoEntero } from '../../utils/formato.js';
 import { calcularEje } from '../dashboard/lib/ejes.js';
+import Spinner from '../../components/ui/Spinner.jsx';
 
 // Tendencia de ventas diarias del panel de Reportes. Misma gramática visual que la gráfica del
 // Dashboard (SVG en píxeles reales, días cerrados neutros, "hoy" rayado en acento), más la línea
@@ -73,20 +74,17 @@ export default function GraficaTendencia({ serie, hoy, cargando, error }) {
     cerrados.length ? Math.round(cerrados.reduce((suma, f) => suma + f.total, 0) / cerrados.length) : null
   ), [cerrados]);
 
-  // Mejor y peor día entre los cerrados (empates: el primero del rango).
-  const indicesClave = useMemo(() => {
+  // Mejor día entre los cerrados (empates: el primero del rango).
+  const indiceMejor = useMemo(() => {
     let mejor = -1;
-    let peor = -1;
     serie.forEach((f, i) => {
       if (f.fecha === hoy) return;
       if (mejor < 0 || f.total > serie[mejor].total) mejor = i;
-      if (peor < 0 || f.total < serie[peor].total) peor = i;
     });
-    if (mejor === peor) peor = -1;
-    return { mejor, peor };
+    return mejor;
   }, [serie, hoy]);
 
-  if (cargando) return <p className="flex h-64 items-center justify-center text-sm text-fg-muted" role="status">Cargando tendencia de ventas…</p>;
+  if (cargando) return <Spinner texto="Cargando tendencia de ventas…" className="h-64" />;
   if (error) return <p className="flex h-64 items-center justify-center text-center text-sm text-danger" role="alert">No se pudo cargar la tendencia de ventas.</p>;
   if (!serie.length) return <p className="flex h-64 items-center justify-center text-center text-sm text-fg-muted">Sin ventas en este rango</p>;
 
@@ -118,18 +116,12 @@ export default function GraficaTendencia({ serie, hoy, cargando, error }) {
     columnas.current[Math.min(Math.max(destino, 0), n - 1)]?.focus();
   };
 
-  const etiquetaDirecta = (i) => {
-    if (i === indicesClave.mejor) return 'Mejor día';
-    if (i === indicesClave.peor) return 'Peor día';
-    return null;
-  };
-
   const fActivo = activo === null ? null : serie[activo];
 
   return (
-    <figure className="m-0">
-      <div ref={marco} className="relative">
-        <svg width={ancho} height={ALTO} className="block select-none font-sans" role="group" aria-label={`Ventas por día del período seleccionado. Recorre los días con las flechas del teclado.`}>
+    <figure className="m-0 w-full min-w-0 max-w-full">
+      <div ref={marco} className="relative w-full min-w-0 max-w-full">
+        <svg width="100%" height={ALTO} viewBox={`0 0 ${ancho} ${ALTO}`} className="block w-full max-w-full select-none font-sans" role="group" aria-label="Ventas por día del período seleccionado. Recorre los días con las flechas del teclado.">
           <defs>
             <pattern id={idRayas} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
               <rect width="6" height="6" className="fill-(--serie-1)" fillOpacity=".28" />
@@ -146,18 +138,15 @@ export default function GraficaTendencia({ serie, hoy, cargando, error }) {
 
           {/* Fondos: fines de semana y día en curso */}
           {serie.map((f, i) => esFinDeSemana(f.fecha) ? (
-            <rect key={`fds-${f.fecha}`} x={M.izquierda + paso * i} y={M.arriba - 8} width={paso} height={areaAlto + 8} className="fill-muted" fillOpacity="0.45" />
+            <rect key={`fds-${f.fecha}`} x={M.izquierda + paso * i} y={M.arriba} width={paso} height={areaAlto} className="fill-muted" fillOpacity="0.45" />
           ) : null)}
-          {indiceHoy >= 0 && <rect x={M.izquierda + paso * indiceHoy} y={M.arriba - 8} width={paso} height={areaAlto + 8} fill="var(--serie-hoy-fondo)" />}
-          {activo !== null && <rect x={M.izquierda + paso * activo} y={M.arriba - 8} width={paso} height={areaAlto + 8} className="fill-muted" />}
+          {indiceHoy >= 0 && <rect x={M.izquierda + paso * indiceHoy} y={M.arriba} width={paso} height={areaAlto} fill="var(--serie-hoy-fondo)" />}
+          {activo !== null && <rect x={M.izquierda + paso * activo} y={M.arriba} width={paso} height={areaAlto} className="fill-muted" />}
 
           {/* Línea de promedio del rango (solo días cerrados) */}
           {promedio !== null && (
             <g aria-hidden="true">
               <line x1={M.izquierda} x2={ancho - M.derecha} y1={yDe(promedio)} y2={yDe(promedio)} stroke="var(--serie-1)" strokeWidth="1.5" strokeDasharray="6 5" strokeOpacity="0.75" />
-              <text x={ancho - M.derecha} y={yDe(promedio) - 5} textAnchor="end" fontSize="11" paintOrder="stroke" stroke="var(--bg-surface)" strokeWidth="4" strokeLinejoin="round" className="fill-(--serie-1-texto) font-semibold tabular-nums">
-                Promedio {formatoCentavos(promedio)}
-              </text>
             </g>
           )}
 
@@ -167,19 +156,16 @@ export default function GraficaTendencia({ serie, hoy, cargando, error }) {
             const x = xCentro(i) - anchoBarra / 2;
             const esHoy = i === indiceHoy;
             const bajoCursor = i === activo;
-            const clave = etiquetaDirecta(i);
+            const esMejor = i === indiceMejor;
             let relleno = 'fill-(--serie-5)';
             if (esHoy) relleno = '';
-            else if (bajoCursor) relleno = 'fill-(--serie-1)';
+            else if (bajoCursor || esMejor) relleno = 'fill-(--serie-1)';
             return (
               <g key={f.fecha} opacity={activo !== null && !bajoCursor ? 0.6 : 1}>
                 <rect x={x} y={base - alto} width={anchoBarra} height={alto} className={relleno} fill={esHoy ? `url(#${idRayas})` : undefined}
                   strokeWidth={esHoy ? 1.5 : 0} stroke={esHoy ? 'var(--serie-1)' : undefined} rx={Math.min(6, anchoBarra / 2)} />
                 {(indiceHoy - i) % cadaEtiqueta === 0 && (
                   <text x={xCentro(i)} y={ALTO - 9} textAnchor="middle" fontSize="12" className={esHoy ? 'fill-(--serie-1-texto) font-bold' : bajoCursor ? 'fill-fg font-semibold' : 'fill-fg-muted'}>{etiquetaCortaDe(f)}</text>
-                )}
-                {clave && activo === null && (
-                  <text x={xCentro(i)} y={y - 7} textAnchor="middle" fontSize="11" paintOrder="stroke" stroke="var(--bg-surface)" strokeWidth="4" strokeLinejoin="round" className="fill-fg-muted font-semibold">{clave}</text>
                 )}
               </g>
             );
@@ -225,7 +211,7 @@ export default function GraficaTendencia({ serie, hoy, cargando, error }) {
         </TooltipFlotante>
       </div>
 
-      <table className="sr-only">
+      <table className="sr-only fixed left-0 top-0">
         <caption>Ventas por día</caption>
         <thead><tr><th scope="col">Día</th><th scope="col">Total</th><th scope="col">Tickets</th></tr></thead>
         <tbody>{serie.map((f) => <tr key={f.fecha}><th scope="row">{etiquetaLargaDe(f)}</th><td>{formatoCentavos(f.total)}</td><td>{f.tickets}</td></tr>)}</tbody>

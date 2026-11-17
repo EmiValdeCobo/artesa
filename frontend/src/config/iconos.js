@@ -1,5 +1,5 @@
 import {
-  BarChart3, BookOpen, ClipboardCheck, Edit3, Eye, KeyRound, LayoutDashboard, Lock, Package, Plus, Power, PowerOff,
+  BarChart3, BookOpen, ClipboardCheck, Edit3, Eye, KeyRound, LayoutDashboard, Lock, Package, Plus, Power, PowerOff, Printer,
   RefreshCw, Ruler, Save, ScrollText, Search, Settings, ShieldCheck, ShoppingCart, Store, Trash2, Undo2, UserCheck, Users, UserX, X,
 } from 'lucide-react';
 
@@ -15,6 +15,7 @@ export const ICONOS = {
   buscar: Search,
   cerrar: X,
   ver: Eye,
+  imprimir: Printer,
   actualizar: RefreshCw,
   bloqueado: Lock,
   activar: Power,

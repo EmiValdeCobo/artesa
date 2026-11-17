@@ -73,6 +73,15 @@
   --chart-neutral:      #9a8e7f;  /* barras de contexto (días cerrados, resto del ranking) */
   --chart-focus:        #b15c3d;  /* dato importante: hoy, líder del ranking, elemento bajo el cursor */
   --chart-focus-strong: #984a2f;  /* foco + cursor encima */
+
+  /* Series compartidas por todas las gráficas del sistema. */
+  --serie-1: #b15c3d; --serie-1-texto: #984a2f;
+  --serie-2: #9f6c2b; --serie-2-texto: #7a5224;
+  --serie-3: #756a5d; --serie-3-texto: #5a4f45;
+  --serie-4: #c97752; --serie-4-texto: #7b3b27;
+  --serie-5: #9a8e7f; --serie-5-texto: #5a4f45;
+  --serie-6: #c58a38; --serie-6-texto: #7a5224;
+  --serie-hoy-fondo: #fbf1ec;
 }
 
 .dark {
@@ -104,6 +113,14 @@
   --chart-neutral:      #8a7d6e;  /* 4,2:1 sobre --bg-surface */
   --chart-focus:        #de9776;  /* 7,0:1: en oscuro el foco tiene que ser MÁS luminoso que el contexto */
   --chart-focus-strong: #ebbca7;
+
+  --serie-1: #de9776; --serie-1-texto: #de9776;
+  --serie-2: #e8b866; --serie-2-texto: #edc173;
+  --serie-3: #bfb5a7; --serie-3-texto: #ddd6cb;
+  --serie-4: #c97752; --serie-4-texto: #ebbca7;
+  --serie-5: #9a8e7f; --serie-5-texto: #bfb5a7;
+  --serie-6: #edc173; --serie-6-texto: #f4d79c;
+  --serie-hoy-fondo: #44211a;
 }
 
 /* ---- Variante de acento del portal de clientes -------------------------------
