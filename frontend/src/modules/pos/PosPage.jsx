@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PackageSearch, Search, ShieldAlert, Store, Wallet, X } from 'lucide-react';
-import { Spinner } from '../../components/ui/index.js';
+import { Select, Spinner } from '../../components/ui/index.js';
 import BannerError from '../../components/feedback/BannerError.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import { traducirError } from '../../errors/traducirError.js';
 import { obtenerProductos } from './posApi.js';
 import { cajaApi } from '../../api/caja.api.js';
@@ -19,6 +20,7 @@ import VentaExitosaModal from './VentaExitosaModal.jsx';
 
 export default function PosPage() {
   const { usuario, tiene } = useAuth();
+  const { notificar } = useAlert();
   // El menú se arma con productos (INV_VER_STOCK) y existencias (INV_VER_STOCK): sin él la API respondería 403.
   const puedeVerMenu = tiene('INV_VER_STOCK');
   const puedeCCF = tiene('POS_EMITIR_CCF');
@@ -30,7 +32,6 @@ export default function PosPage() {
   const [productos, setProductos] = useState([]);
   const [cargando, setCargando] = useState(puedeVerMenu);
   const [error, setError] = useState(null);
-  const [aviso, setAviso] = useState('');
   const [categoria, setCategoria] = useState('Todas');
   const [busqueda, setBusqueda] = useState('');
   const [tipoDocumento, setTipoDocumento] = useState('FACTURA');
@@ -93,10 +94,11 @@ export default function PosPage() {
   // Pantalla de cobro (T19)
   const cobrar = () => {
     if (!turnoActivo) {
-      setAviso('Debes tener un turno de caja abierto para registrar ventas. Abre un turno en el módulo de Caja.');
+      notificar.advertencia('Turno requerido', {
+        mensaje: 'Debes tener un turno de caja abierto para registrar ventas. Abre un turno en el módulo de Caja.',
+      });
       return;
     }
-    setAviso('');
     setModalCobroAbierto(true);
   };
 
@@ -109,8 +111,8 @@ export default function PosPage() {
   };
 
   return (
-    <div className={`mx-auto max-w-7xl ${unidades > 0 ? 'pb-20 lg:pb-0' : ''}`}>
-      <EncabezadoPagina seccion="Operación" titulo="Punto de venta" descripcion="Toca un producto del menú para agregarlo al pedido." />
+    <div className={`mx-auto max-w-7xl lg:flex lg:h-[calc(100dvh-4rem)] lg:flex-col ${unidades > 0 ? 'pb-20 lg:pb-0' : ''}`}>
+      <EncabezadoPagina seccion="Operación · Punto de venta" titulo="Punto de venta" descripcion="Toca un producto del menú para agregarlo al pedido." />
 
       {/* Indicador de sucursal operativa y estado del turno de caja */}
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-2.5 text-sm shadow-sm">
@@ -120,16 +122,16 @@ export default function PosPage() {
           {turnoActivo ? (
             <span className="text-center text-xs font-semibold text-fg">{turnoActivo.sucursal}</span>
           ) : sucursales.length > 1 ? (
-            <select
-              aria-label="Seleccionar sucursal"
-              value={idSucursal ?? ''}
-              onChange={(e) => setIdSucursal(Number(e.target.value))}
-              className="rounded-md border border-line bg-background px-2.5 py-1 text-center text-xs font-medium text-fg"
-            >
-              {sucursales.map((s) => (
-                <option key={s.id_sucursal} value={s.id_sucursal} className="text-center">{s.nombre}</option>
-              ))}
-            </select>
+            <div className="w-48">
+              <Select
+                aria-label="Seleccionar sucursal"
+                tamano="sm"
+                placeholder=""
+                value={idSucursal ?? ''}
+                onChange={(e) => setIdSucursal(Number(e.target.value))}
+                opciones={sucursales.map((s) => ({ valor: String(s.id_sucursal), texto: s.nombre }))}
+              />
+            </div>
           ) : (
             <span className="text-center text-xs font-semibold text-fg">{sucursales[0]?.nombre || 'Sin sucursal asignada'}</span>
           )}
@@ -152,10 +154,8 @@ export default function PosPage() {
         </div>
       </div>
 
-      {aviso && <p className="mt-4 rounded-md bg-info-soft px-3 py-2 text-sm text-info" role="status">{aviso}</p>}
-
-      <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_22rem] lg:items-start">
-        <section aria-label="Menú">
+      <div className="mt-6 grid gap-5 lg:min-h-0 lg:flex-1 lg:grid-cols-[1fr_22rem] lg:grid-rows-[minmax(0,1fr)]">
+        <section aria-label="Menú" className="scroll-fino lg:min-h-0 lg:overflow-y-auto lg:pb-4 lg:pl-1 lg:pr-2 lg:pt-1 lg:[scrollbar-gutter:stable]">
           {!puedeVerMenu ? (
             <div className="card">
               <EstadoVacio icono={ShieldAlert} titulo="Tu rol no puede consultar el menú">
@@ -212,7 +212,7 @@ export default function PosPage() {
           )}
         </section>
 
-        <div className="lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)]">
+        <div className="lg:min-h-0">
           <Carrito
             items={items}
             tipoDocumento={documento}

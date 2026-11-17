@@ -56,7 +56,7 @@ export default function Toasts({ toasts, cerrar }) {
   const urgentes = toasts.filter((toast) => toast.tipo === 'error' || toast.tipo === 'advertencia');
   const normales = toasts.filter((toast) => !urgentes.includes(toast));
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[70] flex flex-col gap-2 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:inset-x-auto sm:right-4 sm:bottom-4 sm:w-[26rem] sm:p-0">
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[100] flex flex-col gap-2 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:inset-x-auto sm:right-4 sm:bottom-4 sm:w-[26rem] sm:p-0">
       <div role="alert" aria-live="assertive" className="flex flex-col gap-2">
         {urgentes.map((toast) => <Toast key={toast.id} toast={toast} cerrar={cerrar} />)}
       </div>

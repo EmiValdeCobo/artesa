@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import {
   Minus,
   Plus,
-  Trash2,
   ReceiptText,
   UserCheck,
   Building2,
@@ -12,8 +11,11 @@ import {
   UserPlus,
 } from 'lucide-react';
 import Dialogo from '../../components/Dialogo.jsx';
-import { Button } from '../../components/ui/index.js';
+import { BotonIcono, Button, Select } from '../../components/ui/index.js';
+import BannerError from '../../components/feedback/BannerError.jsx';
+import { ICONOS } from '../../config/iconos.js';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import { calcularTotales, formatoMoneda, IVA } from './impuestos.js';
 import { listarClientes, crearCliente } from './posApi.js';
 
@@ -72,6 +74,7 @@ export default function Carrito({
   onCobrar,
 }) {
   const { tiene } = useAuth();
+  const { notificar, notificarError } = useAlert();
   const puedeVerClientes = tiene('POS_GESTIONAR_CLIENTES') || tiene('POS_COBRAR');
   const puedeCrearClientes = tiene('POS_GESTIONAR_CLIENTES') || tiene('POS_COBRAR');
   const tipos = TIPOS_DOC.filter((t) => !t.permiso || tiene(t.permiso));
@@ -182,39 +185,57 @@ export default function Carrito({
     const emailTrim = formCliente.email.trim();
 
     if (nombreTrim.length < 2) {
-      setErrorCliente('El nombre o razón social debe tener al menos 2 caracteres.');
+      const msg = 'El nombre o razón social debe tener al menos 2 caracteres.';
+      setErrorCliente(msg);
+      notificar.advertencia('Validación requerida', { mensaje: msg });
       return;
     }
     if (docTrim && !formCliente.tipo_documento) {
-      setErrorCliente('Selecciona el tipo de documento (DUI, NIT o Pasaporte).');
+      const msg = 'Selecciona el tipo de documento (DUI, NIT o Pasaporte).';
+      setErrorCliente(msg);
+      notificar.advertencia('Validación requerida', { mensaje: msg });
       return;
     }
     if (formCliente.tipo_documento && !docTrim) {
-      setErrorCliente(`Ingresa el número de ${formCliente.tipo_documento}.`);
+      const msg = `Ingresa el número de ${formCliente.tipo_documento}.`;
+      setErrorCliente(msg);
+      notificar.advertencia('Validación requerida', { mensaje: msg });
       return;
     }
     if (reglaDocActual && docTrim && !reglaDocActual.regex.test(docTrim)) {
-      setErrorCliente(`Formato inválido para ${formCliente.tipo_documento} (ej. ${reglaDocActual.placeholder}).`);
+      const msg = `Formato inválido para ${formCliente.tipo_documento} (ej. ${reglaDocActual.placeholder}).`;
+      setErrorCliente(msg);
+      notificar.advertencia('Validación requerida', { mensaje: msg });
       return;
     }
     if (esCCF && (!nrcTrim || !giroTrim)) {
-      setErrorCliente('Para emitir Crédito Fiscal (CCF), tanto el NRC como el Giro Económico son obligatorios.');
+      const msg = 'Para emitir Crédito Fiscal (CCF), tanto el NRC como el Giro Económico son obligatorios.';
+      setErrorCliente(msg);
+      notificar.advertencia('Validación requerida', { mensaje: msg });
       return;
     }
     if ((nrcTrim && !giroTrim) || (!nrcTrim && giroTrim)) {
-      setErrorCliente('Si ingresas datos fiscales CCF, debes completar tanto el NRC como el Giro Económico.');
+      const msg = 'Si ingresas datos fiscales CCF, debes completar tanto el NRC como el Giro Económico.';
+      setErrorCliente(msg);
+      notificar.advertencia('Validación requerida', { mensaje: msg });
       return;
     }
     if (nrcTrim && !REGEX_NRC.test(nrcTrim)) {
-      setErrorCliente('NRC inválido: debe tener de 2 a 8 dígitos, guion y dígito verificador (ej. 123456-7).');
+      const msg = 'NRC inválido: debe tener de 2 a 8 dígitos, guion y dígito verificador (ej. 123456-7).';
+      setErrorCliente(msg);
+      notificar.advertencia('Validación requerida', { mensaje: msg });
       return;
     }
     if (telTrim && !REGEX_TELEFONO_SV.test(telTrim)) {
-      setErrorCliente('Teléfono inválido: debe tener 8 dígitos de El Salvador iniciando con 2, 6 o 7.');
+      const msg = 'Teléfono inválido: debe tener 8 dígitos de El Salvador iniciando con 2, 6 o 7.';
+      setErrorCliente(msg);
+      notificar.advertencia('Validación requerida', { mensaje: msg });
       return;
     }
     if (emailTrim && !REGEX_EMAIL.test(emailTrim)) {
-      setErrorCliente('El correo electrónico no tiene un formato válido.');
+      const msg = 'El correo electrónico no tiene un formato válido.';
+      setErrorCliente(msg);
+      notificar.advertencia('Validación requerida', { mensaje: msg });
       return;
     }
 
@@ -236,16 +257,17 @@ export default function Carrito({
       elegirCliente(clienteAfiliado);
       setModalNuevoCliente(false);
       setFormCliente(FORM_CLIENTE_INICIAL);
+      notificar.exito('Cliente registrado y afiliado', { mensaje: clienteAfiliado.nombre_razon_social });
     } catch (err) {
-      setErrorCliente(err.message || 'No se pudo registrar y afiliar el cliente.');
+      notificarError(err);
     } finally {
       setGuardandoCliente(false);
     }
   };
 
   return (
-    <aside id="pedido-actual" className="card flex h-full scroll-mt-20 flex-col !p-0" aria-label="Pedido actual">
-      <header className="border-b border-line p-4">
+    <aside id="pedido-actual" className="card flex h-full max-h-[85dvh] scroll-mt-20 flex-col !p-0 lg:max-h-none" aria-label="Pedido actual">
+      <header className="shrink-0 border-b border-line p-4">
         <h2 className="font-semibold">Pedido actual</h2>
         <p className="text-xs text-fg-muted">{unidades} {unidades === 1 ? 'producto' : 'productos'}</p>
         {tipos.length < 2 ? <p className="mt-3 text-xs text-fg-muted">Documento: {tipos[0].texto}</p> : (
@@ -385,7 +407,7 @@ export default function Carrito({
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+      <div className="scroll-fino min-h-0 flex-1 overflow-y-auto py-4 pl-4 pr-2 [scrollbar-gutter:stable]">
         {items.length === 0 ? (
           <div className="flex h-full min-h-32 flex-col items-center justify-center gap-2 text-center text-sm text-fg-muted">
             <ReceiptText size={26} aria-hidden="true" />
@@ -400,22 +422,22 @@ export default function Carrito({
                   <p className="text-xs text-fg-muted">{formatoMoneda(i.precio)} c/u</p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button type="button" className="btn-ghost h-9 w-9 !p-0" aria-label={`Quitar una unidad de ${i.nombre}`}
-                    onClick={() => dispatch({ tipo: 'cambiarCantidad', id: i.id_producto, cantidad: i.cantidad - 1 })}><Minus size={14} /></button>
+                  <BotonIcono icono={Minus} className="h-9 w-9 justify-center" etiqueta={`Quitar una unidad de ${i.nombre}`}
+                    onClick={() => dispatch({ tipo: 'cambiarCantidad', id: i.id_producto, cantidad: i.cantidad - 1 })} />
                   <span className="w-6 text-center text-sm font-semibold" aria-live="polite">{i.cantidad}</span>
-                  <button type="button" className="btn-ghost h-9 w-9 !p-0" aria-label={`Agregar una unidad de ${i.nombre}`} disabled={i.cantidad >= i.stock}
-                    onClick={() => dispatch({ tipo: 'cambiarCantidad', id: i.id_producto, cantidad: i.cantidad + 1 })}><Plus size={14} /></button>
+                  <BotonIcono icono={Plus} className="h-9 w-9 justify-center" etiqueta={`Agregar una unidad de ${i.nombre}`} disabled={i.cantidad >= i.stock}
+                    onClick={() => dispatch({ tipo: 'cambiarCantidad', id: i.id_producto, cantidad: i.cantidad + 1 })} />
                 </div>
                 <p className="w-16 text-right text-sm font-semibold">{formatoMoneda(i.precio * i.cantidad)}</p>
-                <button type="button" className="grid h-9 w-9 place-items-center rounded-md text-fg-muted transition-colors hover:bg-danger-soft hover:text-danger" aria-label={`Eliminar ${i.nombre}`}
-                  onClick={() => dispatch({ tipo: 'quitar', id: i.id_producto })}><Trash2 size={16} /></button>
+                <BotonIcono icono={ICONOS.eliminar} tono="peligro" className="h-9 w-9 justify-center" etiqueta={`Eliminar ${i.nombre}`}
+                  onClick={() => dispatch({ tipo: 'quitar', id: i.id_producto })} />
               </li>
             ))}
           </ul>
         )}
       </div>
 
-      <footer className="border-t border-line p-4">
+      <footer className="shrink-0 border-t border-line p-4">
         <dl className="space-y-1 text-sm">
           <div className="flex justify-between"><dt className="text-fg-muted">Subtotal</dt><dd>{formatoMoneda(subtotal)}</dd></div>
           <div className="flex justify-between"><dt className="text-fg-muted">IVA ({IVA * 100}%)</dt><dd>{formatoMoneda(iva)}</dd></div>
@@ -437,28 +459,17 @@ export default function Carrito({
           <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">
-                POS · Afiliación Rápida
+                Operación · Punto de venta
               </p>
               <h2 id="titulo-afiliar-cliente-pos" className="mt-1 text-xl font-semibold text-fg">
                 Registrar y afiliar cliente al pedido
               </h2>
             </div>
-            <button
-              type="button"
-              onClick={() => setModalNuevoCliente(false)}
-              className="rounded-md p-1.5 text-fg-muted hover:bg-muted hover:text-fg"
-              aria-label="Cerrar modal"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            <BotonIcono icono={ICONOS.cerrar} etiqueta="Cerrar modal" onClick={() => setModalNuevoCliente(false)} />
           </div>
 
           <form onSubmit={handleGuardarNuevoCliente} className="space-y-4 p-5">
-            {errorCliente && (
-              <div className="rounded-xl border border-danger/30 bg-danger-soft px-3 py-2 text-xs text-danger">
-                {errorCliente}
-              </div>
-            )}
+            {errorCliente && <BannerError error={{ titulo: 'No se pudo registrar el cliente', mensaje: errorCliente, accion: '' }} />}
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
@@ -473,23 +484,24 @@ export default function Carrito({
                   value={formCliente.nombre_razon_social}
                   onChange={handleCambioFormCliente}
                   placeholder="Ej. Inversiones Café S.A. de C.V."
-                  className="input w-full"
+                  className="input h-10 w-full"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-fg">Tipo de documento</label>
-                <select
+                <label htmlFor="pos-cliente-tipo-documento" className="mb-1 block text-xs font-semibold text-fg">Tipo de documento</label>
+                <Select
+                  id="pos-cliente-tipo-documento"
                   name="tipo_documento"
                   value={formCliente.tipo_documento}
                   onChange={handleCambioFormCliente}
-                  className="input w-full"
-                >
-                  <option value="">Ninguno</option>
-                  <option value="DUI">DUI (El Salvador)</option>
-                  <option value="NIT">NIT / DUI Homologado</option>
-                  <option value="PASAPORTE">Pasaporte</option>
-                </select>
+                  opciones={[
+                    { valor: '', texto: 'Ninguno' },
+                    { valor: 'DUI', texto: 'DUI (El Salvador)' },
+                    { valor: 'NIT', texto: 'NIT / DUI Homologado' },
+                    { valor: 'PASAPORTE', texto: 'Pasaporte' },
+                  ]}
+                />
               </div>
 
               <div>
@@ -502,7 +514,7 @@ export default function Carrito({
                   value={formCliente.num_documento}
                   onChange={handleCambioFormCliente}
                   placeholder={reglaDocActual ? `Ej. ${reglaDocActual.placeholder}` : 'Selecciona tipo primero'}
-                  className="input w-full disabled:cursor-not-allowed disabled:opacity-50"
+                  className="input h-10 w-full disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
 
@@ -522,7 +534,7 @@ export default function Carrito({
                       value={formCliente.nrc}
                       onChange={handleCambioFormCliente}
                       placeholder="123456-7"
-                      className="input w-full text-center font-mono"
+                      className="input h-10 w-full text-center font-mono"
                     />
                     <span className="mt-1 text-[11px] text-fg-muted">2 a 8 dígitos + guion + dígito</span>
                   </div>
@@ -538,7 +550,7 @@ export default function Carrito({
                       value={formCliente.giro_economico}
                       onChange={handleCambioFormCliente}
                       placeholder="Ej. Servicios de alimentación"
-                      className="input w-full text-center"
+                      className="input h-10 w-full text-center"
                     />
                     <span className="mt-1 text-[11px] text-fg-muted">Actividad registrada en MH</span>
                   </div>
@@ -554,7 +566,7 @@ export default function Carrito({
                   value={formCliente.telefono}
                   onChange={handleCambioFormCliente}
                   placeholder="2222-0000"
-                  className="input w-full"
+                  className="input h-10 w-full"
                 />
               </div>
 
@@ -567,7 +579,7 @@ export default function Carrito({
                   value={formCliente.email}
                   onChange={handleCambioFormCliente}
                   placeholder="facturacion@empresa.com"
-                  className="input w-full"
+                  className="input h-10 w-full"
                 />
               </div>
 
@@ -580,7 +592,7 @@ export default function Carrito({
                   value={formCliente.direccion}
                   onChange={handleCambioFormCliente}
                   placeholder="Colonia, calle, municipio..."
-                  className="input w-full"
+                  className="input h-10 w-full"
                 />
               </div>
             </div>

@@ -191,6 +191,16 @@ export default function KardexPage() {
     });
   }, [filas, desde, hasta, tiposSel, direccion, buscar]);
 
+  const chips = useMemo(() => {
+    const lista = [];
+    if (insumo) lista.push({ clave: 'insumo', texto: `Insumo: ${insumos.find((i) => String(i.id_insumo) === insumo)?.nombre ?? insumo}`, quitar: () => fijar({ insumo: null }) });
+    if (desde || hasta) lista.push({ clave: 'fechas', texto: `Fechas: ${desde || '…'} a ${hasta || '…'}`, quitar: () => fijar({ desde: null, hasta: null }) });
+    tiposSel.forEach((tipo) => lista.push({ clave: `tipo-${tipo}`, texto: ETIQUETA_TIPO[tipo] ?? tipo, quitar: () => alternarTipo(tipo) }));
+    if (direccion !== 'todos') lista.push({ clave: 'direccion', texto: direccion === 'entradas' ? 'Solo entradas' : 'Solo salidas', quitar: () => fijar({ dir_mov: null }) });
+    if (buscar.trim()) lista.push({ clave: 'buscar', texto: `"${buscar.trim()}"`, quitar: () => fijar({ q: null }) });
+    return lista;
+  }, [insumos, insumo, desde, hasta, tiposSel, direccion, buscar, fijar, alternarTipo]);
+
   const columnas = useMemo(() => [
     {
       clave: 'creado_en',

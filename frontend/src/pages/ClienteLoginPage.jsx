@@ -66,7 +66,7 @@ export default function ClienteLoginPage() {
         </div>
 
         {error && (
-          <p role="alert" className="anim-subir mt-5 flex items-start gap-2 rounded-xl bg-danger-soft px-3.5 py-3 text-sm text-danger">
+          <p role="alert" aria-live="assertive" className="anim-subir mt-5 flex items-start gap-2 rounded-xl bg-danger-soft px-3.5 py-3 text-sm text-danger">
             <CircleAlert size={17} aria-hidden="true" className="mt-px shrink-0" /> {error}
           </p>
         )}

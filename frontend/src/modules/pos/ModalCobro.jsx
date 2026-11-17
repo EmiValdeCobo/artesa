@@ -1,10 +1,12 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { CreditCard, Banknote, Smartphone, ArrowRightLeft, Plus, Trash2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { CreditCard, Banknote, Smartphone, ArrowRightLeft, Plus, AlertCircle, CheckCircle2 } from 'lucide-react';
 import Dialogo from '../../components/Dialogo.jsx';
-import { Button } from '../../components/ui/index.js';
+import { BotonIcono, Button, Select } from '../../components/ui/index.js';
+import { ICONOS } from '../../config/iconos.js';
+import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import { calcularTotales, formatoMoneda, IVA } from './impuestos.js';
 import { registrarVenta } from './posApi.js';
-import { traducirError } from '../../errors/traducirError.js';
+import { mascaraReferenciaPago } from '../../utils/mascaras.js';
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 const METODOS = [
@@ -59,10 +61,10 @@ export default function ModalCobro({
   descuentoGlobal = '0.00',
   onVentaExitosa,
 }) {
+  const { notificarError } = useAlert();
   const [pagos, setPagos] = useState([pagoVacio()]);
   const [porcentajeDesc, setPorcentajeDesc] = useState(''); // Descuento por porcentaje (ej: '10' para 10%)
   const [enviando, setEnviando] = useState(false);
-  const [errorEnvio, setErrorEnvio] = useState(null);
   const primerInputRef = useRef(null);
 
   // ── Resetear pagos al abrir con el monto total por defecto ─────────────
@@ -73,7 +75,6 @@ export default function ModalCobro({
       setPagos([{ metodo: 'EFECTIVO', monto: inicial, monto_recibido: inicial, referencia: '' }]);
       setPorcentajeDesc('');
       setEnviando(false);
-      setErrorEnvio(null);
     }
   }, [abierto, items]);
 
@@ -163,7 +164,6 @@ export default function ModalCobro({
   // ── Enviar al backend ────────────────────────────────────────────────────
   const confirmar = async () => {
     setEnviando(true);
-    setErrorEnvio(null);
     try {
       const payload = {
         id_turno: turnoActivo.id_turno,
@@ -187,7 +187,7 @@ export default function ModalCobro({
       const venta = await registrarVenta(payload);
       onVentaExitosa?.({ ...venta, vuelto: desCentavos(vueltoCentavos) });
     } catch (err) {
-      setErrorEnvio(traducirError(err));
+      notificarError(err);
     } finally {
       setEnviando(false);
     }
@@ -262,16 +262,16 @@ export default function ModalCobro({
               <div key={idx} className="rounded-lg border border-line bg-surface p-3">
                 <div className="flex items-center gap-2">
                   {/* Selector de método */}
-                  <select
-                    aria-label="Método de pago"
-                    className="input flex-1 text-sm !py-1.5"
-                    value={pago.metodo}
-                    onChange={(e) => actualizarPago(idx, 'metodo', e.target.value)}
-                  >
-                    {METODOS.map((m) => (
-                      <option key={m.valor} value={m.valor}>{m.texto}</option>
-                    ))}
-                  </select>
+                  <div className="min-w-0 flex-1">
+                    <Select
+                      aria-label="Método de pago"
+                      tamano="sm"
+                      placeholder=""
+                      value={pago.metodo}
+                      onChange={(e) => actualizarPago(idx, 'metodo', e.target.value)}
+                      opciones={METODOS.map((m) => ({ valor: m.valor, texto: m.texto }))}
+                    />
+                  </div>
 
                   {/* Monto (con autocompletado de ceros) */}
                   <input
@@ -297,14 +297,7 @@ export default function ModalCobro({
 
                   {/* Quitar */}
                   {pagos.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => quitarPago(idx)}
-                      className="grid h-8 w-8 place-items-center rounded-md text-fg-muted hover:bg-danger-soft hover:text-danger"
-                      aria-label="Quitar pago"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    <BotonIcono icono={ICONOS.eliminar} tono="peligro" etiqueta="Quitar pago" onClick={() => quitarPago(idx)} />
                   )}
                 </div>
 
@@ -343,10 +336,13 @@ export default function ModalCobro({
                   <div className="mt-2">
                     <input
                       type="text"
+                      inputMode="numeric"
+                      maxLength={12}
+                      autoComplete="off"
                       className="input w-full text-sm !py-1"
-                      placeholder="Referencia / últimos 4 dígitos"
+                      placeholder="N.º de autorización"
                       value={pago.referencia}
-                      onChange={(e) => actualizarPago(idx, 'referencia', e.target.value)}
+                      onChange={(e) => actualizarPago(idx, 'referencia', mascaraReferenciaPago(e.target.value))}
                       aria-label="Referencia del pago"
                     />
                   </div>
@@ -385,13 +381,6 @@ export default function ModalCobro({
             </div>
           )}
         </div>
-
-        {/* ── Error de envío ── */}
-        {errorEnvio && (
-          <p className="mt-3 rounded-md bg-danger-soft px-3 py-2 text-sm text-danger" role="alert">
-            {errorEnvio}
-          </p>
-        )}
 
         {/* ── Acciones ── */}
         <div className="mt-5 grid grid-cols-[auto_1fr] gap-3">

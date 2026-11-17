@@ -2,20 +2,17 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
-import BannerError from '../../components/feedback/BannerError.jsx';
 import { BotonIcono, Button, Select } from '../../components/ui/index.js';
 import { ICONOS } from '../../config/iconos.js';
 import CampoError from '../../components/forms/CampoError.jsx';
 import { formatoDinero } from '../../utils/formato.js';
 import { aplicarMascara, completarDecimales, propsMascara } from '../../utils/mascaras.js';
-import { traducirError } from '../../errors/traducirError.js';
 import { createInsumo, updateInsumo } from './inventarioApi.js';
 const TIPOS_INSUMO = ['INGREDIENTE', 'EMPAQUE', 'REVENTA'];
 const VALORES_VACIOS = {};
-const avisoLocal = (mensaje, titulo = 'Revisa la información') => ({ titulo, mensaje, accion: '', categoria: 'usuario' });
 // ─── DRAWER: Formulario de Insumo ────────────────────────────────────────────
 export default function InsumoDrawer({ abierto, insumo, unidades = [], valoresIniciales = VALORES_VACIOS, onCerrar, onGuardado }) {
-  const { notificar } = useAlert();
+  const { notificar, notificarError } = useAlert();
   const esEdicion = Boolean(insumo?.id_insumo);
 
   const [form, setForm] = useState({
@@ -26,11 +23,11 @@ export default function InsumoDrawer({ abierto, insumo, unidades = [], valoresIn
     activo: true,
   });
   const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState(null);
+  const [errorNombre, setErrorNombre] = useState(null);
 
   useEffect(() => {
     if (abierto) {
-      setError(null);
+      setErrorNombre(null);
       if (esEdicion) {
         setForm({
           nombre: insumo.nombre ?? '',
@@ -45,15 +42,28 @@ export default function InsumoDrawer({ abierto, insumo, unidades = [], valoresIn
     }
   }, [abierto, insumo, esEdicion, valoresIniciales]);
 
-  const set = (campo) => (val) => setForm((f) => ({ ...f, [campo]: val }));
+  const set = (campo) => (val) => {
+    if (campo === 'nombre') setErrorNombre(null);
+    setForm((f) => ({ ...f, [campo]: val }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
+    setErrorNombre(null);
 
-    if (!form.nombre.trim()) return setError(avisoLocal('El nombre es obligatorio.'));
-    if (!form.tipo_insumo) return setError(avisoLocal('Selecciona un tipo de insumo.'));
-    if (!form.id_unidad_base) return setError(avisoLocal('Selecciona una unidad de medida base.'));
+    if (!form.nombre.trim()) {
+      setErrorNombre('El nombre del insumo es obligatorio.');
+      notificar.advertencia('Nombre requerido', { mensaje: 'El nombre del insumo es obligatorio.' });
+      return;
+    }
+    if (!form.tipo_insumo) {
+      notificar.advertencia('Tipo requerido', { mensaje: 'Selecciona un tipo de insumo.' });
+      return;
+    }
+    if (!form.id_unidad_base) {
+      notificar.advertencia('Unidad requerida', { mensaje: 'Selecciona una unidad de medida base.' });
+      return;
+    }
 
     setCargando(true);
     try {
@@ -70,9 +80,10 @@ export default function InsumoDrawer({ abierto, insumo, unidades = [], valoresIn
       notificar.exito(esEdicion ? 'Insumo actualizado correctamente.' : 'Insumo creado correctamente.');
       onGuardado(guardado);
     } catch (err) {
-      const traducido = traducirError(err);
-      if (traducido.id === 'DUPLICADO') traducido.campos = { nombre: traducido.mensaje };
-      setError(traducido);
+      const traducido = notificarError(err);
+      if (traducido?.id === 'DUPLICADO') {
+        setErrorNombre(traducido.mensaje);
+      }
     } finally {
       setCargando(false);
     }
@@ -138,8 +149,6 @@ export default function InsumoDrawer({ abierto, insumo, unidades = [], valoresIn
 
         {/* Cuerpo con scroll interno */}
         <form id="form-insumo" onSubmit={handleSubmit} className="flex-1 overflow-y-auto scroll-fino px-6 py-5 space-y-4">
-          {error && <BannerError error={error} onCerrar={() => setError(null)} />}
-
           <div>
             <label htmlFor="insumo-nombre" className="mb-1 block text-sm font-medium text-fg">
               Nombre <span className="text-danger ml-0.5 font-semibold">*</span>
@@ -153,7 +162,7 @@ export default function InsumoDrawer({ abierto, insumo, unidades = [], valoresIn
               maxLength={100}
               required
             />
-            <CampoError id="insumo-nombre" mensaje={error?.campos?.nombre} />
+            <CampoError id="insumo-nombre" mensaje={errorNombre} />
           </div>
 
           <Select
