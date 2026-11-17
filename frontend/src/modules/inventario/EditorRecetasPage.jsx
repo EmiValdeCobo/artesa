@@ -11,7 +11,7 @@ import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
-import { Button, Card } from '../../components/ui/index.js';
+import { Button, Card, Select } from '../../components/ui/index.js';
 import { formatoDinero, formatearUnidades, enteroParaInput } from '../../utils/formato.js';
 import { traducirError } from '../../errors/traducirError.js';
 import {
@@ -34,8 +34,6 @@ import {
 import InsumoDrawer from './InsumoDrawer.jsx';
 
 // ─── Helpers Financieros Anti-Float ──────────────────────────────────────────
-// Mensaje local (validación o modo sin conexión) con la misma forma que espera
-// BannerError, para no mezclar errores de servidor con texto plano.
 function avisoLocal(mensaje, titulo = 'Revisa la información') {
   return { titulo, mensaje, accion: '', categoria: 'usuario' };
 }
@@ -150,7 +148,7 @@ function TablaRecetaSkeleton() {
 export default function EditorRecetasPage() {
   const { tiene, usuario } = useAuth();
   const verCostos = tiene('INV_VER_COSTOS');
-  const { confirm, notificar } = useAlert();
+  const { confirm, notificar, notificarError } = useAlert();
   const { idProducto } = useParams();
   const navigate = useNavigate();
 
@@ -182,7 +180,6 @@ export default function EditorRecetasPage() {
   const [errorBase, setErrorBase] = useState(null);
   const [errorInsumos, setErrorInsumos] = useState(null);
   const [errorReceta, setErrorReceta] = useState(null);
-  const [errorGuardar, setErrorGuardar] = useState(null);
 
   const [busquedaInsumo, setBusquedaInsumo] = useState('');
   const [dropdownAbierto, setDropdownAbierto] = useState(false);
@@ -397,15 +394,14 @@ export default function EditorRecetasPage() {
   // ── Guardar receta ─────────────────────────────────────────────────────────
   async function handleGuardar() {
     if (!idProductoSeleccionado) return;
-    setErrorGuardar(null);
 
     if (recetaComponentes.length === 0) {
-      setErrorGuardar(avisoLocal('La receta debe tener al menos un ingrediente.'));
+      notificar.advertencia('Ingredientes requeridos', { mensaje: 'La receta debe tener al menos un ingrediente.' });
       return;
     }
     const invalido = recetaComponentes.find((c) => !(Number(c.cantidad_requerida) > 0));
     if (invalido) {
-      setErrorGuardar(avisoLocal(`La cantidad de "${invalido.nombre_insumo}" debe ser un número mayor a cero.`));
+      notificar.advertencia('Cantidad inválida', { mensaje: `La cantidad de "${invalido.nombre_insumo}" debe ser un número mayor a cero.` });
       return;
     }
 
@@ -424,13 +420,13 @@ export default function EditorRecetasPage() {
       });
       const siguiente = productos.find((p) => String(p.id_producto) !== String(idProductoSeleccionado) && Number(p.n_ingredientes) === 0);
       if (siguiente) {
-        const irSiguiente = await confirm({ titulo: 'Receta guardada', mensaje: 'Receta guardada. ¿Ir al siguiente producto sin receta?', etiquetaCancelar: 'Quedarme aquí', etiquetaAceptar: 'Siguiente pendiente' });
+        const irSiguiente = await confirm('Receta guardada. ¿Ir al siguiente producto sin receta?', { titulo: 'Receta guardada', etiquetaCancelar: 'Quedarme aquí', etiquetaAceptar: 'Siguiente pendiente' });
         if (irSiguiente) {
           navigate(`/catalogo/productos/${siguiente.id_producto}/receta`, { replace: true });
         }
       }
     } catch (err) {
-      setErrorGuardar(traducirError(err));
+      notificarError(err);
     } finally {
       setGuardando(false);
     }
@@ -574,7 +570,7 @@ export default function EditorRecetasPage() {
       notificar.exito(`Precio actualizado a ${formatoDinero(nuevoPrecioStr)}.`);
       setPanelAjustePrecioAbierto(false);
     } catch (err) {
-      notificar.error(traducirError(err));
+      notificarError(err);
     } finally {
       setActualizandoPrecio(false);
     }
@@ -599,7 +595,7 @@ export default function EditorRecetasPage() {
   return (
     <div className="space-y-6">
       <EncabezadoPagina
-        seccion="Catálogo › Productos"
+        seccion="Operación · Catálogo"
         titulo={`${productoSeleccionado?.nombre ?? 'Producto'} › Receta`}
         descripcion="Fórmula estándar de producción (global por producto). Define los insumos y cantidades; el sistema descuenta stock automáticamente en el POS según esta receta."
         acciones={
@@ -792,20 +788,19 @@ export default function EditorRecetasPage() {
                 descripcion={subtituloDisponibilidad}
                 acciones={
                   sucursales.length > 0 && (
-                    <select
-                      id="selector-sucursal-disponibilidad"
-                      className="input text-xs py-1 px-2.5 h-8 bg-surface rounded-lg border-line max-w-48 font-medium"
-                      value={sucursalSeleccionada}
-                      onChange={(e) => setSucursalSeleccionada(e.target.value)}
-                      aria-label="Seleccionar sucursal para consultar disponibilidad"
-                    >
-                      <option value="">Todas las sucursales (Global)</option>
-                      {sucursales.map((s) => (
-                        <option key={s.id_sucursal} value={String(s.id_sucursal)}>
-                          {s.nombre}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="w-full sm:w-56">
+                      <Select
+                        id="selector-sucursal-disponibilidad"
+                        tamano="sm"
+                        value={sucursalSeleccionada}
+                        onChange={(e) => setSucursalSeleccionada(e.target.value)}
+                        aria-label="Seleccionar sucursal para consultar disponibilidad"
+                        opciones={[
+                          { valor: '', texto: 'Todas las sucursales (Global)' },
+                          ...sucursales.map((s) => ({ valor: String(s.id_sucursal), texto: s.nombre })),
+                        ]}
+                      />
+                    </div>
                   )
                 }
               >
@@ -914,9 +909,6 @@ export default function EditorRecetasPage() {
             {errorReceta && (
               <BannerError error={errorReceta} onReintentar={() => idProductoSeleccionado && cargarReceta(idProductoSeleccionado)} onCerrar={() => setErrorReceta(null)} />
             )}
-            {errorGuardar && (
-              <BannerError error={errorGuardar} onCerrar={() => setErrorGuardar(null)} />
-            )}
 
             {cargandoReceta ? (
               <TablaRecetaSkeleton />
@@ -938,14 +930,14 @@ export default function EditorRecetasPage() {
                   {/* Tabla de Ficha Técnica (Solo lectura con proporciones) */}
                   <div className="overflow-x-auto rounded-lg border border-line">
                     <table className="w-full text-left text-sm">
-                      <thead className="border-b border-line bg-muted/60 text-xs font-semibold uppercase tracking-wider text-fg-muted">
+                      <thead className="border-b border-line bg-muted text-xs font-semibold uppercase tracking-wide text-fg-muted">
                         <tr>
-                          <th className="px-4 py-3">Insumo</th>
-                          <th className="px-3 py-3">Unidad</th>
-                          <th className="px-3 py-3 text-right">Cantidad Requerida</th>
-                          <th className="px-4 py-3 text-right">Costo Unit.</th>
-                          <th className="px-4 py-3 text-right">Subtotal</th>
-                          <th className="px-4 py-3 text-right">Proporción</th>
+                          <th scope="col" className="px-4 py-3">Insumo</th>
+                          <th scope="col" className="px-3 py-3">Unidad</th>
+                          <th scope="col" className="px-3 py-3 text-right">Cantidad Requerida</th>
+                          <th scope="col" className="px-4 py-3 text-right">Costo Unit.</th>
+                          <th scope="col" className="px-4 py-3 text-right">Subtotal</th>
+                          <th scope="col" className="px-4 py-3 text-right">Proporción</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-line">
@@ -960,7 +952,7 @@ export default function EditorRecetasPage() {
                             : '0.0';
 
                           return (
-                            <tr key={c.id_insumo} className={`hover:bg-muted/30 ${isInactivo ? 'bg-amber-50/50 dark:bg-amber-950/20' : ''}`}>
+                            <tr key={c.id_insumo} className={`hover:bg-muted/60 ${isInactivo ? 'bg-amber-50/50 dark:bg-amber-950/20' : ''}`}>
                               <td className="px-4 py-3 font-medium text-fg">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span>{c.nombre_insumo}</span>
@@ -1126,14 +1118,14 @@ export default function EditorRecetasPage() {
                   {hayComponentes ? (
                     <div className="overflow-x-auto rounded-lg border border-line">
                       <table className="w-full text-left text-sm">
-                        <thead className="border-b border-line bg-muted/60 text-xs font-semibold uppercase tracking-wider text-fg-muted">
+                        <thead className="border-b border-line bg-muted text-xs font-semibold uppercase tracking-wide text-fg-muted">
                           <tr>
-                            <th className="px-4 py-3">Insumo</th>
-                            <th className="px-3 py-3">Unidad</th>
-                            <th className="px-3 py-3 text-right">Cantidad Requerida</th>
-                            <th className="px-4 py-3 text-right">Costo Subtotal</th>
+                            <th scope="col" className="px-4 py-3">Insumo</th>
+                            <th scope="col" className="px-3 py-3">Unidad</th>
+                            <th scope="col" className="px-3 py-3 text-right">Cantidad Requerida</th>
+                            <th scope="col" className="px-4 py-3 text-right">Costo Subtotal</th>
                             {tiene('INV_GESTIONAR_RECETAS') && (
-                              <th className="px-3 py-3 text-right" aria-label="Acciones" />
+                              <th scope="col" className="px-3 py-3 text-right" aria-label="Acciones" />
                             )}
                           </tr>
                         </thead>
@@ -1144,7 +1136,7 @@ export default function EditorRecetasPage() {
                             const isInactivo = c.activo === false || (insumoCat && insumoCat.activo === false);
 
                             return (
-                              <tr key={c.id_insumo} className={`hover:bg-muted/30 ${isInactivo ? 'bg-amber-50/50 dark:bg-amber-950/20' : ''}`}>
+                              <tr key={c.id_insumo} className={`hover:bg-muted/60 ${isInactivo ? 'bg-amber-50/50 dark:bg-amber-950/20' : ''}`}>
                                 <td className="px-4 py-3 font-medium text-fg">
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <span>{c.nombre_insumo}</span>

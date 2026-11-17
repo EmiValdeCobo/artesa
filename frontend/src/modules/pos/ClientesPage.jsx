@@ -1,7 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
-import { UserPlus, Search, Pencil, Trash2, Building2, UserCheck, X, Info } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { UserPlus, Search, Building2, UserCheck, Info } from 'lucide-react';
 import Dialogo from '../../components/Dialogo.jsx';
-import { Button } from '../../components/ui/index.js';
+import { BotonIcono, Button, Select, Table } from '../../components/ui/index.js';
+import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
+import BannerError from '../../components/feedback/BannerError.jsx';
+import { useAlert } from '../../components/feedback/AlertProvider.jsx';
+import { ICONOS } from '../../config/iconos.js';
 import { listarClientes, crearCliente, actualizarCliente, eliminarCliente } from './posApi.js';
 
 const FORM_INICIAL = {
@@ -59,6 +63,7 @@ function formatearNrc(valor) {
 }
 
 export default function ClientesPage() {
+  const { notificar, notificarError, confirm } = useAlert();
   const [clientes, setClientes] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
@@ -71,10 +76,6 @@ export default function ClientesPage() {
   const [form, setForm] = useState(FORM_INICIAL);
   const [errorForm, setErrorForm] = useState('');
   const [guardando, setGuardando] = useState(false);
-
-  // Modal de confirmación de eliminación
-  const [clienteAEliminar, setClienteAEliminar] = useState(null);
-  const [eliminando, setEliminando] = useState(false);
 
   const cargarClientes = useCallback(async () => {
     setCargando(true);
@@ -170,35 +171,50 @@ export default function ClientesPage() {
     const emailTrim = form.email.trim();
 
     if (nombreTrim.length < 2) {
-      setErrorForm('El nombre o razón social debe tener al menos 2 caracteres.');
+      const msg = 'El nombre o razón social debe tener al menos 2 caracteres.';
+      setErrorForm(msg);
+      notificar.advertencia('Validación requerida', { mensaje: msg });
       return;
     }
     if (docTrim && !form.tipo_documento) {
-      setErrorForm('Selecciona el tipo de documento (DUI, NIT o Pasaporte).');
+      const msg = 'Selecciona el tipo de documento (DUI, NIT o Pasaporte).';
+      setErrorForm(msg);
+      notificar.advertencia('Validación requerida', { mensaje: msg });
       return;
     }
     if (form.tipo_documento && !docTrim) {
-      setErrorForm(`Ingresa el número de ${form.tipo_documento}.`);
+      const msg = `Ingresa el número de ${form.tipo_documento}.`;
+      setErrorForm(msg);
+      notificar.advertencia('Validación requerida', { mensaje: msg });
       return;
     }
     if (reglaDocActual && docTrim && !reglaDocActual.regex.test(docTrim)) {
       setErrorForm(reglaDocActual.ayuda);
+      notificar.advertencia('Documento inválido', { mensaje: reglaDocActual.ayuda });
       return;
     }
     if ((nrcTrim && !giroTrim) || (!nrcTrim && giroTrim)) {
-      setErrorForm('Para contribuyentes CCF, tanto el NRC como el Giro Económico son obligatorios.');
+      const msg = 'Para contribuyentes CCF, tanto el NRC como el Giro Económico son obligatorios.';
+      setErrorForm(msg);
+      notificar.advertencia('Validación requerida', { mensaje: msg });
       return;
     }
     if (nrcTrim && !REGEX_NRC.test(nrcTrim)) {
-      setErrorForm('NRC inválido para El Salvador: debe tener de 2 a 8 dígitos, guion y 1 dígito verificador (ej. 123456-7).');
+      const msg = 'NRC inválido para El Salvador: debe tener de 2 a 8 dígitos, guion y 1 dígito verificador (ej. 123456-7).';
+      setErrorForm(msg);
+      notificar.advertencia('Validación requerida', { mensaje: msg });
       return;
     }
     if (telTrim && !REGEX_TELEFONO_SV.test(telTrim)) {
-      setErrorForm('Teléfono inválido: debe contener 8 dígitos de El Salvador iniciando con 2, 6 o 7 (ej. 2222-0000 o 70001234).');
+      const msg = 'Teléfono inválido: debe contener 8 dígitos de El Salvador iniciando con 2, 6 o 7 (ej. 2222-0000 o 70001234).';
+      setErrorForm(msg);
+      notificar.advertencia('Validación requerida', { mensaje: msg });
       return;
     }
     if (emailTrim && !REGEX_EMAIL.test(emailTrim)) {
-      setErrorForm('El correo electrónico no tiene un formato válido (ej. cliente@dominio.com).');
+      const msg = 'El correo electrónico no tiene un formato válido (ej. cliente@dominio.com).';
+      setErrorForm(msg);
+      notificar.advertencia('Validación requerida', { mensaje: msg });
       return;
     }
 
@@ -217,50 +233,141 @@ export default function ClientesPage() {
     try {
       if (editando) {
         await actualizarCliente(editando.id_cliente, payload);
+        notificar.exito('Cliente actualizado exitosamente');
       } else {
         await crearCliente(payload);
+        notificar.exito('Cliente registrado exitosamente');
       }
       setModalAbierto(false);
       await cargarClientes();
     } catch (err) {
-      setErrorForm(err.message || 'Ocurrió un error al guardar el cliente');
+      notificarError(err);
     } finally {
       setGuardando(false);
     }
   };
 
-  const confirmarEliminacion = async () => {
-    if (!clienteAEliminar) return;
-    setEliminando(true);
+  const handleEliminarCliente = useCallback(async (cliente) => {
+    const seguro = await confirm(
+      `¿Estás seguro de eliminar a "${cliente.nombre_razon_social}"? Esta acción no se puede deshacer.`,
+      {
+        titulo: 'Eliminar cliente',
+        destructivo: true,
+        etiquetaAceptar: 'Sí, eliminar',
+        etiquetaCancelar: 'Cancelar',
+      },
+    );
+    if (!seguro) return;
+
     try {
-      await eliminarCliente(clienteAEliminar.id_cliente);
-      setClienteAEliminar(null);
+      await eliminarCliente(cliente.id_cliente);
+      notificar.exito('Cliente eliminado');
       await cargarClientes();
     } catch (err) {
-      setError(err.message || 'No se pudo eliminar el cliente');
-      setClienteAEliminar(null);
-    } finally {
-      setEliminando(false);
+      notificarError(err);
     }
-  };
+  }, [confirm, notificar, notificarError, cargarClientes]);
+
+  const columnasClientes = useMemo(() => [
+    {
+      clave: 'nombre',
+      titulo: 'Nombre / Razón social',
+      tipo: 'texto',
+      valorOrden: (c) => c.nombre_razon_social || '',
+      render: (c) => (
+        <>
+          <span className="font-medium text-fg">{c.nombre_razon_social}</span>
+          {c.direccion && <div className="text-xs font-normal text-fg-muted">{c.direccion}</div>}
+        </>
+      ),
+    },
+    {
+      clave: 'documento',
+      titulo: 'Documento',
+      tipo: 'texto',
+      valorOrden: (c) => c.num_documento || '',
+      render: (c) => (c.num_documento ? `${c.tipo_documento}: ${c.num_documento}` : '—'),
+    },
+    {
+      clave: 'tipo',
+      titulo: 'Tipo fiscal',
+      tipo: 'texto',
+      valorOrden: (c) => (c.nrc && c.giro_economico ? 'Apto CCF' : 'Consumidor Final'),
+      render: (c) => (
+        c.nrc && c.giro_economico ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-primary-text">
+            <Building2 className="h-3 w-3" aria-hidden="true" /> Apto CCF
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-fg-muted">
+            <UserCheck className="h-3 w-3" aria-hidden="true" /> Consumidor Final
+          </span>
+        )
+      ),
+    },
+    {
+      clave: 'nrc',
+      titulo: 'NRC / Giro',
+      tipo: 'texto',
+      valorOrden: (c) => c.nrc || '',
+      render: (c) => (
+        c.nrc && c.giro_economico ? (
+          <div>
+            <span className="font-mono font-semibold">{c.nrc}</span>
+            <div className="text-xs text-fg-muted">{c.giro_economico}</div>
+          </div>
+        ) : '—'
+      ),
+    },
+    {
+      clave: 'contacto',
+      titulo: 'Contacto',
+      tipo: 'texto',
+      valorOrden: (c) => c.telefono || c.email || '',
+      render: (c) => (
+        <div className="text-xs text-fg-muted">
+          <div>{c.telefono || 'Sin teléfono'}</div>
+          <div>{c.email || ''}</div>
+        </div>
+      ),
+    },
+    {
+      clave: 'acciones',
+      titulo: 'Acciones',
+      alinear: 'right',
+      ordenable: false,
+      render: (c) => (
+        <div className="inline-flex items-center gap-1">
+          <BotonIcono
+            icono={ICONOS.editar}
+            etiqueta={`Editar cliente ${c.nombre_razon_social}`}
+            titulo="Editar cliente"
+            onClick={() => abrirEditar(c)}
+          />
+          <BotonIcono
+            icono={ICONOS.eliminar}
+            tono="peligro"
+            etiqueta={`Eliminar cliente ${c.nombre_razon_social}`}
+            titulo="Eliminar cliente"
+            onClick={() => handleEliminarCliente(c)}
+          />
+        </div>
+      ),
+    },
+  ], [handleEliminarCliente]);
 
   return (
     <div className="space-y-6">
-      {/* Encabezado */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">
-            Operación · POS
-          </p>
-          <h1 className="mt-1 text-2xl font-bold text-fg">Clientes y Contribuyentes</h1>
-          <p className="text-sm text-fg-muted">
-            Registro de clientes para Factura Consumidor Final (FCF) y Crédito Fiscal (CCF).
-          </p>
-        </div>
-        <Button variante="primary" onClick={abrirNuevo} icono={UserPlus}>
-          Nuevo cliente
-        </Button>
-      </div>
+      <EncabezadoPagina
+        seccion="Operación · Clientes (CCF)"
+        titulo="Clientes y Contribuyentes"
+        descripcion="Registro de clientes para Factura Consumidor Final (FCF) y Crédito Fiscal (CCF)."
+        acciones={(
+          <Button variante="primary" onClick={abrirNuevo} icono={UserPlus}>
+            Nuevo cliente
+          </Button>
+        )}
+      />
 
       {/* Barra de búsqueda y filtro */}
       <div className="card flex flex-col gap-3 !p-4 sm:flex-row sm:items-center">
@@ -271,7 +378,8 @@ export default function ClientesPage() {
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Buscar por nombre, razón social, DUI, NIT o NRC..."
-            className="input w-full pl-9"
+            aria-label="Buscar cliente"
+            className="input h-10 w-full pl-9"
           />
         </div>
         <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-fg">
@@ -285,105 +393,21 @@ export default function ClientesPage() {
         </label>
       </div>
 
-      {error && (
-        <div className="rounded-xl border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
-          {error}
-        </div>
-      )}
+      {error && <BannerError error={{ titulo: 'No se pudo completar la operación', mensaje: error, accion: '' }} />}
 
-      {/* Tabla con los colores exactos del sistema (bg-surface, bg-muted, border-line, text-fg) */}
+      {/* Tabla compartida (Table.jsx): misma cabecera, padding, hover y estados que el resto del sistema */}
       <div className="card overflow-hidden !p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-line bg-muted text-xs font-semibold uppercase tracking-wider text-fg-muted">
-              <tr>
-                <th className="px-4 py-3">Nombre / Razón social</th>
-                <th className="px-4 py-3">Documento</th>
-                <th className="px-4 py-3">Tipo fiscal</th>
-                <th className="px-4 py-3">NRC / Giro</th>
-                <th className="px-4 py-3">Contacto</th>
-                <th className="px-4 py-3 text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {cargando ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-fg-muted">
-                    Cargando clientes...
-                  </td>
-                </tr>
-              ) : clientes.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-fg-muted">
-                    No se encontraron clientes con los criterios actuales.
-                  </td>
-                </tr>
-              ) : (
-                clientes.map((c) => {
-                  const esContribuyente = Boolean(c.nrc && c.giro_economico);
-                  return (
-                    <tr key={c.id_cliente} className="transition-colors hover:bg-muted/50">
-                      <td className="px-4 py-3 font-medium text-fg">
-                        {c.nombre_razon_social}
-                        {c.direccion && (
-                          <div className="text-xs font-normal text-fg-muted">{c.direccion}</div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-fg">
-                        {c.num_documento ? `${c.tipo_documento}: ${c.num_documento}` : '—'}
-                      </td>
-                      <td className="px-4 py-3">
-                        {esContribuyente ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-primary-text">
-                            <Building2 className="h-3 w-3" /> Apto CCF
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-fg-muted">
-                            <UserCheck className="h-3 w-3" /> Consumidor Final
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-fg">
-                        {esContribuyente ? (
-                          <div>
-                            <span className="font-mono font-semibold">{c.nrc}</span>
-                            <div className="text-xs text-fg-muted">{c.giro_economico}</div>
-                          </div>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-fg-muted">
-                        <div>{c.telefono || 'Sin teléfono'}</div>
-                        <div>{c.email || ''}</div>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="inline-flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => abrirEditar(c)}
-                            title="Editar cliente"
-                            className="rounded-lg p-1.5 text-fg-muted transition-colors hover:bg-muted hover:text-primary-text"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setClienteAEliminar(c)}
-                            title="Eliminar cliente"
-                            className="rounded-lg p-1.5 text-fg-muted transition-colors hover:bg-danger-soft hover:text-danger"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          idTabla="pos_clientes"
+          cargando={cargando}
+          filas={clientes}
+          idFila="id_cliente"
+          scrollVertical={false}
+          minAncho="min-w-[760px]"
+          vacio="No se encontraron clientes con los criterios actuales."
+          ordenInicial={{ clave: 'nombre', direccion: 'asc' }}
+          columnas={columnasClientes}
+        />
       </div>
 
       {/* Modal Crear / Editar */}
@@ -392,20 +416,13 @@ export default function ClientesPage() {
           <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">
-                Catálogo · Clientes
+                Operación · Clientes (CCF)
               </p>
               <h2 id="titulo-modal-cliente" className="mt-1 text-xl font-semibold text-fg">
                 {editando ? 'Editar cliente' : 'Registrar nuevo cliente'}
               </h2>
             </div>
-            <button
-              type="button"
-              onClick={() => setModalAbierto(false)}
-              className="rounded-md p-1.5 text-fg-muted hover:bg-muted hover:text-fg"
-              aria-label="Cerrar modal"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            <BotonIcono icono={ICONOS.cerrar} etiqueta="Cerrar modal" onClick={() => setModalAbierto(false)} />
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4 p-5">
@@ -432,29 +449,30 @@ export default function ClientesPage() {
                   value={form.nombre_razon_social}
                   onChange={handleChange}
                   placeholder="Ej. Inversiones Café S.A. de C.V."
-                  className="input w-full"
+                  className="input h-10 w-full"
                 />
               </div>
 
               <div className="group">
-                <label className="mb-1 flex items-center justify-between text-xs font-semibold text-fg">
+                <label htmlFor="cliente-tipo-documento" className="mb-1 flex items-center justify-between text-xs font-semibold text-fg">
                   <span>Tipo de documento</span>
                   <span className="text-[11px] font-normal text-fg-muted opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                     DUI, NIT o Pasaporte
                   </span>
                 </label>
-                <select
+                <Select
+                  id="cliente-tipo-documento"
                   name="tipo_documento"
                   title="Selecciona el tipo de identificación oficial en El Salvador."
                   value={form.tipo_documento}
                   onChange={handleChange}
-                  className="input w-full"
-                >
-                  <option value="">Ninguno</option>
-                  <option value="DUI">DUI (El Salvador)</option>
-                  <option value="NIT">NIT / DUI Homologado</option>
-                  <option value="PASAPORTE">Pasaporte</option>
-                </select>
+                  opciones={[
+                    { valor: '', texto: 'Ninguno' },
+                    { valor: 'DUI', texto: 'DUI (El Salvador)' },
+                    { valor: 'NIT', texto: 'NIT / DUI Homologado' },
+                    { valor: 'PASAPORTE', texto: 'Pasaporte' },
+                  ]}
+                />
               </div>
 
               <div className="group">
@@ -473,7 +491,7 @@ export default function ClientesPage() {
                   value={form.num_documento}
                   onChange={handleChange}
                   placeholder={reglaDocActual ? `Ej. ${reglaDocActual.placeholder}` : 'Selecciona tipo primero'}
-                  className="input w-full disabled:cursor-not-allowed disabled:opacity-50"
+                  className="input h-10 w-full disabled:cursor-not-allowed disabled:opacity-50"
                 />
                 {reglaDocActual && (
                   <p className="mt-1 hidden text-[11px] text-fg-muted group-hover:block group-focus-within:block">
@@ -499,7 +517,7 @@ export default function ClientesPage() {
                       value={form.nrc}
                       onChange={handleChange}
                       placeholder="123456-7"
-                      className="input w-full text-center font-mono"
+                      className="input h-10 w-full text-center font-mono"
                     />
                     <span className="mt-1 text-[11px] text-fg-muted">
                       2 a 8 dígitos + guion + dígito
@@ -518,7 +536,7 @@ export default function ClientesPage() {
                       value={form.giro_economico}
                       onChange={handleChange}
                       placeholder="Ej. Servicios de alimentación"
-                      className="input w-full text-center"
+                      className="input h-10 w-full text-center"
                     />
                     <span className="mt-1 text-[11px] text-fg-muted">
                       Actividad registrada en MH
@@ -542,7 +560,7 @@ export default function ClientesPage() {
                   value={form.telefono}
                   onChange={handleChange}
                   placeholder="2222-0000"
-                  className="input w-full"
+                  className="input h-10 w-full"
                 />
               </div>
 
@@ -561,7 +579,7 @@ export default function ClientesPage() {
                   value={form.email}
                   onChange={handleChange}
                   placeholder="facturacion@empresa.com"
-                  className="input w-full"
+                  className="input h-10 w-full"
                 />
               </div>
 
@@ -580,7 +598,7 @@ export default function ClientesPage() {
                   value={form.direccion}
                   onChange={handleChange}
                   placeholder="Colonia, calle, municipio..."
-                  className="input w-full"
+                  className="input h-10 w-full"
                 />
               </div>
             </div>
@@ -594,26 +612,6 @@ export default function ClientesPage() {
               </Button>
             </div>
           </form>
-        </Dialogo>
-      )}
-
-      {/* Modal Confirmar Eliminación */}
-      {clienteAEliminar && (
-        <Dialogo rol="alertdialog" tamano="sm" onCerrar={() => !eliminando && setClienteAEliminar(null)}>
-          <div className="space-y-4 p-6">
-            <h3 className="text-lg font-bold text-fg">Eliminar cliente</h3>
-            <p className="text-sm text-fg-muted">
-              ¿Estás seguro de eliminar a <strong className="text-fg">{clienteAEliminar.nombre_razon_social}</strong>? Esta acción no se puede deshacer.
-            </p>
-            <div className="flex justify-end gap-2.5 pt-2">
-              <Button variante="ghost" disabled={eliminando} onClick={() => setClienteAEliminar(null)}>
-                Cancelar
-              </Button>
-              <Button variante="danger" cargando={eliminando} onClick={confirmarEliminacion}>
-                Sí, eliminar
-              </Button>
-            </div>
-          </div>
         </Dialogo>
       )}
     </div>

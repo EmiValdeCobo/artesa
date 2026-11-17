@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Briefcase, Plus, RefreshCw, X, DollarSign, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Briefcase, Plus, RefreshCw, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { rrhhApi } from '../../api/rrhh.api.js';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
@@ -19,7 +19,7 @@ const FORMULARIO_VACIO = {
 };
 
 export default function PuestosPage() {
-  const { notificar, confirm } = useAlert();
+  const { notificar, notificarError, confirm } = useAlert();
 
   const [puestos, setPuestos] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -36,7 +36,6 @@ export default function PuestosPage() {
   const [formulario, setFormulario] = useState(FORMULARIO_VACIO);
   const [erroresForm, setErroresForm] = useState({});
   const [guardando, setGuardando] = useState(false);
-  const [errorModal, setErrorModal] = useState(null);
 
   const cargarPuestos = useCallback(async (silencioso = false) => {
     if (silencioso) setActualizando(true);
@@ -61,7 +60,6 @@ export default function PuestosPage() {
     setPuestoEditando(null);
     setFormulario(FORMULARIO_VACIO);
     setErroresForm({});
-    setErrorModal(null);
     setModalAbierto(true);
   };
 
@@ -72,7 +70,6 @@ export default function PuestosPage() {
       salarioBase: puesto.salario_base,
     });
     setErroresForm({});
-    setErrorModal(null);
     setModalAbierto(true);
   };
 
@@ -95,10 +92,14 @@ export default function PuestosPage() {
 
   const handleGuardar = async (e) => {
     e.preventDefault();
-    if (!validarFormulario()) return;
+    if (!validarFormulario()) {
+      notificar.advertencia('Corrige los errores en el formulario', {
+        mensaje: 'Revisa los campos requeridos antes de guardar el puesto.',
+      });
+      return;
+    }
 
     setGuardando(true);
-    setErrorModal(null);
 
     const payload = {
       nombre: formulario.nombre.trim(),
@@ -116,13 +117,13 @@ export default function PuestosPage() {
       setModalAbierto(false);
       await cargarPuestos(true);
     } catch (err) {
-      setErrorModal(err.message || 'No se pudo guardar el puesto.');
+      notificarError(err, { reintentar: () => handleGuardar(e) });
     } finally {
       setGuardando(false);
     }
   };
 
-  const toggleEstado = async (puesto) => {
+  const toggleEstado = useCallback(async (puesto) => {
     const accion = puesto.activo ? 'desactivar' : 'activar';
     const seguro = await confirm(
       `¿Deseas ${accion} el puesto «${puesto.nombre}»? ${
@@ -147,9 +148,9 @@ export default function PuestosPage() {
       }
       await cargarPuestos(true);
     } catch (err) {
-      notificar.error(err.message || `No se pudo ${accion} el puesto.`);
+      notificarError(err, { reintentar: () => toggleEstado(puesto) });
     }
-  };
+  }, [confirm, notificar, notificarError, cargarPuestos]);
 
   // Filtrado
   const puestosFiltrados = useMemo(() => {
@@ -176,6 +177,8 @@ export default function PuestosPage() {
       {
         clave: 'nombre',
         titulo: 'Puesto / Cargo',
+        tipo: 'texto',
+        valorOrden: (p) => p.nombre,
         render: (p) => (
           <div className="flex items-center gap-2.5">
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary-soft text-primary-text">
@@ -189,6 +192,8 @@ export default function PuestosPage() {
         clave: 'salario_base',
         titulo: 'Salario Base (Mensual)',
         alinear: 'right',
+        tipo: 'dinero',
+        valorOrden: (p) => p.salario_base,
         render: (p) => (
           <span className="font-medium text-fg">{formatoDinero(p.salario_base)}</span>
         ),
@@ -196,6 +201,8 @@ export default function PuestosPage() {
       {
         clave: 'activo',
         titulo: 'Estado',
+        tipo: 'booleano',
+        valorOrden: (p) => Boolean(p.activo),
         render: (p) => (
           <EstadoBadge tipo={p.activo ? 'exito' : 'inactivo'}>
             {p.activo ? 'Activo' : 'Inactivo'}
@@ -206,6 +213,7 @@ export default function PuestosPage() {
         clave: 'acciones',
         titulo: 'Acciones',
         alinear: 'right',
+        ordenable: false,
         render: (p) => (
           <div className="flex items-center justify-end gap-1.5">
             <BotonIcono
@@ -235,15 +243,12 @@ export default function PuestosPage() {
         ),
       },
     ],
-    []
+    [toggleEstado]
   );
 
   if (cargando) {
     return (
-      <div className="flex min-h-[400px] flex-col items-center justify-center gap-3">
-        <Spinner />
-        <p className="text-sm text-fg-muted">Cargando catálogo de puestos…</p>
-      </div>
+      <Spinner texto="Cargando catálogo de puestos…" className="min-h-[400px]" />
     );
   }
 
@@ -279,7 +284,7 @@ export default function PuestosPage() {
       )}
 
       {/* Métricas */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-3">
         <Metrica
           icono={Briefcase}
           etiqueta="Total de puestos"
@@ -296,7 +301,7 @@ export default function PuestosPage() {
           icono={AlertCircle}
           etiqueta="Puestos inactivos"
           valor={metricas.inactivos}
-          tono="aviso"
+          tono="neutro"
         />
       </div>
 
@@ -332,6 +337,7 @@ export default function PuestosPage() {
           columnas={columnas}
           filas={puestosFiltrados}
           idFila="id_puesto"
+          idTabla="rrhh_puestos"
           vacio={
             <EstadoVacio
               icono={Briefcase}
@@ -371,12 +377,6 @@ export default function PuestosPage() {
               <X size={18} aria-hidden="true" />
             </button>
           </div>
-
-          {errorModal && (
-            <div className="p-4 pb-0">
-              <BannerError error={{ titulo: 'No se pudo guardar el puesto', mensaje: errorModal }} />
-            </div>
-          )}
 
           <form onSubmit={handleGuardar} className="space-y-4 p-5">
             <div>

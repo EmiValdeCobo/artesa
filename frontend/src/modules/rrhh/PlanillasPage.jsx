@@ -7,16 +7,10 @@ import {
   Plus,
   RefreshCw,
   X,
-  Building2,
-  Calendar,
   DollarSign,
   Download,
   Eye,
   Lock,
-  ArrowRight,
-  TrendingDown,
-  TrendingUp,
-  User,
   Gift,
   Pencil,
   Trash2,
@@ -31,11 +25,11 @@ import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import Metrica from '../../components/display/Metrica.jsx';
 import Dialogo from '../../components/Dialogo.jsx';
 import { Button, Card, Select, Spinner, Table } from '../../components/ui/index.js';
-import { formatoDinero, etiquetaDiaLarga } from '../../utils/formato.js';
+import { formatoDinero } from '../../utils/formato.js';
 
 export default function PlanillasPage() {
   const { tiene } = useAuth();
-  const { notificar, confirm } = useAlert();
+  const { notificar, notificarError, confirm } = useAlert();
 
   const puedeCalcular = tiene('RRHH_CALCULAR_PLANILLA');
 
@@ -56,7 +50,6 @@ export default function PlanillasPage() {
     periodo: new Date().toISOString().slice(0, 7), // AAAA-MM
   });
   const [guardandoCrear, setGuardandoCrear] = useState(false);
-  const [errorCrear, setErrorCrear] = useState(null);
 
   // Detalle de Planilla
   const [modalDetalleAbierto, setModalDetalleAbierto] = useState(false);
@@ -69,7 +62,6 @@ export default function PlanillasPage() {
   const [empleadoParaBono, setEmpleadoParaBono] = useState(null);
   const [formBono, setFormBono] = useState({ monto: '', descripcion: '' });
   const [guardandoBono, setGuardandoBono] = useState(false);
-  const [errorBono, setErrorBono] = useState(null);
 
   const cargarPlanillas = useCallback(async (silencioso = false) => {
     if (silencioso) setActualizando(true);
@@ -108,20 +100,22 @@ export default function PlanillasPage() {
       idSucursal: sucursales[0]?.id_sucursal ? String(sucursales[0].id_sucursal) : '',
       periodo: new Date().toISOString().slice(0, 7),
     });
-    setErrorCrear(null);
     setModalCrearAbierto(true);
   };
 
   const handleCrearPlanilla = async (e) => {
     e.preventDefault();
-    setErrorCrear(null);
 
     if (!formCrear.idSucursal) {
-      setErrorCrear('Debes seleccionar una sucursal.');
+      notificar.advertencia('Selecciona una sucursal', {
+        mensaje: 'Debes seleccionar la sucursal para generar la planilla.',
+      });
       return;
     }
     if (!formCrear.periodo || !/^\d{4}-\d{2}$/.test(formCrear.periodo)) {
-      setErrorCrear('Ingresa un período válido en formato AAAA-MM.');
+      notificar.advertencia('Período inválido', {
+        mensaje: 'Ingresa un período válido en formato AAAA-MM.',
+      });
       return;
     }
 
@@ -142,25 +136,25 @@ export default function PlanillasPage() {
         verDetallePlanilla(res.idPlanilla);
       }
     } catch (err) {
-      setErrorCrear(err.message || 'No se pudo crear la planilla.');
+      notificarError(err, { reintentar: () => handleCrearPlanilla(e) });
     } finally {
       setGuardandoCrear(false);
     }
   };
 
-  const verDetallePlanilla = async (idPlanilla) => {
+  const verDetallePlanilla = useCallback(async (idPlanilla) => {
     setCargandoDetalle(true);
     setModalDetalleAbierto(true);
     try {
       const detalle = await rrhhApi.obtenerPlanilla(idPlanilla);
       setPlanillaSeleccionada(detalle);
     } catch (err) {
-      notificar.error(err.message || 'No se pudo cargar el detalle de la planilla.');
+      notificarError(err, { reintentar: () => verDetallePlanilla(idPlanilla) });
       setModalDetalleAbierto(false);
     } finally {
       setCargandoDetalle(false);
     }
-  };
+  }, [notificarError]);
 
   const handleCalcular = async (idPlanilla) => {
     setProcesandoAccion(true);
@@ -170,7 +164,7 @@ export default function PlanillasPage() {
       await verDetallePlanilla(idPlanilla);
       await cargarPlanillas(true);
     } catch (err) {
-      notificar.error(err.message || 'No se pudo calcular la planilla.');
+      notificarError(err, { reintentar: () => handleCalcular(idPlanilla) });
     } finally {
       setProcesandoAccion(false);
     }
@@ -196,7 +190,7 @@ export default function PlanillasPage() {
       await verDetallePlanilla(idPlanilla);
       await cargarPlanillas(true);
     } catch (err) {
-      notificar.error(err.message || 'No se pudo procesar la planilla.');
+      notificarError(err, { reintentar: () => handleProcesar(idPlanilla) });
     } finally {
       setProcesandoAccion(false);
     }
@@ -218,21 +212,23 @@ export default function PlanillasPage() {
       monto: montoActual,
       descripcion: descActual,
     });
-    setErrorBono(null);
     setModalBonoAbierto(true);
   };
 
   const handleGuardarBono = async (e) => {
     e.preventDefault();
-    setErrorBono(null);
 
     const montoLimpio = formBono.monto.trim();
     if (!montoLimpio || !/^\d+(\.\d{1,2})?$/.test(montoLimpio) || Number(montoLimpio) <= 0) {
-      setErrorBono('Ingresa un monto de bono válido mayor a 0 (ej: 50.00).');
+      notificar.advertencia('Monto de bono inválido', {
+        mensaje: 'Ingresa un monto de bono válido mayor a 0 (ej: 50.00).',
+      });
       return;
     }
     if (!formBono.descripcion.trim()) {
-      setErrorBono('Ingresa una descripción o motivo para el bono.');
+      notificar.advertencia('Descripción requerida', {
+        mensaje: 'Ingresa una descripción o motivo para el bono.',
+      });
       return;
     }
 
@@ -251,14 +247,23 @@ export default function PlanillasPage() {
       await verDetallePlanilla(planillaSeleccionada.planilla.id_planilla);
       await cargarPlanillas(true);
     } catch (err) {
-      setErrorBono(err.message || 'No se pudo guardar el bono.');
+      notificarError(err, { reintentar: () => handleGuardarBono(e) });
     } finally {
       setGuardandoBono(false);
     }
   };
 
   const handleQuitarBono = async () => {
-    setErrorBono(null);
+    const seguro = await confirm(
+      `¿Deseas quitar el bono asignado a ${empleadoParaBono.nombres} ${empleadoParaBono.apellidos}? Se recalcularán los descuentos de la planilla.`,
+      {
+        titulo: 'Quitar bono',
+        destructivo: true,
+        etiquetaAceptar: 'Sí, quitar bono',
+      }
+    );
+    if (!seguro) return;
+
     setGuardandoBono(true);
     try {
       await rrhhApi.guardarAjuste(
@@ -274,7 +279,7 @@ export default function PlanillasPage() {
       await verDetallePlanilla(planillaSeleccionada.planilla.id_planilla);
       await cargarPlanillas(true);
     } catch (err) {
-      setErrorBono(err.message || 'No se pudo quitar el bono.');
+      notificarError(err, { reintentar: handleQuitarBono });
     } finally {
       setGuardandoBono(false);
     }
@@ -296,6 +301,8 @@ export default function PlanillasPage() {
       {
         clave: 'periodo',
         titulo: 'Período',
+        tipo: 'fecha',
+        valorOrden: (p) => p.periodo_inicio || '',
         render: (p) => (
           <div>
             <p className="font-semibold text-fg">
@@ -310,12 +317,16 @@ export default function PlanillasPage() {
       {
         clave: 'sucursal',
         titulo: 'Sucursal',
+        tipo: 'texto',
+        valorOrden: (p) => p.sucursal || '',
         render: (p) => <span className="font-medium text-fg">{p.sucursal}</span>,
       },
       {
         clave: 'empleados',
         titulo: 'Empleados',
         alinear: 'center',
+        tipo: 'numero',
+        valorOrden: (p) => p.empleados ?? 0,
         render: (p) => (
           <span className="inline-flex rounded-full bg-surface px-2.5 py-0.5 text-xs font-semibold text-fg border border-line">
             {p.empleados || 0}
@@ -326,12 +337,16 @@ export default function PlanillasPage() {
         clave: 'total_bruto',
         titulo: 'Total Devengado',
         alinear: 'right',
+        tipo: 'dinero',
+        valorOrden: (p) => p.total_bruto,
         render: (p) => <span className="font-medium text-fg">{formatoDinero(p.total_bruto)}</span>,
       },
       {
         clave: 'total_neto',
         titulo: 'Total a Pagar',
         alinear: 'right',
+        tipo: 'dinero',
+        valorOrden: (p) => p.total_neto,
         render: (p) => (
           <span className="font-bold text-success">{formatoDinero(p.total_neto)}</span>
         ),
@@ -339,6 +354,13 @@ export default function PlanillasPage() {
       {
         clave: 'estado',
         titulo: 'Estado',
+        tipo: 'texto',
+        valorOrden: (p) =>
+          p.procesada
+            ? 'Procesada'
+            : Number(p.empleados) > 0
+            ? 'Calculada'
+            : 'Sin calcular',
         render: (p) => {
           if (p.procesada) {
             return <EstadoBadge tipo="exito">Procesada</EstadoBadge>;
@@ -353,6 +375,7 @@ export default function PlanillasPage() {
         clave: 'acciones',
         titulo: 'Acciones',
         alinear: 'right',
+        ordenable: false,
         render: (p) => (
           <div className="flex items-center justify-end gap-1.5">
             <Button
@@ -378,15 +401,164 @@ export default function PlanillasPage() {
         ),
       },
     ],
-    []
+    [verDetallePlanilla]
+  );
+
+  const columnasDetalle = useMemo(
+    () => [
+      {
+        clave: 'empleado',
+        titulo: 'Empleado / DUI',
+        tipo: 'texto',
+        valorOrden: (emp) => `${emp.apellidos || ''} ${emp.nombres || ''}`.trim(),
+        render: (emp) => (
+          <div>
+            <p className="font-semibold text-fg">
+              {emp.apellidos}, {emp.nombres}
+            </p>
+            <p className="text-[11px] text-fg-muted font-mono">{emp.dui}</p>
+          </div>
+        ),
+      },
+      {
+        clave: 'salario_bruto',
+        titulo: 'Salario Base',
+        alinear: 'right',
+        tipo: 'dinero',
+        valorOrden: (emp) => emp.salario_bruto,
+        render: (emp) => (
+          <span className="font-medium text-fg">{formatoDinero(emp.salario_bruto)}</span>
+        ),
+      },
+      {
+        clave: 'bonificaciones',
+        titulo: 'Bono',
+        alinear: 'right',
+        tipo: 'dinero',
+        valorOrden: (emp) => emp.bonificaciones,
+        render: (emp) =>
+          Number(emp.bonificaciones) > 0 ? (
+            <div className="flex flex-col items-end">
+              <span className="font-semibold text-success">
+                +{formatoDinero(emp.bonificaciones)}
+              </span>
+              {(Array.isArray(emp.detalle) ? emp.detalle[0] : emp.detalle) ? (
+                <span
+                  className="text-[10px] text-fg-muted italic truncate max-w-[120px]"
+                  title={Array.isArray(emp.detalle) ? emp.detalle.join(' · ') : emp.detalle}
+                >
+                  {Array.isArray(emp.detalle) ? emp.detalle[0] : emp.detalle}
+                </span>
+              ) : null}
+              {!planillaSeleccionada?.planilla?.procesada && puedeCalcular && (
+                <button
+                  type="button"
+                  onClick={() => abrirModalBono(emp)}
+                  className="mt-0.5 inline-flex items-center gap-0.5 text-[10px] font-medium text-primary-text hover:underline"
+                >
+                  <Pencil size={10} aria-hidden="true" />
+                  Editar
+                </button>
+              )}
+            </div>
+          ) : !planillaSeleccionada?.planilla?.procesada && puedeCalcular ? (
+            <button
+              type="button"
+              onClick={() => abrirModalBono(emp)}
+              className="inline-flex items-center gap-1 rounded bg-muted/60 px-2 py-0.5 text-[11px] font-medium text-primary-text hover:bg-primary-soft hover:text-primary transition-colors"
+              title="Asignar bono a este empleado"
+            >
+              <Plus size={11} aria-hidden="true" />
+              Bono
+            </button>
+          ) : (
+            <span className="text-fg-muted">—</span>
+          ),
+      },
+      {
+        clave: 'isss_laboral',
+        titulo: 'ISSS (3%)',
+        alinear: 'right',
+        tipo: 'dinero',
+        valorOrden: (emp) => emp.isss_laboral,
+        render: (emp) => (
+          <span className="text-danger">-{formatoDinero(emp.isss_laboral)}</span>
+        ),
+      },
+      {
+        clave: 'afp_laboral',
+        titulo: 'AFP (7.25%)',
+        alinear: 'right',
+        tipo: 'dinero',
+        valorOrden: (emp) => emp.afp_laboral,
+        render: (emp) => (
+          <span className="text-danger">-{formatoDinero(emp.afp_laboral)}</span>
+        ),
+      },
+      {
+        clave: 'renta_retenida',
+        titulo: 'Renta',
+        alinear: 'right',
+        tipo: 'dinero',
+        valorOrden: (emp) => emp.renta_retenida,
+        render: (emp) => (
+          <span className="text-danger">-{formatoDinero(emp.renta_retenida)}</span>
+        ),
+      },
+      {
+        clave: 'total_descuentos',
+        titulo: 'Total Desc.',
+        alinear: 'right',
+        tipo: 'dinero',
+        valorOrden: (emp) => emp.total_descuentos,
+        render: (emp) => (
+          <span className="font-semibold text-danger">-{formatoDinero(emp.total_descuentos)}</span>
+        ),
+      },
+      {
+        clave: 'salario_neto',
+        titulo: 'Neto a Pagar',
+        alinear: 'right',
+        tipo: 'dinero',
+        valorOrden: (emp) => emp.salario_neto,
+        render: (emp) => (
+          <span className="font-bold text-success text-sm bg-success-soft/20 px-1 py-0.5 rounded">
+            {formatoDinero(emp.salario_neto)}
+          </span>
+        ),
+      },
+      {
+        clave: 'boleta',
+        titulo: 'Boleta',
+        alinear: 'center',
+        ordenable: false,
+        render: (emp) =>
+          planillaSeleccionada?.planilla?.procesada ? (
+            <button
+              type="button"
+              onClick={() =>
+                handleDescargarBoleta(
+                  planillaSeleccionada.planilla.id_planilla,
+                  emp.id_empleado
+                )
+              }
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-primary-text hover:underline"
+              title="Descargar boleta individual"
+            >
+              <Download size={13} aria-hidden="true" />
+              Boleta
+            </button>
+          ) : (
+            <span className="text-fg-muted text-[11px]">—</span>
+          ),
+      },
+    ],
+    [planillaSeleccionada, puedeCalcular, abrirModalBono]
   );
 
   if (cargando) {
     return (
-      <div className="flex min-h-[400px] flex-col items-center justify-center gap-3">
-        <Spinner />
-        <p className="text-sm text-fg-muted">Cargando módulo de planillas…</p>
-      </div>
+      <Spinner texto="Cargando módulo de planillas…" className="min-h-[400px]" />
     );
   }
 
@@ -424,7 +596,7 @@ export default function PlanillasPage() {
       )}
 
       {/* Métricas */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Metrica
           icono={FileText}
           etiqueta="Total planillas"
@@ -481,6 +653,7 @@ export default function PlanillasPage() {
           columnas={columnas}
           filas={planillas}
           idFila="id_planilla"
+          idTabla="rrhh_planillas"
           vacio={
             <EstadoVacio
               icono={FileText}
@@ -516,12 +689,6 @@ export default function PlanillasPage() {
               <X size={18} aria-hidden="true" />
             </button>
           </div>
-
-          {errorCrear && (
-            <div className="p-4 pb-0">
-              <BannerError error={{ titulo: 'No se pudo crear la planilla', mensaje: errorCrear }} />
-            </div>
-          )}
 
           <form onSubmit={handleCrearPlanilla} className="space-y-4 p-5">
             <div>
@@ -583,10 +750,7 @@ export default function PlanillasPage() {
           labelledBy="modal-detalle-titulo"
         >
           {cargandoDetalle ? (
-            <div className="flex min-h-[300px] flex-col items-center justify-center gap-3 p-8">
-              <Spinner />
-              <p className="text-sm text-fg-muted">Cargando desglose de la planilla…</p>
-            </div>
+            <Spinner texto="Cargando desglose de la planilla…" className="min-h-[300px]" />
           ) : planillaSeleccionada ? (
             <div>
               {/* Encabezado del visor */}
@@ -672,112 +836,15 @@ export default function PlanillasPage() {
               {/* Contenido / Tabla de empleados */}
               <div className="space-y-4 p-6 overflow-y-auto max-h-[75vh]">
                 {planillaSeleccionada.empleados?.length > 0 ? (
-                  <div className="overflow-x-auto rounded-lg border border-line">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="border-b border-line bg-muted font-semibold text-fg-muted">
-                          <th className="px-3.5 py-2.5 text-left">Empleado / DUI</th>
-                          <th className="px-3.5 py-2.5 text-right">Salario Base</th>
-                          <th className="px-3.5 py-2.5 text-right">Bono</th>
-                          <th className="px-3.5 py-2.5 text-right">ISSS (3%)</th>
-                          <th className="px-3.5 py-2.5 text-right">AFP (7.25%)</th>
-                          <th className="px-3.5 py-2.5 text-right">Renta</th>
-                          <th className="px-3.5 py-2.5 text-right">Total Desc.</th>
-                          <th className="px-3.5 py-2.5 text-right font-bold text-success">Neto a Pagar</th>
-                          <th className="px-3.5 py-2.5 text-center">Boleta</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-line">
-                        {planillaSeleccionada.empleados.map((emp) => (
-                          <tr key={emp.id_empleado} className="hover:bg-muted/40 transition-colors">
-                            <td className="px-3.5 py-2.5">
-                              <p className="font-semibold text-fg">
-                                {emp.apellidos}, {emp.nombres}
-                              </p>
-                              <p className="text-[11px] text-fg-muted font-mono">{emp.dui}</p>
-                            </td>
-                            <td className="px-3.5 py-2.5 text-right font-medium text-fg">
-                              {formatoDinero(emp.salario_bruto)}
-                            </td>
-                            <td className="px-3.5 py-2.5 text-right">
-                              {Number(emp.bonificaciones) > 0 ? (
-                                <div className="flex flex-col items-end">
-                                  <span className="font-semibold text-success">
-                                    +{formatoDinero(emp.bonificaciones)}
-                                  </span>
-                                  {(Array.isArray(emp.detalle) ? emp.detalle[0] : emp.detalle) ? (
-                                    <span
-                                      className="text-[10px] text-fg-muted italic truncate max-w-[120px]"
-                                      title={Array.isArray(emp.detalle) ? emp.detalle.join(' · ') : emp.detalle}
-                                    >
-                                      {Array.isArray(emp.detalle) ? emp.detalle[0] : emp.detalle}
-                                    </span>
-                                  ) : null}
-                                  {!planillaSeleccionada.planilla.procesada && puedeCalcular && (
-                                    <button
-                                      type="button"
-                                      onClick={() => abrirModalBono(emp)}
-                                      className="mt-0.5 inline-flex items-center gap-0.5 text-[10px] font-medium text-primary-text hover:underline"
-                                    >
-                                      <Pencil size={10} aria-hidden="true" />
-                                      Editar
-                                    </button>
-                                  )}
-                                </div>
-                              ) : !planillaSeleccionada.planilla.procesada && puedeCalcular ? (
-                                <button
-                                  type="button"
-                                  onClick={() => abrirModalBono(emp)}
-                                  className="inline-flex items-center gap-1 rounded bg-muted/60 px-2 py-0.5 text-[11px] font-medium text-primary-text hover:bg-primary-soft hover:text-primary transition-colors"
-                                  title="Asignar bono a este empleado"
-                                >
-                                  <Plus size={11} aria-hidden="true" />
-                                  Bono
-                                </button>
-                              ) : (
-                                <span className="text-fg-muted">—</span>
-                              )}
-                            </td>
-                            <td className="px-3.5 py-2.5 text-right text-danger">
-                              -{formatoDinero(emp.isss_laboral)}
-                            </td>
-                            <td className="px-3.5 py-2.5 text-right text-danger">
-                              -{formatoDinero(emp.afp_laboral)}
-                            </td>
-                            <td className="px-3.5 py-2.5 text-right text-danger">
-                              -{formatoDinero(emp.renta_retenida)}
-                            </td>
-                            <td className="px-3.5 py-2.5 text-right font-semibold text-danger">
-                              -{formatoDinero(emp.total_descuentos)}
-                            </td>
-                            <td className="px-3.5 py-2.5 text-right font-bold text-success text-sm bg-success-soft/20">
-                              {formatoDinero(emp.salario_neto)}
-                            </td>
-                            <td className="px-3.5 py-2.5 text-center">
-                              {planillaSeleccionada.planilla.procesada ? (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleDescargarBoleta(
-                                      planillaSeleccionada.planilla.id_planilla,
-                                      emp.id_empleado
-                                    )
-                                  }
-                                  className="inline-flex items-center gap-1 text-[11px] font-medium text-primary-text hover:underline"
-                                  title="Descargar boleta individual"
-                                >
-                                  <Download size={13} aria-hidden="true" />
-                                  Boleta
-                                </button>
-                              ) : (
-                                <span className="text-fg-muted text-[11px]">—</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <Table
+                    columnas={columnasDetalle}
+                    filas={planillaSeleccionada.empleados}
+                    idFila="id_empleado"
+                    idTabla="rrhh_planilla_detalle"
+                    paginacion={planillaSeleccionada.empleados.length > 10}
+                    filasPorPaginaInicial={25}
+                    vacio="No hay empleados calculados en esta planilla."
+                  />
                 ) : (
                   <div className="rounded-xl border border-dashed border-line p-8 text-center">
                     <Calculator size={36} className="mx-auto text-fg-muted" aria-hidden="true" />
@@ -817,7 +884,7 @@ export default function PlanillasPage() {
           <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">
-                Gestión de Bonos · RR. HH.
+                Gestión · RR. HH.
               </p>
               <h2 id="modal-bono-titulo" className="mt-1 text-lg font-bold text-fg">
                 Bono para {empleadoParaBono.nombres} {empleadoParaBono.apellidos}
@@ -835,12 +902,6 @@ export default function PlanillasPage() {
               <X size={18} aria-hidden="true" />
             </button>
           </div>
-
-          {errorBono && (
-            <div className="p-4 pb-0">
-              <BannerError error={{ titulo: 'No se pudo guardar el bono', mensaje: errorBono }} />
-            </div>
-          )}
 
           <form onSubmit={handleGuardarBono} className="space-y-4 p-5">
             <div>

@@ -22,8 +22,6 @@ import {
 } from './inventarioApi.js';
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
-// Mensaje local (validación de formulario o de conexión) con la misma forma que
-// espera BannerError, para no mezclar errores de servidor con texto plano.
 const avisoLocal = (mensaje, titulo = 'Revisa la información') => ({
   titulo,
   mensaje,
@@ -57,16 +55,16 @@ function TipoBadge({ tipo }) {
 
 // ─── MODAL: Formulario de Unidad de Medida ───────────────────────────────────
 function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
-  const { notificar } = useAlert();
+  const { notificar, notificarError } = useAlert();
   const esEdicion = Boolean(unidad?.id_unidad);
 
   const [form, setForm] = useState({ codigo: '', nombre: '', factor_conversion: '1', activo: true });
   const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState(null);
+  const [erroresCampos, setErroresCampos] = useState({});
 
   useEffect(() => {
     if (abierto) {
-      setError(null);
+      setErroresCampos({});
       setForm(
         esEdicion
           ? {
@@ -80,13 +78,24 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
     }
   }, [abierto, unidad, esEdicion]);
 
-  const set = (campo) => (e) => setForm((f) => ({ ...f, [campo]: e.target.value }));
+  const set = (campo) => (e) => {
+    setErroresCampos((prev) => ({ ...prev, [campo]: null }));
+    setForm((f) => ({ ...f, [campo]: e.target.value }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
-    if (!form.codigo.trim()) return setError(avisoLocal('El código / abreviatura es obligatorio.'));
-    if (!form.nombre.trim()) return setError(avisoLocal('El nombre es obligatorio.'));
+    setErroresCampos({});
+    if (!form.codigo.trim()) {
+      setErroresCampos((prev) => ({ ...prev, codigo: 'El código / abreviatura es obligatorio.' }));
+      notificar.advertencia('Código requerido', { mensaje: 'El código / abreviatura es obligatorio.' });
+      return;
+    }
+    if (!form.nombre.trim()) {
+      setErroresCampos((prev) => ({ ...prev, nombre: 'El nombre es obligatorio.' }));
+      notificar.advertencia('Nombre requerido', { mensaje: 'El nombre es obligatorio.' });
+      return;
+    }
 
     setCargando(true);
     try {
@@ -104,9 +113,10 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
       notificar.exito(esEdicion ? 'Unidad actualizada correctamente.' : 'Unidad creada correctamente.');
       onGuardado();
     } catch (err) {
-      const traducido = traducirError(err);
-      if (traducido.id === 'DUPLICADO') traducido.campos = { nombre: traducido.mensaje };
-      setError(traducido);
+      const traducido = notificarError(err);
+      if (traducido?.id === 'DUPLICADO') {
+        setErroresCampos({ nombre: traducido.mensaje });
+      }
     } finally {
       setCargando(false);
     }
@@ -147,8 +157,6 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
         </div>
 
         <form id="form-unidad" onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
-          {error && <BannerError error={error} onCerrar={() => setError(null)} />}
-
           <div>
             <label htmlFor="unidad-codigo" className="mb-1 block text-sm font-medium text-fg">
               Abreviatura / Símbolo <span className="text-danger ml-0.5 font-semibold">*</span>
@@ -162,7 +170,7 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
               maxLength={10}
               required
             />
-            <CampoError id="unidad-codigo" mensaje={error?.campos?.codigo} />
+            <CampoError id="unidad-codigo" mensaje={erroresCampos.codigo} />
           </div>
           {esEdicion && <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={form.activo} onChange={(e) => setForm((f) => ({ ...f, activo: e.target.checked }))} />Activa</label>}
 
@@ -179,7 +187,7 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
               maxLength={50}
               required
             />
-            <CampoError id="unidad-nombre" mensaje={error?.campos?.nombre} />
+            <CampoError id="unidad-nombre" mensaje={erroresCampos.nombre} />
           </div>
 
           <div>
@@ -225,7 +233,7 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
 // ─── PESTAÑA 1: Insumos ───────────────────────────────────────────────────────
 function PestanaInsumos({ unidades, onTotal }) {
   const { tiene, usuario } = useAuth();
-  const { confirm, notificar } = useAlert();
+  const { confirm, notificar, notificarError } = useAlert();
   const puedeGestionar = tiene('INV_GESTIONAR_INSUMOS');
 
   const [insumos, setInsumos] = useState([]);
@@ -320,7 +328,7 @@ function PestanaInsumos({ unidades, onTotal }) {
       );
       notificar.exito(nuevoEstado ? 'Insumo habilitado correctamente.' : 'Insumo desactivado correctamente.');
     } catch (err) {
-      setErrorBanner(traducirError(err));
+      notificarError(err);
     }
   };
 
@@ -345,7 +353,7 @@ function PestanaInsumos({ unidades, onTotal }) {
       setInsumos((prev) => prev.filter((item) => item.id_insumo !== ins.id_insumo));
       notificar.exito('Insumo eliminado del catálogo.');
     } catch (err) {
-      setErrorBanner(traducirError(err));
+      notificarError(err);
     }
   };
 
@@ -353,11 +361,15 @@ function PestanaInsumos({ unidades, onTotal }) {
     {
       clave: 'nombre',
       titulo: 'Nombre',
+      tipo: 'texto',
+      valorOrden: (fila) => fila.nombre,
       render: (fila) => <div><span className="font-medium text-fg">{fila.nombre}</span><div className="mt-0.5"><TipoBadge tipo={fila.tipo_insumo} /></div></div>,
     },
     {
       clave: 'codigo_unidad',
       titulo: 'Unidad base',
+      tipo: 'texto',
+      valorOrden: (fila) => fila.codigo_unidad ?? fila.unidad?.codigo ?? '',
       render: (fila) => (
         <span className="text-sm font-medium text-fg-muted">
           {fila.codigo_unidad ?? fila.unidad?.codigo ?? '—'}
@@ -367,7 +379,9 @@ function PestanaInsumos({ unidades, onTotal }) {
     {
       clave: 'costo_promedio',
       titulo: 'Costo prom.',
+      tipo: 'dinero',
       alinear: 'right',
+      valorOrden: (fila) => fila.costo_promedio,
       render: (fila) => (
         <span className="text-sm font-mono font-medium text-fg">
           {fila.costo_promedio == null ? <span title="Sin permiso para ver costos">—</span> : formatoDinero(fila.costo_promedio)}
@@ -377,6 +391,8 @@ function PestanaInsumos({ unidades, onTotal }) {
     {
       clave: 'activo',
       titulo: 'Estado',
+      tipo: 'booleano',
+      valorOrden: (fila) => fila.activo !== false,
       render: (fila) => (
         <EstadoBadge tipo={fila.activo !== false ? 'exito' : 'error'}>
           {fila.activo !== false ? 'Activo' : 'Inactivo'}
@@ -388,6 +404,7 @@ function PestanaInsumos({ unidades, onTotal }) {
           {
             clave: '_acciones',
             titulo: '',
+            ordenable: false,
             alinear: 'right',
             render: (fila) => (
               <div className="flex items-center gap-1 justify-end">
@@ -409,9 +426,9 @@ function PestanaInsumos({ unidades, onTotal }) {
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <EncabezadoPagina
-        seccion="Inventario"
+        seccion="Operación · Catálogo"
         titulo="Catálogo de Insumos"
         descripcion="Gestión de materias primas, empaques y artículos de reventa"
         acciones={
@@ -486,6 +503,7 @@ function PestanaInsumos({ unidades, onTotal }) {
           columnas={columnas}
           filas={insumosFiltrados}
           idFila="id_insumo"
+          idTabla="catalogo-insumos"
           cargando={cargando}
           vacio={<EstadoVacio icono={Package} titulo={insumos.length === 0 ? 'Aún no hay insumos' : 'Sin resultados'} accion={insumos.length === 0 && tiene('INV_GESTIONAR_INSUMOS') ? <Button onClick={abrirCrear}>Crear primer insumo</Button> : null}>{insumos.length === 0 ? 'Registra el primer insumo para abastecer el catálogo.' : 'No hay insumos para los criterios seleccionados.'}</EstadoVacio>}
         />
@@ -509,7 +527,7 @@ function PestanaInsumos({ unidades, onTotal }) {
 // ─── PESTAÑA 2: Unidades de Medida ───────────────────────────────────────────
 function PestanaUnidades({ onTotal }) {
   const { tiene } = useAuth();
-  const { confirm, notificar } = useAlert();
+  const { confirm, notificar, notificarError } = useAlert();
   const puedeGestionar = tiene('INV_GESTIONAR_INSUMOS');
 
   const [unidades, setUnidades] = useState([]);
@@ -570,23 +588,27 @@ function PestanaUnidades({ onTotal }) {
       notificar.exito('Unidad de medida desactivada.');
       cargar();
     } catch (err) {
-      setErrorBanner(traducirError(err));
+      notificarError(err);
     }
   };
-  const reactivar = async (u) => { try { await updateUnidad(u.id_unidad, { activo: true }); notificar.exito('Unidad de medida reactivada.'); await cargar(); } catch (err) { setErrorBanner(traducirError(err)); } };
+  const reactivar = async (u) => { try { await updateUnidad(u.id_unidad, { activo: true }); notificar.exito('Unidad de medida reactivada.'); await cargar(); } catch (err) { notificarError(err); } };
   const unidadesVisibles = unidades.filter((u) => mostrarInactivas || u.activo !== false);
 
   const columnas = [
     {
       clave: 'codigo',
       titulo: 'Abreviatura / Símbolo',
+      tipo: 'texto',
+      valorOrden: (fila) => fila.codigo,
       render: (fila) => <span className="font-mono font-bold text-fg">{fila.codigo}</span>,
     },
-    { clave: 'nombre', titulo: 'Nombre de la Unidad' },
+    { clave: 'nombre', titulo: 'Nombre de la Unidad', tipo: 'texto', valorOrden: (fila) => fila.nombre },
     {
       clave: 'factor_conversion',
       titulo: 'Factor de conversión',
+      tipo: 'numero',
       alinear: 'right',
+      valorOrden: (fila) => fila.factor_conversion ?? 1,
       render: (fila) => (
         <span className="font-mono text-sm text-fg-muted">
           {formatearUnidades(fila.factor_conversion ?? 1)}
@@ -596,6 +618,8 @@ function PestanaUnidades({ onTotal }) {
     {
       clave: 'activo',
       titulo: 'Estado',
+      tipo: 'booleano',
+      valorOrden: (fila) => fila.activo !== false,
       render: (fila) => (
         <EstadoBadge tipo={fila.activo !== false ? 'exito' : 'error'}>
           {fila.activo !== false ? 'Activa' : 'Inactiva'}
@@ -607,6 +631,7 @@ function PestanaUnidades({ onTotal }) {
           {
             clave: '_acciones',
             titulo: '',
+            ordenable: false,
             alinear: 'right',
             render: (fila) => (
               <div className="flex items-center gap-1 justify-end">
@@ -656,6 +681,7 @@ function PestanaUnidades({ onTotal }) {
           columnas={columnas}
           filas={unidadesVisibles}
           idFila="id_unidad"
+          idTabla="catalogo-unidades"
           cargando={cargando}
           vacio={<EstadoVacio icono={Ruler} titulo="Sin unidades registradas">No hay unidades de medida disponibles.</EstadoVacio>}
         />
