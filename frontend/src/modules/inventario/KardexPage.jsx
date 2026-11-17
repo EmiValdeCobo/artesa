@@ -368,11 +368,11 @@ export default function KardexPage() {
               ))}
             </div>
             <div className="grid w-full grid-cols-2 gap-2 sm:w-auto">
-              <label className="text-xs font-medium text-fg-muted">Desde
-                <input className="input mt-1 h-10 py-0 text-sm sm:w-44" type="date" value={desde} max={hasta || undefined} onChange={(e) => fijar({ desde: e.target.value || null })} aria-label="Fecha desde" />
+              <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-fg-muted">Desde
+                <input className="input h-10 py-0 text-sm sm:w-44" type="date" value={desde} max={hasta || undefined} onChange={(e) => fijar({ desde: e.target.value || null })} aria-label="Fecha desde" />
               </label>
-              <label className="text-xs font-medium text-fg-muted">Hasta
-                <input className="input mt-1 h-10 py-0 text-sm sm:w-44" type="date" value={hasta} min={desde || undefined} onChange={(e) => fijar({ hasta: e.target.value || null })} aria-label="Fecha hasta" />
+              <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-fg-muted">Hasta
+                <input className="input h-10 py-0 text-sm sm:w-44" type="date" value={hasta} min={desde || undefined} onChange={(e) => fijar({ hasta: e.target.value || null })} aria-label="Fecha hasta" />
               </label>
             </div>
           </div>
