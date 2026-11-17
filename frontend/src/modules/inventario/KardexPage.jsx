@@ -201,6 +201,11 @@ export default function KardexPage() {
     return lista;
   }, [insumos, insumo, desde, hasta, tiposSel, direccion, buscar, fijar, alternarTipo]);
 
+  const limpiarFiltros = () => {
+    setTextoBusqueda('');
+    fijar({ insumo: null, desde: null, hasta: null, tipos: null, direccion: null, q: null });
+  };
+
   const columnas = useMemo(() => [
     {
       clave: 'creado_en',
