@@ -48,6 +48,8 @@ function planillaPage(textos) {
   comandos.push(pdfText(48, 475, 9, textos[1] ?? '', 'F2'));
   const encabezado = (textos[2] ?? '').split('|').map((v) => v.trim());
   const filas = textos.slice(3).filter(Boolean).map((texto) => texto.split('|').map((v) => v.trim()));
+  const totalIndex = filas.findIndex((fila) => fila[0]?.toUpperCase() === 'TOTAL NETO');
+  const totalFila = totalIndex >= 0 ? filas.splice(totalIndex, 1)[0] : null;
   const columns = [48, 92, 275, 392, 480, 560, 640, 720, 794]; const top = 450; const headerHeight = 31;
   comandos.push(rect(48, top - headerHeight, 746, headerHeight, COLORS.muted, COLORS.line));
   for (let i = 0; i < encabezado.length; i += 1) {
@@ -65,6 +67,10 @@ function planillaPage(textos) {
     });
   });
   comandos.push(rect(48, 45, 746, 20, COLORS.muted, COLORS.line));
+  if (totalFila) {
+    comandos.push(pdfText(710, 52, 8.5, totalFila[0], 'F2', COLORS.espresso, 'right'));
+    comandos.push(pdfText(785, 52, 9, totalFila[totalFila.length - 1], 'F2', COLORS.terracotaDark, 'right'));
+  }
   return comandos.join('\n');
 }
 
@@ -126,9 +132,16 @@ export function generarPdf(textos) {
   const lines = Array.isArray(textos) ? textos : [];
   if (lines[0]?.startsWith('Planilla mensual')) {
     const rows = lines.slice(3);
+    const totalFila = rows.at(-1)?.startsWith('TOTAL NETO |') ? rows.at(-1) : null;
+    const filasDetalle = totalFila ? rows.slice(0, -1) : rows;
     const pages = [];
-    for (let i = 0; i < rows.length; i += 14) pages.push(planillaPage([...lines.slice(0, 3), ...rows.slice(i, i + 14)]));
-    return buildPdf(pages.length ? pages : [planillaPage(lines)], 842, 595);
+    for (let i = 0; i < filasDetalle.length; i += 14) {
+      const pagina = [...lines.slice(0, 3), ...filasDetalle.slice(i, i + 14)];
+      if (i + 14 >= filasDetalle.length && totalFila) pagina.push(totalFila);
+      pages.push(planillaPage(pagina));
+    }
+    if (!pages.length) pages.push(planillaPage([...lines.slice(0, 3), ...(totalFila ? [totalFila] : [])]));
+    return buildPdf(pages, 842, 595);
   }
   if (lines[0]?.startsWith('Boleta de pago')) return buildPdf([boletaPage(lines)], 595, 842);
   const pages = [];
