@@ -202,3 +202,4 @@ Formato: `AAAA-MM-DD | quién (persona/agente) | área | qué cambió | archivos
 2026-11-16 | Emilio/Subagente E | rrhh+reportes/tabla | Tipos y orden en Empleados y Puestos; desglose de Planillas migrado a Table.jsx; Reportes integrado con Table.jsx preservando exportación CSV completa de filas filtradas e impresión PDF | frontend/src/modules/rrhh/{EmpleadosPage,PuestosPage,PlanillasPage}.jsx, frontend/src/modules/reportes/ReportesPage.jsx
 2026-11-17 | Emilio/Codex | compras/accesos | Tarjetas de acceso en grid responsive de una, dos o cuatro columnas según el ancho de pantalla | frontend/src/modules/compras/ComprasPage.jsx
 2026-11-17 | EmiValdeCobo/Codex | inventario/kardex | Añade acción para limpiar búsqueda y filtros del Kárdex | frontend/src/modules/inventario/KardexPage.jsx
+2026-11-17 | EmiValdeCobo/Codex | inventario/kardex | Separa visualmente las etiquetas Desde/Hasta de sus campos de fecha | frontend/src/modules/inventario/KardexPage.jsx
