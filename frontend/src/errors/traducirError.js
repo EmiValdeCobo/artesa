@@ -11,7 +11,7 @@ import { ErrorApi } from './ErrorApi.js';
 // Es una función pura salvo por el registro en consola de errores inesperados.
 
 const ESCRITURA = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-const RUTA_LOGIN = /\/auth\/(cliente\/)?login$/;
+const RUTA_LOGIN = /\/auth\/login$/;
 
 const sinConexion = () => typeof navigator !== 'undefined' && navigator.onLine === false;
 

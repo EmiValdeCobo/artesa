@@ -215,7 +215,7 @@ export const CustomSelect = forwardRef(function CustomSelect(
   };
 
   // Alturas por tamaño
-  const alturaClase = tamano === 'sm' ? 'h-9 text-xs' : tamano === 'lg' ? 'h-11 text-base' : 'h-10 text-sm';
+  const alturaClase = tamano === 'sm' ? 'h-control-sm text-body-sm' : tamano === 'lg' ? 'h-control-lg text-body-lg' : 'h-control-md text-body';
   const esValorVacio = !opcionSeleccionada || opcionSeleccionada.valor === '';
   const textoDisplay = esValorVacio ? (placeholder || 'Seleccionar…') : opcionSeleccionada.texto;
   const sinOpciones = !listaOpciones.some((o) => !o.esPlaceholder);
@@ -224,7 +224,7 @@ export const CustomSelect = forwardRef(function CustomSelect(
     <div
       ref={menuRef}
       style={{ position: 'fixed', left: posicion.left, width: posicion.width, top: posicion.top, bottom: posicion.bottom }}
-      className="z-[70] min-w-40 rounded-xl border border-line bg-surface p-1.5 shadow-xl"
+      className="z-[70] min-w-40 rounded-md border border-line bg-surface p-1 shadow-md"
       onKeyDown={handleKeyDown}
     >
       {esBuscable && (
@@ -243,7 +243,7 @@ export const CustomSelect = forwardRef(function CustomSelect(
             aria-activedescendant={indiceEnfocado >= 0 ? idOpcion(indiceEnfocado) : undefined}
             aria-label={`Buscar en ${ariaLabel || etiqueta || 'opciones'}`}
             placeholder="Buscar opción…"
-            className="h-8 w-full rounded-lg border border-line bg-muted/40 pl-8 pr-7 text-xs text-fg placeholder:text-fg-muted focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+            className="h-control-sm w-full rounded-sm border border-line-strong bg-surface pl-8 pr-7 text-body-sm text-fg placeholder:text-fg-subtle focus:border-primary"
           />
           {busqueda && (
             <button
@@ -260,7 +260,7 @@ export const CustomSelect = forwardRef(function CustomSelect(
 
       <div ref={listaRef} id={listboxId} role="listbox" aria-label={ariaLabel || etiqueta || placeholder} className="scroll-fino max-h-60 space-y-0.5 overflow-y-auto py-0.5">
         {opcionesFiltradas.length === 0 ? (
-          <div role="presentation" className="py-4 text-center text-xs text-fg-muted">
+          <div role="presentation" className="py-4 text-center text-body-sm text-fg-muted">
             {busqueda.trim() ? 'No se encontraron opciones' : vacio}
           </div>
         ) : (
@@ -277,18 +277,18 @@ export const CustomSelect = forwardRef(function CustomSelect(
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => seleccionarOpcion(opcion)}
                 onMouseEnter={() => setIndiceEnfocado(idx)}
-                className={`flex cursor-pointer select-none items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors ${
+                className={`flex cursor-pointer select-none items-center justify-between rounded-sm px-2.5 py-2 text-body transition-colors ${
                   opcion.deshabilitado
                     ? 'pointer-events-none cursor-not-allowed opacity-40'
                     : esSeleccionada
                     ? 'bg-primary-soft font-semibold text-primary-text'
                     : esEnfocada
-                    ? 'bg-espresso-100/70 text-fg dark:bg-espresso-800/70'
-                    : 'text-fg hover:bg-espresso-100/50 dark:hover:bg-espresso-800/50'
-                } ${opcion.esPlaceholder && !esSeleccionada ? 'text-fg-muted' : ''} ${esEnfocada && esSeleccionada ? 'ring-1 ring-primary/40' : ''}`}
+                    ? 'bg-muted text-fg'
+                    : 'text-fg hover:bg-muted'
+                } ${opcion.esPlaceholder && !esSeleccionada ? 'text-fg-muted' : ''} ${esEnfocada && esSeleccionada ? 'ring-1 ring-primary/50' : ''}`}
               >
                 <span className="block truncate pr-2">{opcion.texto}</span>
-                {esSeleccionada && <Check size={16} className="ml-2 shrink-0 text-primary" aria-hidden="true" />}
+                {esSeleccionada && <Check size={16} strokeWidth={2} className="ml-2 shrink-0 text-primary-text" aria-hidden="true" />}
               </div>
             );
           })
@@ -301,9 +301,9 @@ export const CustomSelect = forwardRef(function CustomSelect(
   return (
     <div className="relative w-full" ref={contenedorRef}>
       {etiqueta && (
-        <label htmlFor={idCampo} className="mb-1.5 block select-none text-sm font-medium text-fg">
+        <label htmlFor={idCampo} className="mb-1.5 block select-none text-label text-fg">
           {etiqueta}
-          {requerido && <span className="ml-0.5 font-semibold text-danger">*</span>}
+          {requerido && <span className="ml-0.5 font-semibold text-danger-text">*</span>}
         </label>
       )}
 
@@ -323,20 +323,20 @@ export const CustomSelect = forwardRef(function CustomSelect(
         disabled={disabled}
         onClick={toggleDropdown}
         onKeyDown={handleKeyDown}
-        className={`relative flex w-full ${alturaClase} select-none appearance-none items-center justify-between rounded-md border bg-surface px-3 pr-10 text-left font-medium transition-colors ${
+        className={`relative flex w-full ${alturaClase} select-none appearance-none items-center justify-between rounded-md border bg-surface px-3 pr-10 text-left transition-colors ${
           error
-            ? 'border-danger focus:border-danger focus:ring-2 focus:ring-danger/20'
+            ? 'border-danger'
             : abierto
-            ? 'border-primary ring-2 ring-primary/20'
-            : 'border-line hover:border-espresso-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 dark:hover:border-espresso-600'
-        } ${disabled ? 'cursor-not-allowed bg-muted/30 opacity-60' : 'cursor-pointer'} ${className}`}
+            ? 'border-primary'
+            : 'border-line-strong hover:border-fg-muted focus:border-primary'
+        } ${disabled ? 'cursor-not-allowed bg-muted text-fg-muted' : 'cursor-pointer'} ${className}`}
         {...resto}
       >
         <span className={`block min-w-0 truncate ${esValorVacio ? 'font-normal text-fg-muted' : 'font-medium text-fg'}`}>
           {sinOpciones && esValorVacio ? vacio : textoDisplay}
         </span>
         <span className="pointer-events-none absolute right-3.5 top-1/2 flex -translate-y-1/2 items-center text-fg-muted">
-          <ChevronDown size={18} className={`transition-transform duration-200 ${abierto ? 'rotate-180 text-primary' : ''}`} aria-hidden="true" />
+          <ChevronDown size={16} strokeWidth={1.75} className={`transition-transform duration-200 ${abierto ? 'rotate-180 text-primary-text' : ''}`} aria-hidden="true" />
         </span>
       </button>
 
@@ -346,11 +346,11 @@ export const CustomSelect = forwardRef(function CustomSelect(
       {menu}
 
       {error && (
-        <p className="mt-1 text-xs font-medium text-danger" role="alert">
+        <p className="mt-1.5 text-label-sm text-danger-text" role="alert">
           {error}
         </p>
       )}
-      {ayuda && !error && <p className="mt-1 text-xs text-fg-muted">{ayuda}</p>}
+      {ayuda && !error && <p className="mt-1.5 text-body-sm text-fg-muted">{ayuda}</p>}
     </div>
   );
 });

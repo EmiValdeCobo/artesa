@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PackageSearch, Search, ShieldAlert, Store, Wallet, X } from 'lucide-react';
-import { Select, Spinner } from '../../components/ui/index.js';
+import { Select } from '../../components/ui/index.js';
+import Skeleton from '../../components/feedback/Skeleton.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
@@ -115,12 +116,12 @@ export default function PosPage() {
       <EncabezadoPagina seccion="Operación · Punto de venta" titulo="Punto de venta" descripcion="Toca un producto del menú para agregarlo al pedido." className="shrink-0" />
 
       {/* Indicador de sucursal operativa y estado del turno de caja */}
-      <div className="mt-2.5 flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface px-3.5 py-2 text-xs shadow-sm sm:mt-3 sm:px-4 sm:py-2.5 sm:text-sm">
+      <div className="mt-3 flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-2 text-body-sm shadow-xs">
         <div className="flex items-center gap-2">
-          <Store size={16} className="text-primary" />
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-muted">Sucursal:</span>
+          <Store size={16} strokeWidth={1.75} className="text-fg-muted" aria-hidden="true" />
+          <span className="text-label-sm text-fg-muted">Sucursal:</span>
           {turnoActivo ? (
-            <span className="text-center text-xs font-semibold text-fg">{turnoActivo.sucursal}</span>
+            <span className="text-label text-fg">{turnoActivo.sucursal}</span>
           ) : sucursales.length > 1 ? (
             <div className="w-48">
               <Select
@@ -133,20 +134,20 @@ export default function PosPage() {
               />
             </div>
           ) : (
-            <span className="text-center text-xs font-semibold text-fg">{sucursales[0]?.nombre || 'Sin sucursal asignada'}</span>
+            <span className="text-label text-fg">{sucursales[0]?.nombre || 'Sin sucursal asignada'}</span>
           )}
         </div>
 
         <div className="flex items-center gap-2 text-xs">
           {turnoActivo ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-success-soft px-2.5 py-1 font-semibold text-success">
-              <Wallet size={13} />
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-success-soft px-2.5 py-1 text-label-sm text-success-text">
+              <Wallet size={16} strokeWidth={1.75} aria-hidden="true" />
               Turno abierto: {turnoActivo.caja}
             </span>
           ) : (
             <div className="inline-flex items-center gap-2 text-fg-muted">
               <span>Sin turno de caja abierto</span>
-              <Link to="/caja" className="font-semibold text-primary hover:underline">
+              <Link to="/caja" className="text-label-sm text-primary-text hover:underline">
                 Abrir turno en Caja
               </Link>
             </div>
@@ -154,7 +155,7 @@ export default function PosPage() {
         </div>
       </div>
 
-      <div className="mt-4 grid gap-4 sm:mt-5 lg:items-start lg:grid-cols-[1fr_22rem]">
+      <div className="mt-4 grid gap-4 sm:mt-5 lg:items-start lg:grid-cols-[1fr_22rem] xl:grid-cols-[1fr_24rem]">
         <section aria-label="Menú" className="scroll-fino lg:max-h-[calc(100dvh-14rem)] lg:overflow-y-auto lg:pb-4 lg:pl-1 lg:pr-2 lg:pt-1 lg:[scrollbar-gutter:stable]">
           {!puedeVerMenu ? (
             <div className="card">
@@ -166,7 +167,7 @@ export default function PosPage() {
             <>
               <div className="flex flex-wrap items-center gap-3">
                 <div className="relative w-full sm:w-72">
-                  <Search size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" aria-hidden="true" />
+                  <Search size={16} strokeWidth={1.75} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" aria-hidden="true" />
                   <input className="input pl-9 pr-10" type="search" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar producto…" aria-label="Buscar producto" />
                   {busqueda && (
                     <button type="button" className="btn-ghost absolute right-1 top-1/2 min-h-8 -translate-y-1/2 !p-1.5" onClick={() => setBusqueda('')} aria-label="Limpiar búsqueda"><X size={16} aria-hidden="true" /></button>
@@ -175,16 +176,20 @@ export default function PosPage() {
                 <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por categoría">
                   {[{ nombre: 'Todas', productos }, ...todosLosGrupos].map((g) => (
                     <button key={g.nombre} type="button" aria-pressed={categoria === g.nombre} onClick={() => setCategoria(g.nombre)}
-                      className={`inline-flex min-h-9 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium transition-colors sm:text-xs ${categoria === g.nombre ? 'bg-primary text-on-accent' : 'border border-line hover:bg-muted'}`}>
+                      className={`inline-flex h-control-sm items-center gap-1.5 rounded-full border px-3 text-label-sm transition-colors ${categoria === g.nombre ? 'bg-primary-soft text-primary-text border-primary/40' : 'border-line text-fg-muted hover:bg-muted hover:text-fg'}`}>
                       {g.nombre}
-                      <span className={`rounded-full px-1.5 text-xs ${categoria === g.nombre ? 'bg-on-accent/20' : 'bg-muted text-fg-muted'}`}>{g.productos.length}</span>
+                      <span className="tabular-nums opacity-80">{g.productos.length}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
               {error && <BannerError className="mt-4" error={error} onReintentar={cargar} />}
-              {cargando ? <Spinner texto="Cargando menú…" /> : !error && (
+              {cargando ? (
+                <div className="mt-5 grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-3" role="status" aria-label="Cargando menú…">
+                  {Array.from({ length: 8 }, (_, n) => <Skeleton key={n} className="h-32 rounded-lg" />)}
+                </div>
+              ) : !error && (
                 visibles.length === 0 ? (
                   <EstadoVacio icono={PackageSearch} titulo={productos.length ? 'Sin resultados' : 'El menú está vacío'} className="mt-4">
                     {productos.length ? 'Ningún producto coincide con tu búsqueda o categoría.' : 'No hay productos activos para vender.'}
@@ -194,10 +199,10 @@ export default function PosPage() {
                     {visibles.map((g) => (
                       <section key={g.nombre} aria-labelledby={`cat-${g.nombre}`}>
                         <div className="mb-3 flex items-center gap-2 border-b border-line pb-2">
-                          <h2 id={`cat-${g.nombre}`} className="text-sm font-semibold">{g.nombre}</h2>
-                          <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-fg-muted">{g.productos.length}</span>
+                          <h2 id={`cat-${g.nombre}`} className="text-label text-fg">{g.nombre}</h2>
+                          <span className="text-label-sm tabular-nums text-fg-muted">{g.productos.length}</span>
                         </div>
-                        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+                        <div className="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-3">
                           {g.productos.map((p) => (
                             <ProductoCard key={p.id_producto} producto={p} enCarrito={cantidadEnCarrito(p.id_producto)}
                               onAgregar={(prod) => dispatch({ tipo: 'agregar', producto: prod })} />
@@ -226,8 +231,8 @@ export default function PosPage() {
       </div>
 
       {unidades > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 border-t border-line bg-surface/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-lg backdrop-blur lg:hidden">
-          <p className="min-w-0 text-sm"><span className="text-fg-muted">{unidades} {unidades === 1 ? 'producto' : 'productos'} · </span><span className="font-bold tabular-nums">{formatoMoneda(total)}</span></p>
+        <div className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 border-t border-line bg-surface px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-md lg:hidden">
+          <p className="min-w-0 text-body-sm"><span className="text-fg-muted">{unidades} {unidades === 1 ? 'producto' : 'productos'} · </span><span className="text-label tabular-nums text-fg">{formatoMoneda(total)}</span></p>
           <a href="#pedido-actual" className="btn-primary">Ver pedido</a>
         </div>
       )}

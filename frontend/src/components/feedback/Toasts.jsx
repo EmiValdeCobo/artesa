@@ -7,10 +7,10 @@ import { CircleAlert, CircleCheck, Info, TriangleAlert, X } from 'lucide-react';
 //  · Los que ofrecen una acción (p. ej. Reintentar) no desaparecen solos.
 
 const VARIANTES = {
-  exito: { Icono: CircleCheck, color: 'text-success', fondo: 'bg-success-soft' },
-  informacion: { Icono: Info, color: 'text-info', fondo: 'bg-info-soft' },
-  advertencia: { Icono: TriangleAlert, color: 'text-warning', fondo: 'bg-warning-soft' },
-  error: { Icono: CircleAlert, color: 'text-danger', fondo: 'bg-danger-soft' },
+  exito: { Icono: CircleCheck, color: 'text-success-text', fondo: 'bg-success-soft' },
+  informacion: { Icono: Info, color: 'text-info-text', fondo: 'bg-info-soft' },
+  advertencia: { Icono: TriangleAlert, color: 'text-warning-text', fondo: 'bg-warning-soft' },
+  error: { Icono: CircleAlert, color: 'text-danger-text', fondo: 'bg-danger-soft' },
 };
 
 function Toast({ toast, cerrar }) {
@@ -25,7 +25,7 @@ function Toast({ toast, cerrar }) {
 
   return (
     <div
-      className="anim-toast pointer-events-auto flex w-full items-start gap-3 rounded-xl border border-line bg-surface p-4 text-fg shadow-lg"
+      className="anim-toast pointer-events-auto flex w-full items-start gap-3 rounded-lg border border-line bg-surface p-4 text-fg shadow-lg"
       onMouseEnter={() => setPausado(true)}
       onMouseLeave={() => setPausado(false)}
       onFocus={() => setPausado(true)}
@@ -34,18 +34,18 @@ function Toast({ toast, cerrar }) {
     >
       <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${fondo} ${color}`}><Icono size={19} aria-hidden="true" /></span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold leading-snug">{toast.titulo}</p>
-        {toast.mensaje && <p className="mt-0.5 text-sm leading-snug text-fg-muted">{toast.mensaje}</p>}
-        {toast.accion && <p className="mt-1 text-sm leading-snug">{toast.accion}</p>}
+        <p className="text-label font-semibold">{toast.titulo}</p>
+        {toast.mensaje && <p className="mt-0.5 text-body-sm text-fg-muted">{toast.mensaje}</p>}
+        {toast.accion && <p className="mt-1 text-body-sm">{toast.accion}</p>}
         {toast.acciones?.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             {toast.acciones.map((accion) => accion.href
-              ? <a key={accion.etiqueta} href={accion.href} className="btn-ghost min-h-9 !px-3 !py-1.5">{accion.etiqueta}</a>
-              : <button key={accion.etiqueta} type="button" className="btn-primary min-h-9 !px-3 !py-1.5" onClick={() => { cerrar(toast.id); accion.onClick?.(); }}>{accion.etiqueta}</button>)}
+              ? <a key={accion.etiqueta} href={accion.href} className="btn-ghost btn-sm">{accion.etiqueta}</a>
+              : <button key={accion.etiqueta} type="button" className="btn-primary btn-sm" onClick={() => { cerrar(toast.id); accion.onClick?.(); }}>{accion.etiqueta}</button>)}
           </div>
         )}
       </div>
-      <button type="button" onClick={() => cerrar(toast.id)} aria-label="Cerrar notificación" className="-mr-1 -mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-md text-fg-muted transition-colors hover:bg-muted hover:text-fg">
+      <button type="button" onClick={() => cerrar(toast.id)} aria-label="Cerrar notificación" className="-mr-1 -mt-1 grid size-control-sm shrink-0 place-items-center rounded-md text-fg-muted transition-colors hover:bg-muted hover:text-fg">
         <X size={16} aria-hidden="true" />
       </button>
     </div>

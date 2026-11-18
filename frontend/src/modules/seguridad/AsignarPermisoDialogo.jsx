@@ -44,17 +44,17 @@ export default function AsignarPermisoDialogo({ permiso, roles, usuarioSesion, o
 
   return (
     <Dialogo tamano="md" labelledBy="asignar-titulo" describedBy="asignar-descripcion" onCerrar={onClose}>
-      <div className="flex items-start justify-between gap-4 border-b border-line p-5 sm:p-6">
+      <div className="flex items-start justify-between gap-4 px-6 pt-6">
         <div className="min-w-0">
-          <h2 id="asignar-titulo" className="text-xl font-bold tracking-tight">Asignar a roles</h2>
-          <p id="asignar-descripcion" className="mt-1 text-sm text-fg-muted">
-            <span className="break-all font-mono text-xs">{permiso.codigo}</span> · Los cambios se aplican al instante.
+          <h2 id="asignar-titulo" className="text-h3">Asignar a roles</h2>
+          <p id="asignar-descripcion" className="mt-1 text-body text-fg-muted">
+            <span className="break-all font-mono text-body-sm">{permiso.codigo}</span> · Los cambios se aplican al instante.
           </p>
         </div>
-        <button type="button" className="btn-ghost !p-2" onClick={onClose} aria-label="Cerrar"><X size={18} /></button>
+        <button type="button" className="btn-ghost !p-2" onClick={onClose} aria-label="Cerrar"><X size={18} strokeWidth={1.75} aria-hidden="true" /></button>
       </div>
 
-      <div className="space-y-4 p-5 sm:p-6">
+      <div className="space-y-4 px-6 py-5">
         <ul className="max-h-72 space-y-1.5 overflow-y-auto pr-1 scroll-fino" aria-label="Roles">
           {roles.map((rol) => {
             const asignado = tiene(rol);
@@ -63,15 +63,15 @@ export default function AsignarPermisoDialogo({ permiso, roles, usuarioSesion, o
             const bloqueo = !rol.activo ? 'Rol inactivo: no se puede modificar.' : asignado ? motivoBloqueoRevocar(rol, permiso.codigo, usuarioSesion) : null;
             return (
               <li key={rol.id_rol}>
-                <label className={`flex min-h-11 items-start gap-3 rounded-lg border border-line px-3 py-2.5 text-sm ${bloqueo ? 'bg-muted/60' : 'cursor-pointer hover:bg-muted'}`}>
+                <label className={`flex min-h-11 items-start gap-3 rounded-md border border-line px-3 py-2.5 text-body ${bloqueo ? 'bg-muted/60' : 'cursor-pointer hover:bg-muted'}`}>
                   <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-primary" checked={asignado} disabled={Boolean(bloqueo) || ocupado} onChange={() => alternar(rol)} />
                   <span className="min-w-0 flex-1">
                     <span className="flex flex-wrap items-center gap-2 font-medium">
                       {rol.nombre}
                       {rol.es_sistema && <Insignia>Sistema</Insignia>}
-                      {ocupado && <span role="status" className="text-xs font-normal text-fg-muted">Guardando…</span>}
+                      {ocupado && <span role="status" className="text-body-sm font-normal text-fg-muted">Guardando…</span>}
                     </span>
-                    {bloqueo && <span className="mt-0.5 flex items-start gap-1 text-xs text-fg-muted"><Lock size={12} aria-hidden="true" className="mt-0.5 shrink-0" /> {bloqueo}</span>}
+                    {bloqueo && <span className="mt-0.5 flex items-start gap-1 text-body-sm text-fg-muted"><Lock size={12} aria-hidden="true" className="mt-0.5 shrink-0" /> {bloqueo}</span>}
                   </span>
                 </label>
               </li>
@@ -80,7 +80,7 @@ export default function AsignarPermisoDialogo({ permiso, roles, usuarioSesion, o
         </ul>
       </div>
 
-      <div className="flex justify-end border-t border-line p-5 sm:p-6">
+      <div className="flex flex-col-reverse gap-2 border-t border-line px-6 py-4 sm:flex-row sm:justify-end">
         <button type="button" className="btn-primary min-h-11 sm:min-h-10" onClick={onClose}>Listo</button>
       </div>
     </Dialogo>

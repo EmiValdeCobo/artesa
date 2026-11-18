@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Truck, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
+import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
 import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
 import Dialogo from '../../components/Dialogo.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
@@ -43,13 +44,13 @@ function ProveedorDialogo({ inicial, guardando, cerrar, guardar }) {
     guardar(form);
   }
   return <Dialogo onCerrar={cerrar} tamano="md" labelledBy="proveedor-titulo">
-    <div className="flex items-start justify-between border-b border-line px-5 py-4 sm:px-6"><div><p className="text-xs font-semibold uppercase tracking-widest text-primary-text">Operación · Compras</p><h2 id="proveedor-titulo" className="mt-1 text-xl font-semibold">{inicial?.id_proveedor ? 'Editar proveedor' : 'Nuevo proveedor'}</h2></div><button className="btn-ghost" onClick={cerrar} aria-label="Cerrar">×</button></div>
-    <form onSubmit={enviar} className="space-y-4 p-5 sm:p-6">
-      <div className="grid gap-4 sm:grid-cols-2">
-        {CAMPOS.map(([key,label,max,mascara,,extra]) => <label key={key} className="flex min-h-[4.25rem] flex-col text-sm font-medium"><span>{label}{REQUERIDOS.includes(key) && <span className="text-danger"> *</span>}</span><input className="input mt-1.5 h-10" type="text" value={form[key]} onChange={set(key, mascara)} maxLength={max} required={REQUERIDOS.includes(key)} aria-invalid={Boolean(errores[key]) || undefined} {...extra} />{errores[key] && <span className="mt-1 text-xs font-normal text-danger">{errores[key]}</span>}</label>)}
-        <label className="flex min-h-[4.25rem] flex-col text-sm font-medium">Días de crédito<input className="input mt-1.5 h-10" type="text" inputMode="numeric" placeholder="0" maxLength={3} value={form.diasCredito} onChange={set('diasCredito', (v) => mascaraEntero(v, 3))} required aria-invalid={Boolean(errores.diasCredito) || undefined} />{errores.diasCredito && <span className="mt-1 text-xs font-normal text-danger">{errores.diasCredito}</span>}</label>
+    <div className="flex items-start justify-between gap-3 px-6 pt-6"><div><h2 id="proveedor-titulo" className="text-h3">{inicial?.id_proveedor ? 'Editar proveedor' : 'Nuevo proveedor'}</h2><p className="mt-1 text-body text-fg-muted">Los campos con <span className="text-danger-text">*</span> son obligatorios.</p></div><BotonIcono icono={X} etiqueta="Cerrar" titulo="Cerrar" onClick={cerrar} /></div>
+    <form onSubmit={enviar}>
+      <div className="grid gap-4 px-6 py-5 sm:grid-cols-2">
+        {CAMPOS.map(([key,label,max,mascara,,extra]) => <label key={key} className="flex min-h-[4.25rem] flex-col text-label"><span>{label}{REQUERIDOS.includes(key) && <span className="text-danger-text"> *</span>}</span><input className="input mt-1.5 h-10" type="text" value={form[key]} onChange={set(key, mascara)} maxLength={max} required={REQUERIDOS.includes(key)} aria-invalid={Boolean(errores[key]) || undefined} {...extra} />{errores[key] && <span className="mt-1 text-body-sm font-normal text-danger-text">{errores[key]}</span>}</label>)}
+        <label className="flex min-h-[4.25rem] flex-col text-label">Días de crédito<input className="input mt-1.5 h-10" type="text" inputMode="numeric" placeholder="0" maxLength={3} value={form.diasCredito} onChange={set('diasCredito', (v) => mascaraEntero(v, 3))} required aria-invalid={Boolean(errores.diasCredito) || undefined} />{errores.diasCredito && <span className="mt-1 text-body-sm font-normal text-danger-text">{errores.diasCredito}</span>}</label>
       </div>
-      <div className="flex justify-end gap-2 border-t border-line pt-4"><Button variante="ghost" onClick={cerrar}>Cancelar</Button><Button type="submit" icono={Plus} cargando={guardando}>{inicial?.id_proveedor ? 'Guardar cambios' : 'Crear proveedor'}</Button></div>
+      <div className="flex flex-col-reverse gap-2 border-t border-line px-6 py-4 sm:flex-row sm:justify-end"><Button variante="ghost" onClick={cerrar}>Cancelar</Button><Button type="submit" icono={Plus} cargando={guardando}>{inicial?.id_proveedor ? 'Guardar cambios' : 'Crear proveedor'}</Button></div>
     </form>
   </Dialogo>;
 }
@@ -73,7 +74,7 @@ export default function ProveedoresPage() {
       render: (f) => (
         <div>
           <p className="font-medium">{f.razon_social}</p>
-          <p className="text-xs text-fg-muted">NRC {f.nrc} · NIT {f.nit}</p>
+          <p className="text-body-sm text-fg-muted">NRC {f.nrc} · NIT {f.nit}</p>
         </div>
       ),
     },
@@ -85,7 +86,7 @@ export default function ProveedoresPage() {
       render: (f) => (
         <div>
           {f.contacto || '—'}
-          <p className="text-xs text-fg-muted">{f.telefono || 'Sin teléfono'}</p>
+          <p className="text-body-sm text-fg-muted">{f.telefono || 'Sin teléfono'}</p>
         </div>
       ),
     },
@@ -150,16 +151,17 @@ export default function ProveedoresPage() {
         acciones={puedeEditar && <Button icono={Plus} onClick={() => { setModal({ ...VACIO }); }}>Nuevo proveedor</Button>}
       />
       {error && <BannerError error={{ titulo: 'No se pudieron cargar los proveedores', mensaje: error, accion: '' }} />}
-      <Card titulo="Directorio de proveedores" descripcion={`${visibles.length} proveedores`}>
-        <div className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_220px] sm:items-end">
-          <div className="relative">
-            <label className="mb-1.5 block text-sm font-medium" htmlFor="buscar-proveedor">Buscar proveedor</label>
-            <Search size={17} className="absolute left-3 top-[2.4rem] text-fg-muted" />
-            <input id="buscar-proveedor" className="input h-10 pl-10" placeholder="Nombre, NRC o NIT" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+      <Card sinPadding className="overflow-hidden" icono={Truck} titulo="Directorio de proveedores" descripcion={`${visibles.length} proveedores`}>
+        <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3">
+          <div className="relative w-full max-w-xs">
+            <label className="sr-only" htmlFor="buscar-proveedor">Buscar proveedor</label>
+            <Search size={16} strokeWidth={1.75} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden="true" />
+            <input id="buscar-proveedor" className="input pl-9" placeholder="Nombre, NRC o NIT" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
           </div>
-          <Select etiqueta="Estado" value={estado} onChange={(e) => setEstado(e.target.value)} opciones={[{ valor: 'true', texto: 'Activos' }, { valor: 'false', texto: 'Inactivos' }]} />
+          <div className="w-full sm:w-40"><Select tamano="sm" aria-label="Estado" value={estado} onChange={(e) => setEstado(e.target.value)} opciones={[{ valor: 'true', texto: 'Activos' }, { valor: 'false', texto: 'Inactivos' }]} /></div>
+          {busqueda && <Button variante="ghost" tamano="sm" onClick={() => setBusqueda('')}>Limpiar filtros</Button>}
         </div>
-        <Table cargando={cargando} filas={visibles} idFila="id_proveedor" vacio="No hay proveedores para este filtro." columnas={columnas} idTabla="compras-proveedores" ordenInicial={{ clave: 'razon_social', direccion: 'asc' }} />
+        <Table cargando={cargando} filas={visibles} idFila="id_proveedor" vacio={<EstadoVacio icono={Truck} titulo="No hay proveedores para este filtro." />} columnas={columnas} idTabla="compras-proveedores" ordenInicial={{ clave: 'razon_social', direccion: 'asc' }} />
       </Card>
       {modal && <ProveedorDialogo inicial={modal.id_proveedor ? modal : null} guardando={guardando} cerrar={() => !guardando && setModal(null)} guardar={guardar} />}
     </div>

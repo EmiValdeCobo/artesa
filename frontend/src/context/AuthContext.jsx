@@ -14,7 +14,7 @@ export function AuthProvider({ children }) {
     const versionInicio = versionRef.current;
     const tipo = tipoParam || localStorage.getItem('tipoSesion') || 'admin';
     try {
-      const data = await api.get(tipo === 'cliente' ? '/auth/cliente/me' : '/auth/me');
+      const data = await api.get('/auth/me');
       if (versionRef.current !== versionInicio) {
         return;
       }
@@ -55,8 +55,7 @@ export function AuthProvider({ children }) {
 
   const iniciarSesion = async (username, password, tipo = 'admin') => {
     versionRef.current += 1;
-    const endpoint = tipo === 'cliente' ? '/auth/cliente/login' : '/auth/login';
-    const data = await api.post(endpoint, { username, password });
+    const data = await api.post('/auth/login', { username, password });
     localStorage.setItem('tipoSesion', tipo);
     setUsuario(data.usuario);
     setPermisos(data.permisos || []);

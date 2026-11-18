@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { ArrowUp, ArrowDown, ChevronsUpDown } from 'lucide-react';
-import Spinner from './Spinner.jsx';
+import { SkeletonFilas } from '../feedback/Skeleton.jsx';
 import Paginacion from './Paginacion.jsx';
 import {
   ordenarFilas,
@@ -12,7 +12,9 @@ import {
    alinear?: 'right', clase?: string (clases extra en th/td, p. ej. 'hidden md:table-cell'),
    ordenable?: boolean (por defecto true, excepto 'acciones'), tipo?: 'texto'|'numero'|'dinero'|'fecha'|'booleano',
    valorOrden?: (fila) => any, descripcion?: string }]
-   filas: arreglo de objetos. idFila: nombre del campo único (ej. 'id_usuario'). */
+   filas: arreglo de objetos. idFila: nombre del campo único (ej. 'id_usuario').
+   idSeleccionado: id de la fila resaltada (opcional). apilarEnMovil: bajo 768 px cada fila se muestra
+   como tarjeta, con el título de la columna a la izquierda de cada dato (por defecto true). */
 export default function Table({
   columnas,
   filas = [],
@@ -24,6 +26,9 @@ export default function Table({
   horizontal = true,
   minAncho = 'min-w-[600px]',
   className = '',
+  idSeleccionado = null,
+  apilarEnMovil = true,
+  pie = null, // fila de totales opcional: { [clave]: nodo } (p. ej. { nombre: 'Total', neto: '$1,200.00' })
   // Nuevas props de paginación y orden
   paginacion = true,
   filasPorPaginaInicial = 10,
@@ -87,7 +92,7 @@ export default function Table({
     );
   }, [columnas, esModoServidor, filasValidas, orden.clave, orden.direccion]);
 
-  if (cargando) return <Spinner />;
+  if (cargando) return <SkeletonFilas columnas={Math.min(Math.max(columnas.length, 2), 5)} />;
 
   const manejarOrdenar = (col) => {
     let nuevaDireccion = 'asc';
@@ -154,14 +159,14 @@ export default function Table({
     : (scrollVertical ? `overflow-y-auto scroll-fino ${maxAltura}` : 'overflow-y-visible');
 
   return (
-    <div className="w-full">
+    <div className={`w-full ${apilarEnMovil ? 'tabla-apilable' : ''}`.trim()}>
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {mensajeAria}
       </div>
 
       <div className={`${horizontal ? 'overflow-x-auto' : 'overflow-visible'} ${claseScrollY} ${className}`.trim()}>
-        <table className={`w-full ${minAncho} text-left text-sm`}>
-          <thead className="sticky top-0 z-10 border-b border-line bg-muted text-xs uppercase tracking-wide text-fg-muted shadow-xs">
+        <table className={`w-full ${minAncho} text-left text-body`}>
+          <thead className="sticky top-0 z-10 border-b border-line bg-surface text-label-sm text-fg-muted">
             <tr>
               {columnas.map((c) => {
                 const esOrdenable = c.ordenable !== false && c.clave !== 'acciones';
@@ -180,25 +185,25 @@ export default function Table({
                     data-col={c.clave}
                     title={c.descripcion}
                     aria-sort={ariaSort}
-                    className={`bg-muted px-5 py-3 font-semibold ${c.alinear === 'right' ? 'text-right' : ''} ${c.clase ?? ''}`.trim()}
+                    className={`bg-surface px-4 py-2.5 font-semibold ${c.alinear === 'right' ? 'text-right' : ''} ${c.clase ?? ''}`.trim()}
                   >
                     {esOrdenable ? (
                       <button
                         type="button"
                         onClick={() => manejarOrdenar(c)}
-                        className={`group inline-flex items-center gap-1.5 font-semibold text-fg-muted hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded-sm cursor-pointer select-none transition-colors ${
+                        className={`group -mx-1 inline-flex cursor-pointer items-center gap-1 rounded-xs px-1 font-semibold select-none transition-colors hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${estaActiva ? 'text-fg' : 'text-fg-muted'} ${
                           c.alinear === 'right' ? 'justify-end w-full' : ''
                         }`.trim()}
                       >
                         <span>{c.encabezado ?? c.titulo}</span>
                         {estaActiva ? (
                           direccionActual === 'asc' ? (
-                            <ArrowUp size={14} className="text-primary font-bold shrink-0" aria-hidden="true" />
+                            <ArrowUp size={14} strokeWidth={2} className="shrink-0 text-primary-text" aria-hidden="true" />
                           ) : (
-                            <ArrowDown size={14} className="text-primary font-bold shrink-0" aria-hidden="true" />
+                            <ArrowDown size={14} strokeWidth={2} className="shrink-0 text-primary-text" aria-hidden="true" />
                           )
                         ) : (
-                          <ChevronsUpDown size={14} className="opacity-40 group-hover:opacity-75 shrink-0" aria-hidden="true" />
+                          <ChevronsUpDown size={14} strokeWidth={1.75} className="shrink-0 opacity-50 group-hover:opacity-100" aria-hidden="true" />
                         )}
                       </button>
                     ) : (
@@ -211,13 +216,17 @@ export default function Table({
           </thead>
           <tbody className="divide-y divide-line">
             {filasMostradas.map((fila) => (
-              <tr key={fila[idFila]} className={`hover:bg-muted/60 ${fila.activo === false ? 'opacity-60' : ''}`}>
+              <tr
+                key={fila[idFila]}
+                aria-selected={idSeleccionado != null ? fila[idFila] === idSeleccionado : undefined}
+                className={`transition-colors hover:bg-muted/60 aria-selected:bg-primary-soft ${fila.activo === false ? 'text-fg-muted' : ''}`}
+              >
                 {columnas.map((c) => (
                   <td
                     key={c.clave}
                     data-col={c.clave}
-                    data-label={c.titulo}
-                    className={`px-5 py-4 ${c.alinear === 'right' ? 'text-right tabular-nums' : ''} ${c.clase ?? ''}`.trim()}
+                    data-label={typeof c.titulo === 'string' ? c.titulo : undefined}
+                    className={`px-4 py-3 ${c.alinear === 'right' ? 'text-right tabular-nums' : ''} ${c.clase ?? ''}`.trim()}
                   >
                     {c.render ? c.render(fila) : fila[c.clave]}
                   </td>
@@ -225,8 +234,22 @@ export default function Table({
               </tr>
             ))}
           </tbody>
+          {pie && filasMostradas.length > 0 && (
+            <tfoot className="border-t-2 border-line-strong font-semibold tabular-nums">
+              <tr>
+                {columnas.map((c) => (
+                  <td key={c.clave} data-col={c.clave} data-label={typeof c.titulo === 'string' && pie[c.clave] != null ? c.titulo : undefined}
+                    className={`px-4 py-3 ${c.alinear === 'right' ? 'text-right' : ''} ${c.clase ?? ''}`.trim()}>
+                    {pie[c.clave] ?? null}
+                  </td>
+                ))}
+              </tr>
+            </tfoot>
+          )}
         </table>
-        {!filasMostradas.length && <p className="p-8 text-center text-sm text-fg-muted">{vacio}</p>}
+        {!filasMostradas.length && (typeof vacio === 'string'
+          ? <p className="px-4 py-10 text-center text-body text-fg-muted">{vacio}</p>
+          : vacio)}
       </div>
 
       {paginacion && totalRegistros > 0 && (

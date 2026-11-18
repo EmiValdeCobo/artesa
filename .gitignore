@@ -4,6 +4,7 @@ dist
 .env.*
 !.env.example
 *.log
+.claude/
 docs/Documentacion_IEEE/bin/
 docs/Documentacion_IEEE/*.aux
 docs/Documentacion_IEEE/*.log

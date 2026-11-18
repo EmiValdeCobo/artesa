@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
-import { Minus, TrendingDown, TrendingUp, Store } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChartLine, Minus, TrendingDown, TrendingUp, Store } from 'lucide-react';
+import Skeleton from '../../../components/feedback/Skeleton.jsx';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import AvisoError from '../../../components/feedback/AvisoError.jsx';
 import Actualizado from '../../../components/display/Actualizado.jsx';
@@ -8,7 +9,6 @@ import { useDashboardData } from '../hooks/useDashboardData.js';
 import SalesChart from '../components/SalesChart.jsx';
 import GraficaVentas from '../components/GraficaVentas.jsx';
 import { Panel, Vacio } from '../components/Panel.jsx';
-import '../dashboard.css';
 
 const PERIODOS = [[7, '7 días'], [14, '14 días'], [30, '30 días']];
 
@@ -47,16 +47,25 @@ function StatHero({ today, asOf }) {
 }
 
 function Esqueleto() {
-  return <div className="ventas-loading" aria-busy="true" role="status"><span className="sr-only">Cargando ventas</span><div className="ventas-loading-hero"/><div className="ventas-loading-chart"/><div className="ventas-loading-row"/><div className="ventas-loading-row"/><div className="ventas-loading-row"/></div>;
+  return <div className="ventas-loading" aria-busy="true" role="status"><span className="sr-only">Cargando ventas</span><Skeleton className="h-44" /><Skeleton className="h-4 w-1/2" /><Skeleton className="h-8" /><Skeleton className="h-8" /><Skeleton className="h-8" /></div>;
 }
 
-export default function VentasDiariasPanel({ cols, orden, sucursal }) {
+export default function VentasDiariasPanel({ cols, orden, sucursal, onResumen }) {
   const { tiene } = useAuth();
   const propias = !tiene('REP_VER_DASHBOARD');
   const [dias, setDias] = useState(7);
   const params = useMemo(() => ({ dias, ...(sucursal ? { sucursal } : {}) }), [dias, sucursal]);
   const { datos, error, cargando, actualizando, recargar } = useDashboardData('/dashboard/ventas-diarias', params, { intervalo: 30000 });
   const sinSucursal = datos?.estado === 'sin_sucursal';
+
+  // Indicadores del encabezado (ventas, tickets y ticket promedio de hoy): salen de esta misma respuesta.
+  useEffect(() => {
+    if (!onResumen) return;
+    if (cargando) onResumen({ cargando: true });
+    else if (!datos || datos.estado === 'sin_sucursal') onResumen(null);
+    else if (datos.estado === 'sin_datos' || !datos.today) onResumen({ total: '0', tickets: 0, propias });
+    else onResumen({ total: String(datos.today.total ?? '0'), tickets: Number(datos.today.tickets) || 0, propias });
+  }, [onResumen, cargando, datos, propias]);
 
   let contenido;
   if (cargando) contenido = <Esqueleto />;
@@ -90,5 +99,5 @@ export default function VentasDiariasPanel({ cols, orden, sucursal }) {
     </>;
   }
 
-  return <Panel titulo={propias ? 'Mis ventas' : 'Ventas diarias'} cols={cols} orden={orden} acento={null} presentacion="ventas-panel" acciones={!sinSucursal && <RangeSelector value={dias} onChange={setDias} disabled={cargando} />}>{contenido}</Panel>;
+  return <Panel titulo={propias ? 'Mis ventas' : 'Ventas diarias'} icono={ChartLine} cols={cols} orden={orden} presentacion="ventas-panel" acciones={!sinSucursal && <RangeSelector value={dias} onChange={setDias} disabled={cargando} />}>{contenido}</Panel>;
 }

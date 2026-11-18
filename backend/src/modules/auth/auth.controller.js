@@ -18,14 +18,6 @@ export async function login(req, res) {
   res.json(sesion);
 }
 
-export async function loginCliente(req, res) {
-  const { username, password } = req.body;
-  const sesion = await service.loginCliente(username, password);
-  res.cookie('artesa_session', sesion.token, service.opcionesCookie());
-  delete sesion.token;
-  res.json(sesion);
-}
-
 export async function logout(req, res) {
   if (req.user?.jti) {
     await service.revocarToken(req.user.jti, req.tokenExp, req.user.id);
@@ -36,8 +28,4 @@ export async function logout(req, res) {
 
 export async function me(req, res) {
   res.json(await service.perfil(req.user.id));
-}
-
-export async function meCliente(req, res) {
-  res.json(await service.perfilCliente(req.user.id));
 }

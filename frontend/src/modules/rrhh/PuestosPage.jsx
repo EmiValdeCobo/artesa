@@ -289,13 +289,13 @@ export default function PuestosPage() {
           icono={Briefcase}
           etiqueta="Total de puestos"
           valor={metricas.total}
-          tono="primario"
+          tono="neutro"
         />
         <Metrica
           icono={CheckCircle2}
           etiqueta="Puestos activos"
           valor={metricas.activos}
-          tono="exito"
+          tono="neutro"
         />
         <Metrica
           icono={AlertCircle}
@@ -381,7 +381,7 @@ export default function PuestosPage() {
           <form onSubmit={handleGuardar} className="space-y-4 p-5">
             <div>
               <label htmlFor="puesto-nombre" className="block text-sm font-medium text-fg">
-                Nombre del puesto <span className="text-danger">*</span>
+                Nombre del puesto <span className="text-danger-text">*</span>
               </label>
               <input
                 id="puesto-nombre"
@@ -394,13 +394,13 @@ export default function PuestosPage() {
                 required
               />
               {erroresForm.nombre && (
-                <p className="mt-1 text-xs text-danger">{erroresForm.nombre}</p>
+                <p className="mt-1 text-xs text-danger-text">{erroresForm.nombre}</p>
               )}
             </div>
 
             <div>
               <label htmlFor="puesto-salario" className="block text-sm font-medium text-fg">
-                Salario base mensual ($) <span className="text-danger">*</span>
+                Salario base mensual ($) <span className="text-danger-text">*</span>
               </label>
               <div className="relative mt-1.5">
                 <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-fg-muted">
@@ -420,7 +420,7 @@ export default function PuestosPage() {
                 />
               </div>
               {erroresForm.salarioBase ? (
-                <p className="mt-1 text-xs text-danger">{erroresForm.salarioBase}</p>
+                <p className="mt-1 text-xs text-danger-text">{erroresForm.salarioBase}</p>
               ) : (
                 <p className="mt-1 text-xs text-fg-muted">
                   Salario base de referencia conforme a ley o política de la empresa.

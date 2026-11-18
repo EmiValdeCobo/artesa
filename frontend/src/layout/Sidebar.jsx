@@ -18,9 +18,11 @@ import Logo from '../components/branding/Logo.jsx';
    --------------------------------------------------------------------------- */
 
 const SIN_BARRA = '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
-const ITEM = 'relative flex items-center rounded-lg text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring';
-const ITEM_INACTIVO = 'text-on-sidebar/75 hover:bg-white/10 hover:text-on-sidebar';
-const ITEM_ACTIVO = 'bg-primary text-on-accent shadow-sm';
+const FOCO = 'outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring-sidebar';
+const ITEM = `relative flex items-center rounded-md text-label transition-colors ${FOCO}`;
+const ITEM_INACTIVO = 'text-on-sidebar-muted hover:bg-on-sidebar/10 hover:text-on-sidebar';
+// Activo: tinte Terracota suave + barra Ocre de 3 px a la izquierda (sin relleno sólido).
+const ITEM_ACTIVO = 'bg-primary/15 text-on-sidebar before:absolute before:inset-y-2 before:left-0 before:w-0.75 before:rounded-full before:bg-ring-sidebar';
 
 /* ---- Utilidades ---------------------------------------------------------- */
 
@@ -81,7 +83,7 @@ function Flotante({ ancla, centrado = false, children, className = '', ...resto 
 
 const Tooltip = ({ ancla, texto }) => (
   <Flotante ancla={ancla} centrado role="tooltip"
-    className="pointer-events-none whitespace-nowrap rounded-md bg-espresso-950 px-2.5 py-1.5 text-xs font-medium text-espresso-50 shadow-lg ring-1 ring-white/10">
+    className="pointer-events-none whitespace-nowrap rounded-sm bg-espresso-950 px-2.5 py-1.5 text-label-sm text-espresso-50 shadow-md ring-1 ring-on-sidebar/10">
     {texto}
   </Flotante>
 );
@@ -120,8 +122,8 @@ function Enlace({ item, colapsado, onNavigate }) {
       onClick={() => { tip.cerrarYa(); onNavigate?.(); }}
       onMouseEnter={colapsado ? tip.abrir : undefined} onMouseLeave={() => tip.cerrar(0)}
       onFocus={colapsado ? tip.abrir : undefined} onBlur={tip.cerrarYa}
-      className={({ isActive }) => `${ITEM} h-9 ${colapsado ? 'justify-center' : 'gap-3 px-3'} ${isActive ? ITEM_ACTIVO : ITEM_INACTIVO}`}>
-      <Icono size={18} strokeWidth={1.8} aria-hidden="true" className="shrink-0" />
+      className={({ isActive }) => `${ITEM} h-9.5 ${colapsado ? 'justify-center' : 'gap-3 px-3'} ${isActive ? ITEM_ACTIVO : ITEM_INACTIVO}`}>
+      <Icono size={20} strokeWidth={1.75} aria-hidden="true" className="shrink-0" />
       {!colapsado && <span className="truncate">{item.texto}</span>}
     </NavLink>
     {colapsado && tip.abierto && <Tooltip ancla={ref} texto={item.texto} />}
@@ -136,22 +138,21 @@ function Grupo({ item, colapsado, actual, abierto, onToggle, onNavigate }) {
   const idSubmenu = `submenu-${item.id}`;
   useCerrarFlotante(fly.abierto, ref, fly.cerrarYa);
 
-  const claseBoton = `${ITEM} h-9 w-full ${activo ? (abierto && !colapsado ? 'bg-white/10 font-semibold text-on-sidebar' : ITEM_ACTIVO) : ITEM_INACTIVO}`;
+  const claseBoton = `${ITEM} h-9.5 w-full ${activo ? (abierto && !colapsado ? 'text-on-sidebar' : ITEM_ACTIVO) : ITEM_INACTIVO}`;
 
   if (colapsado) {
     return <>
       <button ref={ref} type="button" aria-label={item.texto} aria-haspopup="menu" aria-expanded={fly.abierto}
         onClick={() => fly.setAbierto((v) => !v)} onMouseEnter={fly.abrir} onMouseLeave={() => fly.cerrar()}
         className={`${claseBoton} justify-center`}>
-        <Icono size={18} strokeWidth={1.8} aria-hidden="true" />
-        
+        <Icono size={20} strokeWidth={1.75} aria-hidden="true" />
       </button>
       {fly.abierto && <Flotante ancla={ref} role="menu" onMouseEnter={fly.abrir} onMouseLeave={() => fly.cerrar()}
-        className="min-w-48 rounded-xl border border-line bg-surface p-1.5 text-fg shadow-xl">
-        <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.18em] text-fg-muted">{item.texto}</p>
+        className="min-w-48 rounded-md border border-line bg-surface p-1 text-fg shadow-lg">
+        <p className="rotulo px-3 pb-1 pt-2">{item.texto}</p>
         {item.hijos.map((h) => (
           <NavLink key={h.ruta} to={h.ruta} end={h.end} role="menuitem" onClick={() => { fly.cerrarYa(); onNavigate?.(); }}
-            className={({ isActive }) => `block rounded-lg px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring ${isActive ? 'bg-primary text-on-accent' : 'hover:bg-muted'}`}>
+            className={({ isActive }) => `block rounded-sm px-3 py-2 text-body outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${isActive ? 'bg-primary-soft font-medium text-primary-text' : 'hover:bg-muted'}`}>
             {h.texto}
           </NavLink>
         ))}
@@ -162,14 +163,14 @@ function Grupo({ item, colapsado, actual, abierto, onToggle, onNavigate }) {
   return <div>
     <button type="button" aria-expanded={abierto} aria-controls={idSubmenu} onClick={onToggle}
       className={`${claseBoton} gap-3 px-3 text-left`}>
-      <Icono size={18} strokeWidth={1.8} aria-hidden="true" className="shrink-0" />
+      <Icono size={20} strokeWidth={1.75} aria-hidden="true" className="shrink-0" />
       <span className="flex-1 truncate">{item.texto}</span>
-      <ChevronDown size={15} aria-hidden="true" className={`shrink-0 transition-transform ${abierto ? 'rotate-180' : ''}`} />
+      <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" className={`shrink-0 text-on-sidebar-muted transition-transform motion-reduce:transition-none ${abierto ? 'rotate-180' : ''}`} />
     </button>
-    {abierto && <div id={idSubmenu} className="ml-[1.4rem] mt-0.5 space-y-0.5 border-l border-white/15 pl-2">
+    {abierto && <div id={idSubmenu} className="ml-5.5 mt-0.5 space-y-0.5 border-l border-on-sidebar/15 pl-2">
       {item.hijos.map((h) => (
         <NavLink key={h.ruta} to={h.ruta} end={h.end} onClick={onNavigate}
-          className={({ isActive }) => `${ITEM} h-8 px-3 ${isActive ? ITEM_ACTIVO : ITEM_INACTIVO}`}>
+          className={({ isActive }) => `${ITEM} h-8 px-3 text-body ${isActive ? ITEM_ACTIVO : ITEM_INACTIVO}`}>
           <span className="truncate">{h.texto}</span>
         </NavLink>
       ))}
@@ -185,8 +186,8 @@ function BotonIcono({ icono: Icono, etiqueta, onClick, conTooltip = true }) {
       title={conTooltip ? undefined : etiqueta}
       onMouseEnter={conTooltip ? tip.abrir : undefined} onMouseLeave={() => tip.cerrar(0)}
       onFocus={conTooltip ? tip.abrir : undefined} onBlur={tip.cerrarYa}
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-on-sidebar/75 outline-none transition-colors hover:bg-white/10 hover:text-on-sidebar focus-visible:ring-2 focus-visible:ring-ring">
-      <Icono size={17} strokeWidth={1.8} aria-hidden="true" />
+      className={`flex size-control-sm shrink-0 items-center justify-center rounded-md text-on-sidebar-muted transition-colors hover:bg-on-sidebar/10 hover:text-on-sidebar ${FOCO}`}>
+      <Icono size={18} strokeWidth={1.75} aria-hidden="true" />
     </button>
     {tip.abierto && <Tooltip ancla={ref} texto={etiqueta} />}
   </>;
@@ -206,18 +207,18 @@ function Pie({ colapsado }) {
   const botonTema = <BotonIcono icono={actual.icono} etiqueta={`Tema: ${actual.nombre}. Cambiar a ${siguiente.nombre}`} onClick={() => elegir(actual.siguiente)} />;
   const botonSalir = <BotonIcono icono={LogOut} etiqueta="Cerrar sesión" onClick={logout} />;
   const avatar = <div title={usuario?.username} aria-hidden="true"
-    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-accent">
+    className="flex size-control-sm shrink-0 items-center justify-center rounded-full bg-on-sidebar/10 text-label text-on-sidebar ring-1 ring-on-sidebar/15">
     {usuario?.username?.charAt(0).toUpperCase() || '?'}
   </div>;
 
-  return <footer className="shrink-0 border-t border-white/10 p-3">
+  return <footer className="shrink-0 border-t border-on-sidebar/10 px-3 py-2.5">
     {colapsado
       ? <div className="flex flex-col items-center gap-1">{avatar}{botonTema}{botonSalir}</div>
       : <div className="flex items-center gap-2">
         {avatar}
         <div className="min-w-0 flex-1 leading-tight">
-          <p className="truncate text-sm font-semibold">{usuario?.username}</p>
-          <p className="truncate text-xs text-on-sidebar/60">{usuario?.rol}</p>
+          <p className="truncate text-label text-on-sidebar">{usuario?.username}</p>
+          <p className="truncate text-label-sm text-on-sidebar-muted">{usuario?.rol}</p>
         </div>
         {botonTema}{botonSalir}
       </div>}
@@ -268,35 +269,34 @@ export default function Sidebar({ mobileOpen, onClose }) {
       onToggle={() => setGrupoAbierto((g) => (g === item.id ? null : item.id))} onNavigate={navegar} />
     : <Enlace key={item.ruta} item={item} colapsado={colapsado} onNavigate={navegar} />);
 
-  const flecha = 'pointer-events-auto flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-on-sidebar/80 hover:bg-white/20 hover:text-on-sidebar';
+  const flecha = 'pointer-events-auto flex size-6 items-center justify-center rounded-full bg-on-sidebar/10 text-on-sidebar-muted hover:bg-on-sidebar/20 hover:text-on-sidebar';
 
   return <>
-    {mobileOpen && <button type="button" aria-label="Cerrar navegación" onClick={onClose} className="fixed inset-0 z-40 bg-sidebar/60 lg:hidden" />}
-    <aside className={`fixed inset-y-0 left-0 z-50 flex h-dvh shrink-0 flex-col bg-sidebar text-on-sidebar shadow-xl transition-[width,transform] duration-300 motion-reduce:transition-none lg:sticky lg:top-0 lg:bottom-auto lg:h-dvh lg:self-start lg:z-20 lg:translate-x-0 lg:shadow-none ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} ${colapsado ? 'w-[4.5rem]' : 'w-64'}`}>
+    {mobileOpen && <button type="button" aria-label="Cerrar navegación" onClick={onClose} className="fixed inset-0 z-40 bg-overlay lg:hidden" />}
+    <aside className={`fixed inset-y-0 left-0 z-50 flex h-dvh shrink-0 flex-col bg-sidebar text-on-sidebar shadow-lg transition-[width,transform] duration-300 motion-reduce:transition-none lg:sticky lg:top-0 lg:bottom-auto lg:h-dvh lg:self-start lg:z-20 lg:translate-x-0 lg:shadow-none ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} ${colapsado ? 'w-sidebar-colapsada' : 'w-sidebar'}`}>
 
-      <header className={`relative flex h-16 shrink-0 items-center border-b border-white/10 ${colapsado ? 'justify-center' : 'gap-3 px-4'}`}>
-        <Logo variante="isotipo" tema="oscuro" className="h-9 w-auto shrink-0" />
-        {!colapsado && <div className="min-w-0 leading-none">
-          <p className="text-lg font-extrabold tracking-wide">artesa</p>
-          <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.2em] text-on-sidebar/60">ERP &amp; POS</p>
-        </div>}
-        <button type="button" onClick={onClose} aria-label="Cerrar navegación" className="ml-auto rounded-lg p-2 text-on-sidebar/70 hover:bg-white/10 lg:hidden"><X size={19} /></button>
+      {/* Área de respeto del logo ≈ 25 % del alto del símbolo (28 px → 7 px; px-5 la cumple) */}
+      <header className={`relative flex h-header shrink-0 items-center border-b border-on-sidebar/10 ${colapsado ? 'justify-center' : 'gap-3 px-5'}`}>
+        {colapsado
+          ? <Logo variante="isotipo" tema="oscuro" alto={28} className="shrink-0" />
+          : <Logo variante="completo" tema="oscuro" alto={28} className="shrink-0" />}
+        <button type="button" onClick={onClose} aria-label="Cerrar navegación" className={`ml-auto flex size-control-sm items-center justify-center rounded-md text-on-sidebar-muted hover:bg-on-sidebar/10 hover:text-on-sidebar lg:hidden ${FOCO}`}><X size={20} strokeWidth={1.75} aria-hidden="true" /></button>
         <button type="button" onClick={() => cambiar()} aria-label={colapsado ? 'Expandir navegación' : 'Colapsar navegación'} aria-expanded={!colapsado}
-          className="absolute -right-3 top-5 z-10 hidden h-6 w-6 items-center justify-center rounded-full border border-line bg-sidebar text-on-sidebar shadow-sm transition-colors hover:bg-primary focus-visible:ring-2 focus-visible:ring-ring lg:flex">
+          className={`absolute -right-3 top-1/2 z-10 hidden size-6 -translate-y-1/2 items-center justify-center rounded-full border border-on-sidebar/20 bg-sidebar text-on-sidebar-muted shadow-sm transition-colors hover:text-on-sidebar ${FOCO} lg:flex`}>
           {colapsado ? <ChevronRight size={14} aria-hidden="true" /> : <ChevronLeft size={14} aria-hidden="true" />}
         </button>
       </header>
 
       {/* Nav sin barra de scroll visible; si hay más contenido, degradado + flecha en el borde */}
       <div className="relative min-h-0 flex-1">
-        <nav ref={navRef} aria-label="Navegación principal" className={`h-full overflow-y-auto px-3 py-3 ${SIN_BARRA}`}>
+        <nav ref={navRef} aria-label="Navegación principal" className={`h-full overflow-y-auto px-3 py-4 ${SIN_BARRA}`}>
           <div className="space-y-0.5">
             {items.map((entrada, i) => {
               if (!entrada.seccion) return renderItem(entrada);
               return <div key={entrada.seccion} className="space-y-0.5">
                 {colapsado
-                  ? <div className="mx-3 !my-2 border-t border-white/10" aria-hidden="true" />
-                  : <p className={`px-3 pb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-on-sidebar/55 ${i === 0 ? 'pt-1' : 'pt-4'}`}>{entrada.seccion}</p>}
+                  ? <div className="mx-3 !my-3 border-t border-on-sidebar/10" aria-hidden="true" />
+                  : <p className={`px-3 pb-1.5 text-overline uppercase text-on-sidebar-muted ${i === 0 ? 'pt-1' : 'pt-5'}`}>{entrada.seccion}</p>}
                 {entrada.items.map(renderItem)}
               </div>;
             })}

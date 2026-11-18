@@ -60,19 +60,6 @@ async function armarSesion(usuario) {
   };
 }
 
-function armarSesionCliente(cliente) {
-  return {
-    usuario: {
-      id: cliente.id_cliente,
-      username: cliente.username,
-      nombre: cliente.nombre_razon_social,
-      email: cliente.email,
-      tipo: 'cliente',
-    },
-    permisos: [],
-  };
-}
-
 export async function login(username, password) {
   const usuario = await repo.buscarUsuarioPorUsername(username);
   // Mitigación de timing attack: si no existe el usuario, compara contra DUMMY_HASH para no delatar tiempo de cómputo
@@ -89,25 +76,8 @@ export async function login(username, password) {
   return { token, ...(await armarSesion(usuario)) };
 }
 
-export async function loginCliente(username, password) {
-  const cliente = await repo.buscarClientePorUsername(username);
-  const hashComparar = cliente?.password_hash || DUMMY_HASH;
-  const passwordValido = await bcrypt.compare(password, hashComparar);
-  const valido = Boolean(cliente && cliente.activo && passwordValido);
-  if (!valido) throw new AppError('Usuario o contraseña incorrectos', 401);
-
-  const token = jwt.sign({ id: cliente.id_cliente, tipo: 'cliente', iat: Math.floor(Date.now() / 1000) }, env.jwtSecret, { expiresIn: env.jwtExpiresIn, jwtid: crypto.randomUUID() });
-  return { token, ...(armarSesionCliente(cliente)) };
-}
-
 export async function perfil(idUsuario) {
   const usuario = await repo.buscarUsuarioPorId(idUsuario);
   if (!usuario) throw new AppError('Usuario no encontrado o inactivo', 401);
   return armarSesion(usuario);
-}
-
-export async function perfilCliente(idCliente) {
-  const cliente = await repo.buscarClientePorId(idCliente);
-  if (!cliente) throw new AppError('Cliente no encontrado o inactivo', 401);
-  return armarSesionCliente(cliente);
 }

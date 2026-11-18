@@ -14,6 +14,8 @@ import CampoError from '../../components/forms/CampoError.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import AccionConTooltip from '../../components/display/AccionConTooltip.jsx';
 import { BotonIcono, Button, Card, Select, Table } from '../../components/ui/index.js';
+import Skeleton from '../../components/feedback/Skeleton.jsx';
+import Insignia from '../../components/branding/Insignia.jsx';
 import './catalogo-productos.css';
 import { ICONOS } from '../../config/iconos.js';
 import { formatoDinero, formatearUnidades } from '../../utils/formato.js';
@@ -80,15 +82,15 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
   const margen = useMemo(() => calcularMargen(producto.precio_venta, costoTotal), [producto.precio_venta, costoTotal]);
 
   const badgeMargenClass = (pct) => {
-    if (pct == null) return 'bg-muted text-fg-muted border border-line';
-    if (pct >= 40) return 'bg-success-soft text-success border border-success/30';
-    if (pct >= 20) return 'bg-warning-soft text-warning border border-warning/30';
-    return 'bg-danger-soft text-danger border border-danger/30';
+    if (pct == null) return 'bg-muted text-fg-muted';
+    if (pct >= 40) return 'bg-success-soft text-success-text';
+    if (pct >= 20) return 'bg-warning-soft text-warning-text';
+    return 'bg-danger-soft text-danger-text';
   };
 
   return createPortal(
     <div
-      className="fixed inset-0 bg-espresso-950/60 backdrop-blur-[2px] z-50 flex items-center justify-center p-4 overflow-y-auto"
+      className="anim-scrim fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-overlay sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onCerrar();
@@ -98,20 +100,17 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-receta-titulo"
-        className="relative w-full max-w-2xl bg-surface border border-line rounded-2xl shadow-2xl p-6 sm:p-7 text-fg my-auto overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+        className="relative my-auto w-full overflow-hidden rounded-t-xl border border-line bg-surface text-fg shadow-lg sm:max-w-3xl sm:rounded-xl"
       >
-        {/* Cabecera Limpia y Botón de Cierre Alineado */}
-        <div className="flex items-start justify-between gap-4 pb-4 border-b border-line">
+        {/* Cabecera */}
+        <div className="flex items-start justify-between gap-4 px-6 pt-6">
           <div>
-            <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold bg-primary-soft text-primary-text mb-2">
-              <ChefHat size={14} aria-hidden="true" />
-              Receta de producto elaborado
-            </span>
-            <h2 id="modal-receta-titulo" className="text-2xl font-bold text-fg leading-tight">
+            <Insignia variante="primario" icono={ChefHat} className="mb-2">Receta de producto elaborado</Insignia>
+            <h2 id="modal-receta-titulo" className="text-h3 text-fg">
               {producto.nombre}
             </h2>
-            <p className="text-sm text-fg-muted mt-1 flex items-center gap-1.5">
-              <Tag size={14} aria-hidden="true" />
+            <p className="mt-1 flex items-center gap-1.5 text-body text-fg-muted">
+              <Tag size={16} strokeWidth={1.75} aria-hidden="true" />
               Categoría: <span className="font-medium text-fg">{categoriaNombre || 'Sin categoría'}</span>
             </p>
           </div>
@@ -119,49 +118,52 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
         </div>
 
         {/* Tarjetas de Métricas Financieras (KPI Strip) */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-5">
+        <div className="px-6 py-5">
+        <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {/* 1. Precio Venta (con IVA) */}
-          <div className="bg-surface border border-line rounded-xl p-3.5 shadow-xs flex flex-col justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-muted block mb-1">
+          <div className="flex flex-col justify-between rounded-md bg-muted p-4">
+            <span className="mb-1 block text-label-sm text-fg-muted">
               Precio Venta (con IVA)
             </span>
-            <span className="text-xl font-bold font-mono text-primary-text tabular-nums">
+            <span className="text-h3 tabular-nums text-fg">
               {formatoDinero(producto.precio_venta)}
             </span>
           </div>
 
           {/* 2. Costo Teórico Total */}
-          <div className="bg-surface border border-line rounded-xl p-3.5 shadow-xs flex flex-col justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-muted block mb-1">
+          <div className="flex flex-col justify-between rounded-md bg-muted p-4">
+            <span className="mb-1 block text-label-sm text-fg-muted">
               Costo Teórico Total
             </span>
-            <span className="text-xl font-bold font-mono text-fg tabular-nums">
-              {tienePermisoCostos ? (cargando ? '…' : formatoDinero(costoTotal)) : '—'}
+            <span className="text-h3 tabular-nums text-fg">
+              {tienePermisoCostos
+                ? (cargando ? <Skeleton className="mt-1 h-5 w-20" /> : formatoDinero(costoTotal))
+                : '—'}
             </span>
           </div>
 
           {/* 3. Margen s/Neto */}
-          <div className="bg-surface border border-line rounded-xl p-3.5 shadow-xs flex flex-col justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-muted block mb-1">
+          <div className="flex flex-col justify-between rounded-md bg-muted p-4">
+            <span className="mb-1 block text-label-sm text-fg-muted">
               Margen s/Neto
             </span>
             <div className="flex items-center">
               {tienePermisoCostos ? (
                 cargando ? (
-                  <span className="text-sm text-fg-muted">…</span>
+                  <Skeleton className="h-6 w-16" />
                 ) : margen != null ? (
                   <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-bold font-mono ${badgeMargenClass(
+                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-label tabular-nums ${badgeMargenClass(
                       margen,
                     )}`}
                   >
                     {margen.toFixed(1)}%
                   </span>
                 ) : (
-                  <span className="text-sm font-mono text-fg-muted">—</span>
+                  <span className="text-body text-fg-muted">—</span>
                 )
               ) : (
-                <span className="text-xs font-medium text-fg-muted">Protegido</span>
+                <span className="text-label-sm text-fg-muted">Protegido</span>
               )}
             </div>
           </div>
@@ -173,28 +175,28 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
             <BannerError error={error} />
           </div>
         ) : cargando ? (
-          <div className="space-y-3 py-4 animate-pulse" aria-busy="true">
-            <div className="h-4 w-44 rounded bg-espresso-200/50" />
-            <div className="divide-y divide-line rounded-xl border border-line bg-surface overflow-hidden">
+          <div className="space-y-3 py-4" aria-busy="true">
+            <Skeleton className="h-4 w-44 rounded" />
+            <div className="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
               {[1, 2, 3].map((n) => (
                 <div key={n} className="flex items-center justify-between p-3.5">
-                  <div className="h-4 w-36 rounded bg-espresso-200/40" />
-                  <div className="h-4 w-16 rounded bg-espresso-100/60" />
-                  <div className="h-4 w-14 rounded bg-espresso-100/60" />
-                  <div className="h-4 w-16 rounded bg-espresso-200/40" />
+                  <Skeleton className="h-4 w-36 rounded" />
+                  <Skeleton className="h-4 w-16 rounded" />
+                  <Skeleton className="h-4 w-14 rounded" />
+                  <Skeleton className="h-4 w-16 rounded" />
                 </div>
               ))}
             </div>
           </div>
         ) : componentes.length === 0 ? (
-          <div className="py-8 px-4 text-center text-sm text-fg-muted bg-surface rounded-xl border border-line">
+          <div className="rounded-md border border-line px-4 py-8 text-center text-body text-fg-muted">
             Este producto aún no tiene ingredientes registrados en su receta.
           </div>
         ) : (
-          <div className="bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
+          <div className="overflow-hidden rounded-md border border-line bg-surface">
             <div className="max-h-72 overflow-y-auto scroll-fino">
-              <table className="w-full text-left text-sm border-collapse">
-                <thead className="sticky top-0 z-10 border-b border-line bg-muted text-xs font-semibold uppercase tracking-wide text-fg-muted">
+              <table className="w-full border-collapse text-left text-body">
+                <thead className="sticky top-0 z-10 border-b border-line bg-surface text-label-sm text-fg-muted">
                   <tr>
                     <th className="py-3 px-4">Ingrediente</th>
                     <th className="py-3 px-4 text-center">Cantidad</th>
@@ -209,19 +211,19 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
                     const subtotalCero = !subtotal || Number(subtotal) === 0;
 
                     return (
-                      <tr key={c.id_insumo} className="hover:bg-muted/60 transition-colors">
+                      <tr key={c.id_insumo} className="transition-colors hover:bg-muted">
                         <td className="py-3 px-4 font-medium text-fg">
                           {c.nombre_insumo || c.insumo}
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <span className="inline-flex items-center gap-1 bg-muted text-fg-muted px-2 py-0.5 rounded text-xs font-medium font-mono">
+                          <span className="inline-flex items-center gap-1 tabular-nums text-fg">
                             <span>{formatearUnidades(c.cantidad_requerida)}</span>
-                            <span className="uppercase text-[11px] text-fg-muted">
+                            <span className="text-label-sm uppercase text-fg-muted">
                               {c.codigo_unidad || c.unidad || 'UND'}
                             </span>
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-right font-mono text-xs whitespace-nowrap tabular-nums">
+                        <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
                           {tienePermisoCostos ? (
                             <span className={costoUnitarioCero ? 'text-fg-muted' : 'text-fg'}>
                               {formatoDinero(c.costo_promedio)}
@@ -230,7 +232,7 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
                             <span className="text-fg-muted">—</span>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-semibold text-xs whitespace-nowrap tabular-nums">
+                        <td className="whitespace-nowrap px-4 py-3 text-right font-medium tabular-nums">
                           {tienePermisoCostos ? (
                             <span className={subtotalCero ? 'text-fg-muted' : 'text-fg'}>
                               {formatoDinero(subtotal)}
@@ -244,11 +246,11 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
                   })}
                 </tbody>
                 <tfoot>
-                  <tr className="bg-muted border-t border-line">
-                    <td colSpan={3} className="py-3 px-4 text-right text-xs font-bold uppercase text-fg-muted">
+                  <tr className="border-t-2 border-line-strong bg-surface">
+                    <td colSpan={3} className="px-4 py-3 text-right text-label text-fg-muted">
                       COSTO TEÓRICO TOTAL:
                     </td>
-                    <td className="py-3 px-4 text-right font-mono text-base font-bold text-primary-text whitespace-nowrap tabular-nums">
+                    <td className="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums text-fg">
                       {tienePermisoCostos ? formatoDinero(costoTotal) : '—'}
                     </td>
                   </tr>
@@ -258,8 +260,9 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
           </div>
         )}
 
-        {/* Pie de Acciones Equilibrado */}
-        <div className="flex items-center justify-end gap-3 pt-5 mt-5 border-t border-line">
+        </div>
+        {/* Pie de acciones */}
+        <div className="flex flex-col-reverse gap-2 border-t border-line px-6 py-4 sm:flex-row sm:items-center sm:justify-end">
           <Button variante="ghost" onClick={onCerrar}>
             Cerrar
           </Button>
@@ -278,27 +281,27 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
 // ─── Skeleton Loader Cálido de Catálogo ──────────────────────────────────────
 function CatalogoSkeleton() {
   return (
-    <div className="card space-y-4 p-5 animate-pulse" aria-busy="true" aria-label="Cargando productos">
+    <div className="space-y-4 p-5" role="status" aria-busy="true" aria-label="Cargando productos">
       <div className="flex items-center justify-between pb-3 border-b border-line">
-        <div className="h-5 w-44 rounded-md bg-espresso-200/50 dark:bg-espresso-800/40" />
-        <div className="h-4 w-28 rounded-md bg-espresso-100/50 dark:bg-espresso-900/40" />
+        <Skeleton className="h-5 w-44 rounded-md" />
+        <Skeleton className="h-4 w-28 rounded-md" />
       </div>
       <div className="divide-y divide-line rounded-lg border border-line overflow-hidden">
         {[1, 2, 3, 4, 5, 6].map((i) => (
           <div key={i} className="flex items-center justify-between gap-4 p-4">
-            <div className="space-y-2 flex-1">
-              <div className="h-4 w-44 rounded bg-espresso-200/60 dark:bg-espresso-800/50" />
-              <div className="h-3 w-28 rounded-full bg-espresso-100/60 dark:bg-espresso-900/40" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-44 rounded" />
+              <Skeleton className="h-3 w-28 rounded-full" />
             </div>
-            <div className="h-4 w-24 rounded bg-espresso-100/50 dark:bg-espresso-900/40 hidden sm:block" />
-            <div className="h-6 w-24 rounded-full bg-espresso-100/60 dark:bg-espresso-900/40" />
-            <div className="h-5 w-20 rounded bg-espresso-200/50 dark:bg-espresso-800/40 text-right" />
-            <div className="h-4 w-16 rounded bg-espresso-100/50 dark:bg-espresso-900/40 text-right hidden md:block" />
-            <div className="h-4 w-14 rounded bg-espresso-100/50 dark:bg-espresso-900/40 text-right hidden md:block" />
-            <div className="h-6 w-16 rounded-full bg-espresso-100/60 dark:bg-espresso-900/40" />
+            <Skeleton className="h-4 w-24 rounded hidden sm:block" />
+            <Skeleton className="h-6 w-24 rounded-full" />
+            <Skeleton className="h-5 w-20 rounded" />
+            <Skeleton className="h-4 w-16 rounded hidden md:block" />
+            <Skeleton className="h-4 w-14 rounded hidden md:block" />
+            <Skeleton className="h-6 w-16 rounded-full" />
             <div className="flex gap-1.5 justify-end">
-              <div className="h-9 w-24 rounded-md bg-espresso-200/50 dark:bg-espresso-800/40" />
-              <div className="h-9 w-9 rounded-md bg-espresso-100/50 dark:bg-espresso-900/40" />
+              <Skeleton className="h-9 w-24 rounded-md" />
+              <Skeleton className="h-9 w-9 rounded-md" />
             </div>
           </div>
         ))}
@@ -311,15 +314,9 @@ function CatalogoSkeleton() {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const BadgeTipo = ({ esElaborado }) =>
   esElaborado ? (
-    <span className="inline-flex whitespace-nowrap items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-primary-soft text-primary-text">
-      <ChefHat size={12} aria-hidden="true" />
-      Elaborado (Receta)
-    </span>
+    <Insignia variante="neutro" icono={ChefHat} className="whitespace-nowrap">Elaborado (Receta)</Insignia>
   ) : (
-    <span className="inline-flex whitespace-nowrap items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-secondary-soft text-secondary-text">
-      <ShoppingBag size={12} aria-hidden="true" />
-      Reventa
-    </span>
+    <Insignia variante="aviso" icono={ShoppingBag} className="whitespace-nowrap">Reventa</Insignia>
   );
 
 function AccionesProducto({ producto, tiene, navegar, editar, cambiarEstado, eliminar }) {
@@ -360,16 +357,16 @@ const FORM_VACIO = {
 };
 
 function SelectorTipoProducto({ form, setForm }) {
-  return <fieldset className="rounded-xl border border-line bg-surface p-4 space-y-3">
-    <legend className="px-1 text-sm font-semibold text-fg">Tipo de producto</legend>
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <label className={`flex items-start gap-2.5 p-3 rounded-lg border cursor-pointer ${form.es_elaborado ? 'border-primary bg-primary-soft text-primary-text font-semibold' : 'border-line bg-surface text-fg'}`}>
+  return <fieldset className="space-y-2">
+    <legend className="mb-1.5 text-label text-fg">Tipo de producto</legend>
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <label className={`flex cursor-pointer items-start gap-2.5 rounded-md border p-3 transition-colors hover:bg-muted ${form.es_elaborado ? 'border-primary/40 bg-primary-soft text-primary-text' : 'border-line bg-surface text-fg'}`}>
         <input type="radio" name="tipo_producto" className="accent-primary mt-1" checked={form.es_elaborado} onChange={() => setForm((f) => ({ ...f, es_elaborado: true, id_insumo_reventa: '' }))} />
-        <span className="text-xs sm:text-sm">Elaborado<small className="block font-normal text-fg-muted">Tras guardar podrás definir su receta; sin receta no se puede vender</small></span>
+        <span className="text-label">Elaborado<small className="mt-0.5 block text-body-sm font-normal text-fg-muted">Tras guardar podrás definir su receta; sin receta no se puede vender</small></span>
       </label>
-      <label className={`flex items-start gap-2.5 p-3 rounded-lg border cursor-pointer ${!form.es_elaborado ? 'border-secondary bg-secondary-soft text-secondary-text font-semibold' : 'border-line bg-surface text-fg'}`}>
-        <input type="radio" name="tipo_producto" className="accent-secondary mt-1" checked={!form.es_elaborado} onChange={() => setForm((f) => ({ ...f, es_elaborado: false }))} />
-        <span className="text-xs sm:text-sm">Reventa<small className="block font-normal text-fg-muted">Se descuenta 1 unidad del insumo por cada venta</small></span>
+      <label className={`flex cursor-pointer items-start gap-2.5 rounded-md border p-3 transition-colors hover:bg-muted ${!form.es_elaborado ? 'border-primary/40 bg-primary-soft text-primary-text' : 'border-line bg-surface text-fg'}`}>
+        <input type="radio" name="tipo_producto" className="accent-primary mt-1" checked={!form.es_elaborado} onChange={() => setForm((f) => ({ ...f, es_elaborado: false }))} />
+        <span className="text-label">Reventa<small className="mt-0.5 block text-body-sm font-normal text-fg-muted">Se descuenta 1 unidad del insumo por cada venta</small></span>
       </label>
     </div>
   </fieldset>;
@@ -676,10 +673,10 @@ export default function CatalogoProductosPage() {
       valorOrden: (p) => p.nombre,
       render: (p) => (
         <div className="producto-tabla min-w-0">
-          <span className="nombre-producto-tabla block truncate font-semibold leading-tight text-fg" title={p.nombre}>{p.nombre}</span>
+          <span className="nombre-producto-tabla block truncate font-medium text-fg" title={p.nombre}>{p.nombre}</span>
           <div className="flex min-w-0 items-center gap-2">
             {p.codigo_barra && (
-              <span className="codigo-producto-tabla truncate font-mono text-xs text-fg-muted">
+              <span className="codigo-producto-tabla truncate font-mono text-body-sm text-fg-muted">
                 {p.codigo_barra}
               </span>
             )}
@@ -687,9 +684,9 @@ export default function CatalogoProductosPage() {
               Number(p.n_ingredientes) === 0 ? (
                 <span
                   title="Sin receta: no se puede vender"
-                  className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-warning-soft text-warning shrink-0"
+                  className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-warning-soft px-2 py-0.5 text-label-sm text-warning-text"
                 >
-                  <AlertTriangle size={10} aria-hidden="true" />
+                  <AlertTriangle size={12} strokeWidth={1.75} aria-hidden="true" />
                   Sin receta
                 </span>
               ) : (
@@ -700,9 +697,9 @@ export default function CatalogoProductosPage() {
                     setProductoPrevisualizar(p);
                   }}
                   title="Clic para previsualizar ingredientes de la receta"
-                  className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-success-soft text-success hover:bg-success/20 transition-colors cursor-pointer border border-success/30 shadow-xs shrink-0"
+                  className="inline-flex shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded-full bg-success-soft px-2 py-0.5 text-label-sm text-success-text transition-colors hover:bg-success/20"
                 >
-                  <ChefHat size={10} aria-hidden="true" />
+                  <ChefHat size={12} strokeWidth={1.75} aria-hidden="true" />
                   <span>{formatearUnidades(p.n_ingredientes)} ing.</span>
                 </button>
               )
@@ -717,8 +714,8 @@ export default function CatalogoProductosPage() {
       tipo: 'texto',
       valorOrden: (p) => p.nombre_categoria ?? categorias.find((c) => String(c.id_categoria) === String(p.id_categoria))?.nombre ?? '',
       render: (p) => (
-        <span className="inline-flex items-center gap-1 text-sm text-fg-muted">
-          <Tag size={13} aria-hidden="true" />
+        <span className="inline-flex items-center gap-1.5 text-body-sm text-fg-muted">
+          <Tag size={16} strokeWidth={1.75} aria-hidden="true" />
           {p.nombre_categoria ?? categorias.find((c) => String(c.id_categoria) === String(p.id_categoria))?.nombre ?? 'Sin categoría'}
         </span>
       ),
@@ -732,7 +729,7 @@ export default function CatalogoProductosPage() {
         <div className="tipo-producto-tabla">
           <BadgeTipo esElaborado={p.es_elaborado} />
           {!p.es_elaborado && p.insumo_reventa && p.insumo_reventa !== p.nombre && (
-            <p className="mt-0.5 truncate text-xs text-fg-muted" title={p.insumo_reventa}>Insumo: {p.insumo_reventa}</p>
+            <p className="mt-0.5 truncate text-body-sm text-fg-muted" title={p.insumo_reventa}>Insumo: {p.insumo_reventa}</p>
           )}
         </div>
       ),
@@ -745,7 +742,7 @@ export default function CatalogoProductosPage() {
       alinear: 'right',
       valorOrden: (p) => p.precio_venta,
       render: (p) => (
-        <span className="font-mono font-bold whitespace-nowrap text-primary-text">
+        <span className="whitespace-nowrap font-medium tabular-nums text-fg">
           {formatoDinero(p.precio_venta)}
         </span>
       ),
@@ -757,7 +754,7 @@ export default function CatalogoProductosPage() {
       alinear: 'right',
       valorOrden: (p) => p.costo_teorico,
       render: (p) => (
-        <span className="font-mono whitespace-nowrap text-fg">
+        <span className="font-mono whitespace-nowrap tabular-nums text-fg-muted">
           {p.costo_teorico == null ? '—' : formatoDinero(p.costo_teorico)}
         </span>
       ),
@@ -770,7 +767,7 @@ export default function CatalogoProductosPage() {
       alinear: 'right',
       valorOrden: (p) => calcularMargen(p.precio_venta, p.costo_teorico),
       render: (p) => (
-        <span className="font-mono whitespace-nowrap text-fg">
+        <span className="whitespace-nowrap tabular-nums text-fg">
           {p.costo_teorico == null ? '—' : `${calcularMargen(p.precio_venta, p.costo_teorico)?.toFixed(1) ?? '—'}%`}
         </span>
       ),
@@ -816,16 +813,18 @@ export default function CatalogoProductosPage() {
       {errorCategorias && <BannerError error={errorCategorias} onReintentar={cargarDatos} />}
       {errorInsumos && <BannerError error={errorInsumos} onReintentar={cargarDatos} />}
 
-      {pendientesReceta.length > 0 && <div className="flex items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning-soft px-4 py-3 text-sm"><span>{pendientesReceta.length} productos elaborados aún no tienen receta y no se pueden vender</span><Button variante="ghost" onClick={() => setFiltroReceta('SIN_RECETA')}>Ver pendientes</Button></div>}
+      {pendientesReceta.length > 0 && <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-warning/30 bg-warning-soft px-4 py-3 text-body text-warning-text" role="status"><span className="inline-flex items-center gap-2"><AlertTriangle size={16} strokeWidth={1.75} aria-hidden="true" />{pendientesReceta.length} productos elaborados aún no tienen receta y no se pueden vender</span><Button variante="ghost" tamano="sm" onClick={() => setFiltroReceta('SIN_RECETA')}>Ver pendientes</Button></div>}
 
-      {/* Barra de Filtros y Controles */}
-        <div className="flex min-w-0 flex-wrap items-end gap-3">
+      {/* Catálogo: barra de herramientas + tabla/cuadrícula */}
+      <Card sinPadding icono={Tag} titulo="Productos" className="min-w-0"
+        descripcion={<span className="tabular-nums" aria-live="polite">{productosFiltrados.length} {productosFiltrados.length === 1 ? 'producto encontrado' : 'productos encontrados'}</span>}>
+        <div className="flex min-w-0 flex-wrap items-end gap-3 border-b border-line px-5 py-3">
         <div className="min-w-0 flex-[1_1_16rem]">
-          <label htmlFor="buscar-producto" className="mb-1 block text-sm font-medium text-fg">
+          <label htmlFor="buscar-producto" className="mb-1.5 block text-label text-fg">
             Buscar producto
           </label>
           <div className="relative">
-            <ICONOS.buscar size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" aria-hidden="true" />
+            <ICONOS.buscar size={16} strokeWidth={1.75} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden="true" />
             <input
               id="buscar-producto"
               type="search"
@@ -858,51 +857,50 @@ export default function CatalogoProductosPage() {
         </div>
 
         {/* Alternador de vista */}
-        <div className="flex items-center gap-1 rounded-lg border border-line bg-surface p-1">
+        <div className="flex items-center gap-0.5 rounded-md border border-line bg-muted p-0.5" role="group" aria-label="Tipo de vista">
           <button
             type="button"
-            className={`btn-ghost !p-2 min-h-8 rounded ${vista === 'tabla' ? 'bg-primary-soft text-primary-text' : 'text-fg-muted'}`}
+            aria-pressed={vista === 'tabla'}
+            className={`grid size-control-md place-items-center rounded-sm transition-colors ${vista === 'tabla' ? 'bg-surface text-fg shadow-xs' : 'text-fg-muted hover:text-fg'}`}
             title="Vista en tabla"
             onClick={() => setVista('tabla')}
             aria-label="Vista en tabla"
           >
-            <List size={18} aria-hidden="true" />
+            <List size={16} strokeWidth={1.75} aria-hidden="true" />
           </button>
           <button
             type="button"
-            className={`btn-ghost !p-2 min-h-8 rounded ${vista === 'cuadricula' ? 'bg-primary-soft text-primary-text' : 'text-fg-muted'}`}
+            aria-pressed={vista === 'cuadricula'}
+            className={`grid size-control-md place-items-center rounded-sm transition-colors ${vista === 'cuadricula' ? 'bg-surface text-fg shadow-xs' : 'text-fg-muted hover:text-fg'}`}
             title="Vista en cuadrícula"
             onClick={() => setVista('cuadricula')}
             aria-label="Vista en cuadrícula"
           >
-            <LayoutGrid size={18} aria-hidden="true" />
+            <LayoutGrid size={16} strokeWidth={1.75} aria-hidden="true" />
           </button>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-fg-muted" aria-live="polite">
-          {productosFiltrados.length} {productosFiltrados.length === 1 ? 'producto encontrado' : 'productos encontrados'}
-        </p>
+      <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3">
               <div className="flex min-w-0 flex-wrap items-center gap-3">
-          <div className="inline-flex rounded-lg border border-line bg-muted/30 p-0.5 text-xs font-medium" role="group" aria-label="Filtro por estado">
+          <div className="inline-flex rounded-md border border-line bg-muted p-0.5 text-label-sm" role="group" aria-label="Filtro por estado">
             <button
               type="button"
-              className={`rounded-md px-3 py-1.5 transition-colors ${filtroEstado === 'TODOS' ? 'bg-surface text-fg shadow-sm font-semibold' : 'text-fg-muted hover:text-fg'}`}
+              className={`h-7 rounded-sm px-3 transition-colors ${filtroEstado === 'TODOS' ? 'bg-surface text-fg shadow-xs' : 'text-fg-muted hover:text-fg'}`}
               onClick={() => { setFiltroEstado('TODOS'); setMostrarInactivos(true); }}
             >
               Todos
             </button>
             <button
               type="button"
-              className={`rounded-md px-3 py-1.5 transition-colors ${filtroEstado === 'ACTIVOS' ? 'bg-surface text-fg shadow-sm font-semibold' : 'text-fg-muted hover:text-fg'}`}
+              className={`h-7 rounded-sm px-3 transition-colors ${filtroEstado === 'ACTIVOS' ? 'bg-surface text-fg shadow-xs' : 'text-fg-muted hover:text-fg'}`}
               onClick={() => { setFiltroEstado('ACTIVOS'); setMostrarInactivos(false); }}
             >
               Activos
             </button>
             <button
               type="button"
-              className={`rounded-md px-3 py-1.5 transition-colors ${filtroEstado === 'INACTIVOS' ? 'bg-surface text-fg shadow-sm font-semibold' : 'text-fg-muted hover:text-fg'}`}
+              className={`h-7 rounded-sm px-3 transition-colors ${filtroEstado === 'INACTIVOS' ? 'bg-surface text-fg shadow-xs' : 'text-fg-muted hover:text-fg'}`}
               onClick={() => { setFiltroEstado('INACTIVOS'); setMostrarInactivos(true); }}
               title="Mostrar inactivos"
             >
@@ -911,13 +909,15 @@ export default function CatalogoProductosPage() {
           </div>
           <span className="sr-only">Mostrar inactivos</span>
         </div>
+        {(busqueda || filtroTipo !== 'TODOS' || filtroReceta !== 'TODOS' || filtroCategoria !== 'TODOS' || filtroEstado !== 'TODOS') && (
+          <Button variante="ghost" tamano="sm" className="ml-auto" onClick={() => { setBusqueda(''); setFiltroTipo('TODOS'); setFiltroReceta('TODOS'); setFiltroCategoria('TODOS'); setFiltroEstado('TODOS'); setMostrarInactivos(false); }}>Limpiar filtros</Button>
+        )}
       </div>
 
       {/* Renderizado de Catálogo */}
       {cargando ? (
         <CatalogoSkeleton />
       ) : productosFiltrados.length === 0 ? (
-        <Card>
           <EstadoVacio
             icono={Tag}
             titulo={productos.length === 0 ? 'Aún no hay productos' : 'No se encontraron productos'}
@@ -925,9 +925,7 @@ export default function CatalogoProductosPage() {
           >
             {productos.length === 0 ? 'Registra el primer producto elaborado o de reventa para comenzar.' : 'No hay productos que coincidan con los filtros de búsqueda o categoría seleccionados.'}
           </EstadoVacio>
-        </Card>
       ) : vista === 'tabla' ? (
-        <Card sinPadding>
           <Table
             columnas={columnas}
             filas={productosFiltrados}
@@ -938,28 +936,27 @@ export default function CatalogoProductosPage() {
             maxAltura=""
             className="catalogo-tabla"
           />
-        </Card>
       ) : (
         /* Vista Cuadrícula */
-        <div className="grid min-w-0 grid-cols-[repeat(auto-fill,minmax(min(100%,17rem),1fr))] gap-4">
+        <div className="grid min-w-0 grid-cols-[repeat(auto-fill,minmax(min(100%,17rem),1fr))] gap-4 p-5">
           {productosFiltrados.map((p) => {
             const nombreCat = p.nombre_categoria ?? categorias.find((c) => String(c.id_categoria) === String(p.id_categoria))?.nombre ?? 'Sin categoría';
             return (
               <div
                 key={p.id_producto}
-                className={`card flex min-w-0 flex-col overflow-hidden transition-shadow hover:shadow-md ${p.activo === false ? 'opacity-60 bg-muted/40' : ''}`}
+                className={`flex min-w-0 flex-col overflow-hidden rounded-lg border border-line bg-surface p-4 transition-colors hover:border-line-strong ${p.activo === false ? 'opacity-60' : ''}`}
               >
                 <div>
                   <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <h3 title={p.nombre} className="line-clamp-2 min-h-[2.7em] break-words font-semibold text-fg text-base leading-snug">{p.nombre}</h3>
+                      <h3 title={p.nombre} className="line-clamp-2 min-h-[2.7em] break-words text-label text-fg">{p.nombre}</h3>
                       {p.es_elaborado && (
                         Number(p.n_ingredientes) === 0 ? (
                           <span
                             title="No se puede vender hasta que tenga al menos un ingrediente"
-                            className="mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold bg-warning-soft text-warning"
+                            className="mt-1 inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 text-label-sm text-warning-text"
                           >
-                            <AlertTriangle size={11} aria-hidden="true" />
+                            <AlertTriangle size={12} strokeWidth={1.75} aria-hidden="true" />
                             Sin receta
                           </span>
                         ) : (
@@ -970,26 +967,26 @@ export default function CatalogoProductosPage() {
                               setProductoPrevisualizar(p);
                             }}
                             title="Clic para previsualizar ingredientes de la receta"
-                            className="mt-1 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-success-soft text-success hover:bg-success/20 transition-colors cursor-pointer border border-success/30 shadow-xs"
+                            className="mt-1 inline-flex cursor-pointer items-center gap-1 rounded-full bg-success-soft px-2.5 py-0.5 text-label-sm text-success-text transition-colors hover:bg-success/20"
                           >
-                            <ChefHat size={12} aria-hidden="true" />
+                            <ChefHat size={12} strokeWidth={1.75} aria-hidden="true" />
                             <span>{formatearUnidades(p.n_ingredientes)} ingredientes</span>
                           </button>
                         )
                       )}
                       {p.codigo_barra && (
-                        <p className="font-mono text-xs text-fg-muted mt-0.5">{p.codigo_barra}</p>
+                        <p className="mt-0.5 font-mono text-body-sm text-fg-muted">{p.codigo_barra}</p>
                       )}
                     </div>
                     <div className="shrink-0"><BadgeTipo esElaborado={p.es_elaborado} /></div>
                   </div>
 
                   <div className="mt-4 flex min-w-0 flex-wrap items-center justify-between gap-2">
-                    <span title={nombreCat} className="inline-flex min-w-0 max-w-full items-center gap-1.5 truncate text-xs font-medium text-fg-muted bg-muted px-2.5 py-1 rounded-md">
-                      <Tag size={12} aria-hidden="true" />
+                    <span title={nombreCat} className="inline-flex min-w-0 max-w-full items-center gap-1.5 truncate rounded-full bg-muted px-2.5 py-0.5 text-label-sm text-fg-muted">
+                      <Tag size={12} strokeWidth={1.75} aria-hidden="true" />
                       {nombreCat}
                     </span>
-                    <span className="shrink-0 whitespace-nowrap text-xl font-bold font-mono tabular-nums text-primary-text">
+                    <span className="shrink-0 whitespace-nowrap text-h3 tabular-nums text-fg">
                       {formatoDinero(p.precio_venta)}
                     </span>
                   </div>
@@ -1007,6 +1004,7 @@ export default function CatalogoProductosPage() {
           })}
         </div>
       )}
+      </Card>
 
       {/* Drawer Crear / Editar Producto */}
       {drawerAbierto &&
@@ -1014,7 +1012,7 @@ export default function CatalogoProductosPage() {
           <>
             {/* Backdrop con cobertura 100% de pantalla (w-screen, h-dvh) y oscurecimiento uniforme sin desfase */}
             <div
-              className="fixed inset-0 w-screen h-dvh z-40 bg-espresso-950/60 backdrop-blur-[2px] transition-opacity"
+              className="anim-scrim fixed inset-0 w-screen h-dvh z-40 bg-overlay"
               onClick={cerrarDrawer}
               aria-hidden="true"
             />
@@ -1024,15 +1022,15 @@ export default function CatalogoProductosPage() {
               role="dialog"
               aria-modal="true"
               aria-label={productoEditando ? 'Editar Producto' : 'Nuevo Producto'}
-              className="fixed right-0 top-0 bottom-0 h-dvh w-full max-w-lg bg-surface shadow-2xl z-50 flex flex-col border-l border-line"
+              className="fixed right-0 top-0 bottom-0 h-dvh w-full max-w-lg bg-surface shadow-lg z-50 flex flex-col border-l border-line"
             >
               {/* Cabecera fija */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-line bg-surface shrink-0">
+              <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line bg-surface px-6 pb-4 pt-6">
                 <div>
-                  <h2 className="text-lg font-semibold text-fg">
+                  <h2 className="text-h3 text-fg">
                     {productoEditando ? 'Editar Producto' : 'Nuevo Producto'}
                   </h2>
-                  <p className="text-xs text-fg-muted mt-0.5">
+                  <p className="mt-1 text-body text-fg-muted">
                     {productoEditando
                       ? 'Modifica los datos comerciales y de inventario del producto'
                       : 'Registra un nuevo producto para venta en catálogo y POS'}
@@ -1049,13 +1047,13 @@ export default function CatalogoProductosPage() {
               >
                 <SelectorTipoProducto form={form} setForm={setForm} />
                 <div>
-                  <label htmlFor="producto-nombre" className="mb-1 block text-sm font-medium text-fg">
-                    Nombre del Producto <span className="text-danger ml-0.5 font-semibold">*</span>
+                  <label htmlFor="producto-nombre" className="mb-1.5 block text-label text-fg">
+                    Nombre del Producto <span className="text-danger-text">*</span>
                   </label>
                   <input
                     id="producto-nombre"
                     type="text"
-                    className="input font-mono"
+                    className="input"
                     placeholder="Ej. Latte Grande, Croissant de Mantequilla"
                     maxLength={150}
                     required
@@ -1078,7 +1076,7 @@ export default function CatalogoProductosPage() {
                 />
 
                 <div>
-                  <label htmlFor="producto-codigo-barra" className="mb-1 block text-sm font-medium text-fg">
+                  <label htmlFor="producto-codigo-barra" className="mb-1.5 block text-label text-fg">
                     Código de barras o SKU
                   </label>
                   <input
@@ -1094,34 +1092,34 @@ export default function CatalogoProductosPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="producto-precio-venta" className="mb-1 block text-sm font-medium text-fg">
-                    Precio de venta al público (incluye IVA 13%) <span className="text-danger ml-0.5 font-semibold">*</span>
+                  <label htmlFor="producto-precio-venta" className="mb-1.5 block text-label text-fg">
+                    Precio de venta al público (incluye IVA 13%) <span className="text-danger-text">*</span>
                   </label>
                   <div className="relative">
-                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-bold text-fg-muted">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted">
                       $
                     </span>
                     <input
                       id="producto-precio-venta"
                       {...propsMascara('monto')}
-                      className="input pl-7 font-mono font-medium"
+                      className="input pl-7 text-right tabular-nums"
                       required
                       value={form.precio_venta}
                       onChange={(e) => setForm((f) => ({ ...f, precio_venta: aplicarMascara('monto', e.target.value) }))}
                       onBlur={() => setForm((f) => ({ ...f, precio_venta: completarDecimales(f.precio_venta) }))}
                     />
                   </div>
-                  <p className="mt-1 text-xs text-fg-muted">
+                  <p className="mt-1 text-body-sm text-fg-muted">
                     Conforme a la normativa tributaria de El Salvador, el precio ya incorpora el débito fiscal.
                   </p>
                 </div>
 
-                {!form.es_elaborado && <div className="rounded-xl border border-line bg-surface p-4 space-y-2">
+                {!form.es_elaborado && <div className="space-y-3 border-t border-line pt-4">
                   <Select etiqueta="Insumo de reventa" requerido opciones={opcionesInsumosReventa} value={String(form.id_insumo_reventa)} onChange={(e) => setForm((f) => ({ ...f, id_insumo_reventa: e.target.value }))} placeholder="Selecciona un insumo de reventa…" buscable />
                   {tiene('INV_GESTIONAR_INSUMOS') && <Button type="button" variante="ghost" icono={Plus} onClick={() => { setValoresInsumo({ tipo_insumo: 'REVENTA', id_unidad_base: String(unidades.find((u) => u.codigo === 'UND')?.id_unidad ?? '') }); setDrawerInsumoAbierto(true); }}>Crear insumo de reventa</Button>}
-                  {insumoReventaSeleccionado && <p className="text-xs text-fg-muted">Unidad: {insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad ?? 'UND'}{String(insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad ?? 'UND').toUpperCase() !== 'UND' && <span className="ml-1 text-warning">Cada venta descontará 1 {insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad}</span>}</p>}
+                  {insumoReventaSeleccionado && <p className="text-body-sm text-fg-muted">Unidad: {insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad ?? 'UND'}{String(insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad ?? 'UND').toUpperCase() !== 'UND' && <span className="ml-1 text-warning-text">Cada venta descontará 1 {insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad}</span>}</p>}
                 </div>}
-                <div className="flex items-center gap-3 pt-1">
+                <div className="flex items-center gap-3 border-t border-line pt-4">
                   <input
                     id="producto-activo"
                     type="checkbox"
@@ -1129,14 +1127,14 @@ export default function CatalogoProductosPage() {
                     onChange={(e) => setForm((f) => ({ ...f, activo: e.target.checked }))}
                     className="h-4 w-4 rounded border-line accent-primary"
                   />
-                  <label htmlFor="producto-activo" className="text-sm text-fg select-none">
+                  <label htmlFor="producto-activo" className="select-none text-body text-fg">
                     Producto activo para venta en POS y catálogos
                   </label>
                 </div>
               </form>
 
               {/* Pie de acciones fijo */}
-              <div className="sticky bottom-0 border-t border-line bg-surface px-6 py-4 flex items-center justify-end gap-3 shrink-0">
+              <div className="sticky bottom-0 flex shrink-0 flex-col-reverse gap-2 border-t border-line bg-surface px-6 py-4 sm:flex-row sm:justify-end">
                 <Button variante="ghost" onClick={cerrarDrawer} disabled={guardando}>
                   Cancelar
                 </Button>

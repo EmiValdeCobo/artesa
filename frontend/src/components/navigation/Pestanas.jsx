@@ -24,10 +24,10 @@ export default function Pestanas({ pestanas, activa, onCambiar, etiqueta, classN
         return (
           <button key={clave} ref={(el) => { refs.current[clave] = el; }} type="button" role="tab" id={`tab-${clave}`} aria-selected={seleccionada} aria-controls={`panel-${clave}`}
             tabIndex={seleccionada ? 0 : -1} onClick={() => onCambiar(clave)} onKeyDown={(evento) => alPresionar(evento, indice)}
-            className={`-mb-px flex min-h-11 items-center gap-2 border-b-2 px-4 text-sm font-semibold transition-colors ${seleccionada ? 'border-primary text-primary-text' : 'border-transparent text-fg-muted hover:text-fg'}`}>
-            {Icono && <Icono size={16} aria-hidden="true" />}
+            className={`-mb-px flex min-h-control-lg items-center gap-2 border-b-2 px-3 text-label font-semibold transition-colors ${seleccionada ? "border-primary text-fg" : "border-transparent text-fg-muted hover:border-line-strong hover:text-fg"}`}>
+            {Icono && <Icono size={16} strokeWidth={1.75} aria-hidden="true" />}
             {texto}
-            {total !== undefined && <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-fg-muted">{total}</span>}
+            {total !== undefined && <span className="rounded-full bg-muted px-2 py-0.5 text-label-sm tabular-nums text-fg-muted">{total}</span>}
           </button>
         );
       })}

@@ -28,11 +28,22 @@ export default function JsonDiffViewer({ antes, despues }) {
     return { clave, valorAntes, valorDespues, tipo: !existeAntes ? 'añadido' : !existeDespues ? 'eliminado' : 'modificado' };
   }).filter(Boolean);
 
-  if (!cambios.length) return <p className="rounded-lg bg-muted p-4 text-sm text-fg-muted">Este evento no tiene diferencias de datos.</p>;
-  return <div className="space-y-2" aria-label="Diferencias entre los datos anteriores y posteriores">
-    {cambios.map((cambio) => <article key={cambio.clave} className={`overflow-hidden rounded-lg border ${cambio.tipo === 'añadido' ? 'border-success/30' : cambio.tipo === 'eliminado' ? 'border-danger/30' : 'border-warning/30'}`}>
-      <header className={`flex items-center justify-between gap-3 px-3 py-2 text-xs font-semibold ${cambio.tipo === 'añadido' ? 'bg-success-soft text-success' : cambio.tipo === 'eliminado' ? 'bg-danger-soft text-danger' : 'bg-warning-soft text-warning'}`}><code className="break-all">{cambio.clave}</code><span className="shrink-0 capitalize">{cambio.tipo}</span></header>
-      <div className="grid gap-px bg-line sm:grid-cols-2"><div className="min-w-0 bg-surface p-3"><p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-fg-muted">Antes</p><pre className="max-h-40 overflow-auto whitespace-pre-wrap break-words text-xs text-fg-muted">{mostrar(cambio.valorAntes)}</pre></div><div className="min-w-0 bg-surface p-3"><p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-fg-muted">Después</p><pre className="max-h-40 overflow-auto whitespace-pre-wrap break-words text-xs">{mostrar(cambio.valorDespues)}</pre></div></div>
+  if (!cambios.length) return <p className="rounded-md bg-muted px-4 py-3 text-body text-fg-muted">Este evento no tiene diferencias de datos.</p>;
+  // Diff de texto: por clave, línea quitada (−) en danger-soft y línea añadida (+) en success-soft.
+  const Linea = ({ signo, valor, clase }) => (
+    <div className={`flex gap-3 px-3 py-0.5 ${clase}`}>
+      <span aria-hidden="true" className="w-3 shrink-0 select-none">{signo}</span>
+      <pre className="min-w-0 flex-1 whitespace-pre-wrap break-words">{mostrar(valor)}</pre>
+    </div>
+  );
+  return <div className="overflow-hidden rounded-md border border-line font-mono text-body-sm" aria-label="Diferencias entre los datos anteriores y posteriores">
+    {cambios.map((cambio) => <article key={cambio.clave} className="border-b border-line last:border-b-0">
+      <header className="flex items-center justify-between gap-3 bg-muted px-3 py-1.5 text-fg"><code className="break-all">{cambio.clave}</code><span className="shrink-0 font-sans text-label-sm capitalize text-fg-muted">{cambio.tipo}</span></header>
+      <div aria-hidden="true" className="max-h-48 overflow-auto py-1">
+        {cambio.tipo !== 'añadido' && <Linea signo="−" valor={cambio.valorAntes} clase="bg-danger-soft text-danger-text" />}
+        {cambio.tipo !== 'eliminado' && <Linea signo="+" valor={cambio.valorDespues} clase="bg-success-soft text-success-text" />}
+      </div>
+      <p className="sr-only">{cambio.tipo === 'añadido' ? `Añadido: ${mostrar(cambio.valorDespues)}` : cambio.tipo === 'eliminado' ? `Eliminado: ${mostrar(cambio.valorAntes)}` : `Antes: ${mostrar(cambio.valorAntes)}. Después: ${mostrar(cambio.valorDespues)}.`}</p>
     </article>)}
   </div>;
 }

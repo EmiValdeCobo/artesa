@@ -1,13 +1,13 @@
 import { forwardRef } from 'react';
-import { Loader2 } from 'lucide-react';
+import { PuntosCarga } from '../feedback/Skeleton.jsx';
 
-// Botón de acción de fila solo con icono (patrón del módulo de Usuarios): mismo tamaño, padding y
-// tonos en todas las tablas. `etiqueta` es obligatoria: se usa como aria-label y como tooltip.
+// Botón de acción de fila solo con icono: mismo tamaño y tonos en todas las tablas.
+// 40 px en pantallas táctiles, 32 px desde 768 px. `etiqueta` es obligatoria (aria-label y tooltip).
 //   tono: neutro · aviso · exito · peligro
 const TONOS = {
-  neutro: 'btn-ghost',
-  aviso: 'btn-ghost text-warning',
-  exito: 'btn-ghost text-success',
+  neutro: 'btn-ghost text-fg-muted hover:text-fg',
+  aviso: 'btn-ghost text-warning-text',
+  exito: 'btn-ghost text-success-text',
   peligro: 'btn-danger-outline',
 };
 
@@ -19,14 +19,14 @@ const BotonIcono = forwardRef(function BotonIcono(
     <button
       ref={ref}
       type={type}
-      className={`${TONOS[tono] || TONOS.neutro} !p-2 ${className}`.trim()}
+      className={`${TONOS[tono] || TONOS.neutro} size-control-md !p-0 md:size-control-sm ${className}`.trim()}
       aria-label={etiqueta}
       title={titulo ?? etiqueta}
       disabled={disabled || cargando}
       aria-busy={cargando || undefined}
       {...resto}
     >
-      {cargando ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Icono size={16} aria-hidden="true" />}
+      {cargando ? <PuntosCarga className="scale-75" /> : <Icono size={16} strokeWidth={1.75} aria-hidden="true" />}
     </button>
   );
 });

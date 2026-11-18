@@ -21,10 +21,10 @@ const AlertContext = createContext(null);
 
 const VISUAL = {
   pregunta: { Icono: CircleHelp, color: 'text-primary-text', fondo: 'bg-primary-soft' },
-  informacion: { Icono: Info, color: 'text-info', fondo: 'bg-info-soft' },
-  exito: { Icono: CircleCheck, color: 'text-success', fondo: 'bg-success-soft' },
-  advertencia: { Icono: TriangleAlert, color: 'text-warning', fondo: 'bg-warning-soft' },
-  error: { Icono: CircleAlert, color: 'text-danger', fondo: 'bg-danger-soft' },
+  informacion: { Icono: Info, color: 'text-info-text', fondo: 'bg-info-soft' },
+  exito: { Icono: CircleCheck, color: 'text-success-text', fondo: 'bg-success-soft' },
+  advertencia: { Icono: TriangleAlert, color: 'text-warning-text', fondo: 'bg-warning-soft' },
+  error: { Icono: CircleAlert, color: 'text-danger-text', fondo: 'bg-danger-soft' },
 };
 VISUAL.confirmacion = VISUAL.pregunta;
 
@@ -63,15 +63,15 @@ function AlertDialog({ dialogo, cerrar }) {
     >
       <form className="p-5 sm:p-6" onSubmit={(evento) => { evento.preventDefault(); aceptar(); }}>
         <div className="flex items-start gap-4">
-          <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${visual.fondo} ${visual.color}`}><Icono size={22} aria-hidden="true" /></span>
+          <span className={`grid size-control-md shrink-0 place-items-center rounded-md ${visual.fondo} ${visual.color}`}><Icono size={20} strokeWidth={1.75} aria-hidden="true" /></span>
           <div className="min-w-0 flex-1 pt-0.5">
-            <h2 id={tituloId} className="text-lg font-semibold leading-snug">{titulo}</h2>
-            {mensaje && <p id={mensajeId} className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-fg-muted">{mensaje}</p>}
+            <h2 id={tituloId} className="text-h3">{titulo}</h2>
+            {mensaje && <p id={mensajeId} className="mt-1 whitespace-pre-line text-body text-fg-muted">{mensaje}</p>}
           </div>
         </div>
 
         {accion && (
-          <div className="mt-4 flex items-start gap-3 rounded-lg bg-muted px-3.5 py-3 text-sm leading-relaxed">
+          <div className="mt-4 flex items-start gap-3 rounded-md bg-muted px-3.5 py-3 text-body">
             <Lightbulb size={17} aria-hidden="true" className="mt-0.5 shrink-0 text-secondary-text" />
             <p><span className="font-semibold">Qué puedes hacer: </span>{accion}</p>
           </div>
@@ -84,18 +84,18 @@ function AlertDialog({ dialogo, cerrar }) {
         <div className="mt-6 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
           {pregunta && (
             <>
-              <button ref={cancelarRef} type="button" className="btn-ghost min-h-11 sm:min-h-10" onClick={cancelar}>{etiquetaCancelar || 'Cancelar'}</button>
-              <button ref={principalRef} type="submit" className={`${destructivo ? 'btn-danger' : 'btn-primary'} min-h-11 sm:min-h-10`}>{etiquetaAceptar || 'Aceptar'}</button>
+              <button ref={cancelarRef} type="button" className="btn-ghost" onClick={cancelar}>{etiquetaCancelar || 'Cancelar'}</button>
+              <button ref={principalRef} type="submit" className={`${destructivo ? 'btn-danger' : 'btn-primary'}`}>{etiquetaAceptar || 'Aceptar'}</button>
             </>
           )}
           {modo === 'error' && (
             <>
-              {soporte && <a href={soporte} className="btn-ghost min-h-11 sm:min-h-10"><LifeBuoy size={16} aria-hidden="true" /> Contactar a soporte</a>}
-              <button ref={puedeReintentar ? undefined : principalRef} type="button" className="btn-ghost min-h-11 sm:min-h-10" onClick={() => cerrar(id, false)}>Cerrar</button>
-              {puedeReintentar && <button ref={principalRef} type="button" className="btn-primary min-h-11 sm:min-h-10" onClick={() => cerrar(id, 'reintentar')}>Reintentar</button>}
+              {soporte && <a href={soporte} className="btn-ghost"><LifeBuoy size={16} aria-hidden="true" /> Contactar a soporte</a>}
+              <button ref={puedeReintentar ? undefined : principalRef} type="button" className="btn-ghost" onClick={() => cerrar(id, false)}>Cerrar</button>
+              {puedeReintentar && <button ref={principalRef} type="button" className="btn-primary" onClick={() => cerrar(id, 'reintentar')}>Reintentar</button>}
             </>
           )}
-          {modo === 'aviso' && <button ref={principalRef} type="button" className="btn-primary min-h-11 sm:min-h-10" onClick={() => cerrar(id, true)}>{etiquetaAceptar || 'Entendido'}</button>}
+          {modo === 'aviso' && <button ref={principalRef} type="button" className="btn-primary" onClick={() => cerrar(id, true)}>{etiquetaAceptar || 'Entendido'}</button>}
         </div>
       </form>
     </Dialogo>

@@ -266,7 +266,7 @@ export default function Carrito({
   };
 
   return (
-    <aside id="pedido-actual" className="card flex h-auto flex-col gap-4 scroll-mt-20 p-5" aria-label="Pedido actual">
+    <aside id="pedido-actual" className="flex h-auto flex-col gap-4 scroll-mt-20 rounded-lg border border-line bg-surface p-4 shadow-xs" aria-label="Pedido actual">
       <header className="shrink-0">
         <h2 className="font-semibold text-sm sm:text-base">Pedido actual</h2>
         <p className="text-xs text-fg-muted">{unidades} {unidades === 1 ? 'producto' : 'productos'}</p>
@@ -291,7 +291,7 @@ export default function Carrito({
               <button
                 type="button"
                 onClick={() => onSeleccionarCliente && onSeleccionarCliente(null)}
-                className="inline-flex items-center gap-1 text-[11px] text-danger hover:underline"
+                className="inline-flex items-center gap-1 text-label-sm text-danger hover:underline"
               >
                 <X size={12} /> Quitar
               </button>
@@ -301,7 +301,7 @@ export default function Carrito({
                   <button
                     type="button"
                     onClick={abrirModalNuevoCliente}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary-text hover:underline"
+                    className="inline-flex items-center gap-1 text-label-sm font-semibold text-primary-text hover:underline"
                   >
                     <UserPlus size={12} /> Nuevo
                   </button>
@@ -309,7 +309,7 @@ export default function Carrito({
                 <button
                   type="button"
                   onClick={() => setBuscandoCliente((prev) => !prev)}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-fg-muted hover:text-fg hover:underline"
+                  className="inline-flex items-center gap-1 text-label-sm font-semibold text-fg-muted hover:text-fg hover:underline"
                 >
                   <Search size={12} /> {buscandoCliente ? 'Cerrar' : 'Buscar'}
                 </button>
@@ -324,7 +324,7 @@ export default function Carrito({
                   {clienteSeleccionado.nrc ? <Building2 size={13} className="shrink-0 text-primary-text" /> : <Sparkles size={13} className="shrink-0 text-primary-text" />}
                   {clienteSeleccionado.nombre_razon_social}
                 </p>
-                <p className="text-[11px] text-fg-muted">
+                <p className="text-label-sm text-fg-muted">
                   {clienteSeleccionado.nrc
                     ? `NRC: ${clienteSeleccionado.nrc} · ${clienteSeleccionado.giro_economico}`
                     : clienteSeleccionado.num_documento
@@ -332,7 +332,7 @@ export default function Carrito({
                       : 'Cliente frecuente / afiliado'}
                 </p>
                 {esCCF && !clienteValidoParaCCF && (
-                  <p className="mt-1 text-[11px] font-medium text-danger">
+                  <p className="mt-1 text-label-sm font-medium text-danger">
                     Este cliente no posee NRC ni giro económico para emitir CCF.
                   </p>
                 )}
@@ -340,13 +340,13 @@ export default function Carrito({
               <button
                 type="button"
                 onClick={() => setBuscandoCliente(true)}
-                className="shrink-0 text-[11px] font-medium text-primary-text hover:underline"
+                className="shrink-0 text-label-sm font-medium text-primary-text hover:underline"
               >
                 Cambiar
               </button>
             </div>
           ) : (
-            <p className="mt-1 text-[11px] text-fg-muted">
+            <p className="mt-1 text-label-sm text-fg-muted">
               {esCCF
                 ? 'Selecciona o registra un cliente con NRC y giro.'
                 : 'Sin afiliar: se emitirá como Consumidor Final.'}
@@ -367,17 +367,17 @@ export default function Carrito({
               </div>
               <div className="max-h-28 divide-y divide-line overflow-y-auto rounded-md border border-line bg-surface sm:max-h-36">
                 {cargandoClientes ? (
-                  <p className="p-2 text-center text-[11px] text-fg-muted">Buscando clientes...</p>
+                  <p className="p-2 text-center text-label-sm text-fg-muted">Buscando clientes...</p>
                 ) : resultadosCliente.length === 0 ? (
                   <div className="space-y-1.5 p-2.5 text-center">
-                    <p className="text-[11px] text-fg-muted">
+                    <p className="text-label-sm text-fg-muted">
                       No se encontraron clientes registrados.
                     </p>
                     {puedeCrearClientes && (
                       <button
                         type="button"
                         onClick={abrirModalNuevoCliente}
-                        className="inline-flex items-center gap-1 rounded-md bg-primary-soft px-2.5 py-1 text-[11px] font-semibold text-primary-text hover:opacity-90"
+                        className="inline-flex items-center gap-1 rounded-md bg-primary-soft px-2.5 py-1 text-label-sm font-semibold text-primary-text hover:opacity-90"
                       >
                         <UserPlus size={12} /> Registrar y afiliar ahora
                       </button>
@@ -393,7 +393,7 @@ export default function Carrito({
                     >
                       <div className="min-w-0">
                         <p className="truncate font-medium text-fg">{c.nombre_razon_social}</p>
-                        <p className="truncate text-[10px] text-fg-muted">
+                        <p className="truncate text-label-sm text-fg-muted">
                           {c.nrc ? `NRC: ${c.nrc}` : c.num_documento ? `${c.tipo_documento}: ${c.num_documento}` : 'Cliente afiliado'}
                         </p>
                       </div>
@@ -407,7 +407,7 @@ export default function Carrito({
         </div>
       </header>
 
-      <div className="overflow-hidden rounded-xl border border-line bg-muted/40">
+      <div className="overflow-hidden rounded-md border border-line bg-surface">
         <div className="scroll-fino min-h-[210px] max-h-[340px] overflow-y-auto px-3 [scrollbar-gutter:stable] lg:max-h-[380px]">
           {items.length === 0 ? (
             <div className="flex min-h-[210px] flex-col items-center justify-center gap-2 text-center text-sm text-fg-muted">
@@ -417,21 +417,21 @@ export default function Carrito({
           ) : (
             <ul className="divide-y divide-line">
               {items.map((i) => (
-                <li key={i.id_producto} className="flex items-center justify-between gap-2 py-3">
+                <li key={i.id_producto} className="flex items-center justify-between gap-2 py-2.5">
                   <div className="min-w-0 flex-1 pr-2">
-                    <p className="line-clamp-2 text-sm font-medium leading-snug text-fg">{i.nombre}</p>
-                    <p className="text-xs leading-snug text-fg-muted">{formatoMoneda(i.precio)} c/u</p>
+                    <p className="line-clamp-2 text-label text-fg">{i.nombre}</p>
+                    <p className="text-label-sm tabular-nums text-fg-muted">{formatoMoneda(i.precio)} c/u</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <div className="flex items-center gap-1">
-                      <BotonIcono icono={Minus} className="h-8 w-8 justify-center sm:h-9 sm:w-9" etiqueta={`Quitar una unidad de ${i.nombre}`}
+                      <BotonIcono icono={Minus} className="size-control-sm justify-center" etiqueta={`Quitar una unidad de ${i.nombre}`}
                         onClick={() => dispatch({ tipo: 'cambiarCantidad', id: i.id_producto, cantidad: i.cantidad - 1 })} />
                       <span className="w-6 text-center text-sm font-semibold tabular-nums" aria-live="polite">{i.cantidad}</span>
-                      <BotonIcono icono={Plus} className="h-8 w-8 justify-center sm:h-9 sm:w-9" etiqueta={`Agregar una unidad de ${i.nombre}`} disabled={i.cantidad >= i.stock}
+                      <BotonIcono icono={Plus} className="size-control-sm justify-center" etiqueta={`Agregar una unidad de ${i.nombre}`} disabled={i.cantidad >= i.stock}
                         onClick={() => dispatch({ tipo: 'cambiarCantidad', id: i.id_producto, cantidad: i.cantidad + 1 })} />
                     </div>
                     <p className="w-16 text-right text-sm font-semibold tabular-nums">{formatoMoneda(i.precio * i.cantidad)}</p>
-                    <BotonIcono icono={ICONOS.eliminar} tono="peligro" className="h-8 w-8 justify-center sm:h-9 sm:w-9" etiqueta={`Eliminar ${i.nombre}`}
+                    <BotonIcono icono={ICONOS.eliminar} tono="peligro" className="size-control-sm justify-center" etiqueta={`Eliminar ${i.nombre}`}
                       onClick={() => dispatch({ tipo: 'quitar', id: i.id_producto })} />
                   </div>
                 </li>
@@ -441,16 +441,14 @@ export default function Carrito({
         </div>
       </div>
 
-      <footer className="shrink-0 border-t border-line pt-2">
-        <dl className="space-y-1 text-xs sm:text-sm">
+      <footer className="shrink-0 border-t border-line pt-3">
+        <dl className="space-y-1 text-body-sm tabular-nums">
           <div className="flex justify-between"><dt className="text-fg-muted">Subtotal</dt><dd>{formatoMoneda(subtotal)}</dd></div>
           <div className="flex justify-between"><dt className="text-fg-muted">IVA ({IVA * 100}%)</dt><dd>{formatoMoneda(iva)}</dd></div>
-          <div className="flex justify-between border-t border-line pt-1.5 text-base font-bold sm:pt-2 sm:text-lg"><dt>Total</dt><dd>{formatoMoneda(total)}</dd></div>
+          <div className="flex items-end justify-between border-t border-line pt-2"><dt className="text-label text-fg">Total</dt><dd className="text-kpi text-fg">{formatoMoneda(total)}</dd></div>
         </dl>
-        <div className="mt-3 grid grid-cols-[auto_1fr] gap-2 sm:mt-4">
-          <Button variante="ghost" disabled={!items.length} onClick={() => dispatch({ tipo: 'vaciar' })}>Vaciar</Button>
-          <Button disabled={!items.length || bloqueoPorCCF} onClick={onCobrar}>Cobrar {formatoMoneda(total)}</Button>
-        </div>
+        <Button tamano="lg" className="mt-3 w-full" disabled={!items.length || bloqueoPorCCF} onClick={onCobrar}>Cobrar {formatoMoneda(total)}</Button>
+        <Button variante="ghost" tamano="sm" className="mt-2 w-full !border-transparent" disabled={!items.length} onClick={() => dispatch({ tipo: 'vaciar' })}>Vaciar pedido</Button>
       </footer>
 
       {/* Modal rápido de registro y afiliación de cliente */}
@@ -522,7 +520,7 @@ export default function Carrito({
                 />
               </div>
 
-              <div className="rounded-xl border border-line bg-muted/40 p-4 text-center sm:col-span-2">
+              <div className="rounded-md border border-line bg-muted p-4 text-center sm:col-span-2">
                 <p className="mb-3 text-xs font-semibold text-primary-text">
                   Datos fiscales para Crédito Fiscal (CCF) {esCCF ? '— Obligatorios para este comprobante' : '— Opcional'}
                 </p>
@@ -540,7 +538,7 @@ export default function Carrito({
                       placeholder="123456-7"
                       className="input h-10 w-full text-center font-mono"
                     />
-                    <span className="mt-1 text-[11px] text-fg-muted">2 a 8 dígitos + guion + dígito</span>
+                    <span className="mt-1 text-label-sm text-fg-muted">2 a 8 dígitos + guion + dígito</span>
                   </div>
 
                   <div className="flex flex-col items-center">
@@ -556,7 +554,7 @@ export default function Carrito({
                       placeholder="Ej. Servicios de alimentación"
                       className="input h-10 w-full text-center"
                     />
-                    <span className="mt-1 text-[11px] text-fg-muted">Actividad registrada en MH</span>
+                    <span className="mt-1 text-label-sm text-fg-muted">Actividad registrada en MH</span>
                   </div>
                 </div>
               </div>

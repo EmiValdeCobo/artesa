@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import FilaIndicadores from './components/FilaIndicadores.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import AlertasPanel from './paneles/AlertasPanel.jsx';
 import TopProductosPanel from './paneles/TopProductosPanel.jsx';
@@ -13,7 +14,7 @@ import { Select } from '../../components/ui/index.js';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 
 
-/* Inicio. Rejilla de 12 columnas: cada bloque es un objeto en PANELES con los permisos que lo habilitan.
+/* Inicio. Indicadores (derivados de los bloques) + rejilla de 12 columnas: cada bloque es un objeto en PANELES con los permisos que lo habilitan.
    Para sumar una gráfica nueva basta otro objeto con su componente; si el usuario no tiene ninguno de sus
    permisos, el bloque ni se pide ni se pinta (y el servidor igual respondería 403). */
 const PANELES = [
@@ -35,6 +36,11 @@ export default function DashboardPage() {
   const visibles = PANELES.filter((p) => p.permisos.some(tiene));
   const ancho = anchos(visibles.map((p) => p.id));
   const sinVentas = !visibles.some((p) => p.id === 'ventas');
+  const conAlertas = visibles.some((p) => p.id === 'alertas');
+  // Lo que los bloques ya cargaron, para la fila de indicadores (sin peticiones extra).
+  const [resumenVentas, setResumenVentas] = useState(null);
+  const [resumenAlertas, setResumenAlertas] = useState(null);
+  const avisos = { ventas: setResumenVentas, alertas: setResumenAlertas };
   const sucursales = useMemo(() => {
     if (!Array.isArray(usuario?.sucursales) || usuario.sucursales.length === 0) return [];
     return usuario.sucursales
@@ -68,13 +74,13 @@ export default function DashboardPage() {
           <label
             htmlFor="selector-sucursal-dashboard"
             id="sucursales-label"
-            className="mb-1.5 block text-sm font-medium text-fg"
+            className="mb-1.5 block text-label text-fg"
           >
             Sucursal
           </label>
           {sucursales.length > 0 ? (
             <div className="relative w-full max-w-xs">
-              <ICONOS.sucursal aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 size-4 text-(--ocre-decorativo)" />
+              <ICONOS.sucursal aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 size-4 text-fg-muted" />
               <Select
                 id="selector-sucursal-dashboard"
                 aria-label="Seleccionar sucursal"
@@ -86,14 +92,15 @@ export default function DashboardPage() {
               />
             </div>
           ) : (
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-line bg-canvas px-3 py-1 text-sm font-semibold text-fg-muted">
-              <ICONOS.sucursal aria-hidden="true" className="size-3.5 text-(--ocre-decorativo)" />
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-line bg-canvas px-3 py-1 text-label text-fg-muted">
+              <ICONOS.sucursal aria-hidden="true" className="size-3.5 text-fg-muted" />
               Sin sucursal asignada
             </div>
           )}
         </div>
         )}
       />
+      <FilaIndicadores ventas={resumenVentas} alertas={resumenAlertas} conVentas={!sinVentas} conAlertas={conAlertas} />
       <div className="grid grid-cols-12 gap-4" data-zona="graficas">
         {visibles.length ? (
           visibles.map(({ id, Componente }, i) => (
@@ -103,10 +110,11 @@ export default function DashboardPage() {
               cols={ancho[id]}
               titulo={sinVentas ? 'Notificaciones de tu área' : 'Alertas'}
               sucursal={idSucursalFiltro}
+              onResumen={avisos[id]}
             />
           ))
         ) : (
-          <div className="col-span-12 flex min-h-56 items-center justify-center border border-dashed border-line px-6 text-center text-sm text-fg-muted">
+          <div className="col-span-12 flex min-h-56 items-center justify-center rounded-lg border border-dashed border-line px-6 text-center text-body text-fg-muted">
             Tu rol no tiene bloques asignados en el inicio. Si los necesitas, pídelos a un administrador.
           </div>
         )}

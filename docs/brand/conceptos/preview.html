@@ -1,0 +1,277 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>artesa · conceptos en gris</title><style>
+body{margin:0;padding:28px;background:#e9e6e0;font:14px/1.4 system-ui,sans-serif;color:#222;width:1424px}
+h1{margin:0 0 4px;font-size:22px} section{background:#fff;border-radius:10px;padding:18px;margin:18px 0}
+h2{margin:0;font-size:18px} h2 small{font-weight:400;color:#888;font-size:12px} p{margin:4px 0 12px;color:#555}
+.grid{display:grid;grid-template-columns:1.25fr 1fr .9fr .9fr 1fr;gap:12px}
+.box{position:relative;border-radius:8px;padding:30px 14px 14px;min-height:230px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+.lbl{position:absolute;top:8px;left:10px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;opacity:.65}
+.login{background:#F7F5F0}.side{background:#321F19;color:#f7f5f0;align-items:flex-start;justify-content:flex-start;padding-top:40px}
+.una{background:#f4f4f4;flex-direction:row}.fav{background:#f4f4f4}.ticket{background:#cfcac2}
+.lock{display:flex;align-items:center;gap:10px}
+.menu i{display:block;width:150px;height:10px;border-radius:5px;background:#f7f5f022;margin:12px 0}
+.tab{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #ccc;border-radius:6px 6px 0 0;padding:5px 9px;font-size:12px}
+canvas{image-rendering:pixelated;border:1px solid #ccc}
+.paper{background:#fff;width:200px;padding:12px 10px;box-shadow:0 1px 3px #0003}
+.mono{display:flex;justify-content:center;filter:grayscale(1) contrast(60)} pre{margin:8px 0 0;font:10px/1.35 monospace}
+</style><body><h1>artesa — 3 conceptos en escala de grises (checkpoint)</h1>
+<div>Wordmark preliminar compartido (minúsculas construidas como trazos, sin texto vivo):</div>
+<section style="display:flex;gap:40px;align-items:center"><svg height="70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1122 340">
+<g fill="none" stroke="#1a1a1a" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="140" cy="200" r="85"/><path d="M225 106 V300"/>
+  <path d="M281 106 V300"/><path d="M281 210 C281 130 321 100 373 118"/>
+  <path d="M404 30 V254 Q404 300 458 296"/><path d="M378 106 H460"/>
+  <path d="M497 200 H667 A85 85 0 1 0 650.8 250"/>
+  <path d="M835 130 C811 100 727 100 727 152.5 C727 200 841 200 841 247.5 C841 300 741 300 721 270"/>
+  <circle cx="982" cy="200" r="85"/><path d="M1067 106 V300"/>
+</g>
+</svg><svg height="70" style="background:#321F19;padding:10px 16px;border-radius:8px" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1122 340">
+<g fill="none" stroke="#f7f5f0" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="140" cy="200" r="85"/><path d="M225 106 V300"/>
+  <path d="M281 106 V300"/><path d="M281 210 C281 130 321 100 373 118"/>
+  <path d="M404 30 V254 Q404 300 458 296"/><path d="M378 106 H460"/>
+  <path d="M497 200 H667 A85 85 0 1 0 650.8 250"/>
+  <path d="M835 130 C811 100 727 100 727 152.5 C727 200 841 200 841 247.5 C841 300 741 300 721 270"/>
+  <circle cx="982" cy="200" r="85"/><path d="M1067 106 V300"/>
+</g>
+</svg></section>
+<section>
+  <h2>A · Masa enrollada <small>concept-a-v3.svg</small></h2><p>Refinamiento: la espiral de masa vive dentro de una "a" minúscula. Una sola idea.</p>
+  <div class="grid">
+    <div class="box login"><span class="lbl">Login · Alabastro</span><svg width="120" height="120" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<g fill="none" stroke="#1a1a1a" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M211.6 306.7 L212.9 308.7 L214.4 310.7 L216 312.6 L217.9 314.3 L219.9 316 L222.1 317.5 L224.4 318.9 L226.9 320.1 L229.5 321.2 L232.3 322.1 L235.1 322.8 L238.1 323.2 L241.1 323.5 L244.2 323.5 L247.4 323.3 L250.5 322.9 L253.7 322.2 L256.9 321.2 L260.1 320.1 L263.2 318.6 L266.2 316.9 L269.2 315 L272 312.8 L274.7 310.4 L277.3 307.7 L279.7 304.8 L281.9 301.8 L283.9 298.5 L285.7 295 L287.3 291.4 L288.6 287.6 L289.7 283.6 L290.4 279.6 L290.9 275.4 L291.1 271.2 L291 266.9 L290.5 262.5 L289.8 258.2 L288.7 253.9 L287.3 249.6 L285.5 245.3 L283.5 241.2 L281.1 237.2 L278.4 233.3 L275.4 229.5 L272.1 226 L268.5 222.7 L264.7 219.5 L260.5 216.7 L256.2 214.1 L251.6 211.8 L246.8 209.8 L241.9 208.2 L236.7 206.9 L231.5 205.9 L226.1 205.3 L220.7 205.2 L215.1 205.4 L209.6 205.9 L204.1 206.9 L198.6 208.3 L193.2 210.2 L187.8 212.4 L182.6 215 L177.5 218 L172.6 221.4 L167.9 225.1 L163.5 229.2 L159.3 233.7 L155.4 238.5 L151.8 243.6 L148.6 249 L145.8 254.6 L143.3 260.5 L141.2 266.6 L139.6 272.9 L138.4 279.4 L137.6 286 L137.3 292.6 L137.5 299.3 L138.2 306.1 L139.3 312.8 L141 319.5 L143.1 326.1 L145.7 332.6 L148.8 339 L152.3 345.2 L156.3 351.1 L160.8 356.8 L165.7 362.2 L170.9 367.3 L176.6 372 L182.7 376.4 L189.1 380.3 L195.7 383.8 L202.7 386.9 L209.9 389.4 L217.4 391.5 L225 393.1 L232.8 394.1 L240.7 394.5 L248.6 394.5 L256.6 393.8 L264.5 392.6 L272.5 390.8 L280.3 388.4 L288 385.5 L295.5 382 L302.8 378 L309.8 373.4 L316.6 368.4 L323 362.8 L329 356.7 L334.7 350.2 L339.9 343.3 L344.6 336 L348.9 328.3 L352.6 320.2 L355.7 311.9 L358.3 303.4 L360.3 294.6 L361.6 285.6" stroke-width="40"/>
+  <path d="M362 190 V412" stroke-width="44"/>
+</g>
+</svg><div class="lock"><svg width="44" height="44" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<g fill="none" stroke="#1a1a1a" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M211.6 306.7 L212.9 308.7 L214.4 310.7 L216 312.6 L217.9 314.3 L219.9 316 L222.1 317.5 L224.4 318.9 L226.9 320.1 L229.5 321.2 L232.3 322.1 L235.1 322.8 L238.1 323.2 L241.1 323.5 L244.2 323.5 L247.4 323.3 L250.5 322.9 L253.7 322.2 L256.9 321.2 L260.1 320.1 L263.2 318.6 L266.2 316.9 L269.2 315 L272 312.8 L274.7 310.4 L277.3 307.7 L279.7 304.8 L281.9 301.8 L283.9 298.5 L285.7 295 L287.3 291.4 L288.6 287.6 L289.7 283.6 L290.4 279.6 L290.9 275.4 L291.1 271.2 L291 266.9 L290.5 262.5 L289.8 258.2 L288.7 253.9 L287.3 249.6 L285.5 245.3 L283.5 241.2 L281.1 237.2 L278.4 233.3 L275.4 229.5 L272.1 226 L268.5 222.7 L264.7 219.5 L260.5 216.7 L256.2 214.1 L251.6 211.8 L246.8 209.8 L241.9 208.2 L236.7 206.9 L231.5 205.9 L226.1 205.3 L220.7 205.2 L215.1 205.4 L209.6 205.9 L204.1 206.9 L198.6 208.3 L193.2 210.2 L187.8 212.4 L182.6 215 L177.5 218 L172.6 221.4 L167.9 225.1 L163.5 229.2 L159.3 233.7 L155.4 238.5 L151.8 243.6 L148.6 249 L145.8 254.6 L143.3 260.5 L141.2 266.6 L139.6 272.9 L138.4 279.4 L137.6 286 L137.3 292.6 L137.5 299.3 L138.2 306.1 L139.3 312.8 L141 319.5 L143.1 326.1 L145.7 332.6 L148.8 339 L152.3 345.2 L156.3 351.1 L160.8 356.8 L165.7 362.2 L170.9 367.3 L176.6 372 L182.7 376.4 L189.1 380.3 L195.7 383.8 L202.7 386.9 L209.9 389.4 L217.4 391.5 L225 393.1 L232.8 394.1 L240.7 394.5 L248.6 394.5 L256.6 393.8 L264.5 392.6 L272.5 390.8 L280.3 388.4 L288 385.5 L295.5 382 L302.8 378 L309.8 373.4 L316.6 368.4 L323 362.8 L329 356.7 L334.7 350.2 L339.9 343.3 L344.6 336 L348.9 328.3 L352.6 320.2 L355.7 311.9 L358.3 303.4 L360.3 294.6 L361.6 285.6" stroke-width="40"/>
+  <path d="M362 190 V412" stroke-width="44"/>
+</g>
+</svg><svg height="34" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1122 340">
+<g fill="none" stroke="#1a1a1a" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="140" cy="200" r="85"/><path d="M225 106 V300"/>
+  <path d="M281 106 V300"/><path d="M281 210 C281 130 321 100 373 118"/>
+  <path d="M404 30 V254 Q404 300 458 296"/><path d="M378 106 H460"/>
+  <path d="M497 200 H667 A85 85 0 1 0 650.8 250"/>
+  <path d="M835 130 C811 100 727 100 727 152.5 C727 200 841 200 841 247.5 C841 300 741 300 721 270"/>
+  <circle cx="982" cy="200" r="85"/><path d="M1067 106 V300"/>
+</g>
+</svg></div></div>
+    <div class="box side"><span class="lbl">Sidebar · Espresso (inverso)</span><div class="lock"><svg width="32" height="32" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<g fill="none" stroke="#f7f5f0" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M211.6 306.7 L212.9 308.7 L214.4 310.7 L216 312.6 L217.9 314.3 L219.9 316 L222.1 317.5 L224.4 318.9 L226.9 320.1 L229.5 321.2 L232.3 322.1 L235.1 322.8 L238.1 323.2 L241.1 323.5 L244.2 323.5 L247.4 323.3 L250.5 322.9 L253.7 322.2 L256.9 321.2 L260.1 320.1 L263.2 318.6 L266.2 316.9 L269.2 315 L272 312.8 L274.7 310.4 L277.3 307.7 L279.7 304.8 L281.9 301.8 L283.9 298.5 L285.7 295 L287.3 291.4 L288.6 287.6 L289.7 283.6 L290.4 279.6 L290.9 275.4 L291.1 271.2 L291 266.9 L290.5 262.5 L289.8 258.2 L288.7 253.9 L287.3 249.6 L285.5 245.3 L283.5 241.2 L281.1 237.2 L278.4 233.3 L275.4 229.5 L272.1 226 L268.5 222.7 L264.7 219.5 L260.5 216.7 L256.2 214.1 L251.6 211.8 L246.8 209.8 L241.9 208.2 L236.7 206.9 L231.5 205.9 L226.1 205.3 L220.7 205.2 L215.1 205.4 L209.6 205.9 L204.1 206.9 L198.6 208.3 L193.2 210.2 L187.8 212.4 L182.6 215 L177.5 218 L172.6 221.4 L167.9 225.1 L163.5 229.2 L159.3 233.7 L155.4 238.5 L151.8 243.6 L148.6 249 L145.8 254.6 L143.3 260.5 L141.2 266.6 L139.6 272.9 L138.4 279.4 L137.6 286 L137.3 292.6 L137.5 299.3 L138.2 306.1 L139.3 312.8 L141 319.5 L143.1 326.1 L145.7 332.6 L148.8 339 L152.3 345.2 L156.3 351.1 L160.8 356.8 L165.7 362.2 L170.9 367.3 L176.6 372 L182.7 376.4 L189.1 380.3 L195.7 383.8 L202.7 386.9 L209.9 389.4 L217.4 391.5 L225 393.1 L232.8 394.1 L240.7 394.5 L248.6 394.5 L256.6 393.8 L264.5 392.6 L272.5 390.8 L280.3 388.4 L288 385.5 L295.5 382 L302.8 378 L309.8 373.4 L316.6 368.4 L323 362.8 L329 356.7 L334.7 350.2 L339.9 343.3 L344.6 336 L348.9 328.3 L352.6 320.2 L355.7 311.9 L358.3 303.4 L360.3 294.6 L361.6 285.6" stroke-width="40"/>
+  <path d="M362 190 V412" stroke-width="44"/>
+</g>
+</svg><svg height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1122 340">
+<g fill="none" stroke="#f7f5f0" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="140" cy="200" r="85"/><path d="M225 106 V300"/>
+  <path d="M281 106 V300"/><path d="M281 210 C281 130 321 100 373 118"/>
+  <path d="M404 30 V254 Q404 300 458 296"/><path d="M378 106 H460"/>
+  <path d="M497 200 H667 A85 85 0 1 0 650.8 250"/>
+  <path d="M835 130 C811 100 727 100 727 152.5 C727 200 841 200 841 247.5 C841 300 741 300 721 270"/>
+  <circle cx="982" cy="200" r="85"/><path d="M1067 106 V300"/>
+</g>
+</svg></div>
+      <div class="menu"><i></i><i></i><i></i><i></i></div></div>
+    <div class="box una"><span class="lbl">1 tinta</span><svg width="96" height="96" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<g fill="none" stroke="#1a1a1a" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M211.6 306.7 L212.9 308.7 L214.4 310.7 L216 312.6 L217.9 314.3 L219.9 316 L222.1 317.5 L224.4 318.9 L226.9 320.1 L229.5 321.2 L232.3 322.1 L235.1 322.8 L238.1 323.2 L241.1 323.5 L244.2 323.5 L247.4 323.3 L250.5 322.9 L253.7 322.2 L256.9 321.2 L260.1 320.1 L263.2 318.6 L266.2 316.9 L269.2 315 L272 312.8 L274.7 310.4 L277.3 307.7 L279.7 304.8 L281.9 301.8 L283.9 298.5 L285.7 295 L287.3 291.4 L288.6 287.6 L289.7 283.6 L290.4 279.6 L290.9 275.4 L291.1 271.2 L291 266.9 L290.5 262.5 L289.8 258.2 L288.7 253.9 L287.3 249.6 L285.5 245.3 L283.5 241.2 L281.1 237.2 L278.4 233.3 L275.4 229.5 L272.1 226 L268.5 222.7 L264.7 219.5 L260.5 216.7 L256.2 214.1 L251.6 211.8 L246.8 209.8 L241.9 208.2 L236.7 206.9 L231.5 205.9 L226.1 205.3 L220.7 205.2 L215.1 205.4 L209.6 205.9 L204.1 206.9 L198.6 208.3 L193.2 210.2 L187.8 212.4 L182.6 215 L177.5 218 L172.6 221.4 L167.9 225.1 L163.5 229.2 L159.3 233.7 L155.4 238.5 L151.8 243.6 L148.6 249 L145.8 254.6 L143.3 260.5 L141.2 266.6 L139.6 272.9 L138.4 279.4 L137.6 286 L137.3 292.6 L137.5 299.3 L138.2 306.1 L139.3 312.8 L141 319.5 L143.1 326.1 L145.7 332.6 L148.8 339 L152.3 345.2 L156.3 351.1 L160.8 356.8 L165.7 362.2 L170.9 367.3 L176.6 372 L182.7 376.4 L189.1 380.3 L195.7 383.8 L202.7 386.9 L209.9 389.4 L217.4 391.5 L225 393.1 L232.8 394.1 L240.7 394.5 L248.6 394.5 L256.6 393.8 L264.5 392.6 L272.5 390.8 L280.3 388.4 L288 385.5 L295.5 382 L302.8 378 L309.8 373.4 L316.6 368.4 L323 362.8 L329 356.7 L334.7 350.2 L339.9 343.3 L344.6 336 L348.9 328.3 L352.6 320.2 L355.7 311.9 L358.3 303.4 L360.3 294.6 L361.6 285.6" stroke-width="40"/>
+  <path d="M362 190 V412" stroke-width="44"/>
+</g>
+</svg><svg width="96" height="96" style="background:#1a1a1a;padding:8px" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<g fill="none" stroke="#f7f5f0" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M211.6 306.7 L212.9 308.7 L214.4 310.7 L216 312.6 L217.9 314.3 L219.9 316 L222.1 317.5 L224.4 318.9 L226.9 320.1 L229.5 321.2 L232.3 322.1 L235.1 322.8 L238.1 323.2 L241.1 323.5 L244.2 323.5 L247.4 323.3 L250.5 322.9 L253.7 322.2 L256.9 321.2 L260.1 320.1 L263.2 318.6 L266.2 316.9 L269.2 315 L272 312.8 L274.7 310.4 L277.3 307.7 L279.7 304.8 L281.9 301.8 L283.9 298.5 L285.7 295 L287.3 291.4 L288.6 287.6 L289.7 283.6 L290.4 279.6 L290.9 275.4 L291.1 271.2 L291 266.9 L290.5 262.5 L289.8 258.2 L288.7 253.9 L287.3 249.6 L285.5 245.3 L283.5 241.2 L281.1 237.2 L278.4 233.3 L275.4 229.5 L272.1 226 L268.5 222.7 L264.7 219.5 L260.5 216.7 L256.2 214.1 L251.6 211.8 L246.8 209.8 L241.9 208.2 L236.7 206.9 L231.5 205.9 L226.1 205.3 L220.7 205.2 L215.1 205.4 L209.6 205.9 L204.1 206.9 L198.6 208.3 L193.2 210.2 L187.8 212.4 L182.6 215 L177.5 218 L172.6 221.4 L167.9 225.1 L163.5 229.2 L159.3 233.7 L155.4 238.5 L151.8 243.6 L148.6 249 L145.8 254.6 L143.3 260.5 L141.2 266.6 L139.6 272.9 L138.4 279.4 L137.6 286 L137.3 292.6 L137.5 299.3 L138.2 306.1 L139.3 312.8 L141 319.5 L143.1 326.1 L145.7 332.6 L148.8 339 L152.3 345.2 L156.3 351.1 L160.8 356.8 L165.7 362.2 L170.9 367.3 L176.6 372 L182.7 376.4 L189.1 380.3 L195.7 383.8 L202.7 386.9 L209.9 389.4 L217.4 391.5 L225 393.1 L232.8 394.1 L240.7 394.5 L248.6 394.5 L256.6 393.8 L264.5 392.6 L272.5 390.8 L280.3 388.4 L288 385.5 L295.5 382 L302.8 378 L309.8 373.4 L316.6 368.4 L323 362.8 L329 356.7 L334.7 350.2 L339.9 343.3 L344.6 336 L348.9 328.3 L352.6 320.2 L355.7 311.9 L358.3 303.4 L360.3 294.6 L361.6 285.6" stroke-width="40"/>
+  <path d="M362 190 V412" stroke-width="44"/>
+</g>
+</svg></div>
+    <div class="box fav"><span class="lbl">16 px real · ampliado ×6</span>
+      <div class="tab"><svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<g fill="none" stroke="#1a1a1a" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M211.6 306.7 L212.9 308.7 L214.4 310.7 L216 312.6 L217.9 314.3 L219.9 316 L222.1 317.5 L224.4 318.9 L226.9 320.1 L229.5 321.2 L232.3 322.1 L235.1 322.8 L238.1 323.2 L241.1 323.5 L244.2 323.5 L247.4 323.3 L250.5 322.9 L253.7 322.2 L256.9 321.2 L260.1 320.1 L263.2 318.6 L266.2 316.9 L269.2 315 L272 312.8 L274.7 310.4 L277.3 307.7 L279.7 304.8 L281.9 301.8 L283.9 298.5 L285.7 295 L287.3 291.4 L288.6 287.6 L289.7 283.6 L290.4 279.6 L290.9 275.4 L291.1 271.2 L291 266.9 L290.5 262.5 L289.8 258.2 L288.7 253.9 L287.3 249.6 L285.5 245.3 L283.5 241.2 L281.1 237.2 L278.4 233.3 L275.4 229.5 L272.1 226 L268.5 222.7 L264.7 219.5 L260.5 216.7 L256.2 214.1 L251.6 211.8 L246.8 209.8 L241.9 208.2 L236.7 206.9 L231.5 205.9 L226.1 205.3 L220.7 205.2 L215.1 205.4 L209.6 205.9 L204.1 206.9 L198.6 208.3 L193.2 210.2 L187.8 212.4 L182.6 215 L177.5 218 L172.6 221.4 L167.9 225.1 L163.5 229.2 L159.3 233.7 L155.4 238.5 L151.8 243.6 L148.6 249 L145.8 254.6 L143.3 260.5 L141.2 266.6 L139.6 272.9 L138.4 279.4 L137.6 286 L137.3 292.6 L137.5 299.3 L138.2 306.1 L139.3 312.8 L141 319.5 L143.1 326.1 L145.7 332.6 L148.8 339 L152.3 345.2 L156.3 351.1 L160.8 356.8 L165.7 362.2 L170.9 367.3 L176.6 372 L182.7 376.4 L189.1 380.3 L195.7 383.8 L202.7 386.9 L209.9 389.4 L217.4 391.5 L225 393.1 L232.8 394.1 L240.7 394.5 L248.6 394.5 L256.6 393.8 L264.5 392.6 L272.5 390.8 L280.3 388.4 L288 385.5 L295.5 382 L302.8 378 L309.8 373.4 L316.6 368.4 L323 362.8 L329 356.7 L334.7 350.2 L339.9 343.3 L344.6 336 L348.9 328.3 L352.6 320.2 L355.7 311.9 L358.3 303.4 L360.3 294.6 L361.6 285.6" stroke-width="40"/>
+  <path d="M362 190 V412" stroke-width="44"/>
+</g>
+</svg><span>artesa — POS</span></div>
+      <canvas data-i="0" width="96" height="96"></canvas><canvas data-i="0" data-dark="1" width="96" height="96"></canvas></div>
+    <div class="box ticket"><span class="lbl">Recibo térmico 58 mm (1 bit)</span>
+      <div class="paper"><div class="mono"><svg width="64" height="64" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<g fill="none" stroke="#1a1a1a" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M211.6 306.7 L212.9 308.7 L214.4 310.7 L216 312.6 L217.9 314.3 L219.9 316 L222.1 317.5 L224.4 318.9 L226.9 320.1 L229.5 321.2 L232.3 322.1 L235.1 322.8 L238.1 323.2 L241.1 323.5 L244.2 323.5 L247.4 323.3 L250.5 322.9 L253.7 322.2 L256.9 321.2 L260.1 320.1 L263.2 318.6 L266.2 316.9 L269.2 315 L272 312.8 L274.7 310.4 L277.3 307.7 L279.7 304.8 L281.9 301.8 L283.9 298.5 L285.7 295 L287.3 291.4 L288.6 287.6 L289.7 283.6 L290.4 279.6 L290.9 275.4 L291.1 271.2 L291 266.9 L290.5 262.5 L289.8 258.2 L288.7 253.9 L287.3 249.6 L285.5 245.3 L283.5 241.2 L281.1 237.2 L278.4 233.3 L275.4 229.5 L272.1 226 L268.5 222.7 L264.7 219.5 L260.5 216.7 L256.2 214.1 L251.6 211.8 L246.8 209.8 L241.9 208.2 L236.7 206.9 L231.5 205.9 L226.1 205.3 L220.7 205.2 L215.1 205.4 L209.6 205.9 L204.1 206.9 L198.6 208.3 L193.2 210.2 L187.8 212.4 L182.6 215 L177.5 218 L172.6 221.4 L167.9 225.1 L163.5 229.2 L159.3 233.7 L155.4 238.5 L151.8 243.6 L148.6 249 L145.8 254.6 L143.3 260.5 L141.2 266.6 L139.6 272.9 L138.4 279.4 L137.6 286 L137.3 292.6 L137.5 299.3 L138.2 306.1 L139.3 312.8 L141 319.5 L143.1 326.1 L145.7 332.6 L148.8 339 L152.3 345.2 L156.3 351.1 L160.8 356.8 L165.7 362.2 L170.9 367.3 L176.6 372 L182.7 376.4 L189.1 380.3 L195.7 383.8 L202.7 386.9 L209.9 389.4 L217.4 391.5 L225 393.1 L232.8 394.1 L240.7 394.5 L248.6 394.5 L256.6 393.8 L264.5 392.6 L272.5 390.8 L280.3 388.4 L288 385.5 L295.5 382 L302.8 378 L309.8 373.4 L316.6 368.4 L323 362.8 L329 356.7 L334.7 350.2 L339.9 343.3 L344.6 336 L348.9 328.3 L352.6 320.2 L355.7 311.9 L358.3 303.4 L360.3 294.6 L361.6 285.6" stroke-width="40"/>
+  <path d="M362 190 V412" stroke-width="44"/>
+</g>
+</svg></div><pre>Restaurante Orígenes
+San Salvador
+--------------------------
+1 Café de olla      $1.75
+1 Pan dulce         $1.25
+TOTAL               $3.00</pre></div></div>
+  </div></section>
+<section>
+  <h2>B · La artesa <small>concept-b-v2.svg</small></h2><p>Alternativa: la batea de amasar con la masa leudando y su corte de panadero.</p>
+  <div class="grid">
+    <div class="box login"><span class="lbl">Login · Alabastro</span><svg width="120" height="120" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs><mask id="corte"><rect width="512" height="512" fill="#fff"/>
+  <path d="M190 226 Q256 192 326 210" fill="none" stroke="#000" stroke-width="22" stroke-linecap="round"/></mask></defs>
+<path fill="#6b6b6b" mask="url(#corte)" d="M104 282 C112 196 184 160 256 160 C328 160 400 196 408 282 Z"/>
+<path fill="#1a1a1a" d="M58 300 H454 Q468 300 462 313 L414 404 Q408 416 394 416 H118 Q104 416 98 404 L50 313 Q44 300 58 300 Z"/>
+</svg><div class="lock"><svg width="44" height="44" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs><mask id="corte"><rect width="512" height="512" fill="#fff"/>
+  <path d="M190 226 Q256 192 326 210" fill="none" stroke="#000" stroke-width="22" stroke-linecap="round"/></mask></defs>
+<path fill="#6b6b6b" mask="url(#corte)" d="M104 282 C112 196 184 160 256 160 C328 160 400 196 408 282 Z"/>
+<path fill="#1a1a1a" d="M58 300 H454 Q468 300 462 313 L414 404 Q408 416 394 416 H118 Q104 416 98 404 L50 313 Q44 300 58 300 Z"/>
+</svg><svg height="34" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1122 340">
+<g fill="none" stroke="#1a1a1a" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="140" cy="200" r="85"/><path d="M225 106 V300"/>
+  <path d="M281 106 V300"/><path d="M281 210 C281 130 321 100 373 118"/>
+  <path d="M404 30 V254 Q404 300 458 296"/><path d="M378 106 H460"/>
+  <path d="M497 200 H667 A85 85 0 1 0 650.8 250"/>
+  <path d="M835 130 C811 100 727 100 727 152.5 C727 200 841 200 841 247.5 C841 300 741 300 721 270"/>
+  <circle cx="982" cy="200" r="85"/><path d="M1067 106 V300"/>
+</g>
+</svg></div></div>
+    <div class="box side"><span class="lbl">Sidebar · Espresso (inverso)</span><div class="lock"><svg width="32" height="32" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs><mask id="corte"><rect width="512" height="512" fill="#fff"/>
+  <path d="M190 226 Q256 192 326 210" fill="none" stroke="#000" stroke-width="22" stroke-linecap="round"/></mask></defs>
+<path fill="#b8b0a8" mask="url(#corte)" d="M104 282 C112 196 184 160 256 160 C328 160 400 196 408 282 Z"/>
+<path fill="#f7f5f0" d="M58 300 H454 Q468 300 462 313 L414 404 Q408 416 394 416 H118 Q104 416 98 404 L50 313 Q44 300 58 300 Z"/>
+</svg><svg height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1122 340">
+<g fill="none" stroke="#f7f5f0" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="140" cy="200" r="85"/><path d="M225 106 V300"/>
+  <path d="M281 106 V300"/><path d="M281 210 C281 130 321 100 373 118"/>
+  <path d="M404 30 V254 Q404 300 458 296"/><path d="M378 106 H460"/>
+  <path d="M497 200 H667 A85 85 0 1 0 650.8 250"/>
+  <path d="M835 130 C811 100 727 100 727 152.5 C727 200 841 200 841 247.5 C841 300 741 300 721 270"/>
+  <circle cx="982" cy="200" r="85"/><path d="M1067 106 V300"/>
+</g>
+</svg></div>
+      <div class="menu"><i></i><i></i><i></i><i></i></div></div>
+    <div class="box una"><span class="lbl">1 tinta</span><svg width="96" height="96" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs><mask id="corte"><rect width="512" height="512" fill="#fff"/>
+  <path d="M190 226 Q256 192 326 210" fill="none" stroke="#000" stroke-width="22" stroke-linecap="round"/></mask></defs>
+<path fill="#1a1a1a" mask="url(#corte)" d="M104 282 C112 196 184 160 256 160 C328 160 400 196 408 282 Z"/>
+<path fill="#1a1a1a" d="M58 300 H454 Q468 300 462 313 L414 404 Q408 416 394 416 H118 Q104 416 98 404 L50 313 Q44 300 58 300 Z"/>
+</svg><svg width="96" height="96" style="background:#1a1a1a;padding:8px" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs><mask id="corte"><rect width="512" height="512" fill="#fff"/>
+  <path d="M190 226 Q256 192 326 210" fill="none" stroke="#000" stroke-width="22" stroke-linecap="round"/></mask></defs>
+<path fill="#f7f5f0" mask="url(#corte)" d="M104 282 C112 196 184 160 256 160 C328 160 400 196 408 282 Z"/>
+<path fill="#f7f5f0" d="M58 300 H454 Q468 300 462 313 L414 404 Q408 416 394 416 H118 Q104 416 98 404 L50 313 Q44 300 58 300 Z"/>
+</svg></div>
+    <div class="box fav"><span class="lbl">16 px real · ampliado ×6</span>
+      <div class="tab"><svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs><mask id="corte"><rect width="512" height="512" fill="#fff"/>
+  <path d="M190 226 Q256 192 326 210" fill="none" stroke="#000" stroke-width="22" stroke-linecap="round"/></mask></defs>
+<path fill="#6b6b6b" mask="url(#corte)" d="M104 282 C112 196 184 160 256 160 C328 160 400 196 408 282 Z"/>
+<path fill="#1a1a1a" d="M58 300 H454 Q468 300 462 313 L414 404 Q408 416 394 416 H118 Q104 416 98 404 L50 313 Q44 300 58 300 Z"/>
+</svg><span>artesa — POS</span></div>
+      <canvas data-i="1" width="96" height="96"></canvas><canvas data-i="1" data-dark="1" width="96" height="96"></canvas></div>
+    <div class="box ticket"><span class="lbl">Recibo térmico 58 mm (1 bit)</span>
+      <div class="paper"><div class="mono"><svg width="64" height="64" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs><mask id="corte"><rect width="512" height="512" fill="#fff"/>
+  <path d="M190 226 Q256 192 326 210" fill="none" stroke="#000" stroke-width="22" stroke-linecap="round"/></mask></defs>
+<path fill="#1a1a1a" mask="url(#corte)" d="M104 282 C112 196 184 160 256 160 C328 160 400 196 408 282 Z"/>
+<path fill="#1a1a1a" d="M58 300 H454 Q468 300 462 313 L414 404 Q408 416 394 416 H118 Q104 416 98 404 L50 313 Q44 300 58 300 Z"/>
+</svg></div><pre>Restaurante Orígenes
+San Salvador
+--------------------------
+1 Café de olla      $1.75
+1 Pan dulce         $1.25
+TOTAL               $3.00</pre></div></div>
+  </div></section>
+<section>
+  <h2>C · Ensamble <small>concept-c-v2.svg</small></h2><p>Alternativa: "a" de tiras unidas a inglete, como tablas de la batea o una palma doblada (petate); caras alternas.</p>
+  <div class="grid">
+    <div class="box login"><span class="lbl">Login · Alabastro</span><svg width="120" height="120" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<g>
+  <path d="M160 310 L336 310 L336 250 L100 250 Z" fill="#1a1a1a" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M150 180 L330 180 L390 120 L150 120 Z" fill="#1a1a1a" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M330 180 L330 380 L390 440 L390 120 Z" fill="#6b6b6b" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M330 380 L160 380 L100 440 L390 440 Z" fill="#1a1a1a" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M160 380 L160 310 L100 250 L100 440 Z" fill="#6b6b6b" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+</g>
+</svg><div class="lock"><svg width="44" height="44" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<g>
+  <path d="M160 310 L336 310 L336 250 L100 250 Z" fill="#1a1a1a" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M150 180 L330 180 L390 120 L150 120 Z" fill="#1a1a1a" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M330 180 L330 380 L390 440 L390 120 Z" fill="#6b6b6b" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M330 380 L160 380 L100 440 L390 440 Z" fill="#1a1a1a" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M160 380 L160 310 L100 250 L100 440 Z" fill="#6b6b6b" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+</g>
+</svg><svg height="34" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1122 340">
+<g fill="none" stroke="#1a1a1a" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="140" cy="200" r="85"/><path d="M225 106 V300"/>
+  <path d="M281 106 V300"/><path d="M281 210 C281 130 321 100 373 118"/>
+  <path d="M404 30 V254 Q404 300 458 296"/><path d="M378 106 H460"/>
+  <path d="M497 200 H667 A85 85 0 1 0 650.8 250"/>
+  <path d="M835 130 C811 100 727 100 727 152.5 C727 200 841 200 841 247.5 C841 300 741 300 721 270"/>
+  <circle cx="982" cy="200" r="85"/><path d="M1067 106 V300"/>
+</g>
+</svg></div></div>
+    <div class="box side"><span class="lbl">Sidebar · Espresso (inverso)</span><div class="lock"><svg width="32" height="32" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<g>
+  <path d="M160 310 L336 310 L336 250 L100 250 Z" fill="#f7f5f0" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M150 180 L330 180 L390 120 L150 120 Z" fill="#f7f5f0" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M330 180 L330 380 L390 440 L390 120 Z" fill="#b8b0a8" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M330 380 L160 380 L100 440 L390 440 Z" fill="#f7f5f0" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M160 380 L160 310 L100 250 L100 440 Z" fill="#b8b0a8" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+</g>
+</svg><svg height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1122 340">
+<g fill="none" stroke="#f7f5f0" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="140" cy="200" r="85"/><path d="M225 106 V300"/>
+  <path d="M281 106 V300"/><path d="M281 210 C281 130 321 100 373 118"/>
+  <path d="M404 30 V254 Q404 300 458 296"/><path d="M378 106 H460"/>
+  <path d="M497 200 H667 A85 85 0 1 0 650.8 250"/>
+  <path d="M835 130 C811 100 727 100 727 152.5 C727 200 841 200 841 247.5 C841 300 741 300 721 270"/>
+  <circle cx="982" cy="200" r="85"/><path d="M1067 106 V300"/>
+</g>
+</svg></div>
+      <div class="menu"><i></i><i></i><i></i><i></i></div></div>
+    <div class="box una"><span class="lbl">1 tinta</span><svg width="96" height="96" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<g>
+  <path d="M160 310 L336 310 L336 250 L100 250 Z" fill="#1a1a1a" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M150 180 L330 180 L390 120 L150 120 Z" fill="#1a1a1a" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M330 180 L330 380 L390 440 L390 120 Z" fill="#1a1a1a" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M330 380 L160 380 L100 440 L390 440 Z" fill="#1a1a1a" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M160 380 L160 310 L100 250 L100 440 Z" fill="#1a1a1a" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+</g>
+</svg><svg width="96" height="96" style="background:#1a1a1a;padding:8px" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<g>
+  <path d="M160 310 L336 310 L336 250 L100 250 Z" fill="#f7f5f0" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M150 180 L330 180 L390 120 L150 120 Z" fill="#f7f5f0" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M330 180 L330 380 L390 440 L390 120 Z" fill="#f7f5f0" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M330 380 L160 380 L100 440 L390 440 Z" fill="#f7f5f0" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M160 380 L160 310 L100 250 L100 440 Z" fill="#f7f5f0" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+</g>
+</svg></div>
+    <div class="box fav"><span class="lbl">16 px real · ampliado ×6</span>
+      <div class="tab"><svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<g>
+  <path d="M160 310 L336 310 L336 250 L100 250 Z" fill="#1a1a1a" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M150 180 L330 180 L390 120 L150 120 Z" fill="#1a1a1a" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M330 180 L330 380 L390 440 L390 120 Z" fill="#6b6b6b" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M330 380 L160 380 L100 440 L390 440 Z" fill="#1a1a1a" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M160 380 L160 310 L100 250 L100 440 Z" fill="#6b6b6b" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+</g>
+</svg><span>artesa — POS</span></div>
+      <canvas data-i="2" width="96" height="96"></canvas><canvas data-i="2" data-dark="1" width="96" height="96"></canvas></div>
+    <div class="box ticket"><span class="lbl">Recibo térmico 58 mm (1 bit)</span>
+      <div class="paper"><div class="mono"><svg width="64" height="64" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<g>
+  <path d="M160 310 L336 310 L336 250 L100 250 Z" fill="#1a1a1a" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M150 180 L330 180 L390 120 L150 120 Z" fill="#1a1a1a" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M330 180 L330 380 L390 440 L390 120 Z" fill="#1a1a1a" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M330 380 L160 380 L100 440 L390 440 Z" fill="#1a1a1a" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M160 380 L160 310 L100 250 L100 440 Z" fill="#1a1a1a" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+</g>
+</svg></div><pre>Restaurante Orígenes
+San Salvador
+--------------------------
+1 Café de olla      $1.75
+1 Pan dulce         $1.25
+TOTAL               $3.00</pre></div></div>
+  </div></section>
+<script>
+const S=["data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMWExYTFhIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPgogIDxwYXRoIGQ9Ik0yMTEuNiAzMDYuNyBMMjEyLjkgMzA4LjcgTDIxNC40IDMxMC43IEwyMTYgMzEyLjYgTDIxNy45IDMxNC4zIEwyMTkuOSAzMTYgTDIyMi4xIDMxNy41IEwyMjQuNCAzMTguOSBMMjI2LjkgMzIwLjEgTDIyOS41IDMyMS4yIEwyMzIuMyAzMjIuMSBMMjM1LjEgMzIyLjggTDIzOC4xIDMyMy4yIEwyNDEuMSAzMjMuNSBMMjQ0LjIgMzIzLjUgTDI0Ny40IDMyMy4zIEwyNTAuNSAzMjIuOSBMMjUzLjcgMzIyLjIgTDI1Ni45IDMyMS4yIEwyNjAuMSAzMjAuMSBMMjYzLjIgMzE4LjYgTDI2Ni4yIDMxNi45IEwyNjkuMiAzMTUgTDI3MiAzMTIuOCBMMjc0LjcgMzEwLjQgTDI3Ny4zIDMwNy43IEwyNzkuNyAzMDQuOCBMMjgxLjkgMzAxLjggTDI4My45IDI5OC41IEwyODUuNyAyOTUgTDI4Ny4zIDI5MS40IEwyODguNiAyODcuNiBMMjg5LjcgMjgzLjYgTDI5MC40IDI3OS42IEwyOTAuOSAyNzUuNCBMMjkxLjEgMjcxLjIgTDI5MSAyNjYuOSBMMjkwLjUgMjYyLjUgTDI4OS44IDI1OC4yIEwyODguNyAyNTMuOSBMMjg3LjMgMjQ5LjYgTDI4NS41IDI0NS4zIEwyODMuNSAyNDEuMiBMMjgxLjEgMjM3LjIgTDI3OC40IDIzMy4zIEwyNzUuNCAyMjkuNSBMMjcyLjEgMjI2IEwyNjguNSAyMjIuNyBMMjY0LjcgMjE5LjUgTDI2MC41IDIxNi43IEwyNTYuMiAyMTQuMSBMMjUxLjYgMjExLjggTDI0Ni44IDIwOS44IEwyNDEuOSAyMDguMiBMMjM2LjcgMjA2LjkgTDIzMS41IDIwNS45IEwyMjYuMSAyMDUuMyBMMjIwLjcgMjA1LjIgTDIxNS4xIDIwNS40IEwyMDkuNiAyMDUuOSBMMjA0LjEgMjA2LjkgTDE5OC42IDIwOC4zIEwxOTMuMiAyMTAuMiBMMTg3LjggMjEyLjQgTDE4Mi42IDIxNSBMMTc3LjUgMjE4IEwxNzIuNiAyMjEuNCBMMTY3LjkgMjI1LjEgTDE2My41IDIyOS4yIEwxNTkuMyAyMzMuNyBMMTU1LjQgMjM4LjUgTDE1MS44IDI0My42IEwxNDguNiAyNDkgTDE0NS44IDI1NC42IEwxNDMuMyAyNjAuNSBMMTQxLjIgMjY2LjYgTDEzOS42IDI3Mi45IEwxMzguNCAyNzkuNCBMMTM3LjYgMjg2IEwxMzcuMyAyOTIuNiBMMTM3LjUgMjk5LjMgTDEzOC4yIDMwNi4xIEwxMzkuMyAzMTIuOCBMMTQxIDMxOS41IEwxNDMuMSAzMjYuMSBMMTQ1LjcgMzMyLjYgTDE0OC44IDMzOSBMMTUyLjMgMzQ1LjIgTDE1Ni4zIDM1MS4xIEwxNjAuOCAzNTYuOCBMMTY1LjcgMzYyLjIgTDE3MC45IDM2Ny4zIEwxNzYuNiAzNzIgTDE4Mi43IDM3Ni40IEwxODkuMSAzODAuMyBMMTk1LjcgMzgzLjggTDIwMi43IDM4Ni45IEwyMDkuOSAzODkuNCBMMjE3LjQgMzkxLjUgTDIyNSAzOTMuMSBMMjMyLjggMzk0LjEgTDI0MC43IDM5NC41IEwyNDguNiAzOTQuNSBMMjU2LjYgMzkzLjggTDI2NC41IDM5Mi42IEwyNzIuNSAzOTAuOCBMMjgwLjMgMzg4LjQgTDI4OCAzODUuNSBMMjk1LjUgMzgyIEwzMDIuOCAzNzggTDMwOS44IDM3My40IEwzMTYuNiAzNjguNCBMMzIzIDM2Mi44IEwzMjkgMzU2LjcgTDMzNC43IDM1MC4yIEwzMzkuOSAzNDMuMyBMMzQ0LjYgMzM2IEwzNDguOSAzMjguMyBMMzUyLjYgMzIwLjIgTDM1NS43IDMxMS45IEwzNTguMyAzMDMuNCBMMzYwLjMgMjk0LjYgTDM2MS42IDI4NS42IiBzdHJva2Utd2lkdGg9IjQwIi8+CiAgPHBhdGggZD0iTTM2MiAxOTAgVjQxMiIgc3Ryb2tlLXdpZHRoPSI0NCIvPgo8L2c+Cjwvc3ZnPg==","data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KPGRlZnM+PG1hc2sgaWQ9ImNvcnRlIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0iI2ZmZiIvPgogIDxwYXRoIGQ9Ik0xOTAgMjI2IFEyNTYgMTkyIDMyNiAyMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSIyMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9tYXNrPjwvZGVmcz4KPHBhdGggZmlsbD0iIzZiNmI2YiIgbWFzaz0idXJsKCNjb3J0ZSkiIGQ9Ik0xMDQgMjgyIEMxMTIgMTk2IDE4NCAxNjAgMjU2IDE2MCBDMzI4IDE2MCA0MDAgMTk2IDQwOCAyODIgWiIvPgo8cGF0aCBmaWxsPSIjMWExYTFhIiBkPSJNNTggMzAwIEg0NTQgUTQ2OCAzMDAgNDYyIDMxMyBMNDE0IDQwNCBRNDA4IDQxNiAzOTQgNDE2IEgxMTggUTEwNCA0MTYgOTggNDA0IEw1MCAzMTMgUTQ0IDMwMCA1OCAzMDAgWiIvPgo8L3N2Zz4=","data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KPGc+CiAgPHBhdGggZD0iTTE2MCAzMTAgTDMzNiAzMTAgTDMzNiAyNTAgTDEwMCAyNTAgWiIgZmlsbD0iIzFhMWExYSIgc3Ryb2tlPSJ2YXIoLS1iZywjZmZmKSIgc3Ryb2tlLXdpZHRoPSI4IiBwYWludC1vcmRlcj0ic3Ryb2tlIiBzdHJva2UtbGluZWpvaW49Im1pdGVyIi8+CiAgPHBhdGggZD0iTTE1MCAxODAgTDMzMCAxODAgTDM5MCAxMjAgTDE1MCAxMjAgWiIgZmlsbD0iIzFhMWExYSIgc3Ryb2tlPSJ2YXIoLS1iZywjZmZmKSIgc3Ryb2tlLXdpZHRoPSI4IiBwYWludC1vcmRlcj0ic3Ryb2tlIiBzdHJva2UtbGluZWpvaW49Im1pdGVyIi8+CiAgPHBhdGggZD0iTTMzMCAxODAgTDMzMCAzODAgTDM5MCA0NDAgTDM5MCAxMjAgWiIgZmlsbD0iIzZiNmI2YiIgc3Ryb2tlPSJ2YXIoLS1iZywjZmZmKSIgc3Ryb2tlLXdpZHRoPSI4IiBwYWludC1vcmRlcj0ic3Ryb2tlIiBzdHJva2UtbGluZWpvaW49Im1pdGVyIi8+CiAgPHBhdGggZD0iTTMzMCAzODAgTDE2MCAzODAgTDEwMCA0NDAgTDM5MCA0NDAgWiIgZmlsbD0iIzFhMWExYSIgc3Ryb2tlPSJ2YXIoLS1iZywjZmZmKSIgc3Ryb2tlLXdpZHRoPSI4IiBwYWludC1vcmRlcj0ic3Ryb2tlIiBzdHJva2UtbGluZWpvaW49Im1pdGVyIi8+CiAgPHBhdGggZD0iTTE2MCAzODAgTDE2MCAzMTAgTDEwMCAyNTAgTDEwMCA0NDAgWiIgZmlsbD0iIzZiNmI2YiIgc3Ryb2tlPSJ2YXIoLS1iZywjZmZmKSIgc3Ryb2tlLXdpZHRoPSI4IiBwYWludC1vcmRlcj0ic3Ryb2tlIiBzdHJva2UtbGluZWpvaW49Im1pdGVyIi8+CjwvZz4KPC9zdmc+"],SI=["data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjdmNWYwIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPgogIDxwYXRoIGQ9Ik0yMTEuNiAzMDYuNyBMMjEyLjkgMzA4LjcgTDIxNC40IDMxMC43IEwyMTYgMzEyLjYgTDIxNy45IDMxNC4zIEwyMTkuOSAzMTYgTDIyMi4xIDMxNy41IEwyMjQuNCAzMTguOSBMMjI2LjkgMzIwLjEgTDIyOS41IDMyMS4yIEwyMzIuMyAzMjIuMSBMMjM1LjEgMzIyLjggTDIzOC4xIDMyMy4yIEwyNDEuMSAzMjMuNSBMMjQ0LjIgMzIzLjUgTDI0Ny40IDMyMy4zIEwyNTAuNSAzMjIuOSBMMjUzLjcgMzIyLjIgTDI1Ni45IDMyMS4yIEwyNjAuMSAzMjAuMSBMMjYzLjIgMzE4LjYgTDI2Ni4yIDMxNi45IEwyNjkuMiAzMTUgTDI3MiAzMTIuOCBMMjc0LjcgMzEwLjQgTDI3Ny4zIDMwNy43IEwyNzkuNyAzMDQuOCBMMjgxLjkgMzAxLjggTDI4My45IDI5OC41IEwyODUuNyAyOTUgTDI4Ny4zIDI5MS40IEwyODguNiAyODcuNiBMMjg5LjcgMjgzLjYgTDI5MC40IDI3OS42IEwyOTAuOSAyNzUuNCBMMjkxLjEgMjcxLjIgTDI5MSAyNjYuOSBMMjkwLjUgMjYyLjUgTDI4OS44IDI1OC4yIEwyODguNyAyNTMuOSBMMjg3LjMgMjQ5LjYgTDI4NS41IDI0NS4zIEwyODMuNSAyNDEuMiBMMjgxLjEgMjM3LjIgTDI3OC40IDIzMy4zIEwyNzUuNCAyMjkuNSBMMjcyLjEgMjI2IEwyNjguNSAyMjIuNyBMMjY0LjcgMjE5LjUgTDI2MC41IDIxNi43IEwyNTYuMiAyMTQuMSBMMjUxLjYgMjExLjggTDI0Ni44IDIwOS44IEwyNDEuOSAyMDguMiBMMjM2LjcgMjA2LjkgTDIzMS41IDIwNS45IEwyMjYuMSAyMDUuMyBMMjIwLjcgMjA1LjIgTDIxNS4xIDIwNS40IEwyMDkuNiAyMDUuOSBMMjA0LjEgMjA2LjkgTDE5OC42IDIwOC4zIEwxOTMuMiAyMTAuMiBMMTg3LjggMjEyLjQgTDE4Mi42IDIxNSBMMTc3LjUgMjE4IEwxNzIuNiAyMjEuNCBMMTY3LjkgMjI1LjEgTDE2My41IDIyOS4yIEwxNTkuMyAyMzMuNyBMMTU1LjQgMjM4LjUgTDE1MS44IDI0My42IEwxNDguNiAyNDkgTDE0NS44IDI1NC42IEwxNDMuMyAyNjAuNSBMMTQxLjIgMjY2LjYgTDEzOS42IDI3Mi45IEwxMzguNCAyNzkuNCBMMTM3LjYgMjg2IEwxMzcuMyAyOTIuNiBMMTM3LjUgMjk5LjMgTDEzOC4yIDMwNi4xIEwxMzkuMyAzMTIuOCBMMTQxIDMxOS41IEwxNDMuMSAzMjYuMSBMMTQ1LjcgMzMyLjYgTDE0OC44IDMzOSBMMTUyLjMgMzQ1LjIgTDE1Ni4zIDM1MS4xIEwxNjAuOCAzNTYuOCBMMTY1LjcgMzYyLjIgTDE3MC45IDM2Ny4zIEwxNzYuNiAzNzIgTDE4Mi43IDM3Ni40IEwxODkuMSAzODAuMyBMMTk1LjcgMzgzLjggTDIwMi43IDM4Ni45IEwyMDkuOSAzODkuNCBMMjE3LjQgMzkxLjUgTDIyNSAzOTMuMSBMMjMyLjggMzk0LjEgTDI0MC43IDM5NC41IEwyNDguNiAzOTQuNSBMMjU2LjYgMzkzLjggTDI2NC41IDM5Mi42IEwyNzIuNSAzOTAuOCBMMjgwLjMgMzg4LjQgTDI4OCAzODUuNSBMMjk1LjUgMzgyIEwzMDIuOCAzNzggTDMwOS44IDM3My40IEwzMTYuNiAzNjguNCBMMzIzIDM2Mi44IEwzMjkgMzU2LjcgTDMzNC43IDM1MC4yIEwzMzkuOSAzNDMuMyBMMzQ0LjYgMzM2IEwzNDguOSAzMjguMyBMMzUyLjYgMzIwLjIgTDM1NS43IDMxMS45IEwzNTguMyAzMDMuNCBMMzYwLjMgMjk0LjYgTDM2MS42IDI4NS42IiBzdHJva2Utd2lkdGg9IjQwIi8+CiAgPHBhdGggZD0iTTM2MiAxOTAgVjQxMiIgc3Ryb2tlLXdpZHRoPSI0NCIvPgo8L2c+Cjwvc3ZnPg==","data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KPGRlZnM+PG1hc2sgaWQ9ImNvcnRlIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0iI2ZmZiIvPgogIDxwYXRoIGQ9Ik0xOTAgMjI2IFEyNTYgMTkyIDMyNiAyMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSIyMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9tYXNrPjwvZGVmcz4KPHBhdGggZmlsbD0iI2I4YjBhOCIgbWFzaz0idXJsKCNjb3J0ZSkiIGQ9Ik0xMDQgMjgyIEMxMTIgMTk2IDE4NCAxNjAgMjU2IDE2MCBDMzI4IDE2MCA0MDAgMTk2IDQwOCAyODIgWiIvPgo8cGF0aCBmaWxsPSIjZjdmNWYwIiBkPSJNNTggMzAwIEg0NTQgUTQ2OCAzMDAgNDYyIDMxMyBMNDE0IDQwNCBRNDA4IDQxNiAzOTQgNDE2IEgxMTggUTEwNCA0MTYgOTggNDA0IEw1MCAzMTMgUTQ0IDMwMCA1OCAzMDAgWiIvPgo8L3N2Zz4=","data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KPGc+CiAgPHBhdGggZD0iTTE2MCAzMTAgTDMzNiAzMTAgTDMzNiAyNTAgTDEwMCAyNTAgWiIgZmlsbD0iI2Y3ZjVmMCIgc3Ryb2tlPSJ2YXIoLS1iZywjZmZmKSIgc3Ryb2tlLXdpZHRoPSI4IiBwYWludC1vcmRlcj0ic3Ryb2tlIiBzdHJva2UtbGluZWpvaW49Im1pdGVyIi8+CiAgPHBhdGggZD0iTTE1MCAxODAgTDMzMCAxODAgTDM5MCAxMjAgTDE1MCAxMjAgWiIgZmlsbD0iI2Y3ZjVmMCIgc3Ryb2tlPSJ2YXIoLS1iZywjZmZmKSIgc3Ryb2tlLXdpZHRoPSI4IiBwYWludC1vcmRlcj0ic3Ryb2tlIiBzdHJva2UtbGluZWpvaW49Im1pdGVyIi8+CiAgPHBhdGggZD0iTTMzMCAxODAgTDMzMCAzODAgTDM5MCA0NDAgTDM5MCAxMjAgWiIgZmlsbD0iI2I4YjBhOCIgc3Ryb2tlPSJ2YXIoLS1iZywjZmZmKSIgc3Ryb2tlLXdpZHRoPSI4IiBwYWludC1vcmRlcj0ic3Ryb2tlIiBzdHJva2UtbGluZWpvaW49Im1pdGVyIi8+CiAgPHBhdGggZD0iTTMzMCAzODAgTDE2MCAzODAgTDEwMCA0NDAgTDM5MCA0NDAgWiIgZmlsbD0iI2Y3ZjVmMCIgc3Ryb2tlPSJ2YXIoLS1iZywjZmZmKSIgc3Ryb2tlLXdpZHRoPSI4IiBwYWludC1vcmRlcj0ic3Ryb2tlIiBzdHJva2UtbGluZWpvaW49Im1pdGVyIi8+CiAgPHBhdGggZD0iTTE2MCAzODAgTDE2MCAzMTAgTDEwMCAyNTAgTDEwMCA0NDAgWiIgZmlsbD0iI2I4YjBhOCIgc3Ryb2tlPSJ2YXIoLS1iZywjZmZmKSIgc3Ryb2tlLXdpZHRoPSI4IiBwYWludC1vcmRlcj0ic3Ryb2tlIiBzdHJva2UtbGluZWpvaW49Im1pdGVyIi8+CjwvZz4KPC9zdmc+"];
+document.querySelectorAll('canvas').forEach(c=>{const i=+c.dataset.i,dark=!!c.dataset.dark;const img=new Image();
+img.onload=()=>{const t=document.createElement('canvas');t.width=t.height=16;const x=t.getContext('2d');
+x.fillStyle=dark?'#321F19':'#ffffff';x.fillRect(0,0,16,16);x.drawImage(img,0,0,16,16);
+const g=c.getContext('2d');g.imageSmoothingEnabled=false;g.drawImage(t,0,0,96,96);};img.src=(dark?SI:S)[i];});
+</script></body></html>

@@ -2,8 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../api/client.js';
 import BannerError from '../../components/feedback/BannerError.jsx';
 import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
+import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
 import Dialogo from '../../components/Dialogo.jsx';
-import { BotonIcono, Button, Card, Select, Spinner, Table } from '../../components/ui/index.js';
+import { BotonIcono, Button, Card, Select, Table } from '../../components/ui/index.js';
+import { SkeletonTexto } from '../../components/feedback/Skeleton.jsx';
+import Insignia from '../../components/branding/Insignia.jsx';
 import { ICONOS } from '../../config/iconos.js';
 import BitacoraMetricas from './BitacoraMetricas.jsx';
 import JsonDiffViewer from './JsonDiffViewer.jsx';
@@ -22,8 +25,8 @@ function ErrorEnLinea({ texto, reintentar }) {
 
 function DetalleRegistro({ registro, onCerrar }) {
   return <Dialogo onCerrar={onCerrar} tamano="lg" labelledBy="bitacora-detalle-titulo" describedBy="bitacora-detalle-desc">
-    <header className="sticky top-0 z-10 border-b border-line bg-surface px-5 py-4 sm:px-6"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-wide text-primary">Detalle de auditoría</p><h2 id="bitacora-detalle-titulo" className="mt-1 text-lg font-semibold">{ACCION[registro.accion] ?? registro.accion} · {registro.modulo}</h2><p id="bitacora-detalle-desc" className="mt-1 text-sm text-fg-muted">{fechaLegible(registro.creado_en)} · {registro.usuario}</p></div><EstadoBadge tipo={NIVEL[registro.severidad]?.[0] ?? 'info'}>{NIVEL[registro.severidad]?.[1] ?? registro.severidad}</EstadoBadge></div></header>
-    <div className="space-y-5 p-5 sm:p-6"><dl className="grid gap-3 rounded-xl bg-muted p-4 text-sm sm:grid-cols-2"><div><dt className="text-xs text-fg-muted">Entidad</dt><dd className="mt-0.5 font-medium">{registro.entidad}</dd></div><div><dt className="text-xs text-fg-muted">IP</dt><dd className="mt-0.5 font-medium">{registro.ip_cliente || 'No registrada'}</dd></div><div className="sm:col-span-2"><dt className="text-xs text-fg-muted">Dispositivo / navegador</dt><dd className="mt-0.5 break-words font-medium">{registro.agente_cliente || 'No registrado'}</dd></div></dl><div><h3 className="mb-3 font-semibold">Cambios detectados</h3><JsonDiffViewer antes={registro.datos_antes} despues={registro.datos_despues}/></div><details className="rounded-lg border border-line"><summary className="cursor-pointer px-4 py-3 text-sm font-medium">Ver JSON completo</summary><div className="grid gap-px border-t border-line bg-line sm:grid-cols-2"><div className="bg-surface p-3"><p className="mb-2 text-xs font-semibold text-fg-muted">DATOS_ANTES</p><pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs">{JSON.stringify(registro.datos_antes, null, 2) ?? '—'}</pre></div><div className="bg-surface p-3"><p className="mb-2 text-xs font-semibold text-fg-muted">DATOS_DESPUÉS</p><pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs">{JSON.stringify(registro.datos_despues, null, 2) ?? '—'}</pre></div></div></details><div className="flex justify-end"><Button variante="secondary" onClick={onCerrar}>Cerrar</Button></div></div>
+    <header className="sticky top-0 z-10 border-b border-line bg-surface px-5 py-4 sm:px-6"><div className="flex items-start justify-between gap-4"><div><p className="rotulo">Detalle de auditoría</p><h2 id="bitacora-detalle-titulo" className="mt-1 text-h3">{ACCION[registro.accion] ?? registro.accion} · {registro.modulo}</h2><p id="bitacora-detalle-desc" className="mt-1 text-body text-fg-muted">{fechaLegible(registro.creado_en)} · {registro.usuario}</p></div><EstadoBadge tipo={NIVEL[registro.severidad]?.[0] ?? 'info'}>{NIVEL[registro.severidad]?.[1] ?? registro.severidad}</EstadoBadge></div></header>
+    <div className="space-y-5 p-5 sm:p-6"><dl className="grid gap-3 rounded-md bg-muted p-4 text-body sm:grid-cols-2"><div><dt className="text-label-sm text-fg-muted">Entidad</dt><dd className="mt-0.5 font-medium">{registro.entidad}</dd></div><div><dt className="text-label-sm text-fg-muted">IP</dt><dd className="mt-0.5 font-mono font-medium">{registro.ip_cliente || 'No registrada'}</dd></div><div className="sm:col-span-2"><dt className="text-label-sm text-fg-muted">Dispositivo / navegador</dt><dd className="mt-0.5 break-words font-medium">{registro.agente_cliente || 'No registrado'}</dd></div></dl><div><h3 className="mb-3 text-label text-fg">Cambios detectados</h3><JsonDiffViewer antes={registro.datos_antes} despues={registro.datos_despues}/></div><details className="rounded-md border border-line"><summary className="cursor-pointer px-4 py-3 text-label">Ver JSON completo</summary><div className="grid gap-px border-t border-line bg-line sm:grid-cols-2"><div className="bg-surface p-3"><p className="mb-2 font-mono text-label-sm text-fg-muted">DATOS_ANTES</p><pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words font-mono text-body-sm">{JSON.stringify(registro.datos_antes, null, 2) ?? '—'}</pre></div><div className="bg-surface p-3"><p className="mb-2 font-mono text-label-sm text-fg-muted">DATOS_DESPUÉS</p><pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words font-mono text-body-sm">{JSON.stringify(registro.datos_despues, null, 2) ?? '—'}</pre></div></div></details></div><div className="flex flex-col-reverse gap-2 border-t border-line px-6 py-4 sm:flex-row sm:justify-end"><Button variante="ghost" onClick={onCerrar}>Cerrar</Button></div>
   </Dialogo>;
 }
 
@@ -131,7 +134,7 @@ export default function BitacoraPage() {
       clave: 'modulo',
       titulo: 'Módulo',
       tipo: 'texto',
-      render: (f) => <span className="rounded-md bg-muted px-2 py-1 text-xs capitalize">{f.modulo}</span>,
+      render: (f) => <Insignia><span className="capitalize">{f.modulo}</span></Insignia>,
     },
     {
       clave: 'cliente',
@@ -139,9 +142,9 @@ export default function BitacoraPage() {
       tipo: 'texto',
       valorOrden: (f) => f.ip_cliente ?? '',
       render: (f) => (
-        <div className="max-w-[190px]">
-          <p className="font-medium">{f.ip_cliente ?? 'No registrada'}</p>
-          <p className="truncate text-xs text-fg-muted" title={f.agente_cliente}>{f.agente_cliente || 'Dispositivo no registrado'}</p>
+        <div className="max-w-48">
+          <p className="font-mono font-medium">{f.ip_cliente ?? 'No registrada'}</p>
+          <p className="truncate text-body-sm text-fg-muted" title={f.agente_cliente}>{f.agente_cliente || 'Dispositivo no registrado'}</p>
         </div>
       ),
     },
@@ -160,18 +163,18 @@ export default function BitacoraPage() {
     },
   ];
 
-  return <div className="space-y-6 pb-8">
-    <EncabezadoPagina seccion="Administración · Bitácora" titulo="Bitácora de actividad" descripcion="Rastrea cambios, accesos y patrones operativos. El análisis se calcula en PostgreSQL sobre los filtros elegidos." acciones={<div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-xs text-fg-muted"><span className="h-2 w-2 rounded-full bg-success"/> Auditoría activa</div>} />
+  return <div className="space-y-6">
+    <EncabezadoPagina seccion="Administración · Bitácora" titulo="Bitácora de actividad" descripcion="Rastrea cambios, accesos y patrones operativos. El análisis se calcula en PostgreSQL sobre los filtros elegidos." acciones={<EstadoBadge tipo="exito">Auditoría activa</EstadoBadge>} />
     <Card titulo="Filtros" descripcion="Combina período, operador, módulo, evento y texto libre."><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
-      <label className="block text-sm font-medium">Desde<input className="input mt-1.5 h-10 py-0" type="date" value={fechas.startDate} max={fechas.endDate} onChange={e=>{setFechas(f=>({...f,startDate:e.target.value}));setPagina(1);}}/></label>
-      <label className="block text-sm font-medium">Hasta<input className="input mt-1.5 h-10 py-0" type="date" value={fechas.endDate} min={fechas.startDate} max={hoyLocal()} onChange={e=>{setFechas(f=>({...f,endDate:e.target.value}));setPagina(1);}}/></label>
-      <label className="block text-sm font-medium">Operador<input className="input mt-1.5 h-10 py-0" placeholder="Nombre de usuario" value={filtros.user} onChange={e=>cambiarFiltro('user',e.target.value)}/></label>
+      <label className="block text-label">Desde<input className="input mt-1.5 h-10 py-0" type="date" value={fechas.startDate} max={fechas.endDate} onChange={e=>{setFechas(f=>({...f,startDate:e.target.value}));setPagina(1);}}/></label>
+      <label className="block text-label">Hasta<input className="input mt-1.5 h-10 py-0" type="date" value={fechas.endDate} min={fechas.startDate} max={hoyLocal()} onChange={e=>{setFechas(f=>({...f,endDate:e.target.value}));setPagina(1);}}/></label>
+      <label className="block text-label">Operador<input className="input mt-1.5 h-10 py-0" placeholder="Nombre de usuario" value={filtros.user} onChange={e=>cambiarFiltro('user',e.target.value)}/></label>
       <Select etiqueta="Módulo" value={filtros.module} onChange={e=>cambiarFiltro('module',e.target.value)} placeholder="Todos los módulos" opciones={modulos.map(m=>({valor:m,texto:m[0]?.toUpperCase()+m.slice(1)}))}/>
       <Select etiqueta="Acción" value={filtros.action} onChange={e=>cambiarFiltro('action',e.target.value)} placeholder="Todas las acciones" opciones={[{valor:'CREATE',texto:'Creación'},{valor:'UPDATE',texto:'Actualización'},{valor:'DELETE',texto:'Eliminación'},{valor:'LOGIN',texto:'Acceso'}]}/>
       <Select etiqueta="Severidad" value={filtros.severity} onChange={e=>cambiarFiltro('severity',e.target.value)} placeholder="Todas" opciones={[{valor:'',texto:'Todas'},{valor:'INFO',texto:'INFO'},{valor:'WARNING',texto:'WARNING'},{valor:'CRITICAL',texto:'CRITICAL'},{valor:'ERROR',texto:'ERROR'}]}/>
-      <label className="block text-sm font-medium">Buscar en evento<div className="relative mt-1.5"><ICONOS.buscar size={17} aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted"/><input className="input h-10 py-0 pl-9" placeholder="Entidad, datos, IP…" value={filtros.search} onChange={e=>cambiarFiltro('search',e.target.value)}/></div></label>
-    </div><div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-fg-muted">{respuesta.pagination.total.toLocaleString('es-SV')} eventos encontrados</p><Button variante="ghost" icono={ICONOS.actualizar} onClick={()=>{consultaLista();consultaMetricas();}}>Actualizar datos</Button></div></Card>
-    <section aria-label="Indicadores de auditoría">{cargandoMetricas?<Card><Spinner texto="Calculando analítica de auditoría…"/></Card>:errorMetricas?<ErrorEnLinea texto={errorMetricas} reintentar={consultaMetricas}/>:metricas?<BitacoraMetricas metricas={{...metricas,granularidad}}/>:null}</section>
+      <label className="block text-label">Buscar en evento<div className="relative mt-1.5"><ICONOS.buscar size={16} strokeWidth={1.75} aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle"/><input className="input h-10 py-0 pl-9" placeholder="Entidad, datos, IP…" value={filtros.search} onChange={e=>cambiarFiltro('search',e.target.value)}/></div></label>
+    </div><div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-body-sm tabular-nums text-fg-muted">{respuesta.pagination.total.toLocaleString('es-SV')} eventos encontrados</p><Button variante="ghost" icono={ICONOS.actualizar} onClick={()=>{consultaLista();consultaMetricas();}}>Actualizar datos</Button></div></Card>
+    <section aria-label="Indicadores de auditoría">{cargandoMetricas?<Card><SkeletonTexto lineas={4} texto="Calculando analítica de auditoría…"/></Card>:errorMetricas?<ErrorEnLinea texto={errorMetricas} reintentar={consultaMetricas}/>:metricas?<BitacoraMetricas metricas={{...metricas,granularidad}}/>:null}</section>
     <Card titulo="Registro de eventos" descripcion="Ordenado por fecha descendente; selecciona un evento para revisar sus diferencias." sinPadding>
       {error ? (
         <div className="p-5"><ErrorEnLinea texto={error} reintentar={consultaLista} /></div>
@@ -182,8 +185,8 @@ export default function BitacoraPage() {
           idFila="id_bitacora"
           idTabla="seguridad-bitacora"
           cargando={cargando}
-          vacio="No hay eventos para los filtros seleccionados."
-          maxAltura="max-h-[620px]"
+          vacio={<EstadoVacio icono={ICONOS.buscar} titulo="Sin eventos">No hay eventos para los filtros seleccionados.</EstadoVacio>}
+          maxAltura="max-h-[38rem]"
           total={respuesta.pagination.total}
           pagina={pagina}
           porPagina={porPagina}

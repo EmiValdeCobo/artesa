@@ -1,144 +1,93 @@
 /* ============================================================================
    artesa · Estilos propios del Dashboard (inicio)
-   La paleta de series vive globalmente en index.css para reutilizarse en todas las gráficas.
-
-   Tipografía: la MISMA del resto del sistema (Montserrat, definida en index.css). No se importa ninguna
-   fuente adicional; los titulares y cifras (font-display) usan Montserrat para no romper la coherencia.
-
-   Color: SOLO la paleta de marca de index.css (Terracota · Ocre · Espresso · Alabastro); se usan los hex porque Tailwind v4 solo emite las variables que usa.
-   Las series de las gráficas son tonos de esas tres familias; no hay verdes, azules ni morados.
-     --serie-1  Terracota   dato protagonista (hoy, líder del ranking, foco)
-     --serie-2  Ocre        apoyo cálido
-     --serie-3  Espresso    apoyo neutro oscuro
-     --serie-4  Terracota claro · --serie-5 Espresso medio (contexto / días cerrados) · --serie-6 Ocre medio
-   Contraste de no-texto >= 3:1 contra --bg-surface (WCAG 1.4.11); cada serie trae su versión para texto.
+   Solo referencias a tokens globales de index.css (escala tipográfica, radios, sombras, tamaños de control,
+   colores semánticos y de gráficas). Aquí no hay hex, degradados ni transparencias tipo vidrio.
+     --chart-neutral  contexto (días cerrados, periodo de comparación, resto del ranking)
+     --chart-focus    dato protagonista (hoy, líder del ranking)
+     --chart-grid     rejilla fina de las gráficas
    ============================================================================ */
 
 .tema-dashboard {
-  /* Misma familia tipográfica que el resto de la app: Tailwind lee estas variables en font-display / font-sans */
   --font-display: var(--font-sans);
   font-family: var(--font-sans);
-
-  --ocre-decorativo: #e1a651; /* solo reglas y detalles, nunca dato */
-  --panel-sombra: 0 1px 2px rgb(50 31 25 / .05), 0 10px 24px -16px rgb(50 31 25 / .35);
-
-  /* Ventas diarias · superficie editorial, cifras tabulares y grupos por líneas. */
-  --ventas-color-surface: var(--bg-surface);
-  --ventas-color-ink: var(--text-primary);
-  --ventas-color-muted: var(--text-secondary);
-  --ventas-color-line: var(--border-color);
-  --ventas-color-brand: var(--accent);
-  --ventas-color-brand-soft: var(--bg-surface);
-  --ventas-color-positive: var(--success);
-  --ventas-color-negative: var(--danger);
-  --ventas-font-sans: var(--font-sans);
-  --ventas-font-display: var(--font-display);
-  --ventas-space-1: .25rem; --ventas-space-2: .5rem; --ventas-space-3: .75rem;
-  --ventas-space-4: 1rem; --ventas-space-6: 1.5rem; --ventas-space-8: 2rem;
-  --ventas-radius-control: .375rem; --ventas-radius-row: .75rem; --ventas-radius-surface: 1.25rem;
-  --ventas-type-small: .75rem; --ventas-type-body: .875rem; --ventas-type-title: 1rem;
-  --ventas-type-total: clamp(2.25rem, 5cqi, 3rem);
-  --ventas-chart-line: var(--chart-neutral);
-  --ventas-chart-focus: var(--chart-focus);
 }
 
-.dark .tema-dashboard {
-  --panel-sombra: 0 10px 24px -16px rgb(0 0 0 / .7);
-}
+/* Selector segmentado (periodos): mismo patrón para ventas (tabs) y ranking (aria-pressed). */
+.tema-dashboard .segmentado,
+.ventas-range { display: inline-flex; flex-wrap: nowrap; max-width: 100%; gap: calc(var(--spacing) * 0.5); padding: calc(var(--spacing) * 0.5); border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-muted); }
+.tema-dashboard .segmentado-opcion,
+.ventas-range-tab { min-height: var(--spacing-control-sm); padding: 0 calc(var(--spacing) * 3); border-radius: var(--radius-sm); white-space: nowrap; color: var(--text-secondary); font-size: var(--text-label-sm); line-height: var(--text-label-sm--line-height); font-weight: 600; transition: color .16s ease, background-color .16s ease; }
+.tema-dashboard .segmentado-opcion[aria-pressed="true"],
+.ventas-range-tab[aria-selected="true"] { background: var(--bg-surface); color: var(--text-primary); box-shadow: var(--shadow-xs); }
+.tema-dashboard .segmentado-opcion:hover:not([aria-pressed="true"]),
+.ventas-range-tab:hover:not(:disabled):not([aria-selected="true"]) { color: var(--text-primary); }
+.tema-dashboard .segmentado-opcion:focus-visible,
+.ventas-range-tab:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.ventas-range-tab:disabled { opacity: .55; cursor: progress; }
 
-/* Panel de ventas: una zona protagonista y filas de lectura; los estados comparten la misma geometría. */
-.tema-dashboard .ventas-panel { container-type: inline-size; border-radius: var(--ventas-radius-surface); box-shadow: none; }
-.tema-dashboard .ventas-panel > div:first-child { min-height: auto; padding: var(--ventas-space-6) var(--ventas-space-6) 0; }
-.tema-dashboard .ventas-panel > div:first-child h2 { font-family: var(--ventas-font-display); font-size: var(--ventas-type-title); }
-.tema-dashboard .ventas-panel > div:nth-child(2) { padding: var(--ventas-space-4) var(--ventas-space-6) var(--ventas-space-6); }
-.ventas-range { display: inline-flex; flex-wrap: nowrap; gap: var(--ventas-space-1); padding: var(--ventas-space-1); border-radius: var(--ventas-radius-row); background: var(--bg-muted); }
-.ventas-range-tab { min-width: 3.5rem; min-height: 2.75rem; padding: 0 var(--ventas-space-3); border-radius: var(--ventas-radius-control); color: var(--ventas-color-muted); font: 600 var(--ventas-type-small) var(--ventas-font-sans); transition: color .16s ease, background-color .16s ease; }
-.ventas-range-tab[aria-selected="true"] { background: var(--ventas-color-brand); color: var(--text-on-accent); }
-.ventas-range-tab:hover:not(:disabled):not([aria-selected="true"]) { color: var(--ventas-color-ink); background: var(--ventas-color-surface); }
-.ventas-range-tab:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }
-.ventas-range-tab:disabled { opacity: .55; cursor: wait; }
-.ventas-hero { display: grid; grid-template-columns: minmax(10rem, .72fr) minmax(0, 1.6fr); gap: var(--ventas-space-6); align-items: center; padding: var(--ventas-space-6); border-left: 4px solid var(--ventas-color-brand); border-radius: var(--ventas-radius-row); background: var(--ventas-color-brand-soft); }
-.ventas-hero-copy { min-width: 0; color: var(--ventas-color-muted); font: 500 var(--ventas-type-body) var(--ventas-font-sans); }
+/* Ventas: cifra del día + curva por hora; después barras por día y filas de comparación. */
+.tema-dashboard .ventas-panel { container-type: inline-size; }
+.ventas-hero { display: grid; grid-template-columns: minmax(10rem, .72fr) minmax(0, 1.6fr); gap: calc(var(--spacing) * 6); align-items: center; }
+.ventas-hero-copy { min-width: 0; color: var(--text-secondary); font-size: var(--text-body); line-height: var(--text-body--line-height); }
 .ventas-hero-copy p { margin: 0; }
-.ventas-hero-value { padding: var(--ventas-space-2) 0; color: var(--ventas-color-ink); font: 700 var(--ventas-type-total) var(--ventas-font-display); font-variant-numeric: tabular-nums lining-nums; letter-spacing: -.035em; white-space: nowrap; }
+.ventas-hero-value { padding: calc(var(--spacing) * 1) 0; color: var(--text-primary); font-size: var(--text-kpi); line-height: var(--text-kpi--line-height); font-weight: var(--text-kpi--font-weight); font-variant-numeric: tabular-nums lining-nums; white-space: nowrap; }
 .ventas-hero-chart { min-width: 0; }
 .ventas-chart { margin: 0; }
 .ventas-chart-svg { display: block; width: 100%; overflow: visible; }
-.ventas-chart-grid { stroke: var(--ventas-color-line); stroke-width: 1; stroke-dasharray: 2 5; }
-.ventas-chart-prev,.ventas-chart-current { fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-width: 3; }
-.ventas-chart-prev { stroke: var(--ventas-chart-line); stroke-dasharray: 5 5; }
-.ventas-chart-current { stroke: var(--ventas-chart-focus); transition: d .22s ease; }
-.ventas-chart-point { fill: var(--ventas-chart-focus); stroke: var(--ventas-color-surface); stroke-width: 2; }
-.ventas-chart-label { fill: var(--ventas-color-muted); font: 500 var(--ventas-type-small) var(--ventas-font-sans); font-variant-numeric: tabular-nums; }
-.ventas-chart-legend { display: flex; flex-wrap: wrap; gap: var(--ventas-space-4); color: var(--ventas-color-muted); font: 500 var(--ventas-type-small) var(--ventas-font-sans); }
-.ventas-chart-legend span { display: inline-flex; align-items: center; gap: var(--ventas-space-2); }
-.ventas-chart-legend i { display: inline-block; width: 1.25rem; height: 0; border-top: 3px solid var(--ventas-chart-focus); }
-.ventas-chart-legend .ventas-legend-prev { border-color: var(--ventas-chart-line); border-top-style: dashed; }
-.ventas-daily-series { margin-top: var(--ventas-space-6); }
-.ventas-series-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--ventas-space-2) var(--ventas-space-4); margin-bottom: var(--ventas-space-2); }
-.ventas-series-heading h3 { margin: 0; color: var(--ventas-color-ink); font: 600 var(--ventas-type-body) var(--ventas-font-sans); }
-.ventas-series-heading p { margin: 0; color: var(--ventas-color-muted); font: var(--ventas-type-small) var(--ventas-font-sans); font-variant-numeric: tabular-nums; }
-.ventas-empty-today { margin: var(--ventas-space-3) 0 0; color: var(--ventas-color-muted); font: var(--ventas-type-small) var(--ventas-font-sans); }
-.ventas-stat-list { margin: var(--ventas-space-4) 0 0; }
-.ventas-stat-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(10rem, .9fr); align-items: center; gap: var(--ventas-space-4); padding: var(--ventas-space-3) 0; border-top: 1px solid var(--ventas-color-line); color: var(--ventas-color-muted); font: 500 var(--ventas-type-body) var(--ventas-font-sans); }
-.ventas-stat-row.leading { color: var(--ventas-color-ink); }
-.ventas-stat-row dd { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: flex-end; gap: var(--ventas-space-2) var(--ventas-space-3); margin: 0; text-align: right; }
-.ventas-stat-value { color: var(--ventas-color-ink); font: 650 var(--ventas-type-title) var(--ventas-font-sans); font-variant-numeric: tabular-nums lining-nums; }
-.ventas-stat-detail { font-size: var(--ventas-type-small); font-variant-numeric: tabular-nums; }
-.ventas-delta { display: inline-flex; align-items: center; gap: var(--ventas-space-1); font-size: var(--ventas-type-small); }
-.ventas-delta.positive { color: var(--ventas-color-positive); }
-.ventas-delta.negative { color: var(--ventas-color-negative); }
-.ventas-delta.neutral { color: var(--ventas-color-muted); }
-.ventas-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--ventas-space-2) var(--ventas-space-4); margin-top: var(--ventas-space-4); padding-top: var(--ventas-space-3); border-top: 1px solid var(--ventas-color-line); color: var(--ventas-color-muted); font: var(--ventas-type-small) var(--ventas-font-sans); }
-.ventas-loading { display: grid; gap: var(--ventas-space-4); }
-.ventas-loading-hero,.ventas-loading-chart,.ventas-loading-row { border-radius: var(--ventas-radius-row); background: var(--bg-muted); animation: dash-entrar 1s ease-in-out infinite alternate; }
-.ventas-loading-hero { height: 12rem; }.ventas-loading-chart { height: 1.25rem; width: 48%; }.ventas-loading-row { height: 2rem; }
-@media (max-width: 740px) {
-  .tema-dashboard .ventas-panel > div:first-child { align-items: flex-start; }
-  .ventas-hero { grid-template-columns: 1fr; gap: var(--ventas-space-3); padding: var(--ventas-space-4); }
-  .ventas-hero-value { font-size: clamp(2rem, 12cqi, 2.75rem); }
-  .ventas-stat-row { grid-template-columns: minmax(0, 1fr) auto; gap: var(--ventas-space-2); }
+.ventas-chart-grid { stroke: var(--chart-grid); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.ventas-chart-prev,.ventas-chart-current { fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.ventas-chart-prev { stroke: var(--chart-neutral); stroke-dasharray: 4 4; }
+.ventas-chart-current { stroke: var(--chart-focus); stroke-width: 2.5; transition: d .22s ease; }
+.ventas-chart-point { fill: var(--chart-focus); stroke: var(--bg-surface); stroke-width: 2; }
+.ventas-chart-label { fill: var(--text-secondary); font-size: var(--text-label-sm); font-variant-numeric: tabular-nums; }
+.ventas-chart-legend { display: flex; flex-wrap: wrap; gap: calc(var(--spacing) * 4); margin-top: calc(var(--spacing) * 2); color: var(--text-secondary); font-size: var(--text-label-sm); line-height: var(--text-label-sm--line-height); }
+.ventas-chart-legend span { display: inline-flex; align-items: center; gap: calc(var(--spacing) * 2); }
+.ventas-chart-legend i { display: inline-block; width: 1.25rem; height: 0; border-top: 2px solid var(--chart-focus); }
+.ventas-chart-legend .ventas-legend-prev { border-color: var(--chart-neutral); border-top-style: dashed; }
+.ventas-daily-series { margin-top: calc(var(--spacing) * 6); padding-top: calc(var(--spacing) * 4); border-top: 1px solid var(--border-color); }
+.ventas-series-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: calc(var(--spacing) * 2) calc(var(--spacing) * 4); margin-bottom: calc(var(--spacing) * 2); }
+.ventas-series-heading h3 { margin: 0; color: var(--text-primary); font-size: var(--text-body); line-height: var(--text-body--line-height); font-weight: 600; }
+.ventas-series-heading p { margin: 0; color: var(--text-secondary); font-size: var(--text-label-sm); font-variant-numeric: tabular-nums; }
+.ventas-empty-today { margin: calc(var(--spacing) * 3) 0 0; color: var(--text-secondary); font-size: var(--text-label-sm); }
+.ventas-stat-list { margin: calc(var(--spacing) * 4) 0 0; }
+.ventas-stat-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(10rem, .9fr); align-items: center; gap: calc(var(--spacing) * 4); padding: calc(var(--spacing) * 2.5) 0; border-top: 1px solid var(--border-color); color: var(--text-secondary); font-size: var(--text-body); line-height: var(--text-body--line-height); }
+.ventas-stat-row.leading { color: var(--text-primary); font-weight: 500; }
+.ventas-stat-row dd { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: flex-end; gap: calc(var(--spacing) * 2) calc(var(--spacing) * 3); margin: 0; text-align: right; }
+.ventas-stat-value { color: var(--text-primary); font-size: var(--text-body-lg); font-weight: 600; font-variant-numeric: tabular-nums lining-nums; }
+.ventas-stat-detail { font-size: var(--text-label-sm); font-variant-numeric: tabular-nums; }
+.ventas-delta { display: inline-flex; align-items: center; gap: calc(var(--spacing) * 1); font-size: var(--text-label-sm); }
+.ventas-delta.positive { color: var(--success-text); }
+.ventas-delta.negative { color: var(--danger-text); }
+.ventas-delta.neutral { color: var(--text-secondary); }
+.ventas-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: calc(var(--spacing) * 2) calc(var(--spacing) * 4); margin-top: calc(var(--spacing) * 4); padding-top: calc(var(--spacing) * 3); border-top: 1px solid var(--border-color); color: var(--text-secondary); font-size: var(--text-label-sm); line-height: var(--text-label-sm--line-height); }
+.ventas-loading { display: grid; gap: calc(var(--spacing) * 4); }
+
+/* Más vendidos: filas compactas con divisor fino; puesto | nombre + barra | unidades. */
+.tema-dashboard .top-fila { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr) max-content; align-items: center; column-gap: calc(var(--spacing) * 3); padding: calc(var(--spacing) * 2.5) calc(var(--spacing) * 1); border-radius: var(--radius-sm); transition: background-color .16s ease; }
+.tema-dashboard .top-fila:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+.tema-dashboard .top-barra { height: .25rem; margin-top: calc(var(--spacing) * 1.5); border-radius: var(--radius-xs); background: var(--chart-grid); overflow: hidden; }
+.tema-dashboard .top-barra > div { height: 100%; border-radius: var(--radius-xs); }
+
+/* Alertas: filas compactas dentro de cada grupo de severidad. */
+.tema-dashboard .alerta-fila { display: flex; align-items: flex-start; gap: calc(var(--spacing) * 3); padding: calc(var(--spacing) * 2.5) calc(var(--spacing) * 1); border-radius: var(--radius-sm); transition: background-color .16s ease; }
+.tema-dashboard .alerta-fila:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+
+@media (max-width: 767px) {
+  .ventas-hero { grid-template-columns: 1fr; gap: calc(var(--spacing) * 3); }
+  .ventas-stat-row { grid-template-columns: minmax(0, 1fr) auto; gap: calc(var(--spacing) * 2); }
   .ventas-stat-row dd { max-width: 60%; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .ventas-range-tab,.ventas-chart-current { transition: none; }
-  .ventas-loading-hero,.ventas-loading-chart,.ventas-loading-row { animation: none; }
+  .tema-dashboard .segmentado-opcion, .ventas-range-tab { min-height: var(--spacing-control-md); }
 }
 
-/* Cifras: alineadas y sin variantes decorativas */
-.tema-dashboard .font-display { font-optical-sizing: auto; }
-.tema-dashboard h1.font-display { letter-spacing: -0.02em; }
-
-/* Tarjeta: esquinas amplias y sombra suave (el color vive en el punto del título, no en una regla) */
-.tema-dashboard .panel-dash {
-  box-shadow: var(--panel-sombra);
-  border-radius: 1.25rem;
-}
-
-/* Los KPI responden al ancho real de su panel (Ventas comparte fila con Más vendidos). */
-.tema-dashboard .panel-ventas { container-type: inline-size; }
-.tema-dashboard .ventas-kpis { grid-template-columns: minmax(0, 1fr); }
-.tema-dashboard .indicador-ventas-valor { font-size: clamp(1rem, 2.3cqi, 1.25rem); font-variant-numeric: tabular-nums; }
-.tema-dashboard .indicador-ventas-titulo { font-size: clamp(.6875rem, 1.5cqi, .75rem); }
-.tema-dashboard .indicador-ventas-nota { font-size: clamp(.6875rem, 1.25cqi, .75rem); }
-@container (min-width: 420px) {
-  .tema-dashboard .ventas-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@container (min-width: 760px) {
-  .tema-dashboard .ventas-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
-
-/* Animaciones del dashboard (las clases ya se usaban en el JSX pero no estaban definidas) */
-@keyframes dash-entrar { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-@keyframes dash-barra { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+/* Movimiento: entrada discreta de los bloques y crecimiento de las barras del ranking. */
+@keyframes dash-entrar { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @keyframes dash-barra-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes dash-tip { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-
-.tema-dashboard .anim-entrar { animation: dash-entrar .5s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--retardo, 0ms); }
-.tema-dashboard .anim-barra { transform-box: fill-box; transform-origin: bottom; animation: dash-barra .6s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--retardo, 0ms); }
-.tema-dashboard .anim-barra-x { transform-origin: left; animation: dash-barra-x .7s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--retardo, 0ms); }
+.tema-dashboard .anim-entrar { animation: dash-entrar .35s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--retardo, 0ms); }
+.tema-dashboard .anim-barra-x { transform-origin: left; animation: dash-barra-x .6s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--retardo, 0ms); }
 .tema-dashboard .anim-tip { animation: dash-tip .15s ease-out both; }
 
 @media (prefers-reduced-motion: reduce) {
-  .tema-dashboard .anim-entrar, .tema-dashboard .anim-barra, .tema-dashboard .anim-barra-x, .tema-dashboard .anim-tip { animation: none; }
+  .ventas-range-tab, .ventas-chart-current, .tema-dashboard .segmentado-opcion, .tema-dashboard .top-fila, .tema-dashboard .alerta-fila { transition: none; }
+  .tema-dashboard .anim-entrar, .tema-dashboard .anim-barra-x, .tema-dashboard .anim-tip { animation: none; }
 }

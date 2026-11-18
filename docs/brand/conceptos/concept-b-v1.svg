@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs><mask id="corte"><rect width="512" height="512" fill="#fff"/>
+  <path d="M196 214 Q256 176 318 196" fill="none" stroke="#000" stroke-width="22" stroke-linecap="round"/></mask></defs>
+<path fill="#6b6b6b" mask="url(#corte)" d="M128 268 C128 168 192 122 256 122 C320 122 384 168 384 268 Z"/>
+<path fill="#1a1a1a" d="M78 288 H434 Q446 288 442 300 L398 414 Q392 428 378 428 H134 Q120 428 114 414 L70 300 Q66 288 78 288 Z"/>
+</svg>

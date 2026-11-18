@@ -74,7 +74,8 @@ export const listar = (filtros) => repo.listar(filtros.idSucursal, filtros.desde
 export async function obtener(id) {
   const planilla = await repo.unaPlanilla(id);
   if (!planilla) throw new AppError('Planilla no encontrada', 404);
-  return { planilla, empleados: await repo.detalle(id) };
+  const [empleados, totales] = await Promise.all([repo.detalle(id), repo.totalesDetalle(id)]);
+  return { planilla, empleados, totales };
 }
 const usd = (v) => `$${Number(v).toFixed(2)}`;
 export async function pdfPlanilla(id) {

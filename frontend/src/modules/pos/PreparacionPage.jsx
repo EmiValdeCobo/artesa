@@ -17,7 +17,9 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
-import { Button, Spinner } from '../../components/ui/index.js';
+import { Button } from '../../components/ui/index.js';
+import Insignia from '../../components/branding/Insignia.jsx';
+import Skeleton, { PuntosCarga } from '../../components/feedback/Skeleton.jsx';
 import Metrica from '../../components/display/Metrica.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
 import { preparacionApi } from '../../api/preparacion.api.js';
@@ -39,31 +41,22 @@ const ESTADOS = {
     label: 'Nueva',
     siguiente: 'EN_PREPARACION',
     accion: 'Iniciar preparación',
-    color: 'border-amber-300 dark:border-amber-600/50 bg-surface',
-    badge: 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300',
     icono: ClipboardList,
     iconoAccion: Flame,
-    boton: 'bg-terracota-500 hover:bg-terracota-600 active:bg-terracota-700 text-white shadow-sm',
   },
   EN_PREPARACION: {
     label: 'En preparación',
     siguiente: 'LISTA',
     accion: 'Marcar como lista',
-    color: 'border-blue-300 dark:border-blue-600/50 bg-surface',
-    badge: 'bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300',
     icono: Flame,
     iconoAccion: CheckCircle2,
-    boton: 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-sm',
   },
   LISTA: {
     label: 'Lista para entregar',
     siguiente: 'ENTREGADA',
     accion: 'Marcar entregada',
-    color: 'border-emerald-300 dark:border-emerald-600/50 bg-surface',
-    badge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300',
     icono: CheckCircle2,
     iconoAccion: CircleCheck,
-    boton: 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-sm',
   },
 };
 
@@ -76,8 +69,8 @@ const INTERVALO_POLLING = 15_000;
 
 // Clasifica urgencia por minutos de espera
 function urgencia(minutos) {
-  if (minutos >= 15) return 'text-danger font-bold';
-  if (minutos >= 8) return 'text-warning font-semibold';
+  if (minutos >= 15) return 'text-danger-text font-semibold';
+  if (minutos >= 8) return 'text-warning-text font-medium';
   return 'text-fg-muted';
 }
 
@@ -98,16 +91,14 @@ function TarjetaOrden({
     <article
       onPointerDown={!enProgreso && !esClonFlotante ? (e) => onPointerDown?.(e, orden) : undefined}
       aria-grabbed={estaSiendoArrastrada ? 'true' : 'false'}
-      className={`relative flex flex-col gap-3 rounded-xl border-2 p-4 shadow-sm select-none touch-none ${
-        cfg?.color ?? ''
-      } ${
+      className={`relative flex flex-col gap-3 rounded-md border border-line bg-surface p-3 select-none touch-none ${
         esClonFlotante
-          ? 'shadow-2xl border-primary ring-2 ring-primary/40 opacity-95 motion-safe:rotate-2'
+          ? 'shadow-md ring-2 ring-primary/40 motion-safe:rotate-1'
           : estaSiendoArrastrada
-            ? 'opacity-30 border-dashed scale-[0.98] pointer-events-none'
+            ? 'opacity-40 border-dashed pointer-events-none shadow-xs'
             : regresando
-              ? 'transition-transform duration-300 ease-out scale-100'
-              : 'cursor-grab active:cursor-grabbing hover:shadow-md transition-all'
+              ? 'shadow-xs transition-transform duration-200 ease-out'
+              : 'shadow-xs cursor-grab active:cursor-grabbing hover:border-line-strong transition-colors'
       } ${enProgreso ? 'opacity-70 cursor-not-allowed' : ''}`}
     >
       <span className="sr-only">
@@ -120,27 +111,22 @@ function TarjetaOrden({
         <div className="flex items-start gap-1.5">
           {!esClonFlotante && !enProgreso && (
             <GripVertical
-              size={15}
-              className="mt-0.5 shrink-0 text-fg-muted/60 hover:text-fg transition-colors"
+              size={16}
+              strokeWidth={1.75}
+              className="mt-1 shrink-0 text-fg-subtle"
               aria-hidden="true"
             />
           )}
           <div>
-            <span
-              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                cfg?.badge ?? ''
-              }`}
-            >
-              {cfg?.label}
-            </span>
-            <p className="mt-1 text-xs font-medium text-fg-muted">
-              #{orden.id_orden}
-              {orden.etiqueta ? ` · ${orden.etiqueta}` : ''}
-              {orden.canal ? ` · ${orden.canal}` : ''}
-            </p>
+            <p className="font-mono text-h3 tabular-nums text-fg">#{orden.id_orden}</p>
+            {(orden.etiqueta || orden.canal) && (
+              <p className="text-body-sm text-fg-muted">
+                {[orden.etiqueta, orden.canal].filter(Boolean).join(' · ')}
+              </p>
+            )}
           </div>
         </div>
-        <div className="text-right text-xs">
+        <div className="text-right text-label-sm tabular-nums">
           <p className="text-fg-muted">{horaDe(orden.creado_en)}</p>
           <p className={`mt-0.5 ${urgencia(orden.minutos_espera)}`}>
             {orden.minutos_espera === 0 ? 'Recién llegada' : `${orden.minutos_espera} min`}
@@ -149,26 +135,26 @@ function TarjetaOrden({
       </div>
 
       {/* Sucursal */}
-      <div className="flex items-center gap-1 text-xs text-fg-muted">
-        <Store size={12} />
+      <div className="flex items-center gap-1.5 text-body-sm text-fg-muted">
+        <Store size={16} strokeWidth={1.75} aria-hidden="true" />
         <span>{orden.sucursal}</span>
       </div>
 
       {/* Ítems */}
       <ul className="space-y-1">
         {orden.items.map((item) => (
-          <li key={item.id_detalle} className="flex items-start gap-2 text-sm">
-            <Package size={13} className="mt-0.5 shrink-0 text-fg-muted" />
+          <li key={item.id_detalle} className="flex items-start gap-2 text-body text-fg">
+            <Package size={16} strokeWidth={1.75} className="mt-0.5 shrink-0 text-fg-subtle" aria-hidden="true" />
             <span className="flex-1">
-              <span className="font-semibold">{item.cantidad}×</span> {item.producto}
+              <span className="font-semibold tabular-nums">{item.cantidad}×</span> {item.producto}
               {item.nota && (
-                <span className="ml-1 text-xs text-fg-muted italic">— {item.nota}</span>
+                <span className="ml-1 text-body-sm text-fg-muted">— {item.nota}</span>
               )}
             </span>
           </li>
         ))}
         {orden.items.length === 0 && (
-          <li className="text-xs text-fg-muted italic">Sin productos registrados</li>
+          <li className="text-body-sm text-fg-muted">Sin productos registrados</li>
         )}
       </ul>
 
@@ -181,15 +167,13 @@ function TarjetaOrden({
             onAvanzar(orden.id_orden, cfg.siguiente);
           }}
           disabled={enProgreso || estaSiendoArrastrada || esClonFlotante}
-          className={`mt-auto flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-white shadow-sm transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
-            cfg.boton ?? 'bg-terracota-500 hover:bg-terracota-600'
-          }`}
+          className="btn-secondary btn-sm mt-auto w-full disabled:cursor-not-allowed disabled:opacity-50"
         >
           {enProgreso ? (
-            <Spinner size={16} />
+            <PuntosCarga />
           ) : (
             <>
-              <IconoAccion size={16} />
+              <IconoAccion size={16} strokeWidth={1.75} aria-hidden="true" />
               <span>{cfg.accion}</span>
             </>
           )}
@@ -219,26 +203,22 @@ function Columna({
   return (
     <section
       data-zona-drop={estado}
-      className={`flex min-w-0 flex-1 flex-col gap-3 rounded-2xl p-3 border-2 transition-all duration-200 ${
-        resaltarColumna
-          ? 'border-primary/60 bg-primary/5 dark:bg-primary/10 ring-2 ring-primary/30'
-          : 'border-transparent bg-muted/40'
+      className={`flex min-w-0 flex-1 flex-col gap-3 rounded-lg p-3 transition-colors duration-200 ${
+        resaltarColumna ? 'bg-primary-soft/60' : 'bg-muted'
       }`}
     >
       {/* Cabecera de columna */}
-      <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2">
-        <Icono size={16} className="text-fg-muted" />
-        <h2 className="font-semibold text-fg">{cfg?.label}</h2>
-        <span className="ml-auto rounded-full bg-line px-2 py-0.5 text-xs font-bold text-fg-muted">
-          {ordenes.length}
-        </span>
+      <div className="flex items-center gap-2 px-1 py-1">
+        <Icono size={16} strokeWidth={1.75} className="text-fg-muted" aria-hidden="true" />
+        <h2 className="text-label text-fg">{cfg?.label}</h2>
+        <Insignia className="ml-auto">{ordenes.length}</Insignia>
       </div>
 
       {/* Tarjetas */}
-      <div className="flex flex-col gap-3 min-h-[140px]">
+      <div className="flex min-h-36 flex-col gap-3">
         {/* Marcador de posición (placeholder) si el cursor está sobre esta columna válida */}
         {resaltarColumna && (
-          <div className="rounded-xl border-2 border-dashed border-primary/50 bg-primary/10 p-4 text-center text-xs font-semibold text-primary transition-all motion-safe:animate-pulse">
+          <div className="rounded-md border-2 border-dashed border-primary/50 bg-primary-soft p-4 text-center text-label-sm text-primary-text">
             Soltar aquí para mover a {cfg?.label}
           </div>
         )}
@@ -256,7 +236,7 @@ function Columna({
         ))}
 
         {ordenes.length === 0 && !resaltarColumna && (
-          <p className="rounded-xl border border-dashed border-line py-8 text-center text-sm text-fg-muted">
+          <p className="rounded-md border border-dashed border-line-strong py-8 text-center text-body-sm text-fg-muted">
             Sin órdenes
           </p>
         )}
@@ -431,7 +411,21 @@ export default function PreparacionPage() {
 
   // Carga inicial
   if (cargando) {
-    return <Spinner texto="Cargando cola de preparación…" />;
+    return (
+      <div role="status" className="space-y-6">
+        <span className="sr-only">Cargando cola de preparación…</span>
+        <Skeleton className="h-8 w-64" />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {COLUMNAS.map((estado) => (
+            <div key={estado} className="space-y-3 rounded-lg bg-muted p-3">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-32 w-full rounded-md" />
+              <Skeleton className="h-32 w-full rounded-md" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -444,8 +438,8 @@ export default function PreparacionPage() {
         acciones={
           <div className="flex items-center gap-3">
             {ultimaActualizacion && (
-              <p className="text-xs text-fg-muted">
-                <Clock size={12} className="mr-1 inline" />
+              <p className="text-body-sm text-fg-muted">
+                <Clock size={16} strokeWidth={1.75} className="mr-1 inline align-text-bottom" aria-hidden="true" />
                 Actualizado {haceCuanto(ultimaActualizacion)}
               </p>
             )}
@@ -498,25 +492,22 @@ export default function PreparacionPage() {
       {arrastre.activo && arrastre.orden?.estado === 'LISTA' && (
         <div
           data-zona-drop="ENTREGADA"
-          className={`flex items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-5 transition-all duration-200 ${
+          className={`flex items-center justify-center gap-3 rounded-lg border-2 border-dashed p-5 transition-colors duration-200 ${
             arrastre.columnaSobre === 'ENTREGADA'
-              ? 'border-emerald-500 bg-emerald-500/20 scale-[1.01] shadow-lg ring-2 ring-emerald-500/40 text-emerald-900 dark:text-emerald-100'
-              : 'border-emerald-500/50 bg-emerald-50/70 text-emerald-800 dark:border-emerald-600/40 dark:bg-emerald-950/30 dark:text-emerald-300'
+              ? 'border-success bg-success-soft text-success-text ring-2 ring-success/40'
+              : 'border-success/50 bg-surface text-success-text'
           }`}
         >
           <CircleCheck
             size={24}
-            className={
-              arrastre.columnaSobre === 'ENTREGADA'
-                ? 'text-emerald-600 dark:text-emerald-400 motion-safe:animate-bounce'
-                : 'text-emerald-600 dark:text-emerald-400'
-            }
+            strokeWidth={1.75}
+            aria-hidden="true"
           />
           <div>
-            <p className="font-bold text-sm">
+            <p className="text-label">
               Soltar aquí para marcar como ENTREGADA
             </p>
-            <p className="text-xs opacity-80">
+            <p className="text-body-sm">
               La orden saldrá de la cola activa de barra/cocina
             </p>
           </div>
@@ -563,11 +554,11 @@ export default function PreparacionPage() {
       )}
 
       {/* Nota de polling */}
-      <p className="text-center text-xs text-fg-muted">
+      <p className="text-center text-body-sm text-fg-muted">
         La cola se recarga automáticamente cada {INTERVALO_POLLING / 1000} segundos.
         {actualizando && (
-          <span className="ml-2 inline-flex items-center gap-1 text-info">
-            <RefreshCw size={11} className="animate-spin" /> Actualizando…
+          <span className="ml-2 inline-flex items-center gap-1.5 text-fg-muted">
+            <PuntosCarga /> Actualizando…
           </span>
         )}
       </p>

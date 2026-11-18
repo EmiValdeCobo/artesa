@@ -41,9 +41,9 @@ const wrap = (texto, max = 42) => {
 function planillaPage(textos) {
   const comandos = [rect(0, 0, 842, 595, COLORS.alabastro), rect(28, 28, 786, 539, COLORS.blanco, COLORS.line, 1)];
   comandos.push(rect(28, 513, 786, 54, COLORS.espresso));
-  comandos.push(rect(34, 517, 82, 46, COLORS.espresso));
-  comandos.push(image(38, 520, 84, 40.83));
-  comandos.push(pdfText(122, 534, 24, textos[0] ?? 'Planilla mensual', 'F2', COLORS.blanco));
+  // Lockup 1600x480 (ya incluye el área de respeto): 40 pt de alto x 133.33 pt de ancho.
+  comandos.push(image(36, 520, 133.33, 40));
+  comandos.push(pdfText(190, 532, 22, textos[0] ?? 'Planilla mensual', 'F2', COLORS.blanco));
   comandos.push(line(48, 493, 794, 493, COLORS.ocre, 1.2));
   comandos.push(pdfText(48, 475, 9, textos[1] ?? '', 'F2'));
   const encabezado = (textos[2] ?? '').split('|').map((v) => v.trim());
@@ -77,9 +77,9 @@ function planillaPage(textos) {
 function boletaPage(textos) {
   const comandos = [rect(0, 0, 595, 842, COLORS.alabastro), rect(30, 30, 535, 782, COLORS.blanco, COLORS.line, 1)];
   comandos.push(rect(30, 720, 535, 90, COLORS.espresso));
-  comandos.push(rect(38, 729, 92, 74, COLORS.espresso));
-  comandos.push(image(30, 730, 130, 65.17));
-  comandos.push(pdfText(310, 760, 27, 'Boleta de pago a empleado', 'F2', COLORS.blanco, 'center'));
+  // Lockup 1600x480 (ya incluye el área de respeto): 60 pt de alto x 200 pt de ancho.
+  comandos.push(image(38, 735, 200, 60));
+  comandos.push(pdfText(262, 758, 19, 'Boleta de pago a empleado', 'F2', COLORS.blanco));
   comandos.push(rect(30, 680, 535, 40, COLORS.muted));
   comandos.push(pdfText(46, 701, 9, textos[1] ?? '', 'F2'));
   comandos.push(pdfText(46, 687, 8.5, textos[0] ?? '', 'F1', COLORS.secondary));
@@ -112,7 +112,7 @@ function genericPage(textos) {
 }
 
 function buildPdf(pages, width, height) {
-  const objects = ['<< /Type /Catalog /Pages 2 0 R >>', null, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>', '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>', `<< /Type /XObject /Subtype /Image /Width 1200 /Height 500 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${LOGO.length} >>\nstream\n`];
+  const objects = ['<< /Type /Catalog /Pages 2 0 R >>', null, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>', '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>', `<< /Type /XObject /Subtype /Image /Width 1600 /Height 480 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${LOGO.length} >>\nstream\n`];
   objects[4] += LOGO.toString('binary') + '\nendstream';
   const pageRefs = [];
   pages.forEach((content, index) => {

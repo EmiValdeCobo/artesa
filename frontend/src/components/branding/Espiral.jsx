@@ -1,5 +1,5 @@
 // Espiral de Arquímedes: el "hilo" de la marca (la voluta del isotipo) como línea continua.
-// Se usa como arte del login y como indicador de carga.
+// Se usa como arte del login; HiloSpinner (abajo) es el indicador de carga de los botones.
 export function rutaEspiral({ cx = 0, cy = 0, r0 = 0, r1 = 100, vueltas = 3, fase = 0, pasos = 360 }) {
   const total = vueltas * Math.PI * 2;
   let d = '';
@@ -13,13 +13,12 @@ export function rutaEspiral({ cx = 0, cy = 0, r0 = 0, r1 = 100, vueltas = 3, fas
   return d.trim();
 }
 
-const RUTA_SPINNER = rutaEspiral({ cx: 12, cy: 12, r0: 1, r1: 9.5, vueltas: 2.2, pasos: 90 });
-
-// Indicador de carga: la espiral de la marca girando.
+// Indicador de carga de los botones (nombre conservado por compatibilidad). Ya no gira:
+// tres puntos que laten y heredan el color del texto. `size` (px, base 18) escala el grupo.
 export function HiloSpinner({ size = 18, className = '' }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" className={`animate-spin ${className}`}>
-      <path d={RUTA_SPINNER} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <span aria-hidden="true" className={`puntos-carga ${className}`.trim()} style={{ zoom: size / 18 }}>
+      <span /><span /><span />
+    </span>
   );
 }
