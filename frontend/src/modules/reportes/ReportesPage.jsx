@@ -14,6 +14,7 @@ import {
   WalletCards,
   Wallet,
 } from 'lucide-react';
+import { escaparCeldaCsv } from '../../utils/csv.js';
 import { api } from '../../api/client.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
@@ -135,10 +136,9 @@ function construirVentasSucursal(ventas) {
 function exportarCsv(nombre, filas) {
   if (!filas.length) return;
   const claves = [...new Set(filas.flatMap((fila) => Object.keys(fila)))].filter((clave) => clave !== '_fila');
-  const escapar = (valor) => `"${String(valor ?? '').replaceAll('"', '""')}"`;
   const contenido = [
-    claves.map(escapar).join(','),
-    ...filas.map((fila) => claves.map((clave) => escapar(fila[clave])).join(',')),
+    claves.map(escaparCeldaCsv).join(','),
+    ...filas.map((fila) => claves.map((clave) => escaparCeldaCsv(fila[clave])).join(',')),
   ].join('\r\n');
   const url = URL.createObjectURL(new Blob(['\ufeff', contenido], { type: 'text/csv;charset=utf-8' }));
   const enlace = document.createElement('a');

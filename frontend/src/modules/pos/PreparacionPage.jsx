@@ -348,7 +348,7 @@ export default function PreparacionPage() {
     if (!puedeVer) return;
     intervalRef.current = setInterval(() => {
       // Si hay un arrastre activo o cambios locales pendientes de enviar, el polling no pisa
-      cargar(true);
+      if (!document.hidden) cargar(true);
     }, INTERVALO_POLLING);
     return () => clearInterval(intervalRef.current);
   }, [puedeVer, cargar]);
@@ -409,10 +409,9 @@ export default function PreparacionPage() {
 
   // Agrupar por estado
   const columnas = useMemo(() => {
-    return COLUMNAS.reduce((acc, estado) => {
-      acc[estado] = cola.filter((o) => o.estado === estado);
-      return acc;
-    }, {});
+    const grupos = Object.fromEntries(COLUMNAS.map((estado) => [estado, []]));
+    for (const orden of cola) grupos[orden.estado]?.push(orden);
+    return grupos;
   }, [cola]);
 
   const totalActivas = cola.length;

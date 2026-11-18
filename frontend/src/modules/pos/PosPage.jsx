@@ -111,11 +111,11 @@ export default function PosPage() {
   };
 
   return (
-    <div className={`mx-auto max-w-7xl lg:flex lg:h-[calc(100dvh-4rem)] lg:flex-col ${unidades > 0 ? 'pb-20 lg:pb-0' : ''}`}>
-      <EncabezadoPagina seccion="Operación · Punto de venta" titulo="Punto de venta" descripcion="Toca un producto del menú para agregarlo al pedido." />
+    <div className={`mx-auto max-w-7xl ${unidades > 0 ? 'pb-20 lg:pb-0' : ''}`}>
+      <EncabezadoPagina seccion="Operación · Punto de venta" titulo="Punto de venta" descripcion="Toca un producto del menú para agregarlo al pedido." className="shrink-0" />
 
       {/* Indicador de sucursal operativa y estado del turno de caja */}
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-2.5 text-sm shadow-sm">
+      <div className="mt-2.5 flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface px-3.5 py-2 text-xs shadow-sm sm:mt-3 sm:px-4 sm:py-2.5 sm:text-sm">
         <div className="flex items-center gap-2">
           <Store size={16} className="text-primary" />
           <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-muted">Sucursal:</span>
@@ -154,8 +154,8 @@ export default function PosPage() {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-5 lg:min-h-0 lg:flex-1 lg:grid-cols-[1fr_22rem] lg:grid-rows-[minmax(0,1fr)]">
-        <section aria-label="Menú" className="scroll-fino lg:min-h-0 lg:overflow-y-auto lg:pb-4 lg:pl-1 lg:pr-2 lg:pt-1 lg:[scrollbar-gutter:stable]">
+      <div className="mt-4 grid gap-4 sm:mt-5 lg:items-start lg:grid-cols-[1fr_22rem]">
+        <section aria-label="Menú" className="scroll-fino lg:max-h-[calc(100dvh-14rem)] lg:overflow-y-auto lg:pb-4 lg:pl-1 lg:pr-2 lg:pt-1 lg:[scrollbar-gutter:stable]">
           {!puedeVerMenu ? (
             <div className="card">
               <EstadoVacio icono={ShieldAlert} titulo="Tu rol no puede consultar el menú">
@@ -212,7 +212,7 @@ export default function PosPage() {
           )}
         </section>
 
-        <div className="lg:min-h-0">
+        <div className="flex flex-col">
           <Carrito
             items={items}
             tipoDocumento={documento}

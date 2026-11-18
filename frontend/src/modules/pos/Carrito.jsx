@@ -266,12 +266,12 @@ export default function Carrito({
   };
 
   return (
-    <aside id="pedido-actual" className="card flex h-full max-h-[85dvh] scroll-mt-20 flex-col !p-0 lg:max-h-none" aria-label="Pedido actual">
-      <header className="shrink-0 border-b border-line p-4">
-        <h2 className="font-semibold">Pedido actual</h2>
+    <aside id="pedido-actual" className="card flex h-auto flex-col gap-4 scroll-mt-20 p-5" aria-label="Pedido actual">
+      <header className="shrink-0">
+        <h2 className="font-semibold text-sm sm:text-base">Pedido actual</h2>
         <p className="text-xs text-fg-muted">{unidades} {unidades === 1 ? 'producto' : 'productos'}</p>
-        {tipos.length < 2 ? <p className="mt-3 text-xs text-fg-muted">Documento: {tipos[0].texto}</p> : (
-          <div className="mt-3 grid grid-cols-2 gap-1 rounded-lg bg-muted p-1" role="radiogroup" aria-label="Tipo de documento">
+        {tipos.length < 2 ? <p className="mt-2.5 text-xs text-fg-muted sm:mt-3">Documento: {tipos[0].texto}</p> : (
+          <div className="mt-2.5 grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 sm:mt-3" role="radiogroup" aria-label="Tipo de documento">
             {tipos.map((t) => (
               <button key={t.valor} type="button" role="radio" aria-checked={tipoDocumento === t.valor} onClick={() => onTipoDocumento(t.valor)}
                 className={`rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${tipoDocumento === t.valor ? 'bg-surface text-fg shadow-sm' : 'text-fg-muted hover:text-fg'}`}>
@@ -282,7 +282,7 @@ export default function Carrito({
         )}
 
         {/* Afiliación de cliente (Opcional para FCF / Cliente Premium, Obligatorio con NRC para CCF) */}
-        <div className="mt-3 rounded-lg border border-line bg-muted/40 p-2.5 text-xs">
+        <div className="mt-2.5 rounded-lg border border-line bg-muted/40 p-2 sm:mt-3 sm:p-2.5 text-xs">
           <div className="flex items-center justify-between gap-2">
             <span className="font-medium text-fg">
               {esCCF ? 'Contribuyente CCF *' : 'Cliente afiliado (opcional)'}
@@ -365,7 +365,7 @@ export default function Carrito({
                   className="input w-full !py-1.5 pl-7 pr-2 text-xs"
                 />
               </div>
-              <div className="max-h-36 divide-y divide-line overflow-y-auto rounded-md border border-line bg-surface">
+              <div className="max-h-28 divide-y divide-line overflow-y-auto rounded-md border border-line bg-surface sm:max-h-36">
                 {cargandoClientes ? (
                   <p className="p-2 text-center text-[11px] text-fg-muted">Buscando clientes...</p>
                 ) : resultadosCliente.length === 0 ? (
@@ -407,43 +407,47 @@ export default function Carrito({
         </div>
       </header>
 
-      <div className="scroll-fino min-h-0 flex-1 overflow-y-auto py-4 pl-4 pr-2 [scrollbar-gutter:stable]">
-        {items.length === 0 ? (
-          <div className="flex h-full min-h-32 flex-col items-center justify-center gap-2 text-center text-sm text-fg-muted">
-            <ReceiptText size={26} aria-hidden="true" />
-            <p>Toca un producto del catálogo para empezar el pedido.</p>
-          </div>
-        ) : (
-          <ul className="divide-y divide-line">
-            {items.map((i) => (
-              <li key={i.id_producto} className="flex items-center gap-3 py-3">
-                <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 text-sm font-medium leading-snug">{i.nombre}</p>
-                  <p className="text-xs text-fg-muted">{formatoMoneda(i.precio)} c/u</p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <BotonIcono icono={Minus} className="h-9 w-9 justify-center" etiqueta={`Quitar una unidad de ${i.nombre}`}
-                    onClick={() => dispatch({ tipo: 'cambiarCantidad', id: i.id_producto, cantidad: i.cantidad - 1 })} />
-                  <span className="w-6 text-center text-sm font-semibold" aria-live="polite">{i.cantidad}</span>
-                  <BotonIcono icono={Plus} className="h-9 w-9 justify-center" etiqueta={`Agregar una unidad de ${i.nombre}`} disabled={i.cantidad >= i.stock}
-                    onClick={() => dispatch({ tipo: 'cambiarCantidad', id: i.id_producto, cantidad: i.cantidad + 1 })} />
-                </div>
-                <p className="w-16 text-right text-sm font-semibold">{formatoMoneda(i.precio * i.cantidad)}</p>
-                <BotonIcono icono={ICONOS.eliminar} tono="peligro" className="h-9 w-9 justify-center" etiqueta={`Eliminar ${i.nombre}`}
-                  onClick={() => dispatch({ tipo: 'quitar', id: i.id_producto })} />
-              </li>
-            ))}
-          </ul>
-        )}
+      <div className="overflow-hidden rounded-xl border border-line bg-muted/40">
+        <div className="scroll-fino min-h-[210px] max-h-[340px] overflow-y-auto px-3 [scrollbar-gutter:stable] lg:max-h-[380px]">
+          {items.length === 0 ? (
+            <div className="flex min-h-[210px] flex-col items-center justify-center gap-2 text-center text-sm text-fg-muted">
+              <ReceiptText size={26} aria-hidden="true" />
+              <p>Toca un producto del catálogo para empezar el pedido.</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-line">
+              {items.map((i) => (
+                <li key={i.id_producto} className="flex items-center justify-between gap-2 py-3">
+                  <div className="min-w-0 flex-1 pr-2">
+                    <p className="line-clamp-2 text-sm font-medium leading-snug text-fg">{i.nombre}</p>
+                    <p className="text-xs leading-snug text-fg-muted">{formatoMoneda(i.precio)} c/u</p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <BotonIcono icono={Minus} className="h-8 w-8 justify-center sm:h-9 sm:w-9" etiqueta={`Quitar una unidad de ${i.nombre}`}
+                        onClick={() => dispatch({ tipo: 'cambiarCantidad', id: i.id_producto, cantidad: i.cantidad - 1 })} />
+                      <span className="w-6 text-center text-sm font-semibold tabular-nums" aria-live="polite">{i.cantidad}</span>
+                      <BotonIcono icono={Plus} className="h-8 w-8 justify-center sm:h-9 sm:w-9" etiqueta={`Agregar una unidad de ${i.nombre}`} disabled={i.cantidad >= i.stock}
+                        onClick={() => dispatch({ tipo: 'cambiarCantidad', id: i.id_producto, cantidad: i.cantidad + 1 })} />
+                    </div>
+                    <p className="w-16 text-right text-sm font-semibold tabular-nums">{formatoMoneda(i.precio * i.cantidad)}</p>
+                    <BotonIcono icono={ICONOS.eliminar} tono="peligro" className="h-8 w-8 justify-center sm:h-9 sm:w-9" etiqueta={`Eliminar ${i.nombre}`}
+                      onClick={() => dispatch({ tipo: 'quitar', id: i.id_producto })} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
 
-      <footer className="shrink-0 border-t border-line p-4">
-        <dl className="space-y-1 text-sm">
+      <footer className="shrink-0 border-t border-line pt-2">
+        <dl className="space-y-1 text-xs sm:text-sm">
           <div className="flex justify-between"><dt className="text-fg-muted">Subtotal</dt><dd>{formatoMoneda(subtotal)}</dd></div>
           <div className="flex justify-between"><dt className="text-fg-muted">IVA ({IVA * 100}%)</dt><dd>{formatoMoneda(iva)}</dd></div>
-          <div className="flex justify-between border-t border-line pt-2 text-lg font-bold"><dt>Total</dt><dd>{formatoMoneda(total)}</dd></div>
+          <div className="flex justify-between border-t border-line pt-1.5 text-base font-bold sm:pt-2 sm:text-lg"><dt>Total</dt><dd>{formatoMoneda(total)}</dd></div>
         </dl>
-        <div className="mt-4 grid grid-cols-[auto_1fr] gap-2">
+        <div className="mt-3 grid grid-cols-[auto_1fr] gap-2 sm:mt-4">
           <Button variante="ghost" disabled={!items.length} onClick={() => dispatch({ tipo: 'vaciar' })}>Vaciar</Button>
           <Button disabled={!items.length || bloqueoPorCCF} onClick={onCobrar}>Cobrar {formatoMoneda(total)}</Button>
         </div>

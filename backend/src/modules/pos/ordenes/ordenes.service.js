@@ -47,11 +47,11 @@ export async function crearOrden(body, userId) {
 }
 
 // ── Listar órdenes ────────────────────────────────────────────────────────────
-export const listarOrdenes = (filtros) => repo.listarOrdenes(filtros);
+export const listarOrdenes = (filtros, userId) => repo.listarOrdenes(filtros, userId);
 
 // ── Detalle de una orden ──────────────────────────────────────────────────────
-export async function obtenerOrden(idOrden) {
-  const orden = await repo.obtenerOrden(idOrden);
+export async function obtenerOrden(idOrden, userId) {
+  const orden = await repo.obtenerOrden(idOrden, userId);
   if (!orden) throw new AppError('Orden no encontrada', 404);
   return orden;
 }
@@ -61,6 +61,9 @@ export async function editarOrden(idOrden, body, userId) {
   return withTransaction(async (tx) => {
     const orden = await repo.bloquearOrden(tx, idOrden);
     if (!orden) throw new AppError('Orden no encontrada', 404);
+    if (!(await repo.usuarioTieneSucursal(userId, orden.id_sucursal, tx))) {
+      throw new AppError('La orden pertenece a una sucursal que no tienes asignada', 403);
+    }
     if (orden.id_usuario !== userId) throw new AppError('Solo el cajero que creó la orden puede editarla', 403);
     if (orden.estado !== 'ABIERTA') {
       throw new AppError(`No se puede editar una orden en estado ${orden.estado}`, 409);
@@ -87,7 +90,7 @@ export async function editarOrden(idOrden, body, userId) {
       await repo.reemplazarDetalles(tx, idOrden, items);
     }
 
-    return repo.obtenerOrden(idOrden, tx);
+    return repo.obtenerOrden(idOrden, userId, tx);
   }, userId);
 }
 
@@ -96,6 +99,9 @@ export async function cambiarEstado(idOrden, nuevoEstado, userId) {
   return withTransaction(async (tx) => {
     const orden = await repo.bloquearOrden(tx, idOrden);
     if (!orden) throw new AppError('Orden no encontrada', 404);
+    if (!(await repo.usuarioTieneSucursal(userId, orden.id_sucursal, tx))) {
+      throw new AppError('La orden pertenece a una sucursal que no tienes asignada', 403);
+    }
 
     const permitidos = TRANSICIONES[orden.estado] ?? [];
     if (!permitidos.includes(nuevoEstado)) {

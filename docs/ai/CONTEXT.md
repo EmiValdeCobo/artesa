@@ -25,6 +25,7 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (li
 - API CxP/Kárdex: Compras, Reportes CxP y movimientos de inventario paginan obligatoriamente (50 por defecto, máximo 100), mantienen arreglos JSON y publican metadatos en headers. Kárdex filtra en PostgreSQL; queda pendiente adaptar el frontend para solicitar páginas y leer esos headers.
 - Feedback y alertas: useAlert() unificado para acciones (notificar.exito en éxito, notificarError en catch, notificar.advertencia en validaciones que bloquean, confirm modal destructivo). Toasts en z-[100] sobre modales y drawers. Errores de carga inicial/tabla y errores por campo se conservan en línea (BannerError / CampoError).
 - Tablas y paginación (2026-11-16): Table.jsx ahora ordena y pagina por defecto (10 filas, selector 10/25/50/100 con Select/CustomSelect, aria-sort y aria-live; paginacion={false} para diálogos). Comparadores en utils/tabla.js ordenan sobre el total de filas: dinero/NUMERIC como strings sin float, texto con Intl.Collator en español y nulos al final. Tablas migradas en toda la app; solo el editor de recetas permanece manual por inputs en línea.
+- Rendimiento (2026-11-17): Table memoriza ordenamiento del cliente; KDS pausa polling en pestañas ocultas y agrupa cada cola en una pasada. Migración 015 / init 16 agrega índices de detalle por orden y cola POS activa; revisar EXPLAIN con datos reales antes de sumar más índices.
 
 
 ## Estado por módulo

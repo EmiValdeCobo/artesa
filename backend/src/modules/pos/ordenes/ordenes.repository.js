@@ -58,7 +58,7 @@ export async function insertarDetalles(tx, idOrden, items) {
 }
 
 // ── Listar órdenes activas del turno ─────────────────────────────────────────
-export const listarOrdenes = ({ idTurno, estado }) => sel(
+export const listarOrdenes = ({ idTurno, estado }, idUsuario) => sel(
   `SELECT o.id_orden, o.canal, o.etiqueta, o.estado,
           COALESCE(SUM(d.cantidad * d.precio_unitario), 0)::text AS total,
           COUNT(d.id_detalle)::int AS items_count,
@@ -67,23 +67,45 @@ export const listarOrdenes = ({ idTurno, estado }) => sel(
    LEFT JOIN pos.orden_detalles d ON d.id_orden = o.id_orden
    WHERE ($1::uuid IS NULL OR o.id_turno = $1::uuid)
      AND ($2::text IS NULL OR o.estado = $2::text)
+     AND (EXISTS (
+       SELECT 1 FROM seguridad.usuarios u
+       JOIN seguridad.roles r ON r.id_rol = u.id_rol
+       WHERE u.id_usuario = $3::uuid AND u.activo AND u.deleted_at IS NULL
+         AND r.nombre = 'ADMIN' AND r.activo AND r.deleted_at IS NULL
+     ) OR EXISTS (
+       SELECT 1 FROM pos.turnos_caja t
+       JOIN pos.cajas c ON c.id_caja = t.id_caja
+       JOIN seguridad.usuario_sucursal us ON us.id_sucursal = c.id_sucursal
+       WHERE t.id_turno = o.id_turno AND us.id_usuario = $3::uuid
+     ))
    GROUP BY o.id_orden
    ORDER BY o.creado_en`,
-  [idTurno ?? null, estado ?? null],
+  [idTurno ?? null, estado ?? null, idUsuario],
 );
 
 // ── Detalle completo de una orden ────────────────────────────────────────────
-export async function obtenerOrden(idOrden, tx) {
+export async function obtenerOrden(idOrden, idUsuario, tx) {
   const [orden] = await sel(
     `SELECT o.id_orden, o.canal, o.etiqueta, o.estado, o.notas,
             o.id_turno::text, o.id_cliente::text,
             COALESCE(SUM(d.cantidad * d.precio_unitario), 0)::text AS total,
             o.creado_en
      FROM pos.ordenes o
+      JOIN pos.turnos_caja t ON t.id_turno = o.id_turno
+      JOIN pos.cajas c ON c.id_caja = t.id_caja
      LEFT JOIN pos.orden_detalles d ON d.id_orden = o.id_orden
-     WHERE o.id_orden = $1
+      WHERE o.id_orden = $1
+        AND (EXISTS (
+          SELECT 1 FROM seguridad.usuarios u
+          JOIN seguridad.roles r ON r.id_rol = u.id_rol
+          WHERE u.id_usuario = $2::uuid AND u.activo AND u.deleted_at IS NULL
+            AND r.nombre = 'ADMIN' AND r.activo AND r.deleted_at IS NULL
+        ) OR EXISTS (
+          SELECT 1 FROM seguridad.usuario_sucursal us
+          WHERE us.id_usuario = $2::uuid AND us.id_sucursal = c.id_sucursal
+        ))
      GROUP BY o.id_orden`,
-    [idOrden],
+    [idOrden, idUsuario],
     tx,
   );
   if (!orden) return null;
@@ -101,6 +123,18 @@ export async function obtenerOrden(idOrden, tx) {
     tx,
   );
   return { ...orden, items };
+}
+
+export async function usuarioTieneSucursal(idUsuario, idSucursal, tx) {
+  const [fila] = await sel(
+    `SELECT EXISTS (
+       SELECT 1 FROM seguridad.usuario_sucursal
+       WHERE id_usuario = $1::uuid AND id_sucursal = $2::int
+     ) AS asignado`,
+    [idUsuario, idSucursal],
+    tx,
+  );
+  return fila?.asignado === true;
 }
 
 // ── Bloquea la orden para actualización concurrente segura ───────────────────

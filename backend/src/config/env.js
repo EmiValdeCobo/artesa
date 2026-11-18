@@ -11,6 +11,14 @@ if (faltantes.length > 0) {
   throw new Error(`Faltan variables de entorno: ${faltantes.join(', ')} (copia .env.example a .env)`);
 }
 
+const jwtSecret = process.env.JWT_SECRET;
+const jwtSecretDebil = !jwtSecret
+  || Buffer.byteLength(jwtSecret, 'utf8') < 32
+  || /CAMBIAR|CHANGE_ME|EXAMPLE/i.test(jwtSecret);
+if (process.env.NODE_ENV === 'production' && jwtSecretDebil) {
+  throw new Error('En producción, JWT_SECRET debe tener al menos 32 bytes y no ser un valor de ejemplo');
+}
+
 function parseTrustProxy(valor) {
   if (valor === undefined || valor === '') return 1;
   if (valor === 'true') return true;
@@ -42,7 +50,7 @@ export const env = {
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
   } : null,
-  jwtSecret: process.env.JWT_SECRET,
+  jwtSecret,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '8h',
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   cookieSecure: parseCookieSecure(process.env.COOKIE_SECURE, isProduction),

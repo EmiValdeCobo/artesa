@@ -13,6 +13,7 @@ import { ZONA_NEGOCIO } from '../../config/negocio.js';
 import { formatoDinero, formatearUnidades } from '../../utils/formato.js';
 import { traducirError } from '../../errors/traducirError.js';
 import { ordenarFilas } from '../../utils/tabla.js';
+import { escaparCeldaCsv } from '../../utils/csv.js';
 
 const TOPE_API = 500; // el endpoint devuelve como máximo los 500 movimientos más recientes
 
@@ -284,12 +285,11 @@ export default function KardexPage() {
 
   const exportarCsv = () => {
     if (!ordenadas.length) return;
-    const escapar = (v) => `"${String(v ?? '').replaceAll('"', '""')}"`;
     const cabecera = ['fecha', 'sucursal', 'insumo', 'tipo', 'cantidad', 'saldo', 'costo_unitario', 'motivo', 'usuario'];
     const contenido = [
       `# Kárdex exportado. La API entrega como máximo los ${TOPE_API} movimientos más recientes; este archivo contiene solo lo filtrado.`,
-      cabecera.map(escapar).join(','),
-      ...ordenadas.map((f) => cabecera.map((c) => escapar(c === 'fecha' ? f.creado_en : c === 'tipo' ? (ETIQUETA_TIPO[f.tipo] ?? f.tipo) : f[c])).join(',')),
+      cabecera.map(escaparCeldaCsv).join(','),
+      ...ordenadas.map((f) => cabecera.map((c) => escaparCeldaCsv(c === 'fecha' ? f.creado_en : c === 'tipo' ? (ETIQUETA_TIPO[f.tipo] ?? f.tipo) : f[c])).join(',')),
     ].join('\r\n');
     const url = URL.createObjectURL(new Blob(['﻿', contenido], { type: 'text/csv;charset=utf-8' }));
     const enlace = document.createElement('a');

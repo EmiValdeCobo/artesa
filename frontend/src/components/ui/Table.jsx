@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { ArrowUp, ArrowDown, ChevronsUpDown } from 'lucide-react';
 import Spinner from './Spinner.jsx';
 import Paginacion from './Paginacion.jsx';
@@ -73,9 +73,21 @@ export default function Table({
     filasPreviasRef.current = filas;
   }, [filas, idFila, esModoServidor]);
 
-  if (cargando) return <Spinner />;
-
   const filasValidas = Array.isArray(filas) ? filas : [];
+
+  const filasOrdenadas = useMemo(() => {
+    if (esModoServidor || !orden.clave) return filasValidas;
+    const colActiva = columnas.find((c) => c.clave === orden.clave);
+    return ordenarFilas(
+      filasValidas,
+      orden.clave,
+      orden.direccion,
+      colActiva?.tipo ?? 'texto',
+      colActiva?.valorOrden,
+    );
+  }, [columnas, esModoServidor, filasValidas, orden.clave, orden.direccion]);
+
+  if (cargando) return <Spinner />;
 
   const manejarOrdenar = (col) => {
     let nuevaDireccion = 'asc';
@@ -93,19 +105,6 @@ export default function Table({
     const dirTexto = nuevaDireccion === 'asc' ? 'ascendente' : 'descendente';
     setMensajeAria(`Ordenado por ${nombreCol}, ${dirTexto}.`);
   };
-
-  // Ordenar filas en cliente si no es modo servidor
-  let filasOrdenadas = filasValidas;
-  if (!esModoServidor && orden.clave) {
-    const colActiva = columnas.find((c) => c.clave === orden.clave);
-    filasOrdenadas = ordenarFilas(
-      filasValidas,
-      orden.clave,
-      orden.direccion,
-      colActiva?.tipo ?? 'texto',
-      colActiva?.valorOrden
-    );
-  }
 
   // Cálculos de paginación
   const totalRegistros = esModoServidor ? (Number(total) || 0) : filasOrdenadas.length;
