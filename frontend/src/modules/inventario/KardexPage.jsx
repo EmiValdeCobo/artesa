@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowDown, ArrowUp, ArrowUpDown, Download, PackageSearch, Search, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Download, History, PackageSearch, Search, SlidersHorizontal, X } from 'lucide-react';
 import { api } from '../../api/client.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
@@ -61,13 +61,13 @@ function BadgeMovimiento({ tipo }) {
   const entrada = tipo === 'COMPRA' || tipo === 'ANULACION_VENTA' || tipo === 'TRASLADO_ENTRADA' || tipo === 'INVENTARIO_INICIAL';
   const Icono = salida ? ArrowDown : entrada ? ArrowUp : ArrowUpDown;
   const clase = salida
-    ? 'bg-danger-soft text-danger'
+    ? 'text-danger-text'
     : tipo === 'ANULACION_VENTA'
-      ? 'bg-warning-soft text-warning'
-      : 'bg-success-soft text-success';
+      ? 'text-warning-text'
+      : entrada ? 'text-success-text' : 'text-fg-muted';
   return (
-    <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${clase}`}>
-      <Icono size={13} aria-hidden="true" />
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-surface px-2.5 py-0.5 text-label-sm text-fg">
+      <Icono size={16} strokeWidth={1.75} className={clase} aria-hidden="true" />
       {ETIQUETA_TIPO[tipo] ?? tipo}
     </span>
   );
@@ -217,7 +217,7 @@ export default function KardexPage() {
         const fecha = new Date(f.creado_en);
         return Number.isNaN(fecha.getTime())
           ? f.creado_en
-          : <span className="whitespace-nowrap" title={f.creado_en}>{FORMATO_FECHA_HORA.format(fecha).replaceAll('.', '')}</span>;
+          : <span className="whitespace-nowrap tabular-nums text-fg-muted" title={f.creado_en}>{FORMATO_FECHA_HORA.format(fecha).replaceAll('.', '')}</span>;
       },
     },
     { clave: 'sucursal', titulo: 'Sucursal', tipo: 'texto', clase: 'hidden xl:table-cell' },
@@ -226,7 +226,7 @@ export default function KardexPage() {
       titulo: 'Insumo',
       tipo: 'texto',
       valorOrden: (f) => f.insumo,
-      render: (f) => <span className="block max-w-56 truncate" title={f.insumo}>{f.insumo}</span>,
+      render: (f) => <span className="block max-w-56 truncate font-medium text-fg" title={f.insumo}>{f.insumo}</span>,
     },
     {
       clave: 'tipo',
@@ -244,7 +244,7 @@ export default function KardexPage() {
       render: (f) => {
         const n = Number(f.cantidad);
         const signo = n > 0 ? '+' : n < 0 ? '−' : '';
-        return <span className={`whitespace-nowrap font-semibold ${n > 0 ? 'text-success' : n < 0 ? 'text-danger' : ''}`}>{signo}{formatearUnidades(Math.abs(n))}</span>;
+        return <span className={`whitespace-nowrap font-medium tabular-nums ${n > 0 ? 'text-success-text' : n < 0 ? 'text-danger-text' : 'text-fg-muted'}`}>{signo}{formatearUnidades(Math.abs(n))}</span>;
       },
     },
     {
@@ -308,7 +308,7 @@ export default function KardexPage() {
         seccion="Operación · Inventario"
         titulo="Kárdex"
         descripcion="Auditoría cronológica de entradas, salidas y ajustes de existencias."
-        acciones={<Button variante="secondary" icono={Download} disabled={!ordenadas.length || cargando} onClick={exportarCsv}>Exportar CSV</Button>}
+        acciones={<Button variante="ghost" icono={Download} disabled={!ordenadas.length || cargando} onClick={exportarCsv}>Exportar CSV</Button>}
       />
       {error && (
         <BannerError
@@ -317,7 +317,7 @@ export default function KardexPage() {
           onCerrar={() => setError(null)}
         />
       )}
-      <Card titulo="Filtrar movimientos" descripcion="Combina los filtros; se guardan en la dirección de la página para compartir la vista.">
+      <Card icono={SlidersHorizontal} titulo="Filtrar movimientos" descripcion="Combina los filtros; se guardan en la dirección de la página para compartir la vista.">
         {/* Fila 1: Sucursal, Insumo, Sentido y Búsqueda en columnas iguales (todos h-10). */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Select
@@ -343,10 +343,10 @@ export default function KardexPage() {
             placeholder="Entradas y salidas"
           />
           <div className="min-w-0">
-            <label htmlFor="kardex-buscar" className="mb-1.5 block text-sm font-medium">Buscar en motivo o referencia</label>
+            <label htmlFor="kardex-buscar" className="mb-1.5 block text-label">Buscar en motivo o referencia</label>
             <div className="relative">
-              <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" aria-hidden="true" />
-              <input id="kardex-buscar" type="search" className="input h-10 pl-9 pr-9" placeholder="Ej. anulación, faltante…"
+              <Search size={16} strokeWidth={1.75} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden="true" />
+              <input id="kardex-buscar" type="search" className="input pl-9 pr-9" placeholder="Ej. anulación, faltante…"
                 value={textoBusqueda} onChange={(e) => cambiarBusqueda(e.target.value)} />
               {textoBusqueda && (
                 <BotonIcono icono={ICONOS.cerrar} etiqueta="Limpiar búsqueda" className="absolute right-1 top-1/2 min-h-8 -translate-y-1/2" onClick={() => cambiarBusqueda('')} />
@@ -356,38 +356,39 @@ export default function KardexPage() {
         </div>
 
         {/* Fila 2: atajos de rango y Desde/Hasta en una misma línea; envuelve en pantallas estrechas. */}
-        <fieldset className="mt-5 min-w-0">
-          <legend className="mb-1.5 text-sm font-medium">Rango de fechas</legend>
+        <fieldset className="mt-4 min-w-0 border-t border-line pt-4">
+          <legend className="sr-only">Rango de fechas</legend>
+          <p className="rotulo mb-2" aria-hidden="true">Rango de fechas</p>
           <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
             <div className="flex flex-wrap gap-1.5" role="group" aria-label="Atajos de rango de fechas">
               {ATAJOS_FECHA.map((a) => (
                 <button key={a.clave} type="button" onClick={() => aplicarAtajo(a.clave)}
-                  className="h-10 rounded-full border border-line bg-surface px-3 text-xs font-semibold text-fg hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                  className="h-control-md rounded-full border border-line bg-surface px-3 text-label-sm text-fg-muted transition-colors hover:bg-muted hover:text-fg">
                   {a.texto}
                 </button>
               ))}
             </div>
             <div className="grid w-full grid-cols-2 gap-2 sm:w-auto">
-              <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-fg-muted">Desde
-                <input className="input h-10 py-0 text-sm sm:w-44" type="date" value={desde} max={hasta || undefined} onChange={(e) => fijar({ desde: e.target.value || null })} aria-label="Fecha desde" />
+              <label className="flex min-w-0 flex-col gap-1.5 text-label-sm text-fg-muted">Desde
+                <input className="input tabular-nums sm:w-44" type="date" value={desde} max={hasta || undefined} onChange={(e) => fijar({ desde: e.target.value || null })} aria-label="Fecha desde" />
               </label>
-              <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-fg-muted">Hasta
-                <input className="input h-10 py-0 text-sm sm:w-44" type="date" value={hasta} min={desde || undefined} onChange={(e) => fijar({ hasta: e.target.value || null })} aria-label="Fecha hasta" />
+              <label className="flex min-w-0 flex-col gap-1.5 text-label-sm text-fg-muted">Hasta
+                <input className="input tabular-nums sm:w-44" type="date" value={hasta} min={desde || undefined} onChange={(e) => fijar({ hasta: e.target.value || null })} aria-label="Fecha hasta" />
               </label>
             </div>
           </div>
         </fieldset>
 
         {/* Fila 3: tipos de movimiento + «Limpiar filtros» a la derecha (solo si hay filtros aplicados, como antes). */}
-        <div className="mt-5 flex flex-wrap items-end justify-between gap-3">
+        <div className="mt-4 flex flex-wrap items-end justify-between gap-3 border-t border-line pt-4">
           <fieldset className="min-w-0 flex-1">
-            <legend className="mb-1.5 text-sm font-medium">Tipo de movimiento</legend>
+            <legend className="rotulo mb-2">Tipo de movimiento</legend>
             <div className="flex flex-wrap gap-1.5">
               {TIPOS_MOVIMIENTO.map((t) => {
                 const activo = tiposSel.has(t.valor);
                 return (
                   <button key={t.valor} type="button" aria-pressed={activo} onClick={() => alternarTipo(t.valor)}
-                    className={`min-h-9 rounded-full border px-3 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${activo ? 'border-primary bg-primary-soft text-primary-text' : 'border-line bg-surface text-fg hover:bg-muted'}`}>
+                    className={`h-control-sm rounded-full border px-3 text-label-sm transition-colors ${activo ? 'border-primary/40 bg-primary-soft text-primary-text' : 'border-line bg-surface text-fg-muted hover:bg-muted hover:text-fg'}`}>
                     {t.etiqueta}
                   </button>
                 );
@@ -395,7 +396,7 @@ export default function KardexPage() {
             </div>
           </fieldset>
           {chips.length > 0 && (
-            <Button variante="ghost" icono={ICONOS.cerrar} onClick={limpiarFiltros} className="min-h-9 text-xs font-semibold">
+            <Button variante="ghost" tamano="sm" icono={ICONOS.cerrar} onClick={limpiarFiltros}>
               Limpiar filtros
             </Button>
           )}
@@ -404,10 +405,10 @@ export default function KardexPage() {
         {chips.length > 0 && (
           <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-3" aria-label="Filtros aplicados">
             {chips.map((chip) => (
-              <span key={chip.clave} className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-3 py-1 text-xs font-medium text-primary-text">
+              <span key={chip.clave} className="inline-flex items-center gap-1 rounded-full border border-line bg-muted py-0.5 pl-3 pr-1 text-label-sm text-fg">
                 {chip.texto}
-                <button type="button" onClick={chip.quitar} aria-label={`Quitar filtro ${chip.texto}`} className="rounded-full p-0.5 hover:bg-primary/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
-                  <X size={12} aria-hidden="true" />
+                <button type="button" onClick={chip.quitar} aria-label={`Quitar filtro ${chip.texto}`} className="grid size-6 place-items-center rounded-full text-fg-muted hover:bg-surface hover:text-fg">
+                  <X size={16} strokeWidth={1.75} aria-hidden="true" />
                 </button>
               </span>
             ))}
@@ -416,13 +417,15 @@ export default function KardexPage() {
       </Card>
 
       <Card
+        sinPadding
+        icono={History}
         titulo="Movimientos registrados"
-        descripcion={`${filtradas.length} de ${filas.length} movimientos${filas.length >= TOPE_API ? ` · se muestran solo los ${TOPE_API} más recientes que entrega el sistema` : ''}`}
-        acciones={<Button variante="ghost" onClick={cargar} cargando={cargando}>Recargar</Button>}
+        descripcion={<span className="tabular-nums">{`${filtradas.length} de ${filas.length} movimientos${filas.length >= TOPE_API ? ` · se muestran solo los ${TOPE_API} más recientes que entrega el sistema` : ''}`}</span>}
+        acciones={<Button variante="ghost" tamano="sm" onClick={cargar} cargando={cargando}>Recargar</Button>}
         className="min-w-0"
       >
         {filas.length >= TOPE_API && (
-          <p className="mb-3 rounded-lg border border-warning/30 bg-warning-soft px-4 py-2.5 text-xs text-warning" role="status">
+          <p className="mx-5 mt-4 rounded-md border border-warning/30 bg-warning-soft px-4 py-3 text-body-sm text-warning-text" role="status">
             La consulta llegó al máximo de {TOPE_API} movimientos: estás viendo los más recientes. Afina los filtros de sucursal o insumo para ver otros.
           </p>
         )}

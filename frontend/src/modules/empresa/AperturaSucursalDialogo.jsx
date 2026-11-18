@@ -6,7 +6,8 @@ import BannerError from '../../components/feedback/BannerError.jsx';
 import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
-import { BotonIcono, Button, Spinner, Table } from '../../components/ui/index.js';
+import { BotonIcono, Button, Table } from '../../components/ui/index.js';
+import { SkeletonTexto } from '../../components/feedback/Skeleton.jsx';
 import { ICONOS } from '../../config/iconos.js';
 import { traducirError } from '../../errors/traducirError.js';
 import { enteroParaInput, formatearUnidades } from '../../utils/formato.js';
@@ -27,9 +28,9 @@ function Requisito({ cumplido, titulo, children }) {
   return (
     <li className={`flex items-start gap-3 rounded-lg border p-3.5 ${cumplido ? 'border-success/30 bg-success-soft/40' : 'border-warning/30 bg-warning-soft/40'}`}>
       <Icono size={18} aria-hidden="true" className={`mt-0.5 shrink-0 ${cumplido ? 'text-success' : 'text-warning'}`} />
-      <div className="min-w-0 text-sm">
+      <div className="min-w-0 text-body">
         <p className="font-semibold">{titulo}</p>
-        <div className="mt-0.5 text-xs text-fg-muted">{children}</div>
+        <div className="mt-0.5 text-body-sm text-fg-muted">{children}</div>
       </div>
     </li>
   );
@@ -122,7 +123,7 @@ export default function AperturaSucursalDialogo({ sucursal, onCerrar }) {
       render: (i) => (
         <div>
           <p className="font-medium">{i.insumo}</p>
-          <p className="text-xs text-fg-muted">{i.tipo_insumo.toLowerCase()} · {i.unidad}{Number(i.stock_minimo_sugerido) > 0 && ` · sugerido ${formatearUnidades(i.stock_minimo_sugerido)}`}</p>
+          <p className="text-body-sm text-fg-muted">{i.tipo_insumo.toLowerCase()} · {i.unidad}{Number(i.stock_minimo_sugerido) > 0 && ` · sugerido ${formatearUnidades(i.stock_minimo_sugerido)}`}</p>
         </div>
       ),
     },
@@ -187,21 +188,20 @@ export default function AperturaSucursalDialogo({ sucursal, onCerrar }) {
 
   return (
     <Dialogo onCerrar={() => !guardando && onCerrar()} tamano="xl" cerrarConFondo={false} labelledBy="apertura-titulo" describedBy="apertura-descripcion">
-      <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4 sm:px-6">
+      <div className="flex items-start justify-between gap-4 px-6 pt-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">Administración · Sucursales</p>
-          <h2 id="apertura-titulo" className="mt-1 text-xl font-semibold">{sucursal.nombre} <span className="font-mono text-sm text-fg-muted">{sucursal.codigo_establecimiento}</span></h2>
-          <p id="apertura-descripcion" className="mt-1 text-sm text-fg-muted">
+          <h2 id="apertura-titulo" className="text-h3">{sucursal.nombre} <span className="font-mono text-body text-fg-muted">{sucursal.codigo_establecimiento}</span></h2>
+          <p id="apertura-descripcion" className="mt-1 text-body text-fg-muted">
             Revisa el personal, la caja y el stock mínimo que necesita para operar. Confirma antes de habilitarla en el POS.
           </p>
         </div>
         <BotonIcono icono={ICONOS.cerrar} etiqueta="Cerrar apertura" onClick={onCerrar} disabled={guardando} />
       </div>
 
-      <div className="space-y-5 p-5 sm:p-6">
+      <div className="space-y-4 px-6 py-5">
         <BannerError error={errorCarga} onReintentar={cargar} />
 
-        {cargando ? <Spinner /> : estado && (
+        {cargando ? <SkeletonTexto lineas={4} texto="Cargando requisitos de apertura…" /> : estado && (
           <>
             {estado.lista
               ? <EstadoBadge tipo="exito">Lista para operar</EstadoBadge>
@@ -222,7 +222,7 @@ export default function AperturaSucursalDialogo({ sucursal, onCerrar }) {
               </Requisito>
             </ul>
 
-            {!estado.sucursal.activa && <p className="text-sm text-warning">La sucursal está inactiva: actívala para que pueda operar.</p>}
+            {!estado.sucursal.activa && <p className="text-body text-warning-text">La sucursal está inactiva: actívala para que pueda operar.</p>}
 
             {total === 0 ? (
               <EstadoVacio icono={ICONOS.insumo} titulo="No hay insumos requeridos">
@@ -237,22 +237,22 @@ export default function AperturaSucursalDialogo({ sucursal, onCerrar }) {
                   paginacion={false}
                   maxAltura="max-h-[45dvh]"
                   minAncho="min-w-[640px]"
-                  vacio="No hay insumos requeridos."
+                  vacio={<EstadoVacio icono={ICONOS.insumo} titulo="No hay insumos requeridos." />}
                 />
 
-                <p className="text-xs text-fg-muted" aria-live="polite">
+                <p className="text-body-sm text-fg-muted" aria-live="polite">
                   Vista previa: {cubiertosPrevia} de {total} insumos cubiertos.{sinMinimo > 0 && ` Define el mínimo de ${sinMinimo} insumo(s) (entero mayor a cero).`} La carga se registra como movimiento «Inventario inicial» en el Kárdex.
                 </p>
 
-                <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-line bg-muted/50 p-3.5">
+                <label className="flex cursor-pointer items-start gap-3 rounded-md border border-line bg-muted p-3.5">
                   <input type="checkbox" className="mt-0.5 h-4 w-4 accent-primary" checked={confirmado} disabled={sinMinimo > 0} onChange={(e) => setConfirmado(e.target.checked)} />
                   <span>
-                    <span className="block text-sm font-medium">Confirmo que la sucursal cuenta con el stock mínimo requerido para operar</span>
-                    <span className="mt-0.5 block text-xs text-fg-muted">Se guardarán los umbrales de alerta y la carga inicial indicada.</span>
+                    <span className="block text-label">Confirmo que la sucursal cuenta con el stock mínimo requerido para operar</span>
+                    <span className="mt-0.5 block text-body-sm text-fg-muted">Se guardarán los umbrales de alerta y la carga inicial indicada.</span>
                   </span>
                 </label>
 
-                <div className="flex flex-col-reverse justify-end gap-2 border-t border-line pt-4 sm:flex-row">
+                <div className="-mx-6 -mb-5 flex flex-col-reverse gap-2 border-t border-line px-6 py-4 sm:flex-row sm:justify-end">
                   <Button variante="ghost" onClick={onCerrar} disabled={guardando}>{estado.lista ? 'Cerrar' : 'Completar después'}</Button>
                   <Button type="submit" icono={ICONOS.apertura} cargando={guardando} disabled={!confirmado || sinMinimo > 0}>Confirmar y cargar stock</Button>
                 </div>

@@ -10,6 +10,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
+import Skeleton from '../../components/feedback/Skeleton.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import { Button, Card, Select } from '../../components/ui/index.js';
 import { formatoDinero, formatearUnidades, enteroParaInput } from '../../utils/formato.js';
@@ -43,80 +44,80 @@ function limpiarCerosCantidad(valor) {
 }
 
 function colorMargenClass(pct) {
-  if (pct >= 40) return 'bg-success-soft text-success border border-success/30';
-  if (pct >= 20) return 'bg-warning-soft text-warning border border-warning/30';
-  return 'bg-danger-soft text-danger border border-danger/30';
+  if (pct >= 40) return 'bg-success-soft text-success-text';
+  if (pct >= 20) return 'bg-warning-soft text-warning-text';
+  return 'bg-danger-soft text-danger-text';
 }
 
 // ─── Skeletons Cálidos (Reemplazo de Spinners Circulares) ─────────────────────
 function RecetaWorkspaceSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[2fr_3fr] animate-pulse" aria-busy="true" aria-label="Cargando receta">
-      {/* Panel Izquierdo Skeleton */}
-      <div className="space-y-5">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[2fr_3fr]" role="status" aria-busy="true" aria-label="Cargando receta">
+      {/* Columna izquierda Skeleton (producto, costeo y disponibilidad) */}
+      <div className="space-y-6">
         {/* Ficha producto */}
         <div className="card space-y-3 p-5">
-          <div className="h-5 w-44 rounded bg-espresso-200/50 dark:bg-espresso-800/40" />
-          <div className="h-3 w-56 rounded bg-espresso-100/50 dark:bg-espresso-900/40" />
-          <div className="rounded-lg border border-line bg-muted/40 p-3 space-y-2">
+          <Skeleton className="h-5 w-44 rounded" />
+          <Skeleton className="h-3 w-56 rounded" />
+          <div className="space-y-2 rounded-md bg-muted p-3">
             <div className="flex justify-between">
-              <div className="h-3 w-20 rounded bg-espresso-100/50 dark:bg-espresso-900/40" />
-              <div className="h-3 w-24 rounded bg-espresso-200/50 dark:bg-espresso-800/40" />
+              <Skeleton className="h-3 w-20 rounded" />
+              <Skeleton className="h-3 w-24 rounded" />
             </div>
             <div className="flex justify-between">
-              <div className="h-3 w-28 rounded bg-espresso-100/50 dark:bg-espresso-900/40" />
-              <div className="h-4 w-16 rounded bg-espresso-200/60 dark:bg-espresso-800/50" />
+              <Skeleton className="h-3 w-28 rounded" />
+              <Skeleton className="h-4 w-16 rounded" />
             </div>
           </div>
         </div>
 
         {/* Simulador financiero skeleton */}
         <div className="card space-y-3 p-5">
-          <div className="h-5 w-40 rounded bg-espresso-200/50 dark:bg-espresso-800/40" />
-          <div className="h-3 w-48 rounded bg-espresso-100/50 dark:bg-espresso-900/40" />
+          <Skeleton className="h-5 w-40 rounded" />
+          <Skeleton className="h-3 w-48 rounded" />
           <div className="space-y-3 pt-2">
-            <div className="flex justify-between py-1 border-b border-line/60">
-              <div className="h-4 w-32 rounded bg-espresso-100/50 dark:bg-espresso-900/40" />
-              <div className="h-4 w-16 rounded bg-espresso-200/50 dark:bg-espresso-800/40" />
+            <div className="flex justify-between border-b border-line py-1">
+              <Skeleton className="h-4 w-32 rounded" />
+              <Skeleton className="h-4 w-16 rounded" />
             </div>
-            <div className="flex justify-between py-1 border-b border-line/60">
-              <div className="h-4 w-36 rounded bg-espresso-100/50 dark:bg-espresso-900/40" />
-              <div className="h-4 w-16 rounded bg-espresso-200/50 dark:bg-espresso-800/40" />
+            <div className="flex justify-between border-b border-line py-1">
+              <Skeleton className="h-4 w-36 rounded" />
+              <Skeleton className="h-4 w-16 rounded" />
             </div>
-            <div className="h-10 rounded-lg bg-espresso-200/40 dark:bg-espresso-800/30" />
+            <Skeleton className="h-10 rounded-lg" />
           </div>
         </div>
 
         {/* Disponibilidad operativa skeleton */}
         <div className="card space-y-3 p-5">
           <div className="flex justify-between items-center">
-            <div className="h-5 w-44 rounded bg-espresso-200/50 dark:bg-espresso-800/40" />
-            <div className="h-7 w-32 rounded bg-espresso-100/50 dark:bg-espresso-900/40" />
+            <Skeleton className="h-5 w-44 rounded" />
+            <Skeleton className="h-7 w-32 rounded" />
           </div>
           <div className="py-4 text-center space-y-2">
-            <div className="h-12 w-24 mx-auto rounded bg-espresso-200/60 dark:bg-espresso-800/50" />
-            <div className="h-4 w-48 mx-auto rounded bg-espresso-100/50 dark:bg-espresso-900/40" />
+            <Skeleton className="h-12 w-24 mx-auto rounded" />
+            <Skeleton className="h-4 w-48 mx-auto rounded" />
           </div>
         </div>
       </div>
 
-      {/* Panel Derecho Skeleton */}
+      {/* Columna derecha Skeleton (ficha / constructor) */}
       <div className="card space-y-5 p-5">
         <div className="flex justify-between items-center border-b border-line pb-4">
           <div className="space-y-1.5">
-            <div className="h-6 w-52 rounded bg-espresso-200/60 dark:bg-espresso-800/50" />
-            <div className="h-3 w-40 rounded bg-espresso-100/50 dark:bg-espresso-900/40" />
+            <Skeleton className="h-6 w-52 rounded" />
+            <Skeleton className="h-3 w-40 rounded" />
           </div>
-          <div className="h-6 w-24 rounded-full bg-espresso-100/60 dark:bg-espresso-900/40" />
+          <Skeleton className="h-6 w-24 rounded-full" />
         </div>
-        <div className="h-10 rounded-lg bg-espresso-100/50 dark:bg-espresso-900/40" />
+        <Skeleton className="h-10 rounded-lg" />
         <div className="divide-y divide-line rounded-lg border border-line overflow-hidden">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="flex justify-between items-center p-3.5">
-              <div className="h-4 w-36 rounded bg-espresso-200/50 dark:bg-espresso-800/40" />
-              <div className="h-4 w-12 rounded bg-espresso-100/50 dark:bg-espresso-900/40" />
-              <div className="h-7 w-20 rounded bg-espresso-100/60 dark:bg-espresso-900/40" />
-              <div className="h-4 w-16 rounded bg-espresso-200/50 dark:bg-espresso-800/40" />
+              <Skeleton className="h-4 w-36 rounded" />
+              <Skeleton className="h-4 w-12 rounded" />
+              <Skeleton className="h-7 w-20 rounded" />
+              <Skeleton className="h-4 w-16 rounded" />
             </div>
           ))}
         </div>
@@ -127,17 +128,17 @@ function RecetaWorkspaceSkeleton() {
 
 function TablaRecetaSkeleton() {
   return (
-    <div className="space-y-3 py-2 animate-pulse" aria-busy="true" aria-label="Cargando componentes de receta">
+    <div className="space-y-3 py-2" aria-busy="true" aria-label="Cargando componentes de receta">
       <div className="divide-y divide-line rounded-lg border border-line overflow-hidden">
         {[1, 2, 3, 4].map((i) => (
           <div key={i} className="flex justify-between items-center p-3.5">
             <div className="space-y-1.5 flex-1">
-              <div className="h-4 w-40 rounded bg-espresso-200/60 dark:bg-espresso-800/50" />
-              <div className="h-3 w-20 rounded bg-espresso-100/50 dark:bg-espresso-900/40" />
+              <Skeleton className="h-4 w-40 rounded" />
+              <Skeleton className="h-3 w-20 rounded" />
             </div>
-            <div className="h-4 w-12 rounded bg-espresso-100/50 dark:bg-espresso-900/40" />
-            <div className="h-7 w-20 rounded bg-espresso-100/60 dark:bg-espresso-900/40" />
-            <div className="h-4 w-16 rounded bg-espresso-200/50 dark:bg-espresso-800/40 text-right" />
+            <Skeleton className="h-4 w-12 rounded" />
+            <Skeleton className="h-7 w-20 rounded" />
+            <Skeleton className="h-4 w-16 rounded" />
           </div>
         ))}
       </div>
@@ -615,21 +616,21 @@ export default function EditorRecetasPage() {
         <RecetaWorkspaceSkeleton />
       ) : (
         /* Workspace Dividido (Split Workspace) */
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[2fr_3fr]">
-          {/* ══════════════ PANEL IZQUIERDO: FICHA Y SIMULADOR ══════════════ */}
-          <div className="space-y-5">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[2fr_3fr]">
+          {/* ══════════════ COLUMNA IZQUIERDA: PRODUCTO, COSTEO Y DISPONIBILIDAD ══════════════ */}
+          <div className="space-y-6">
             {/* 1. Selector de Producto Elaborado */}
-            <Card titulo="Producto a Configurar" descripcion="Producto elaborado seleccionado desde el catálogo">
+            <Card icono={ChefHat} titulo="Producto a Configurar" descripcion="Producto elaborado seleccionado desde el catálogo">
               <div className="space-y-3">
                 {hayProducto && (
-                  <div className="rounded-lg border border-line bg-muted/40 p-3 text-xs space-y-1">
-                    <div className="flex justify-between">
+                  <div className="space-y-2 rounded-md bg-muted p-3 text-body-sm">
+                    <div className="flex justify-between gap-3">
                       <span className="text-fg-muted">Código/SKU:</span>
                       <span className="font-mono text-fg">{productoSeleccionado.codigo_barra || '—'}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between gap-3">
                       <span className="text-fg-muted">Precio de venta con IVA:</span>
-                      <span className="font-mono font-bold text-primary-text">
+                      <span className="font-medium tabular-nums text-fg">
                         {formatoDinero(productoSeleccionado.precio_venta)}
                       </span>
                     </div>
@@ -641,18 +642,19 @@ export default function EditorRecetasPage() {
             {/* 2. Tarjeta de Costeo en Tiempo Real */}
             {verCostos && hayProducto && hayComponentes ? (
               <Card
+                icono={Sparkles}
                 titulo="Simulador Financiero"
                 descripcion="Costeo teórico de producción basado en costo promedio"
               >
                 <dl className="space-y-3">
-                  <div className="flex items-center justify-between text-sm py-1 border-b border-line/60">
+                  <div className="flex items-center justify-between gap-3 border-b border-line py-1.5 text-body">
                     <dt className="text-fg-muted">Costo teórico de producción</dt>
-                    <dd className="font-mono font-bold text-fg">{formatoDinero(costoTotal)}</dd>
+                    <dd className="font-medium tabular-nums text-fg">{formatoDinero(costoTotal)}</dd>
                   </div>
-                  <div className="flex items-center justify-between text-sm py-1 border-b border-line/60">
+                  <div className="flex items-center justify-between gap-3 border-b border-line py-1.5 text-body">
                     <dt className="text-fg-muted">Precio de venta al público</dt>
                     <dd className="flex items-center gap-2">
-                      <span className="font-mono font-semibold text-fg">
+                      <span className="font-medium tabular-nums text-fg">
                         {formatoDinero(productoSeleccionado.precio_venta)}
                       </span>
                       {tiene('INV_GESTIONAR_PRODUCTOS') && (
@@ -662,16 +664,16 @@ export default function EditorRecetasPage() {
                             setPrecioAjuste(productoSeleccionado.precio_venta);
                             setPanelAjustePrecioAbierto((prev) => !prev);
                           }}
-                          className="text-xs text-primary-text font-semibold hover:underline"
+                          className="text-label-sm text-primary-text hover:underline"
                         >
                           {panelAjustePrecioAbierto ? 'Ocultar' : 'Ajustar precio'}
                         </button>
                       )}
                     </dd>
                   </div>
-                  <div className={`flex items-center justify-between rounded-lg p-3 text-sm font-bold ${colorMargen} ${margenPorcentaje < 0 ? 'text-danger' : ''}`}>
+                  <div className={`flex items-center justify-between gap-3 rounded-md p-3 text-label ${colorMargen} ${margenPorcentaje < 0 ? 'text-danger-text' : ''}`}>
                     <dt>Margen sobre precio sin IVA</dt>
-                    <dd className="font-mono text-right">
+                    <dd className="text-right tabular-nums">
                       {formatoDinero(margenDolares)} ({Number(margenPorcentaje).toFixed(1)}%)
                     </dd>
                   </div>
@@ -679,12 +681,12 @@ export default function EditorRecetasPage() {
 
                 {/* Alerta de margen ocre / rojo y panel de ajuste rápido */}
                 {margenPorcentaje < 40 && !panelAjustePrecioAbierto && tiene('INV_GESTIONAR_PRODUCTOS') && (
-                  <div className="mt-3 rounded-lg bg-warning-soft border border-warning/30 p-2.5 text-xs text-warning flex items-center justify-between gap-2">
+                  <div className="mt-4 flex items-center justify-between gap-3 rounded-md border border-warning/30 bg-warning-soft px-4 py-3 text-body-sm text-warning-text">
                     <div>
-                      <p className="font-semibold">
+                      <p className="font-medium">
                         {margenPorcentaje < 20 ? 'Alerta: Margen crítico (< 20%)' : 'Margen bajo (20–39%)'}
                       </p>
-                      <p className="opacity-90">Precio sugerido con IVA (40% margen): <strong>{formatoDinero(precioSugerido40)}</strong></p>
+                      <p className="tabular-nums">Precio sugerido con IVA (40% margen): <strong>{formatoDinero(precioSugerido40)}</strong></p>
                     </div>
                     <button
                       type="button"
@@ -692,7 +694,7 @@ export default function EditorRecetasPage() {
                         setPrecioAjuste(precioSugerido40);
                         setPanelAjustePrecioAbierto(true);
                       }}
-                      className="px-2.5 py-1 rounded bg-warning text-white dark:text-espresso-950 font-bold hover:opacity-90 transition-opacity whitespace-nowrap"
+                      className="btn-ghost h-control-sm shrink-0 whitespace-nowrap px-3 text-label-sm"
                     >
                       Ajustar precio
                     </button>
@@ -701,36 +703,36 @@ export default function EditorRecetasPage() {
 
                 {/* Panel expandible de ajuste rápido de precio */}
                 {panelAjustePrecioAbierto && tiene('INV_GESTIONAR_PRODUCTOS') && (
-                  <div className="mt-3 rounded-xl border border-primary/30 bg-primary-soft/30 p-3.5 space-y-3">
+                  <div className="mt-4 space-y-3 border-t border-line pt-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-primary-text">
+                      <h4 className="rotulo">
                         Ajuste rápido de precio
                       </h4>
                       <button
                         type="button"
                         onClick={() => setPanelAjustePrecioAbierto(false)}
-                        className="text-fg-muted hover:text-fg text-xs"
+                        className="text-label-sm text-fg-muted hover:text-fg"
                       >
                         Cerrar
                       </button>
                     </div>
 
-                    <div className="flex items-center justify-between text-xs bg-surface/80 p-2.5 rounded-lg border border-line gap-2">
+                    <div className="flex items-center justify-between gap-3 rounded-md bg-muted p-3 text-body-sm">
                       <div>
-                        <span className="text-fg-muted block">Precio sugerido (40% margen con IVA):</span>
-                        <span className="font-mono font-bold text-sm text-fg">{formatoDinero(precioSugerido40)}</span>
+                        <span className="block text-fg-muted">Precio sugerido (40% margen con IVA):</span>
+                        <span className="text-label tabular-nums text-fg">{formatoDinero(precioSugerido40)}</span>
                       </div>
                       <button
                         type="button"
                         onClick={() => setPrecioAjuste(precioSugerido40)}
-                        className="btn-ghost !py-1 !px-2.5 text-xs font-semibold text-primary-text border border-primary/30 hover:bg-primary-soft whitespace-nowrap"
+                        className="btn-ghost h-control-sm shrink-0 whitespace-nowrap px-3 text-label-sm"
                       >
                         Aplicar sugerido
                       </button>
                     </div>
 
                     <div>
-                      <label htmlFor="nuevo-precio-producto" className="block text-xs font-medium text-fg mb-1">
+                      <label htmlFor="nuevo-precio-producto" className="mb-1.5 block text-label text-fg">
                         Nuevo precio con IVA ($):
                       </label>
                       <input
@@ -738,7 +740,7 @@ export default function EditorRecetasPage() {
                         type="number"
                         step="0.01"
                         min="0.01"
-                        className="input font-mono text-sm py-1.5"
+                        className="input text-right tabular-nums"
                         value={precioAjuste}
                         onChange={(e) => setPrecioAjuste(e.target.value)}
                         placeholder="Ej. 3.50"
@@ -746,17 +748,17 @@ export default function EditorRecetasPage() {
                     </div>
 
                     {Number(precioAjuste) > 0 && (
-                      <div className={`flex items-center justify-between rounded-lg p-2 text-xs font-bold ${colorMargenProyectado}`}>
+                      <div className={`flex items-center justify-between rounded-md px-3 py-2 text-label-sm ${colorMargenProyectado}`}>
                         <span>Margen proyectado:</span>
-                        <span className="font-mono">
+                        <span className="tabular-nums">
                           {formatoDinero(margenDolaresProyectado)} ({Number(margenProyectado).toFixed(1)}%)
                         </span>
                       </div>
                     )}
 
                     <Button
-                      variante="primary"
-                      className="w-full justify-center !py-2 text-xs"
+                      variante="secondary"
+                      className="w-full justify-center"
                       disabled={actualizandoPrecio || !precioAjuste || Number(precioAjuste) <= 0 || precioAjuste === String(productoSeleccionado.precio_venta)}
                       cargando={actualizandoPrecio}
                       onClick={handleActualizarPrecio}
@@ -767,14 +769,14 @@ export default function EditorRecetasPage() {
                 )}
 
                 {hayInsumosSinCosto && (
-                  <div className="mt-3 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 p-2.5 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
-                    <AlertTriangle size={14} className="shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                  <div className="mt-4 flex items-start gap-2 rounded-md border border-warning/30 bg-warning-soft px-4 py-3 text-body-sm text-warning-text">
+                    <AlertTriangle size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden="true" />
                     <p>
                       Uno o más ingredientes no tienen costo base registrado ($0.00) por falta de compras. El costo teórico y margen se actualizarán al registrar compras en el sistema.
                     </p>
                   </div>
                 )}
-                <p className="mt-3 text-xs text-fg-muted">
+                <p className="mt-4 text-body-sm text-fg-muted">
                   Margen saludable sugerido: ≥ 40% (Verde), 20–39% (Ocre), &lt; 20% (Alerta roja).
                 </p>
               </Card>
@@ -784,11 +786,12 @@ export default function EditorRecetasPage() {
             {/* La receta es global; este panel solo proyecta stock actual para referencia */}
             {hayProducto && (
               <Card
+                icono={Package}
                 titulo="Disponibilidad Operativa"
                 descripcion={subtituloDisponibilidad}
                 acciones={
                   sucursales.length > 0 && (
-                    <div className="w-full sm:w-56">
+                    <div className="w-full">
                       <Select
                         id="selector-sucursal-disponibilidad"
                         tamano="sm"
@@ -805,43 +808,43 @@ export default function EditorRecetasPage() {
                 }
               >
               {errorStock ? (
-                <p className="py-6 text-center text-sm text-fg-muted">No se pudo consultar existencias en este momento</p>
+                <p className="py-6 text-center text-body text-fg-muted">No se pudo consultar existencias en este momento</p>
               ) : unidadesSimuladas !== null ? (
-                  <div className="space-y-3 text-center py-2">
-                    <p className="text-5xl font-black font-mono text-primary-text">
+                  <div className="space-y-3 py-2">
+                    <p className="kpi text-kpi tabular-nums text-fg">
                       {formatearUnidades(unidadesSimuladas)}
                     </p>
-                    <p className="text-sm font-medium text-fg">
+                    <p className="text-body text-fg-muted">
                       unidades preparables {sucursalSeleccionada ? `en ${nombreSucursalSeleccionada}` : 'según stock actual'}
                     </p>
                     {insumoAgotado ? (
-                      <div className="rounded-lg bg-danger-soft border border-danger/30 p-2.5 text-xs text-danger text-left flex items-start gap-2">
-                        <AlertCircle size={15} className="shrink-0 mt-0.5" aria-hidden="true" />
+                      <div className="flex items-start gap-2 rounded-md border border-danger/30 bg-danger-soft px-4 py-3 text-left text-body-sm text-danger-text">
+                        <AlertCircle size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden="true" />
                         <div>
-                          <p className="font-semibold">Insumo agotado: {insumoAgotado.nombre}</p>
-                          <p className="mt-0.5 opacity-90">
+                          <p className="font-medium">Insumo agotado: {insumoAgotado.nombre}</p>
+                          <p className="mt-0.5">
                             Tiene 0 existencias en {sucursalSeleccionada ? nombreSucursalSeleccionada : 'el sistema'}, impidiendo preparar este producto.
                           </p>
                         </div>
                       </div>
                     ) : cuelloDeBotella ? (
-                      <div className="rounded-lg bg-warning-soft border border-warning/30 p-2.5 text-xs text-warning text-left flex items-start gap-2">
-                        <AlertCircle size={15} className="shrink-0 mt-0.5" aria-hidden="true" />
+                      <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning-soft px-4 py-3 text-left text-body-sm text-warning-text">
+                        <AlertCircle size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden="true" />
                         <div>
-                          <p className="font-semibold">Cuello de botella: {cuelloDeBotella}</p>
+                          <p className="font-medium">Cuello de botella: {cuelloDeBotella}</p>
                           {insumoEscasoDetalle && (
-                            <p className="mt-0.5 opacity-90">
+                            <p className="mt-0.5 tabular-nums">
                               Existencia: {formatearUnidades(insumoEscasoDetalle.stockActual)} {insumoEscasoDetalle.unidad} (requiere {formatearUnidades(insumoEscasoDetalle.cantReq)} por unidad)
                             </p>
                           )}
                         </div>
                       </div>
                     ) : (
-                      <p className="text-xs text-success font-semibold">
+                      <p className="text-body-sm font-medium text-success-text">
                         Inventario suficiente en todos los ingredientes.
                       </p>
                     )}
-                    <p className="text-xs text-fg-muted border-t border-line pt-2">
+                    <p className="border-t border-line pt-3 text-body-sm text-fg-muted">
                       Referencia informativa. La receta es global e independiente del stock.
                     </p>
                   </div>
@@ -859,27 +862,32 @@ export default function EditorRecetasPage() {
             )}
           </div>
 
-          {/* ══════════════ PANEL DERECHO: FLUJO DUAL (FICHA / EDICIÓN) ══════════════ */}
-          <div className="card space-y-5 p-5">
+          {/* ══════════════ COLUMNA DERECHA: FLUJO DUAL (FICHA / EDICIÓN) ══════════════ */}
+          <div className="card min-w-0 space-y-5 p-5">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
-              <div>
-                <h2 className="text-lg font-semibold text-fg">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="grid size-control-sm shrink-0 place-items-center rounded-md bg-primary-soft text-primary-text">
+                  {modoEdicion ? <FlaskConical size={16} strokeWidth={1.75} aria-hidden="true" /> : <ChefHat size={16} strokeWidth={1.75} aria-hidden="true" />}
+                </span>
+                <div className="min-w-0">
+                <h2 className="text-body-lg font-semibold text-fg">
                   {productoSeleccionado?.nombre ?? 'Selecciona un producto'}
                 </h2>
-                <p className="text-xs text-fg-muted">
+                <p className="text-body-sm text-fg-muted">
                   {modoEdicion ? 'Constructor interactivo de receta' : 'Ficha técnica de receta (Solo lectura)'}
                 </p>
+                </div>
               </div>
               {hayProducto && (
                 <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-primary-text">
+                  <span className="rounded-full bg-muted px-2.5 py-0.5 text-label-sm tabular-nums text-fg-muted">
                     {recetaComponentes.length} ingrediente{recetaComponentes.length !== 1 ? 's' : ''}
                   </span>
                   {!modoEdicion && tiene('INV_GESTIONAR_RECETAS') && (
                     <Button
-                      variante="primary"
+                      variante="secondary"
                       icono={Pencil}
-                      size="sm"
+                      tamano="sm"
                       onClick={() => setModoEdicion(true)}
                     >
                       Editar receta
@@ -888,7 +896,7 @@ export default function EditorRecetasPage() {
                   {modoEdicion && recetaOriginal.length > 0 && (
                     <Button
                       variante="ghost"
-                      size="sm"
+                      tamano="sm"
                       onClick={() => {
                         if (!hayCambios) {
                           setModoEdicion(false);
@@ -918,19 +926,19 @@ export default function EditorRecetasPage() {
                 <>
                   {/* Alerta de ingredientes inactivos */}
                   {recetaComponentes.some((c) => c.activo === false || insumos.find((i) => Number(i.id_insumo) === Number(c.id_insumo))?.activo === false) && (
-                    <div className="flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40 p-3 text-xs text-amber-800 dark:text-amber-200">
-                      <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                    <div className="flex items-start gap-2.5 rounded-md border border-warning/30 bg-warning-soft px-4 py-3 text-body-sm text-warning-text" role="status">
+                      <AlertTriangle size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden="true" />
                       <div>
-                        <p className="font-semibold">Esta receta contiene ingredientes temporalmente inactivos</p>
-                        <p className="mt-0.5 text-amber-700 dark:text-amber-300">Se conserva la formulación histórica en la receta, pero los productos con ingredientes desactivados no estarán disponibles para la venta ni preparación operativa.</p>
+                        <p className="font-medium">Esta receta contiene ingredientes temporalmente inactivos</p>
+                        <p className="mt-0.5">Se conserva la formulación histórica en la receta, pero los productos con ingredientes desactivados no estarán disponibles para la venta ni preparación operativa.</p>
                       </div>
                     </div>
                   )}
 
                   {/* Tabla de Ficha Técnica (Solo lectura con proporciones) */}
-                  <div className="overflow-x-auto rounded-lg border border-line">
-                    <table className="w-full text-left text-sm">
-                      <thead className="border-b border-line bg-muted text-xs font-semibold uppercase tracking-wide text-fg-muted">
+                  <div className="overflow-x-auto rounded-md border border-line">
+                    <table className="w-full text-left text-body">
+                      <thead className="border-b border-line bg-surface text-label-sm text-fg-muted">
                         <tr>
                           <th scope="col" className="px-4 py-3">Insumo</th>
                           <th scope="col" className="px-3 py-3">Unidad</th>
@@ -952,14 +960,14 @@ export default function EditorRecetasPage() {
                             : '0.0';
 
                           return (
-                            <tr key={c.id_insumo} className={`hover:bg-muted/60 ${isInactivo ? 'bg-amber-50/50 dark:bg-amber-950/20' : ''}`}>
+                            <tr key={c.id_insumo} className={`hover:bg-muted ${isInactivo ? 'bg-warning-soft/60' : ''}`}>
                               <td className="px-4 py-3 font-medium text-fg">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span>{c.nombre_insumo}</span>
                                   {isInactivo && (
                                     <span
                                       title="Insumo inactivo en el catálogo. Se conserva en la receta pero requiere reactivarse para operar."
-                                      className="inline-flex items-center gap-1 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-xs px-2 py-0.5 font-medium border border-amber-300 dark:border-amber-800"
+                                      className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 text-label-sm text-warning-text"
                                     >
                                       <AlertTriangle size={12} aria-hidden="true" />
                                       Insumo inactivo
@@ -967,22 +975,22 @@ export default function EditorRecetasPage() {
                                   )}
                                 </div>
                               </td>
-                              <td className="px-3 py-3 text-fg-muted font-mono text-xs">
+                              <td className="px-3 py-3 font-mono text-body-sm text-fg-muted">
                                 {c.codigo_unidad}
                               </td>
-                              <td className="px-3 py-3 text-right font-mono text-fg font-medium">
+                              <td className="px-3 py-3 text-right font-medium tabular-nums text-fg">
                                 {formatearUnidades(c.cantidad_requerida)}
                               </td>
-                              <td className="px-4 py-3 text-right font-mono text-xs text-fg-muted whitespace-nowrap">
+                              <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-fg-muted">
                                 {verCostos ? formatoDinero(c.costo_promedio) : '—'}
                               </td>
-                              <td className="px-4 py-3 text-right font-mono font-semibold text-fg whitespace-nowrap">
+                              <td className="whitespace-nowrap px-4 py-3 text-right font-medium tabular-nums text-fg">
                                 {verCostos ? (
                                   <div className="flex items-center justify-end gap-1.5">
                                     {Number(c.costo_promedio || 0) === 0 && (
                                       <span
                                         title="Insumo sin compras registradas (costo $0.00)"
-                                        className="inline-flex items-center rounded bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] px-1.5 py-0.5 font-medium border border-amber-300 dark:border-amber-800"
+                                        className="inline-flex items-center whitespace-nowrap rounded-full bg-warning-soft px-2 py-0.5 text-label-sm font-normal text-warning-text"
                                       >
                                         Sin costo base
                                       </span>
@@ -991,12 +999,12 @@ export default function EditorRecetasPage() {
                                   </div>
                                 ) : '—'}
                               </td>
-                              <td className="px-4 py-3 text-right font-mono text-xs text-fg-muted whitespace-nowrap">
+                              <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-fg-muted">
                                 {verCostos ? (
                                   <div className="flex items-center justify-end gap-2">
-                                    <div className="w-12 h-1.5 rounded-full bg-line overflow-hidden hidden sm:block">
+                                    <div className="hidden h-1 w-12 overflow-hidden rounded-full bg-muted sm:block">
                                       <div
-                                        className="h-full bg-primary rounded-full"
+                                        className="h-full rounded-full bg-chart-neutral"
                                         style={{ width: `${Math.min(100, Number(pctCosto))}%` }}
                                       />
                                     </div>
@@ -1009,14 +1017,14 @@ export default function EditorRecetasPage() {
                         })}
                       </tbody>
                       <tfoot>
-                        <tr className="border-t-2 border-line bg-muted/20 font-bold">
-                          <td colSpan={4} className="px-4 py-3 text-right text-xs uppercase tracking-wider text-fg-muted">
+                        <tr className="border-t-2 border-line-strong font-semibold">
+                          <td colSpan={4} className="px-4 py-3 text-right text-label text-fg-muted">
                             Costo Teórico Total:
                           </td>
-                          <td className="px-4 py-3 text-right font-mono font-bold text-primary-text whitespace-nowrap">
+                          <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-fg">
                             {verCostos ? formatoDinero(costoTotal) : '—'}
                           </td>
-                          <td className="px-4 py-3 text-right font-mono text-xs text-fg-muted">100%</td>
+                          <td className="px-4 py-3 text-right tabular-nums text-fg-muted">100%</td>
                         </tr>
                       </tfoot>
                     </table>
@@ -1024,8 +1032,8 @@ export default function EditorRecetasPage() {
 
                   {/* Pie Ficha Técnica */}
                   {tiene('INV_GESTIONAR_RECETAS') && (
-                    <div className="flex items-center justify-between border-t border-line pt-4">
-                      <p className="text-xs text-fg-muted">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+                      <p className="text-body-sm text-fg-muted">
                         Modo de lectura de la fórmula corporativa. Haz clic en «Editar receta» para agregar o modificar componentes.
                       </p>
                       <Button
@@ -1044,11 +1052,11 @@ export default function EditorRecetasPage() {
                   {/* Combobox de búsqueda para agregar insumo anti-duplicados */}
                   {tiene('INV_GESTIONAR_RECETAS') && (
                     <div className="relative" ref={comboboxRef}>
-                      <label htmlFor="agregar-insumo-receta" className="mb-1 block text-sm font-medium text-fg">
+                      <label htmlFor="agregar-insumo-receta" className="mb-1.5 block text-label text-fg">
                         Agregar ingrediente al producto
                       </label>
                       <div className="relative">
-                        <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" aria-hidden="true" />
+                        <Search size={16} strokeWidth={1.75} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden="true" />
                         <input
                           id="agregar-insumo-receta"
                           type="text"
@@ -1066,29 +1074,29 @@ export default function EditorRecetasPage() {
 
                       {errorInsumos && <BannerError error={errorInsumos} onReintentar={() => globalThis.location?.reload()} />}
                       {dropdownAbierto && (
-                        <ul className="absolute left-0 right-0 z-30 mt-1.5 max-h-56 overflow-y-auto rounded-xl border border-line bg-surface shadow-xl scroll-fino p-1.5 space-y-0.5">
+                        <ul className="absolute left-0 right-0 z-30 mt-1.5 max-h-56 space-y-0.5 overflow-y-auto rounded-md border border-line bg-surface p-1 shadow-md scroll-fino">
                           {insumosFiltrados.length === 0 ? (
                             tiene('INV_GESTIONAR_INSUMOS') ? (
-                              <li role="button" tabIndex={0} className="p-3 text-sm text-primary-text cursor-pointer hover:bg-primary-soft" onMouseDown={() => { setValoresInsumo({ nombre: busquedaInsumo.trim(), tipo_insumo: 'INGREDIENTE', id_unidad_base: String(unidades.find((u) => u.codigo === 'UND')?.id_unidad ?? '') }); setDrawerInsumoAbierto(true); }}>+ Crear insumo «{busquedaInsumo.trim()}»</li>
+                              <li role="button" tabIndex={0} className="cursor-pointer rounded-sm p-2.5 text-body text-primary-text hover:bg-primary-soft" onMouseDown={() => { setValoresInsumo({ nombre: busquedaInsumo.trim(), tipo_insumo: 'INGREDIENTE', id_unidad_base: String(unidades.find((u) => u.codigo === 'UND')?.id_unidad ?? '') }); setDrawerInsumoAbierto(true); }}>+ Crear insumo «{busquedaInsumo.trim()}»</li>
                             ) : (
-                              <li className="p-3 text-xs text-fg-muted text-center">Pide a quien administra insumos que cree «{busquedaInsumo.trim()}»</li>
+                              <li className="p-3 text-center text-body-sm text-fg-muted">Pide a quien administra insumos que cree «{busquedaInsumo.trim()}»</li>
                             )
                           ) : (
                             insumosFiltrados.map((ins) => (
                               <li
                                 key={ins.id_insumo}
-                                className="flex cursor-pointer items-center justify-between p-2.5 rounded-lg text-sm hover:bg-espresso-100/60 dark:hover:bg-espresso-800/60 transition-colors select-none"
+                                className="flex cursor-pointer select-none items-center justify-between gap-3 rounded-sm p-2.5 text-body transition-colors hover:bg-muted"
                                 onMouseDown={() => handleSeleccionarInsumo(ins)}
                               >
                                 <div>
-                                  <span className="font-semibold text-fg">{ins.nombre}</span>
+                                  <span className="font-medium text-fg">{ins.nombre}</span>
                                 </div>
-                                <span className="font-mono text-xs font-semibold text-primary-text bg-primary-soft px-2.5 py-0.5 rounded-md inline-flex items-center gap-1.5">
+                                <span className="inline-flex items-center gap-1.5 text-body-sm tabular-nums text-fg-muted">
                                   {verCostos ? (
                                     <>
                                       <span>{ins.codigo_unidad ?? 'u'} · {formatoDinero(ins.costo_promedio)}</span>
                                       {Number(ins.costo_promedio || 0) === 0 && (
-                                        <span className="text-[10px] text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60 px-1 py-0.5 rounded font-normal">
+                                        <span className="rounded-full bg-warning-soft px-2 py-0.5 text-label-sm text-warning-text">
                                           Sin costo base
                                         </span>
                                       )}
@@ -1105,20 +1113,20 @@ export default function EditorRecetasPage() {
 
                   {/* Alerta de ingredientes inactivos */}
                   {recetaComponentes.some((c) => c.activo === false || insumos.find((i) => Number(i.id_insumo) === Number(c.id_insumo))?.activo === false) && (
-                    <div className="flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40 p-3 text-xs text-amber-800 dark:text-amber-200">
-                      <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                    <div className="flex items-start gap-2.5 rounded-md border border-warning/30 bg-warning-soft px-4 py-3 text-body-sm text-warning-text" role="status">
+                      <AlertTriangle size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden="true" />
                       <div>
-                        <p className="font-semibold">Esta receta contiene ingredientes temporalmente inactivos</p>
-                        <p className="mt-0.5 text-amber-700 dark:text-amber-300">Se conserva la formulación histórica en la receta, pero los productos con ingredientes desactivados no estarán disponibles para la venta ni preparación operativa.</p>
+                        <p className="font-medium">Esta receta contiene ingredientes temporalmente inactivos</p>
+                        <p className="mt-0.5">Se conserva la formulación histórica en la receta, pero los productos con ingredientes desactivados no estarán disponibles para la venta ni preparación operativa.</p>
                       </div>
                     </div>
                   )}
 
                   {/* Tabla editable de componentes */}
                   {hayComponentes ? (
-                    <div className="overflow-x-auto rounded-lg border border-line">
-                      <table className="w-full text-left text-sm">
-                        <thead className="border-b border-line bg-muted text-xs font-semibold uppercase tracking-wide text-fg-muted">
+                    <div className="overflow-x-auto rounded-md border border-line">
+                      <table className="w-full text-left text-body">
+                        <thead className="border-b border-line bg-surface text-label-sm text-fg-muted">
                           <tr>
                             <th scope="col" className="px-4 py-3">Insumo</th>
                             <th scope="col" className="px-3 py-3">Unidad</th>
@@ -1136,14 +1144,14 @@ export default function EditorRecetasPage() {
                             const isInactivo = c.activo === false || (insumoCat && insumoCat.activo === false);
 
                             return (
-                              <tr key={c.id_insumo} className={`hover:bg-muted/60 ${isInactivo ? 'bg-amber-50/50 dark:bg-amber-950/20' : ''}`}>
+                              <tr key={c.id_insumo} className={`hover:bg-muted ${isInactivo ? 'bg-warning-soft/60' : ''}`}>
                                 <td className="px-4 py-3 font-medium text-fg">
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <span>{c.nombre_insumo}</span>
                                     {isInactivo && (
                                       <span
                                         title="Insumo inactivo en el catálogo. Se conserva en la receta pero requiere reactivarse para operar."
-                                        className="inline-flex items-center gap-1 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-xs px-2 py-0.5 font-medium border border-amber-300 dark:border-amber-800"
+                                        className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 text-label-sm text-warning-text"
                                       >
                                         <AlertTriangle size={12} aria-hidden="true" />
                                         Insumo inactivo
@@ -1151,7 +1159,7 @@ export default function EditorRecetasPage() {
                                     )}
                                   </div>
                                 </td>
-                                <td className="px-3 py-3 text-fg-muted font-mono text-xs">
+                                <td className="px-3 py-3 font-mono text-body-sm text-fg-muted">
                                   {c.codigo_unidad}
                                 </td>
                                 <td className="px-3 py-3 text-right">
@@ -1161,23 +1169,23 @@ export default function EditorRecetasPage() {
                                       type="number"
                                       min="1"
                                       step="1"
-                                      className="input w-28 text-right font-mono text-sm py-1"
+                                      className="input h-control-sm w-24 py-0 text-right tabular-nums"
                                       value={c.cantidad_requerida}
                                       onChange={(e) =>
                                         handleCambiarCantidad(c.id_insumo, e.target.value)
                                       }
                                     />
                                   ) : (
-                                    <span className="font-mono">{formatearUnidades(c.cantidad_requerida)}</span>
+                                    <span className="tabular-nums">{formatearUnidades(c.cantidad_requerida)}</span>
                                   )}
                                 </td>
-                                <td className="px-4 py-3 text-right font-mono font-semibold text-fg">
+                                <td className="whitespace-nowrap px-4 py-3 text-right font-medium tabular-nums text-fg">
                                   {verCostos ? (
                                     <div className="flex items-center justify-end gap-1.5">
                                       {Number(c.costo_promedio || 0) === 0 && (
                                         <span
                                           title="Insumo sin compras registradas (costo $0.00)"
-                                          className="inline-flex items-center rounded bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] px-1.5 py-0.5 font-medium border border-amber-300 dark:border-amber-800"
+                                          className="inline-flex items-center whitespace-nowrap rounded-full bg-warning-soft px-2 py-0.5 text-label-sm font-normal text-warning-text"
                                         >
                                           Sin costo base
                                         </span>
@@ -1190,12 +1198,12 @@ export default function EditorRecetasPage() {
                                   <td className="px-3 py-3 text-right">
                                     <button
                                       type="button"
-                                      className="btn-ghost !p-1.5 min-h-7 text-danger hover:bg-danger-soft"
+                                      className="grid size-control-sm place-items-center rounded-md text-fg-muted transition-colors hover:bg-danger-soft hover:text-danger-text"
                                       title="Quitar ingrediente"
                                       aria-label={`Quitar ingrediente ${c.insumo || c.nombre_insumo || ''}`}
                                       onClick={() => handleQuitarInsumo(c.id_insumo)}
                                     >
-                                      <X size={14} aria-hidden="true" />
+                                      <X size={16} strokeWidth={1.75} aria-hidden="true" />
                                     </button>
                                   </td>
                                 )}
@@ -1204,11 +1212,11 @@ export default function EditorRecetasPage() {
                           })}
                         </tbody>
                         <tfoot>
-                          <tr className="border-t-2 border-line bg-muted/20 font-bold">
-                            <td colSpan={3} className="px-4 py-3 text-right text-xs uppercase tracking-wider text-fg-muted">
+                          <tr className="border-t-2 border-line-strong font-semibold">
+                            <td colSpan={3} className="px-4 py-3 text-right text-label text-fg-muted">
                               Costo Teórico Total:
                             </td>
-                            <td className="px-4 py-3 text-right font-mono font-bold text-primary-text">
+                            <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-fg">
                               {verCostos ? formatoDinero(costoTotal) : '—'}
                             </td>
                             {tiene('INV_GESTIONAR_RECETAS') && <td />}
@@ -1248,8 +1256,8 @@ export default function EditorRecetasPage() {
                       </div>
 
                       {hayCambios && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-3 py-1 text-xs font-semibold text-warning">
-                          <Sparkles size={13} aria-hidden="true" />
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-warning-soft px-2.5 py-0.5 text-label-sm text-warning-text" role="status">
+                          <Sparkles size={16} strokeWidth={1.75} aria-hidden="true" />
                           Cambios sin guardar
                         </span>
                       )}

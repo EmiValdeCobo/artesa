@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Plus, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Plus, ReceiptText, Search, Trash2, X } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
+import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
 import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import { Button, Card, Select, Table } from '../../components/ui/index.js';
@@ -85,7 +86,7 @@ function HistorialGastos({ sucursales, recargarClave }) {
       render: (fila) => (
         <div className="font-medium">
           {fila.proveedor}
-          <p className="text-xs font-normal text-fg-muted">{fila.sucursal}</p>
+          <p className="text-body-sm font-normal text-fg-muted">{fila.sucursal}</p>
         </div>
       ),
     },
@@ -136,27 +137,28 @@ function HistorialGastos({ sucursales, recargarClave }) {
   ];
 
   return (
-    <Card titulo="Gastos registrados" descripcion="Consulta el importe, los abonos y el saldo de cada factura de gasto." acciones={<Link to="/compras/cuentas-por-pagar" className="text-sm font-medium text-primary-text hover:underline">Abrir cuentas por pagar</Link>}>
-      {error && <div className="mb-4"><BannerError error={{ titulo: 'No se pudieron cargar los gastos', mensaje: error, accion: '' }} /></div>}
-      <div className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_200px_240px]">
-        <label className="flex flex-col text-sm font-medium">Buscar gasto<input className="input mt-1.5 h-10" placeholder="Proveedor o factura" value={busqueda} onChange={(evento) => setBusqueda(evento.target.value)} /></label>
-        <Select etiqueta="Estado de pago" value={estado} onChange={(evento) => setEstado(evento.target.value)} opciones={ESTADOS} />
-        <Select etiqueta="Sucursal" value={sucursal} onChange={(evento) => setSucursal(evento.target.value)} placeholder="Todas mis sucursales" opciones={sucursales.map((item) => ({ valor: String(item.id_sucursal), texto: item.nombre }))} />
+    <Card sinPadding className="overflow-hidden" icono={ReceiptText} titulo="Gastos registrados" descripcion="Consulta el importe, los abonos y el saldo de cada factura de gasto." acciones={<Link to="/compras/cuentas-por-pagar" className="text-label text-primary-text hover:underline">Abrir cuentas por pagar</Link>}>
+      {error && <div className="px-5 pt-4"><BannerError error={{ titulo: 'No se pudieron cargar los gastos', mensaje: error, accion: '' }} /></div>}
+      <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3">
+        <div className="relative w-full max-w-xs"><Search size={16} strokeWidth={1.75} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden="true" /><input className="input pl-9" aria-label="Buscar gasto" placeholder="Proveedor o factura" value={busqueda} onChange={(evento) => setBusqueda(evento.target.value)} /></div>
+        <div className="w-full sm:w-44"><Select tamano="sm" aria-label="Estado de pago" value={estado} onChange={(evento) => setEstado(evento.target.value)} opciones={ESTADOS} /></div>
+        <div className="w-full sm:w-56"><Select tamano="sm" aria-label="Sucursal" value={sucursal} onChange={(evento) => setSucursal(evento.target.value)} placeholder="Todas mis sucursales" opciones={sucursales.map((item) => ({ valor: String(item.id_sucursal), texto: item.nombre }))} /></div>
+        {(busqueda || sucursal) && <Button variante="ghost" tamano="sm" onClick={() => { setBusqueda(''); setSucursal(''); }}>Limpiar filtros</Button>}
       </div>
       <Table
         cargando={cargando}
         filas={visibles}
         idFila="id_compra"
-        vacio={`No hay gastos ${estado === 'todas' ? '' : estado === 'pagadas' ? 'pagados' : 'pendientes'} para estos filtros.`}
+        vacio={<EstadoVacio icono={ReceiptText} titulo={`No hay gastos ${estado === 'todas' ? '' : estado === 'pagadas' ? 'pagados' : 'pendientes'} para estos filtros.`} />}
         columnas={columnas}
         idTabla="compras-historial-gastos"
         ordenInicial={{ clave: 'fecha_emision', direccion: 'desc' }}
       />
-      {!cargando && !error && <div className="mt-3 flex flex-col gap-2 border-t border-line pt-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+      {!cargando && !error && <div className="flex flex-col gap-2 border-t border-line px-5 py-4 text-body sm:flex-row sm:items-center sm:justify-between">
         <p className="text-fg-muted">Facturas pagadas: <span className="font-semibold text-fg">{pagadas.length}</span></p>
-        <p className="text-base font-semibold">Total pagado en la lista: <span className="text-primary-text">{formatoCentavos(totalPagado)}</span></p>
+        <p className="font-semibold">Total pagado en la lista: <span className="tabular-nums">{formatoCentavos(totalPagado)}</span></p>
       </div>}
-      {!error && <p className="mt-2 text-xs text-fg-muted">Para revisar el saldo o registrar un abono, abre Cuentas por pagar.</p>}
+      {!error && <p className="px-5 pb-4 text-body-sm text-fg-muted">Para revisar el saldo o registrar un abono, abre Cuentas por pagar.</p>}
     </Card>
   );
 }
@@ -285,23 +287,24 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
         acciones={<Button variante="ghost" icono={ArrowLeft} onClick={() => navigate(-1)}>Volver</Button>}
       />
       {borradorAviso && (
-        <div role="status" className="flex items-start justify-between gap-3 rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 text-sm text-warning">
+        <div role="status" className="flex items-start justify-between gap-3 rounded-md border border-warning/30 bg-warning-soft px-4 py-3 text-body text-warning-text">
           <p><strong>Borrador sugerido.</strong> Revisa los datos antes de guardar: las cantidades se calcularon con lo que falta para llegar al mínimo y el costo promedio conocido. Elige el proveedor y confirma con «Registrar factura»; si sales de esta pantalla el borrador se descarta.</p>
           <button type="button" className="btn-ghost min-h-8 shrink-0 !p-1.5" onClick={() => setBorradorAviso(false)} aria-label="Cerrar aviso de borrador"><X size={15} aria-hidden="true" /></button>
         </div>
       )}
       {errorCarga && <BannerError error={{ titulo: gasto ? 'No se pudieron cargar los datos de compras' : 'No se pudieron cargar los insumos y proveedores', mensaje: errorCarga, accion: '' }} />}
 
-      <form onSubmit={enviar} className="space-y-5">
+      <form onSubmit={enviar} className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+        <div className="min-w-0 space-y-6">
         <Card titulo={gasto ? '1. Datos de la factura' : 'Datos de la factura'} descripcion={gasto ? 'Indica quién emitió el comprobante y a qué sucursal corresponde.' : 'Indica el proveedor, la sucursal y los datos del comprobante.'}>
-          <div className="grid items-end gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid items-end gap-4 sm:grid-cols-2">
             <Select etiqueta="Proveedor" value={form.idProveedor} onChange={(evento) => editarCampo('idProveedor', evento.target.value)} placeholder={cargando ? 'Cargando proveedores…' : 'Selecciona proveedor'} opciones={proveedores.map((item) => ({ valor: String(item.id_proveedor), texto: item.razon_social }))} />
             <Select etiqueta="Sucursal" value={form.idSucursal} onChange={(evento) => editarCampo('idSucursal', evento.target.value)} placeholder="Selecciona sucursal" opciones={sucursales.map((item) => ({ valor: String(item.id_sucursal), texto: item.nombre }))} />
-            <label className="flex h-full flex-col text-sm font-medium">Número de factura<input className="input mt-1.5 h-10" value={form.numeroFactura} onChange={(evento) => editarCampo('numeroFactura', mascaraIdentificador(evento.target.value, 50))} maxLength={50} autoCapitalize="characters" spellCheck={false} required /></label>
-            <label className="flex h-full flex-col text-sm font-medium">Fecha de emisión<input className="input mt-1.5 h-10" type="date" value={form.fechaEmision} onChange={(evento) => editarCampo('fechaEmision', evento.target.value)} required /></label>
+            <label className="flex h-full flex-col text-label">Número de factura<input className="input mt-1.5 h-10" value={form.numeroFactura} onChange={(evento) => editarCampo('numeroFactura', mascaraIdentificador(evento.target.value, 50))} maxLength={50} autoCapitalize="characters" spellCheck={false} required /></label>
+            <label className="flex h-full flex-col text-label">Fecha de emisión<input className="input mt-1.5 h-10" type="date" value={form.fechaEmision} onChange={(evento) => editarCampo('fechaEmision', evento.target.value)} required /></label>
             <Select etiqueta="Condición de pago" value={form.condicionPago} onChange={(evento) => editarCampo('condicionPago', evento.target.value)} opciones={[{ valor: 'CONTADO', texto: 'Contado' }, { valor: 'CREDITO', texto: 'Crédito' }]} />
           </div>
-          {gasto && <p className="mt-4 rounded-lg bg-muted/60 p-3 text-sm text-fg-muted">Si eliges crédito, la factura aparecerá en Cuentas por pagar para registrar abonos.</p>}
+          {gasto && <p className="mt-4 rounded-lg bg-muted/60 p-3 text-body text-fg-muted">Si eliges crédito, la factura aparecerá en Cuentas por pagar para registrar abonos.</p>}
         </Card>
 
         <Card
@@ -311,25 +314,34 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
         >
           <div className="space-y-3">
             {form.items.map((linea, indice) => (
-              <div key={indice} className="grid gap-3 rounded-xl border border-line bg-muted/30 p-4 md:grid-cols-[minmax(180px,2fr)_minmax(100px,1fr)_minmax(130px,1fr)_auto] md:items-start">
+              <div key={indice} className="grid gap-3 border-b border-line pb-3 last:border-b-0 last:pb-0 md:grid-cols-[minmax(180px,2fr)_minmax(100px,1fr)_minmax(130px,1fr)_auto] md:items-start">
                 {gasto
-                  ? <label className="flex flex-col text-sm font-medium">Concepto<input className="input mt-1.5 h-10" placeholder="Ej. servicio de internet" value={linea.descripcion} onChange={(evento) => editarLinea(indice, 'descripcion', evento.target.value)} maxLength={150} required /></label>
+                  ? <label className="flex flex-col text-label">Concepto<input className="input mt-1.5 h-10" placeholder="Ej. servicio de internet" value={linea.descripcion} onChange={(evento) => editarLinea(indice, 'descripcion', evento.target.value)} maxLength={150} required /></label>
                   : <Select etiqueta="Insumo" value={linea.idInsumo} onChange={(evento) => editarLinea(indice, 'idInsumo', evento.target.value)} placeholder="Selecciona insumo" opciones={insumos.map((item) => ({ valor: String(item.id_insumo), texto: `${item.nombre} · ${item.unidad_codigo}` }))} />}
-                <label className="flex flex-col text-sm font-medium">Cantidad<input className="input mt-1.5 h-10" type="text" inputMode="numeric" placeholder="0" maxLength={8} value={linea.cantidad} onChange={(evento) => editarLinea(indice, 'cantidad', mascaraEntero(evento.target.value, 8))} required />{linea.origen === 'faltante' && <span className="mt-1 block text-xs font-normal text-fg-muted">Faltante para llegar al mínimo{linea.unidad ? ` (${linea.unidad})` : ''}</span>}</label>
-                <label className="flex flex-col text-sm font-medium">Costo por unidad<input className="input mt-1.5 h-10" type="text" inputMode="decimal" placeholder="0.00" value={linea.costoUnitario} onChange={(evento) => editarLinea(indice, 'costoUnitario', mascaraDecimal(evento.target.value, 6, 6))} required /><span className="mt-1 block text-xs font-normal text-fg-muted">USD, sin IVA</span></label>
+                <label className="flex flex-col text-label">Cantidad<input className="input mt-1.5 h-10 text-right tabular-nums" type="text" inputMode="numeric" placeholder="0" maxLength={8} value={linea.cantidad} onChange={(evento) => editarLinea(indice, 'cantidad', mascaraEntero(evento.target.value, 8))} required />{linea.origen === 'faltante' && <span className="mt-1 block text-body-sm font-normal text-fg-muted">Faltante para llegar al mínimo{linea.unidad ? ` (${linea.unidad})` : ''}</span>}</label>
+                <label className="flex flex-col text-label">Costo por unidad<input className="input mt-1.5 h-10 text-right tabular-nums" type="text" inputMode="decimal" placeholder="0.00" value={linea.costoUnitario} onChange={(evento) => editarLinea(indice, 'costoUnitario', mascaraDecimal(evento.target.value, 6, 6))} required /><span className="mt-1 block text-body-sm font-normal text-fg-muted">USD, sin IVA</span></label>
                 {/* Separador invisible con la altura de la etiqueta: alinea el botón con los controles, no con el texto. */}
-                <div className="flex flex-col"><span className="mb-1.5 hidden text-sm md:block" aria-hidden="true">&nbsp;</span><Button className="h-10" variante="ghost" icono={Trash2} aria-label={`Quitar ${gasto ? 'concepto' : 'insumo'} ${indice + 1}`} disabled={form.items.length === 1} onClick={() => setForm((actual) => ({ ...actual, items: actual.items.filter((_, posicion) => posicion !== indice) }))} /></div>
+                <div className="flex flex-col"><span className="mb-1.5 hidden text-body md:block" aria-hidden="true">&nbsp;</span><Button className="h-10" variante="ghost" icono={Trash2} aria-label={`Quitar ${gasto ? 'concepto' : 'insumo'} ${indice + 1}`} disabled={form.items.length === 1} onClick={() => setForm((actual) => ({ ...actual, items: actual.items.filter((_, posicion) => posicion !== indice) }))} /></div>
               </div>
             ))}
           </div>
-          {!gasto && <p className="mt-4 text-sm text-fg-muted">Las existencias y el costo promedio se actualizarán al guardar la factura.</p>}
+          {!gasto && <p className="mt-4 text-body text-fg-muted">Las existencias y el costo promedio se actualizarán al guardar la factura.</p>}
         </Card>
-        <div className="flex justify-end"><Button type="submit" cargando={guardando} disabled={cargando || !lineasValidas || !proveedores.length || !sucursales.length}>{gasto ? 'Guardar gasto' : 'Registrar factura'}</Button></div>
+        </div>
+        <aside aria-label="Totales de la factura" className="space-y-4 rounded-lg bg-muted p-4 lg:sticky lg:top-4">
+          <p className="rotulo">Resumen</p>
+          <dl className="space-y-2 text-body">
+            <div className="flex justify-between gap-3"><dt className="text-fg-muted">Líneas</dt><dd className="tabular-nums">{form.items.length}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-fg-muted">Condición</dt><dd>{form.condicionPago === 'CREDITO' ? 'Crédito' : 'Contado'}</dd></div>
+          </dl>
+          <p className="text-body-sm text-fg-muted">El total definitivo lo calcula el sistema al guardar.</p>
+          <div className="flex"><Button className="w-full" type="submit" cargando={guardando} disabled={cargando || !lineasValidas || !proveedores.length || !sucursales.length}>{gasto ? 'Guardar gasto' : 'Registrar factura'}</Button></div>
+        </aside>
       </form>
 
       {gasto && (puedeVerCuentas
         ? <HistorialGastos sucursales={sucursales} recargarClave={recargarClave} />
-        : <Card titulo="Consulta de gastos"><p className="text-sm text-fg-muted">La consulta de facturas no está habilitada para tu usuario. Puedes guardar gastos y pedir acceso a Cuentas por pagar para revisar sus saldos.</p></Card>)}
+        : <Card titulo="Consulta de gastos"><p className="text-body text-fg-muted">La consulta de facturas no está habilitada para tu usuario. Puedes guardar gastos y pedir acceso a Cuentas por pagar para revisar sus saldos.</p></Card>)}
     </div>
   );
 }

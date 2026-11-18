@@ -120,9 +120,9 @@ export default function InsumoDrawer({ abierto, insumo, unidades = [], valoresIn
 
   return createPortal(
     <>
-      {/* Backdrop con cobertura 100% de pantalla (w-screen, h-dvh) y blur oscuro profundo */}
+      {/* Fondo atenuado a pantalla completa (token de overlay, sin blur) */}
       <div
-        className="fixed inset-0 w-screen h-dvh z-[60] bg-espresso-950/60 backdrop-blur-[2px] transition-opacity"
+        className="anim-scrim fixed inset-0 w-screen h-dvh z-[60] bg-overlay"
         onClick={onCerrar}
         aria-hidden="true"
       />
@@ -132,15 +132,15 @@ export default function InsumoDrawer({ abierto, insumo, unidades = [], valoresIn
         role="dialog"
         aria-modal="true"
         aria-label={esEdicion ? 'Editar insumo' : 'Nuevo insumo'}
-        className="fixed right-0 top-0 bottom-0 h-dvh w-full max-w-md bg-surface shadow-2xl z-[70] flex flex-col border-l border-line"
+        className="fixed right-0 top-0 bottom-0 h-dvh w-full max-w-md bg-surface shadow-lg z-[70] flex flex-col border-l border-line"
       >
         {/* Cabecera fija */}
-        <div className="px-6 py-4 border-b border-line bg-surface flex items-center justify-between shrink-0">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line bg-surface px-6 pb-4 pt-6">
           <div>
-            <h2 className="text-lg font-semibold text-fg">
+            <h2 className="text-h3 text-fg">
               {esEdicion ? 'Editar insumo' : 'Nuevo insumo'}
             </h2>
-            <p className="text-xs text-fg-muted mt-0.5">
+            <p className="mt-1 text-body text-fg-muted">
               {esEdicion ? 'Actualiza los datos del insumo y stock mínimo' : 'Registra un ingrediente, empaque o artículo de reventa'}
             </p>
           </div>
@@ -150,8 +150,8 @@ export default function InsumoDrawer({ abierto, insumo, unidades = [], valoresIn
         {/* Cuerpo con scroll interno */}
         <form id="form-insumo" onSubmit={handleSubmit} className="flex-1 overflow-y-auto scroll-fino px-6 py-5 space-y-4">
           <div>
-            <label htmlFor="insumo-nombre" className="mb-1 block text-sm font-medium text-fg">
-              Nombre <span className="text-danger ml-0.5 font-semibold">*</span>
+            <label htmlFor="insumo-nombre" className="mb-1.5 block text-label text-fg">
+              Nombre <span className="text-danger-text">*</span>
             </label>
             <input
               className="input"
@@ -186,34 +186,34 @@ export default function InsumoDrawer({ abierto, insumo, unidades = [], valoresIn
 
           {!esEdicion ? (
             <div>
-              <label htmlFor="insumo-costo" className="mb-1 block text-sm font-medium text-fg">
+              <label htmlFor="insumo-costo" className="mb-1.5 block text-label text-fg">
                 Costo
               </label>
               <input
-                className="input font-mono"
+                className="input text-right tabular-nums"
                 id="insumo-costo"
                 {...propsMascara('monto')}
                 value={form.costo_promedio}
                 onChange={(e) => set('costo_promedio')(aplicarMascara('monto', e.target.value))}
                 onBlur={() => form.costo_promedio && set('costo_promedio')(completarDecimales(form.costo_promedio))}
               />
-              <p className="mt-1 text-xs text-fg-muted">Costo por {unidades.find((u) => String(u.id_unidad) === String(form.id_unidad_base))?.codigo ?? 'unidad base'}.</p>
+              <p className="mt-1 text-body-sm text-fg-muted">Costo por {unidades.find((u) => String(u.id_unidad) === String(form.id_unidad_base))?.codigo ?? 'unidad base'}.</p>
             </div>
           ) : (
-            <div className="rounded-xl border border-line bg-surface p-4 space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wider text-fg-muted">
+            <div className="space-y-1 rounded-md bg-muted p-4">
+              <span className="rotulo">
                 <span title="Promedio del costo de las compras registradas, ponderado por la cantidad comprada.">Costo promedio</span>
               </span>
-              <p className="text-sm font-mono font-bold text-fg">
+              <p className="text-h3 tabular-nums text-fg">
                 {insumo.costo_promedio == null ? <span title="Sin permiso para ver costos">—</span> : formatoDinero(insumo.costo_promedio)}
               </p>
-              <p className="text-xs text-fg-muted italic">
+              <p className="text-body-sm text-fg-muted">
                 El costo se actualiza automáticamente con cada factura de compra.
               </p>
             </div>
           )}
 
-          {esEdicion && <div className="flex items-center gap-3 pt-2">
+          {esEdicion && <div className="flex items-center gap-3 border-t border-line pt-4">
             <input
               id="insumo-activo"
               type="checkbox"
@@ -221,14 +221,14 @@ export default function InsumoDrawer({ abierto, insumo, unidades = [], valoresIn
               onChange={(e) => set('activo')(e.target.checked)}
               className="h-4 w-4 rounded border-line accent-primary"
             />
-            <label htmlFor="insumo-activo" className="text-sm text-fg select-none">
+            <label htmlFor="insumo-activo" className="select-none text-body text-fg">
               Insumo habilitado para operaciones
             </label>
           </div>}
         </form>
 
         {/* Pie de acciones fijo */}
-        <div className="sticky bottom-0 border-t border-line bg-surface px-6 py-4 flex items-center justify-end gap-3 shrink-0">
+        <div className="sticky bottom-0 flex shrink-0 flex-col-reverse gap-2 border-t border-line bg-surface px-6 py-4 sm:flex-row sm:justify-end">
           <Button variante="ghost" onClick={onCerrar} disabled={cargando}>
             Descartar cambios
           </Button>

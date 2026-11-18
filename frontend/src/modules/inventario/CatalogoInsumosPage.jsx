@@ -9,7 +9,8 @@ import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import Pestanas from '../../components/navigation/Pestanas.jsx';
-import { BotonIcono, Button, Card, Select, Spinner, Table } from '../../components/ui/index.js';
+import { BotonIcono, Button, Card, Select, Table } from '../../components/ui/index.js';
+import Insignia from '../../components/branding/Insignia.jsx';
 import { ICONOS } from '../../config/iconos.js';
 import CampoError from '../../components/forms/CampoError.jsx';
 import { formatoDinero, formatearUnidades, enteroParaInput } from '../../utils/formato.js';
@@ -42,15 +43,9 @@ const FILTRO_TIPO_OPTS = [
 ];
 
 function TipoBadge({ tipo }) {
-  if (tipo === 'REVENTA') {
-    return (
-      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-secondary-soft text-secondary-text">
-        Reventa
-      </span>
-    );
-  }
+  if (tipo === 'REVENTA') return <Insignia variante="aviso">Reventa</Insignia>;
   const label = tipo === 'INGREDIENTE' ? 'Ingrediente' : 'Empaque';
-  return <EstadoBadge tipo="info">{label}</EstadoBadge>;
+  return <Insignia variante="neutro">{label}</Insignia>;
 }
 
 // ─── MODAL: Formulario de Unidad de Medida ───────────────────────────────────
@@ -142,24 +137,24 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
   if (!abierto) return null;
 
   return createPortal(
-    <div className="fixed inset-0 w-screen h-dvh z-50 flex items-center justify-center bg-espresso-950/60 backdrop-blur-[2px] p-4">
+    <div className="anim-scrim fixed inset-0 w-screen h-dvh z-50 flex items-end justify-center bg-overlay sm:items-center sm:p-4">
       <div
         role="dialog"
         aria-modal="true"
         aria-label={esEdicion ? 'Editar Unidad' : 'Nueva Unidad'}
-        className="bg-surface rounded-xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden border border-line"
+        className="flex w-full flex-col overflow-hidden rounded-t-xl border border-line bg-surface shadow-lg sm:max-w-md sm:rounded-xl"
       >
-        <div className="px-6 py-4 border-b border-line flex items-center justify-between">
-          <h2 className="text-base font-semibold text-fg">
+        <div className="flex items-start justify-between gap-4 px-6 pt-6">
+          <h2 className="text-h3 text-fg">
             {esEdicion ? 'Editar Unidad' : 'Nueva Unidad de Medida'}
           </h2>
           <BotonIcono icono={ICONOS.cerrar} etiqueta="Cerrar" onClick={onCerrar} />
         </div>
 
-        <form id="form-unidad" onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
+        <form id="form-unidad" onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
           <div>
-            <label htmlFor="unidad-codigo" className="mb-1 block text-sm font-medium text-fg">
-              Abreviatura / Símbolo <span className="text-danger ml-0.5 font-semibold">*</span>
+            <label htmlFor="unidad-codigo" className="mb-1.5 block text-label text-fg">
+              Abreviatura / Símbolo <span className="text-danger-text">*</span>
             </label>
             <input
               className="input"
@@ -172,11 +167,11 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
             />
             <CampoError id="unidad-codigo" mensaje={erroresCampos.codigo} />
           </div>
-          {esEdicion && <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={form.activo} onChange={(e) => setForm((f) => ({ ...f, activo: e.target.checked }))} />Activa</label>}
+          {esEdicion && <label className="inline-flex items-center gap-2 text-body"><input type="checkbox" className="h-4 w-4 accent-primary" checked={form.activo} onChange={(e) => setForm((f) => ({ ...f, activo: e.target.checked }))} />Activa</label>}
 
           <div>
-            <label htmlFor="unidad-nombre" className="mb-1 block text-sm font-medium text-fg">
-              Nombre de la Unidad <span className="text-danger ml-0.5 font-semibold">*</span>
+            <label htmlFor="unidad-nombre" className="mb-1.5 block text-label text-fg">
+              Nombre de la Unidad <span className="text-danger-text">*</span>
             </label>
             <input
               className="input"
@@ -191,11 +186,11 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
           </div>
 
           <div>
-            <label htmlFor="unidad-factor" className="mb-1 block text-sm font-medium text-fg">
+            <label htmlFor="unidad-factor" className="mb-1.5 block text-label text-fg">
               Factor de conversión
             </label>
             <input
-              className="input font-mono"
+              className="input text-right tabular-nums"
               id="unidad-factor"
               inputMode="numeric"
               placeholder="1"
@@ -204,13 +199,13 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
               min="1"
               step="1"
             />
-            <p className="mt-1 text-xs text-fg-muted">
+            <p className="mt-1 text-body-sm text-fg-muted">
               Equivalencia respecto a la unidad base (ej: 1000 para kg si la base es gramo).
             </p>
           </div>
         </form>
 
-        <div className="px-6 py-4 border-t border-line bg-surface flex gap-3 justify-end">
+        <div className="flex flex-col-reverse gap-2 border-t border-line bg-surface px-6 py-4 sm:flex-row sm:justify-end">
           <Button variante="ghost" onClick={onCerrar} disabled={cargando}>
             Cancelar
           </Button>
@@ -371,7 +366,7 @@ function PestanaInsumos({ unidades, onTotal }) {
       tipo: 'texto',
       valorOrden: (fila) => fila.codigo_unidad ?? fila.unidad?.codigo ?? '',
       render: (fila) => (
-        <span className="text-sm font-medium text-fg-muted">
+        <span className="font-mono text-body-sm text-fg-muted">
           {fila.codigo_unidad ?? fila.unidad?.codigo ?? '—'}
         </span>
       ),
@@ -383,7 +378,7 @@ function PestanaInsumos({ unidades, onTotal }) {
       alinear: 'right',
       valorOrden: (fila) => fila.costo_promedio,
       render: (fila) => (
-        <span className="text-sm font-mono font-medium text-fg">
+        <span className="whitespace-nowrap tabular-nums text-fg">
           {fila.costo_promedio == null ? <span title="Sin permiso para ver costos">—</span> : formatoDinero(fila.costo_promedio)}
         </span>
       ),
@@ -440,7 +435,7 @@ function PestanaInsumos({ unidades, onTotal }) {
         }
       />
 
-      <p className="text-sm text-fg-muted">El stock y las alertas por sucursal se consultan en Inventario › {tiene('INV_VER_STOCK') ? <a className="font-medium text-primary-text underline" href="/inventario/existencias">Existencias</a> : 'Existencias'}.</p>
+      <p className="text-body-sm text-fg-muted">El stock y las alertas por sucursal se consultan en Inventario › {tiene('INV_VER_STOCK') ? <a className="font-medium text-primary-text underline" href="/inventario/existencias">Existencias</a> : 'Existencias'}.</p>
 
       {errorBanner && (
         <BannerError
@@ -450,43 +445,39 @@ function PestanaInsumos({ unidades, onTotal }) {
         />
       )}
 
-      {/* Controles y barra superior */}
-      <div className="flex flex-col gap-2">
-        <div className="flex items-end gap-3">
-          <div className="relative flex-1">
-            <label htmlFor="buscar-insumo" className="mb-1 block text-sm font-medium text-fg">Buscar insumo</label>
-            <ICONOS.buscar size={17} className="pointer-events-none absolute left-3 top-[2.35rem] -translate-y-1/2 text-fg-muted" aria-hidden="true" />
+      {/* Tabla de Insumos con barra de herramientas */}
+      <Card sinPadding icono={Package} titulo="Insumos registrados" descripcion={<span className="tabular-nums" aria-live="polite">{insumosFiltrados.length} encontrados</span>}>
+        <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3">
+          <div className="relative w-full max-w-xs">
+            <label htmlFor="buscar-insumo" className="sr-only">Buscar insumo</label>
+            <ICONOS.buscar size={16} strokeWidth={1.75} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden="true" />
             <input id="buscar-insumo" type="search" placeholder="Buscar por nombre…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="input pl-9" aria-label="Buscar insumo por nombre" />
           </div>
-          <span className="mb-2 text-sm text-fg-muted" aria-live="polite">{insumosFiltrados.length} encontrados</span>
-          {busqueda && <Button variante="ghost" onClick={() => setBusqueda('')}>Limpiar</Button>}
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="sm:w-48">
+          <div className="w-full sm:w-44">
             <Select
               opciones={FILTRO_TIPO_OPTS}
               value={filtroTipo}
               onChange={(e) => setFiltroTipo(e.target.value)}
             />
           </div>
-          <div className="inline-flex rounded-lg border border-line bg-muted/30 p-0.5 text-xs font-medium" role="group" aria-label="Filtro por estado">
+          <div className="inline-flex rounded-md border border-line bg-muted p-0.5 text-label-sm" role="group" aria-label="Filtro por estado">
             <button
               type="button"
-              className={`rounded-md px-3 py-1.5 transition-colors ${filtroEstado === 'TODOS' ? 'bg-surface text-fg shadow-sm font-semibold' : 'text-fg-muted hover:text-fg'}`}
+              className={`h-7 rounded-sm px-3 transition-colors ${filtroEstado === 'TODOS' ? 'bg-surface text-fg shadow-xs' : 'text-fg-muted hover:text-fg'}`}
               onClick={() => { setFiltroEstado('TODOS'); setMostrarInactivos(true); }}
             >
               Todos
             </button>
             <button
               type="button"
-              className={`rounded-md px-3 py-1.5 transition-colors ${filtroEstado === 'ACTIVOS' ? 'bg-surface text-fg shadow-sm font-semibold' : 'text-fg-muted hover:text-fg'}`}
+              className={`h-7 rounded-sm px-3 transition-colors ${filtroEstado === 'ACTIVOS' ? 'bg-surface text-fg shadow-xs' : 'text-fg-muted hover:text-fg'}`}
               onClick={() => { setFiltroEstado('ACTIVOS'); setMostrarInactivos(false); }}
             >
               Activos
             </button>
             <button
               type="button"
-              className={`rounded-md px-3 py-1.5 transition-colors ${filtroEstado === 'INACTIVOS' ? 'bg-surface text-fg shadow-sm font-semibold' : 'text-fg-muted hover:text-fg'}`}
+              className={`h-7 rounded-sm px-3 transition-colors ${filtroEstado === 'INACTIVOS' ? 'bg-surface text-fg shadow-xs' : 'text-fg-muted hover:text-fg'}`}
               onClick={() => { setFiltroEstado('INACTIVOS'); setMostrarInactivos(true); }}
               title="Mostrar inactivos"
             >
@@ -494,11 +485,10 @@ function PestanaInsumos({ unidades, onTotal }) {
             </button>
           </div>
           <span className="sr-only">Mostrar inactivos</span>
+          {(busqueda || filtroTipo !== 'TODOS' || filtroEstado !== 'TODOS') && (
+            <Button variante="ghost" tamano="sm" className="ml-auto" onClick={() => { setBusqueda(''); setFiltroTipo('TODOS'); setFiltroEstado('TODOS'); setMostrarInactivos(false); }}>Limpiar filtros</Button>
+          )}
         </div>
-      </div>
-
-      {/* Tabla de Insumos */}
-      <Card sinPadding>
         <Table
           columnas={columnas}
           filas={insumosFiltrados}
@@ -600,7 +590,7 @@ function PestanaUnidades({ onTotal }) {
       titulo: 'Abreviatura / Símbolo',
       tipo: 'texto',
       valorOrden: (fila) => fila.codigo,
-      render: (fila) => <span className="font-mono font-bold text-fg">{fila.codigo}</span>,
+      render: (fila) => <span className="font-mono font-medium text-fg">{fila.codigo}</span>,
     },
     { clave: 'nombre', titulo: 'Nombre de la Unidad', tipo: 'texto', valorOrden: (fila) => fila.nombre },
     {
@@ -610,7 +600,7 @@ function PestanaUnidades({ onTotal }) {
       alinear: 'right',
       valorOrden: (fila) => fila.factor_conversion ?? 1,
       render: (fila) => (
-        <span className="font-mono text-sm text-fg-muted">
+        <span className="tabular-nums text-fg-muted">
           {formatearUnidades(fila.factor_conversion ?? 1)}
         </span>
       ),
@@ -652,19 +642,6 @@ function PestanaUnidades({ onTotal }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold text-fg">Unidades de Medida Operativas</h2>
-          <p className="text-sm text-fg-muted">
-            Unidades de cafetería y panadería con factor de conversión para costeo y recetas
-          </p>
-        </div>
-        {puedeGestionar && (
-          <Button variante="primary" icono={Plus} onClick={abrirCrear}>
-            Nueva Unidad
-          </Button>
-        )}
-      </div>
 
       {errorBanner && (
         <BannerError
@@ -674,9 +651,15 @@ function PestanaUnidades({ onTotal }) {
         />
       )}
 
-      <label className="inline-flex items-center gap-2 text-sm text-fg-muted"><input type="checkbox" checked={mostrarInactivas} onChange={(e) => setMostrarInactivas(e.target.checked)} />Mostrar inactivas</label>
-
-      <Card sinPadding>
+      <Card sinPadding icono={Ruler} titulo="Unidades de Medida Operativas" descripcion="Unidades de cafetería y panadería con factor de conversión para costeo y recetas"
+        acciones={puedeGestionar ? (
+          <Button variante="primary" icono={Plus} onClick={abrirCrear}>
+            Nueva Unidad
+          </Button>
+        ) : null}>
+        <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3">
+          <label className="inline-flex min-h-10 items-center gap-2 text-body text-fg-muted"><input type="checkbox" className="h-4 w-4 accent-primary" checked={mostrarInactivas} onChange={(e) => setMostrarInactivas(e.target.checked)} />Mostrar inactivas</label>
+        </div>
         <Table
           columnas={columnas}
           filas={unidadesVisibles}

@@ -3,7 +3,9 @@ import { api } from '../../api/client.js';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
 import CampoError from '../../components/forms/CampoError.jsx';
-import { Button, Card, Select, Table } from '../../components/ui/index.js';
+import { SlidersHorizontal } from 'lucide-react';
+import { Button, Card, Select } from '../../components/ui/index.js';
+import { SkeletonFilas } from '../../components/feedback/Skeleton.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import { ICONOS } from '../../config/iconos.js';
 import { mascaraDecimal, mascaraEntero } from '../../utils/mascaras.js';
@@ -67,61 +69,48 @@ export default function ParametrosPage() {
     }
   }
 
-  const columnas = [
-    {
-      clave: 'clave',
-      titulo: 'Parámetro',
-      tipo: 'texto',
-      valorOrden: (f) => f.clave,
-      render: (f) => <div className="min-w-48"><p className="font-medium">{f.clave}</p><p className="text-xs text-fg-muted">{f.descripcion}</p></div>,
-    },
-    {
-      clave: 'valor',
-      titulo: 'Valor',
-      tipo: 'texto',
-      valorOrden: (f) => String(valores[f.clave] ?? f.valor),
-      render: (f) => (
-        <div className="w-full max-w-xs">
-          {f.tipo === 'booleano' ? (
-            <Select aria-label={`Valor de ${f.clave}`} placeholder="" value={String(valores[f.clave]).toLowerCase()} onChange={(e) => setValores({ ...valores, [f.clave]: e.target.value })}
-              opciones={[{ valor: 'true', texto: 'Sí (activado)' }, { valor: 'false', texto: 'No (desactivado)' }]} />
-          ) : (
-            <input id={`parametro-${f.clave}`} aria-label={`Valor de ${f.clave}`} className="input aria-invalid:border-danger" type="text"
-              inputMode={f.tipo === 'texto' ? 'text' : f.tipo === 'entero' ? 'numeric' : 'decimal'} maxLength={100}
-              value={valores[f.clave] ?? ''} aria-invalid={errores[f.clave] ? true : undefined}
-              onChange={(e) => { setValores({ ...valores, [f.clave]: MASCARAS[f.tipo](e.target.value) }); setErrores(({ [f.clave]: _q, ...resto }) => resto); }} />
-          )}
-          {errores[f.clave] ? <CampoError id={`parametro-${f.clave}`} mensaje={errores[f.clave]} /> : AYUDA[f.tipo] && <p className="mt-1 text-xs text-fg-muted">{AYUDA[f.tipo]}</p>}
-        </div>
-      ),
-    },
-    {
-      clave: 'acciones',
-      titulo: 'Acciones',
-      alinear: 'right',
-      ordenable: false,
-      render: (f) => (
-        <Button icono={ICONOS.guardar} cargando={guardando === f.clave} disabled={guardando !== '' || valores[f.clave] === f.valor} onClick={() => guardar(f)} aria-label={`Guardar ${f.clave}`}>Guardar</Button>
-      ),
-    },
-  ];
+  // Control de cada parámetro (combobox Sí/No o input con máscara según el tipo deducido).
+  const control = (f) => (
+    <div className="w-full">
+      {f.tipo === 'booleano' ? (
+        <Select aria-label={`Valor de ${f.clave}`} placeholder="" value={String(valores[f.clave]).toLowerCase()} onChange={(e) => setValores({ ...valores, [f.clave]: e.target.value })}
+          opciones={[{ valor: 'true', texto: 'Sí (activado)' }, { valor: 'false', texto: 'No (desactivado)' }]} />
+      ) : (
+        <input id={`parametro-${f.clave}`} aria-label={`Valor de ${f.clave}`} className={`input aria-invalid:border-danger ${f.tipo === 'texto' ? '' : 'text-right tabular-nums'}`} type="text"
+          inputMode={f.tipo === 'texto' ? 'text' : f.tipo === 'entero' ? 'numeric' : 'decimal'} maxLength={100}
+          value={valores[f.clave] ?? ''} aria-invalid={errores[f.clave] ? true : undefined}
+          onChange={(e) => { setValores({ ...valores, [f.clave]: MASCARAS[f.tipo](e.target.value) }); setErrores(({ [f.clave]: _q, ...resto }) => resto); }} />
+      )}
+      {errores[f.clave] ? <CampoError id={`parametro-${f.clave}`} mensaje={errores[f.clave]} /> : AYUDA[f.tipo] && <p className="mt-1 text-body-sm text-fg-muted">{AYUDA[f.tipo]}</p>}
+    </div>
+  );
+  const ordenadas = [...filas].sort((x, y) => x.clave.localeCompare(y.clave));
 
   return (
     <div className="space-y-6">
       <EncabezadoPagina seccion="Administración · Parámetros" titulo="Parámetros" descripcion="Configuración fiscal y operativa definida por el sistema." />
       {errorCarga && <BannerError error={{ titulo: 'No se pudieron cargar los parámetros', mensaje: errorCarga, accion: 'Reintenta la operación.' }} onReintentar={cargar} />}
-      <Card titulo="Parámetros del negocio" descripcion="Los valores se guardan en la configuración central del negocio.">
-        <Table
-          cargando={cargando}
-          filas={filas}
-          idFila="clave"
-          idTabla="empresa-parametros"
-          ordenInicial={{ clave: 'clave', direccion: 'asc' }}
-          filasPorPaginaInicial={25}
-          columnas={columnas}
-          maxAltura=""
-          vacio="No hay parámetros configurados."
-        />
+      <Card sinPadding className="overflow-hidden" icono={SlidersHorizontal} titulo="Parámetros del negocio" descripcion="Los valores se guardan en la configuración central del negocio.">
+        {cargando ? (
+          <div className="px-5 py-4"><SkeletonFilas filas={4} /></div>
+        ) : ordenadas.length === 0 ? (
+          <p className="px-5 py-8 text-body text-fg-muted">No hay parámetros configurados.</p>
+        ) : (
+          <dl className="divide-y divide-line">
+            {ordenadas.map((f) => (
+              <div key={f.clave} className="grid gap-3 px-5 py-4 md:grid-cols-[minmax(0,1fr)_minmax(0,20rem)_auto] md:items-start">
+                <dt className="min-w-0">
+                  <p className="font-mono text-body-sm font-medium text-fg">{f.clave}</p>
+                  {f.descripcion && <p className="mt-0.5 text-body-sm text-fg-muted">{f.descripcion}</p>}
+                </dt>
+                <dd>{control(f)}</dd>
+                <dd className="md:justify-self-end">
+                  <Button variante="secondary" icono={ICONOS.guardar} cargando={guardando === f.clave} disabled={guardando !== '' || valores[f.clave] === f.valor} onClick={() => guardar(f)} aria-label={`Guardar ${f.clave}`}>Guardar</Button>
+                </dd>
+              </div>
+            ))}
+          </dl>
+        )}
       </Card>
     </div>
   );

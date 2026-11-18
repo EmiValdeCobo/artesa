@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Building2, MapPin, Phone } from 'lucide-react';
 import { api } from '../../api/client.js';
 import BannerError from '../../components/feedback/BannerError.jsx';
+import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
 import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
 import Dialogo from '../../components/Dialogo.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
@@ -57,28 +58,28 @@ function normalizarTexto(valor) {
 function FormularioSucursal({ formulario, setFormulario, errores, setErrores, guardando, editando, onCancelar, onGuardar }) {
   return (
     <Dialogo onCerrar={onCancelar} tamano="lg" labelledBy="sucursal-dialogo-titulo" describedBy="sucursal-dialogo-descripcion">
-      <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4 sm:px-6">
+      <div className="flex items-start justify-between gap-4 px-6 pt-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">Administración · Sucursales</p>
-          <h2 id="sucursal-dialogo-titulo" className="mt-1 text-xl font-semibold">
+          <h2 id="sucursal-dialogo-titulo" className="text-h3">
             {editando ? 'Editar sucursal' : 'Registrar sucursal'}
           </h2>
-          <p id="sucursal-dialogo-descripcion" className="mt-1 text-sm text-fg-muted">
+          <p id="sucursal-dialogo-descripcion" className="mt-1 text-body text-fg-muted">
             Completa los datos del establecimiento. Puedes cambiar su estado en cualquier momento.
           </p>
         </div>
         <BotonIcono icono={ICONOS.cerrar} etiqueta="Cerrar formulario" onClick={onCancelar} />
       </div>
 
-      <form noValidate onSubmit={onGuardar} className="space-y-5 p-5 sm:p-6">
+      <form noValidate onSubmit={onGuardar}>
+        <div className="space-y-4 px-6 py-5">
         <div className="grid gap-4 sm:grid-cols-2">
           {CAMPOS.map((campo) => {
             const id = idCampo(campo.clave);
             const ayudaId = `${id}-ayuda`;
             return (
               <div key={campo.clave} className={campo.clave === 'direccion' ? 'sm:col-span-2' : ''}>
-                <label htmlFor={id} className="block text-sm font-medium">
-                  {campo.etiqueta}{campo.requerido && <span className="ml-0.5 font-semibold text-danger">*</span>}
+                <label htmlFor={id} className="block text-label">
+                  {campo.etiqueta}{campo.requerido && <span className="ml-0.5 font-semibold text-danger-text">*</span>}
                 </label>
                 <input
                   id={id}
@@ -94,14 +95,14 @@ function FormularioSucursal({ formulario, setFormulario, errores, setErrores, gu
                   aria-invalid={errores[campo.clave] ? true : undefined}
                   aria-describedby={[campo.ayuda && ayudaId, errores[campo.clave] && idError(id)].filter(Boolean).join(' ') || undefined}
                 />
-                {campo.ayuda && !errores[campo.clave] && <span id={ayudaId} className="mt-1 block text-xs text-fg-muted">{campo.ayuda}</span>}
+                {campo.ayuda && !errores[campo.clave] && <span id={ayudaId} className="mt-1 block text-body-sm text-fg-muted">{campo.ayuda}</span>}
                 <CampoError id={id} mensaje={errores[campo.clave]} />
               </div>
             );
           })}
         </div>
 
-        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-line bg-muted/50 p-3.5">
+        <label className="flex cursor-pointer items-start gap-3 rounded-md border border-line bg-muted p-3.5">
           <input
             type="checkbox"
             className="mt-0.5 h-4 w-4 accent-primary"
@@ -109,12 +110,13 @@ function FormularioSucursal({ formulario, setFormulario, errores, setErrores, gu
             onChange={(evento) => setFormulario((actual) => ({ ...actual, activa: evento.target.checked }))}
           />
           <span>
-            <span className="block text-sm font-medium">Sucursal activa</span>
-            <span className="mt-0.5 block text-xs text-fg-muted">Las sucursales inactivas se conservan en el historial, pero no se consideran operativas.</span>
+            <span className="block text-label">Sucursal activa</span>
+            <span className="mt-0.5 block text-body-sm text-fg-muted">Las sucursales inactivas se conservan en el historial, pero no se consideran operativas.</span>
           </span>
         </label>
 
-        <div className="flex flex-col-reverse justify-end gap-2 border-t border-line pt-4 sm:flex-row">
+        </div>
+        <div className="flex flex-col-reverse gap-2 border-t border-line px-6 py-4 sm:flex-row sm:justify-end">
           <Button variante="ghost" onClick={onCancelar}>Cancelar</Button>
           <Button type="submit" icono={editando ? ICONOS.guardar : ICONOS.crear} cargando={guardando}>
             {editando ? 'Guardar cambios' : 'Crear sucursal'}
@@ -274,7 +276,7 @@ export default function SucursalesPage() {
       clave: 'codigo_establecimiento',
       titulo: 'Código',
       tipo: 'texto',
-      render: (fila) => <span className="inline-flex rounded-md bg-muted px-2.5 py-1 font-mono text-xs font-semibold tracking-wide">{fila.codigo_establecimiento}</span>,
+      render: (fila) => <span className="inline-flex rounded-md bg-muted px-2.5 py-1 font-mono text-body-sm font-semibold tracking-wide">{fila.codigo_establecimiento}</span>,
     },
     {
       clave: 'nombre',
@@ -284,7 +286,7 @@ export default function SucursalesPage() {
       render: (fila) => (
         <div className="min-w-44">
           <p className="font-semibold text-fg">{fila.nombre}</p>
-          <p className="mt-1 flex items-start gap-1.5 text-xs text-fg-muted">
+          <p className="mt-1 flex items-start gap-1.5 text-body-sm text-fg-muted">
             <MapPin size={13} className="mt-0.5 shrink-0" aria-hidden="true" />
             <span>{fila.direccion || 'Sin dirección registrada'}</span>
           </p>
@@ -347,22 +349,22 @@ export default function SucursalesPage() {
       {errorCarga && <BannerError error={{ titulo: 'No se pudieron cargar los establecimientos', mensaje: errorCarga, accion: '' }} />}
 
       <section aria-label="Resumen de sucursales" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Metrica icono={ICONOS.sucursal} valor={cargando ? '…' : filas.length} etiqueta="Establecimientos registrados" tono="primario" />
-        <Metrica icono={Building2} valor={cargando ? '…' : activas} etiqueta="Sucursales activas" tono="exito" />
-        <Metrica icono={ICONOS.desactivar} valor={cargando ? '…' : inactivas} etiqueta="Sucursales inactivas" tono="neutro" />
+        <Metrica icono={ICONOS.sucursal} cargando={cargando} valor={cargando ? null : filas.length} etiqueta="Establecimientos registrados" />
+        <Metrica icono={Building2} cargando={cargando} valor={cargando ? null : activas} etiqueta="Sucursales activas" />
+        <Metrica icono={ICONOS.desactivar} cargando={cargando} valor={cargando ? null : inactivas} etiqueta="Sucursales inactivas" tono="neutro" />
       </section>
 
-      <Card titulo="Directorio de sucursales" descripcion="Busca por código, nombre, dirección o departamento; filtra por estado operativo.">
-        <div className="mb-4 flex w-full flex-col items-stretch gap-3 sm:flex-row sm:items-end sm:gap-4">
-          <label className="relative block w-full min-w-0 flex-1">
+      <Card sinPadding className="overflow-hidden" icono={Building2} titulo="Directorio de sucursales" descripcion={cargando ? 'Busca por código, nombre, dirección o departamento; filtra por estado operativo.' : `${sucursalesFiltradas.length} de ${filas.length} establecimientos`}>
+        <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3">
+          <label className="relative block w-full max-w-xs">
             <span className="sr-only">Buscar sucursal</span>
-            <ICONOS.buscar size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" aria-hidden="true" />
-            <input className="input h-10 py-0 pl-10" type="search" value={busqueda} onChange={(evento) => setBusqueda(evento.target.value)} placeholder="Buscar sucursal…" />
+            <ICONOS.buscar size={16} strokeWidth={1.75} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden="true" />
+            <input className="input pl-9" type="search" value={busqueda} onChange={(evento) => setBusqueda(evento.target.value)} placeholder="Buscar sucursal…" />
           </label>
-          <div className="w-full sm:w-56 sm:shrink-0">
+          <div className="w-full sm:w-48">
             <Select
-              etiqueta="Estado"
-              className="h-10 py-0"
+              tamano="sm"
+              aria-label="Estado"
               value={estadoFiltro}
               onChange={(evento) => setEstadoFiltro(evento.target.value)}
               opciones={[
@@ -372,13 +374,8 @@ export default function SucursalesPage() {
               ]}
             />
           </div>
-        </div>
-        <div className="mb-3 mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-fg-muted">
-          <span>{sucursalesFiltradas.length} de {filas.length} establecimientos</span>
           {(busqueda || estadoFiltro !== 'todas') && (
-            <button type="button" className="font-semibold text-primary-text hover:underline" onClick={() => { setBusqueda(''); setEstadoFiltro('todas'); }}>
-              Limpiar filtros
-            </button>
+            <Button variante="ghost" tamano="sm" onClick={() => { setBusqueda(''); setEstadoFiltro('todas'); }}>Limpiar filtros</Button>
           )}
         </div>
         <Table
@@ -387,7 +384,9 @@ export default function SucursalesPage() {
           idFila="id_sucursal"
           idTabla="empresa-sucursales"
           ordenInicial={{ clave: 'codigo_establecimiento', direccion: 'asc' }}
-          vacio={filas.length ? 'No hay sucursales que coincidan con los filtros.' : 'Todavía no hay establecimientos registrados. Crea la primera sucursal para comenzar.'}
+          vacio={filas.length
+            ? <EstadoVacio icono={ICONOS.buscar} titulo="No hay sucursales que coincidan con los filtros." />
+            : <EstadoVacio icono={Building2} titulo="Todavía no hay establecimientos registrados." accion={<Button icono={ICONOS.crear} onClick={abrirNueva}>Nueva sucursal</Button>}>Crea la primera sucursal para comenzar.</EstadoVacio>}
           columnas={columnas}
         />
       </Card>

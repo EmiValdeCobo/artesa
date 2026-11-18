@@ -8,8 +8,9 @@ import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
 import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
+import Skeleton, { SkeletonTexto } from '../../components/feedback/Skeleton.jsx';
 import CampoTexto from '../../components/forms/CampoTexto.jsx';
-import { BotonIcono, Button, Card, Select, Spinner, Table } from '../../components/ui/index.js';
+import { BotonIcono, Button, Card, Select, Table } from '../../components/ui/index.js';
 import Metrica from '../../components/display/Metrica.jsx';
 import Pestanas from '../../components/navigation/Pestanas.jsx';
 import { traducirError } from '../../errors/traducirError.js';
@@ -243,7 +244,27 @@ export default function InventarioPage() {
     { clave: 'insumo', titulo: 'Insumo', tipo: 'texto' },
     { clave: 'unidad', titulo: 'Unidad', tipo: 'texto', valorOrden: (fila) => unidadCorta(fila.unidad), render: (fila) => unidadCorta(fila.unidad) },
     { clave: 'stock_actual', titulo: 'Stock actual', tipo: 'numero', alinear: 'right', valorOrden: (fila) => fila.stock_actual, render: (fila) => formatearUnidades(fila.stock_actual) },
-    { clave: 'stock_minimo', titulo: 'Stock mínimo', tipo: 'numero', alinear: 'right', valorOrden: (fila) => fila.stock_minimo, render: (fila) => formatearUnidades(fila.stock_minimo) },
+    { clave: 'stock_minimo', titulo: 'Stock mínimo', tipo: 'numero', alinear: 'right', clase: 'hidden md:table-cell', valorOrden: (fila) => fila.stock_minimo, render: (fila) => formatearUnidades(fila.stock_minimo) },
+    {
+      clave: '_nivel',
+      titulo: 'Nivel',
+      ordenable: false,
+      render: (fila) => {
+        const actual = Number(fila.stock_actual) || 0;
+        const minimo = Number(fila.stock_minimo) || 0;
+        const bajo = minimo > 0 && actual < minimo;
+        const tope = Math.max(minimo * 2, actual, 1);
+        const porcentaje = Math.min(100, Math.round((actual / tope) * 100));
+        return (
+          <div className="flex min-w-24 items-center gap-2" title={bajo ? 'Bajo mínimo' : 'Nivel de existencias'}>
+            <div className="h-1 w-full rounded-full bg-muted" role="presentation">
+              <div className={`h-1 rounded-full ${bajo ? 'bg-danger' : 'bg-chart-neutral'}`} style={{ width: `${porcentaje}%` }} />
+            </div>
+            {bajo && <span className="sr-only">Bajo mínimo</span>}
+          </div>
+        );
+      },
+    },
   ];
 
   const seleccionables = alertas.filter((fila) => insumoDeAlerta(fila));
@@ -328,9 +349,9 @@ export default function InventarioPage() {
         </div>} />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Metrica icono={Boxes} valor={cargandoStock ? '…' : errorStock ? '—' : stock.length} etiqueta="Insumos en sucursal" tono="primario" />
-        <Metrica icono={AlertTriangle} valor={cargandoAlertas ? '…' : errorAlertas ? '—' : alertas.length} etiqueta="Alertas activas" tono={alertas.length ? 'aviso' : 'exito'} />
-        <Metrica icono={Store} valor={sucursalActiva?.nombre ?? '—'} etiqueta="Sucursal activa" tono="info" />
+        <Metrica icono={Boxes} cargando={cargandoStock} valor={cargandoStock ? null : errorStock ? '—' : stock.length} etiqueta="Insumos en sucursal" tono="neutro" />
+        <Metrica icono={AlertTriangle} cargando={cargandoAlertas} valor={cargandoAlertas ? null : errorAlertas ? '—' : alertas.length} etiqueta="Alertas activas" tono={alertas.length ? 'aviso' : 'neutro'} />
+        <Metrica icono={Store} valor={<span className="block truncate text-h3">{sucursalActiva?.nombre ?? '—'}</span>} etiqueta="Sucursal activa" tono="neutro" />
       </div>
 
       <Pestanas etiqueta="Secciones de inventario" activa={pestana} onCambiar={setPestana} pestanas={pestanas} />
@@ -338,16 +359,18 @@ export default function InventarioPage() {
       {pestana === 'alertas' && (
         <section role="tabpanel" id="panel-alertas" aria-labelledby="tab-alertas" className="space-y-4">
           <Card
+            sinPadding
+            icono={AlertTriangle}
             titulo="Alertas de stock mínimo"
             descripcion="Insumos que están agotados o por debajo de su mínimo en esta sucursal."
             acciones={puedeComprar && seleccion.size > 0 ? (
-              <Button variante="secondary" icono={ICONOS.comprar} onClick={() => crearBorradorCompra(seleccionables.filter((fila) => seleccion.has(String(insumoDeAlerta(fila).id_insumo))))}>
+              <Button variante="secondary" tamano="sm" icono={ICONOS.comprar} onClick={() => crearBorradorCompra(seleccionables.filter((fila) => seleccion.has(String(insumoDeAlerta(fila).id_insumo))))}>
                 Crear compra con seleccionados ({seleccion.size})
               </Button>
             ) : null}
           >
-            {errorAlertas && <BannerError className="mb-4" error={errorAlertas} onReintentar={() => cargarSucursal(idSucursal)} />}
-            {cargandoAlertas ? <Spinner texto="Cargando alertas…" />
+            {errorAlertas && <BannerError className="m-5" error={errorAlertas} onReintentar={() => cargarSucursal(idSucursal)} />}
+            {cargandoAlertas ? <Table cargando columnas={columnasAlertas} filas={[]} idFila="insumo" />
               : errorAlertas ? null
                 : alertas.length === 0 ? <EstadoVacio icono={AlertTriangle} titulo="No hay alertas de stock">
                   Ningún insumo está por debajo de su mínimo en esta sucursal.
@@ -360,11 +383,15 @@ export default function InventarioPage() {
       {pestana === 'stock' && (
         <section role="tabpanel" id="panel-stock" aria-labelledby="tab-stock" className="space-y-4">
           <Card
+            sinPadding
+            icono={Boxes}
             titulo="Existencias"
-            descripcion="Stock actual y mínimo registrados por el backend."
-            acciones={(
-              <div className="relative w-full sm:w-72">
-                <Search size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" aria-hidden="true" />
+            descripcion={<span className="tabular-nums" aria-live="polite">{stockFiltrado.length} {stockFiltrado.length === 1 ? 'resultado' : 'resultados'}</span>}
+          >
+            {errorTipos && <BannerError className="mx-5 mt-4" error={errorTipos} onReintentar={cargarTiposInsumo} />}
+            <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3">
+              <div className="relative w-full max-w-xs">
+                <Search size={16} strokeWidth={1.75} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden="true" />
                 <label htmlFor="buscar-insumo-stock" className="sr-only">Buscar insumo por nombre</label>
                 <input
                   id="buscar-insumo-stock"
@@ -377,14 +404,11 @@ export default function InventarioPage() {
                 />
                 {busqueda && (
                   <button type="button" className="btn-ghost absolute right-1 top-1/2 min-h-8 -translate-y-1/2 !p-1.5" onClick={() => setBusqueda('')} aria-label="Limpiar búsqueda">
-                    <X size={16} aria-hidden="true" />
+                    <X size={16} strokeWidth={1.75} aria-hidden="true" />
                   </button>
                 )}
               </div>
-            )}
-          >
-            {errorTipos && <BannerError className="mb-4" error={errorTipos} onReintentar={cargarTiposInsumo} />}
-            <div className="mb-5 flex flex-wrap items-center gap-2" role="group" aria-label="Filtrar stock por tipo de insumo">
+            <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filtrar stock por tipo de insumo">
               {FILTROS_TIPO_INSUMO.map(({ valor, etiqueta }) => {
                 const seleccionada = filtroTipo === valor;
                 const total = cargandoStock || errorStock || (valor !== 'TODOS' && !tiposListos)
@@ -397,17 +421,25 @@ export default function InventarioPage() {
                     aria-pressed={seleccionada}
                     disabled={valor !== 'TODOS' && (cargandoTipos || !tiposListos)}
                     onClick={() => setFiltroTipo(valor)}
-                    className={`min-h-10 rounded-full border px-4 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${seleccionada ? 'border-primary bg-primary-soft text-primary-text' : 'border-line bg-surface text-fg hover:bg-muted'} disabled:cursor-not-allowed disabled:opacity-50`}
+                    className={`h-control-sm rounded-full border px-3 text-label-sm transition-colors ${seleccionada ? 'border-primary/40 bg-primary-soft text-primary-text' : 'border-line bg-surface text-fg-muted hover:bg-muted hover:text-fg'} disabled:cursor-not-allowed disabled:opacity-50`}
                   >
-                    {etiqueta} <span className="ml-1 text-xs" aria-label={`${total} insumos`}>{total}</span>
+                    {etiqueta} <span className="ml-1 tabular-nums" aria-label={`${total} insumos`}>{total}</span>
                   </button>
                 );
               })}
-              {cargandoTipos && <span role="status" className="text-xs text-fg-muted">Cargando tipos…</span>}
+              {cargandoTipos && (
+                <span role="status" className="flex items-center gap-2">
+                  <span className="sr-only">Cargando tipos…</span>
+                  {[0, 1, 2].map((i) => <Skeleton key={i} className="h-control-sm w-24 rounded-full" />)}
+                </span>
+              )}
             </div>
-            <p className="mb-3 text-sm text-fg-muted" aria-live="polite">{stockFiltrado.length} {stockFiltrado.length === 1 ? 'resultado' : 'resultados'}</p>
-            {errorStock && <BannerError className="mb-4" error={errorStock} onReintentar={() => cargarSucursal(idSucursal)} />}
-            {cargandoStock ? <Spinner texto="Cargando stock…" />
+            {(busqueda || filtroTipo !== 'TODOS') && (
+              <Button variante="ghost" tamano="sm" className="ml-auto" onClick={() => { setBusqueda(''); setFiltroTipo('TODOS'); }}>Limpiar filtros</Button>
+            )}
+            </div>
+            {errorStock && <BannerError className="m-5" error={errorStock} onReintentar={() => cargarSucursal(idSucursal)} />}
+            {cargandoStock ? <Table cargando columnas={columnasStock} filas={[]} idFila="id_insumo" />
               : errorStock ? null
                 : stock.length === 0 ? <EstadoVacio icono={Boxes} titulo="No hay stock para esta sucursal">
                   Cuando el backend devuelva existencias, aparecerán aquí.
@@ -427,12 +459,12 @@ export default function InventarioPage() {
               Puedes consultar stock y alertas. Solicita el permiso INV_REGISTRAR_MERMA a una persona administradora.
             </EstadoVacio></Card>
           ) : (
-            <Card titulo="Registrar merma" descripcion="El backend validará el stock disponible y registrará el movimiento.">
-              <div className="mb-5 rounded-lg border border-line bg-muted/50 px-4 py-3 text-sm">
+            <Card icono={PackageMinus} titulo="Registrar merma" descripcion="El backend validará el stock disponible y registrará el movimiento.">
+              <div className="mb-4 rounded-md bg-muted px-4 py-3 text-body">
                 <span className="font-medium">Sucursal de la merma: </span>{sucursalActiva?.nombre ?? 'Sin sucursal seleccionada'}
               </div>
-              {cargandoStock ? <Spinner texto="Cargando insumos…" />
-                : errorStock ? <p className="text-sm text-fg-muted">No se puede cargar la lista de insumos hasta resolver el error de stock.</p>
+              {cargandoStock ? <SkeletonTexto lineas={3} texto="Cargando insumos…" />
+                : errorStock ? <p className="text-body text-fg-muted">No se puede cargar la lista de insumos hasta resolver el error de stock.</p>
                   : !stock.length ? <EstadoVacio icono={PackageMinus} titulo="No hay insumos disponibles para seleccionar">
                     Selecciona una sucursal con stock cargado antes de registrar una merma.
                   </EstadoVacio> : (
@@ -446,7 +478,7 @@ export default function InventarioPage() {
                         disabled={enviando || cargandoStock}
                       />
                       <div>
-                        <label htmlFor="inventario-cantidad-merma" className="mb-1.5 block text-sm font-medium">Cantidad</label>
+                        <label htmlFor="inventario-cantidad-merma" className="mb-1.5 block text-label">Cantidad <span className="text-danger-text">*</span></label>
                         <CampoTexto
                           id="inventario-cantidad-merma"
                           icono={Scale}
@@ -461,10 +493,10 @@ export default function InventarioPage() {
                           disabled={enviando}
                           required
                         />
-                        <p className="mt-1 text-xs text-fg-muted">Unidades enteras sin decimales.</p>
+                        <p className="mt-1 text-body-sm text-fg-muted">Unidades enteras sin decimales.</p>
                       </div>
                       <div className="md:col-span-2">
-                        <label htmlFor="inventario-motivo-merma" className="mb-1.5 block text-sm font-medium">Motivo</label>
+                        <label htmlFor="inventario-motivo-merma" className="mb-1.5 block text-label">Motivo <span className="text-danger-text">*</span></label>
                         <CampoTexto
                           id="inventario-motivo-merma"
                           icono={PackageMinus}
@@ -476,9 +508,9 @@ export default function InventarioPage() {
                           disabled={enviando}
                           required
                         />
-                        <p className="mt-1 text-xs text-fg-muted">Describe el motivo en 3 a 500 caracteres.</p>
+                        <p className="mt-1 text-body-sm text-fg-muted">Describe el motivo en 3 a 500 caracteres.</p>
                       </div>
-                      <div className="md:col-span-2">
+                      <div className="flex justify-end border-t border-line pt-4 md:col-span-2">
                         <Button type="submit" icono={PackageMinus} cargando={enviando} disabled={!puedeRegistrarMerma}>
                           Registrar merma
                         </Button>

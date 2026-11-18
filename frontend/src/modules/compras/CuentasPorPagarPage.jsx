@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Building2, CreditCard, FileText, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
+import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
 import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
 import Dialogo from '../../components/Dialogo.jsx';
@@ -63,25 +64,26 @@ function PagoDialogo({ factura, cerrar, onPagado }) {
 
   return (
     <Dialogo onCerrar={() => !guardando && cerrar()} tamano="sm" labelledBy="pago-titulo">
-      <div className="border-b border-line px-5 py-4">
-        <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">Operación · Compras</p>
-        <h2 id="pago-titulo" className="mt-1 text-xl font-semibold">Registrar pago</h2>
-        <p className="mt-1 text-sm text-fg-muted">{factura.proveedor} · Factura {factura.num_factura}</p>
+      <div className="px-6 pt-6">
+        <h2 id="pago-titulo" className="text-h3">Registrar pago</h2>
+        <p className="mt-1 text-body text-fg-muted">{factura.proveedor} · Factura {factura.num_factura}</p>
       </div>
-      <form onSubmit={enviar} className="space-y-4 p-5">
-        <div className="rounded-lg bg-muted p-3 text-sm"><div className="flex justify-between"><span>Saldo pendiente</span><strong>{dinero(factura.saldo)}</strong></div></div>
-        <label className="flex flex-col text-sm font-medium">Monto del pago
-          <input className="input mt-1.5 h-10" type="number" min="0.01" step="0.01" max={factura.saldo} value={monto} onChange={(evento) => setMonto(evento.target.value)} required />
-          <span className="mt-1 block text-xs font-normal text-fg-muted">No puede superar el saldo pendiente.</span>
+      <form onSubmit={enviar}>
+        <div className="space-y-4 px-6 py-5">
+        <div className="rounded-md bg-muted p-3 text-body"><div className="flex justify-between"><span className="text-fg-muted">Saldo pendiente</span><strong className="tabular-nums">{dinero(factura.saldo)}</strong></div></div>
+        <label className="flex flex-col text-label">Monto del pago
+          <input className="input mt-1.5 h-10 text-right tabular-nums" type="number" min="0.01" step="0.01" max={factura.saldo} value={monto} onChange={(evento) => setMonto(evento.target.value)} required />
+          <span className="mt-1 block text-body-sm font-normal text-fg-muted">No puede superar el saldo pendiente.</span>
         </label>
         <Select etiqueta="Método" value={metodo} onChange={(evento) => setMetodo(evento.target.value)} opciones={[
           { valor: 'EFECTIVO', texto: 'Efectivo' }, { valor: 'TRANSFERENCIA', texto: 'Transferencia' },
           { valor: 'CHEQUE', texto: 'Cheque' }, { valor: 'TARJETA', texto: 'Tarjeta' },
         ]} />
-        <label className="flex flex-col text-sm font-medium">Referencia <span className="font-normal text-fg-muted">(opcional)</span>
+        <label className="flex flex-col text-label">Referencia <span className="font-normal text-fg-muted">(opcional)</span>
           <input className="input mt-1.5 h-10" maxLength={100} value={referencia} onChange={(evento) => setReferencia(evento.target.value)} />
         </label>
-        <div className="flex justify-end gap-2 border-t border-line pt-4">
+        </div>
+        <div className="flex flex-col-reverse gap-2 border-t border-line px-6 py-4 sm:flex-row sm:justify-end">
           <Button variante="ghost" onClick={cerrar}>Cancelar</Button>
           <Button type="submit" icono={CreditCard} cargando={guardando}>Registrar pago</Button>
         </div>
@@ -131,7 +133,7 @@ export default function CuentasPorPagarPage() {
       render: (factura) => (
         <div>
           {factura.fecha_vencimiento || '—'}
-          <p className="text-xs text-fg-muted">Emisión {factura.fecha_emision}</p>
+          <p className="text-body-sm text-fg-muted">Emisión {factura.fecha_emision}</p>
         </div>
       ),
     },
@@ -143,7 +145,7 @@ export default function CuentasPorPagarPage() {
       render: (factura) => (
         <div className="font-medium">
           {factura.proveedor}
-          <p className="text-xs font-normal text-fg-muted">{factura.sucursal}</p>
+          <p className="text-body-sm font-normal text-fg-muted">{factura.sucursal}</p>
         </div>
       ),
     },
@@ -155,7 +157,7 @@ export default function CuentasPorPagarPage() {
       render: (factura) => (
         <div>
           {factura.num_factura}
-          <p className="text-xs text-fg-muted">
+          <p className="text-body-sm text-fg-muted">
             {factura.tipo_costo === 'GASTO' ? 'Gasto' : 'Compra de insumos'}
           </p>
         </div>
@@ -233,21 +235,25 @@ export default function CuentasPorPagarPage() {
       <EncabezadoPagina seccion="Operación · Compras" titulo="Cuentas por pagar" descripcion="Consulta facturas y registra pagos a proveedores." />
       {error && <BannerError error={{ titulo: 'No se pudieron cargar las cuentas por pagar', mensaje: error, accion: '' }} />}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Metrica icono={FileText} tono="primario" valor={cargando ? '—' : visibles.length} etiqueta="Facturas mostradas" />
-        <Metrica icono={AlertTriangle} tono={cargando ? 'neutro' : vencidas > 0 ? 'peligro' : 'exito'} valor={cargando ? '—' : vencidas} etiqueta="Facturas vencidas" />
-        <Metrica icono={Building2} tono="info" valor={usuario?.sucursales?.length ?? 0} etiqueta="Sucursales asignadas" />
+        <Metrica icono={FileText} cargando={cargando} valor={cargando ? null : visibles.length} etiqueta="Facturas mostradas" />
+        <Metrica icono={AlertTriangle} tono={!cargando && vencidas > 0 ? 'peligro' : 'neutro'} cargando={cargando} valor={cargando ? null : vencidas} etiqueta="Facturas vencidas" />
+        <Metrica icono={Building2} valor={usuario?.sucursales?.length ?? 0} etiqueta="Sucursales asignadas" />
       </div>
-      <Card titulo="Facturas de proveedores" descripcion="Filtra por estado, sucursal o escribe para buscar una factura.">
-        <div className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_200px_240px]">
-          <label className="flex flex-col text-sm font-medium">Buscar factura<div className="relative mt-1.5"><Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" /><input className="input h-10 pl-10" placeholder="Proveedor, sucursal o factura" value={busqueda} onChange={(evento) => setBusqueda(evento.target.value)} /></div></label>
-          <Select etiqueta="Estado de pago" value={estado} onChange={(evento) => setEstado(evento.target.value)} opciones={ESTADOS} />
-          <Select etiqueta="Sucursal" value={sucursal} onChange={(evento) => setSucursal(evento.target.value)} placeholder="Todas mis sucursales" opciones={(usuario?.sucursales ?? []).map((item) => ({ valor: String(item.id_sucursal), texto: item.nombre }))} />
+      <Card sinPadding className="overflow-hidden" icono={FileText} titulo="Facturas de proveedores" descripcion={cargando ? 'Filtra por estado, sucursal o escribe para buscar una factura.' : `${visibles.length} facturas`}>
+        <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3">
+          <div className="relative w-full max-w-xs">
+            <Search size={16} strokeWidth={1.75} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden="true" />
+            <input className="input pl-9" aria-label="Buscar factura" placeholder="Proveedor, sucursal o factura" value={busqueda} onChange={(evento) => setBusqueda(evento.target.value)} />
+          </div>
+          <div className="w-full sm:w-44"><Select tamano="sm" aria-label="Estado de pago" value={estado} onChange={(evento) => setEstado(evento.target.value)} opciones={ESTADOS} /></div>
+          <div className="w-full sm:w-56"><Select tamano="sm" aria-label="Sucursal" value={sucursal} onChange={(evento) => setSucursal(evento.target.value)} placeholder="Todas mis sucursales" opciones={(usuario?.sucursales ?? []).map((item) => ({ valor: String(item.id_sucursal), texto: item.nombre }))} /></div>
+          {(busqueda || sucursal) && <Button variante="ghost" tamano="sm" onClick={() => { setBusqueda(''); setSucursal(''); }}>Limpiar filtros</Button>}
         </div>
         <Table
           cargando={cargando}
           filas={visibles}
           idFila="id_compra"
-          vacio={`No hay facturas ${estado === 'todas' ? '' : estado === 'pagadas' ? 'pagadas' : 'pendientes'} para estos filtros.`}
+          vacio={<EstadoVacio icono={FileText} titulo={`No hay facturas ${estado === 'todas' ? '' : estado === 'pagadas' ? 'pagadas' : 'pendientes'} para estos filtros.`} />}
           columnas={columnas}
           idTabla="compras-cxp"
           ordenInicial={{ clave: 'fecha_vencimiento', direccion: 'asc' }}
