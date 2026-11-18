@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Coffee, Store } from 'lucide-react';
+import { Coffee, Store, Trophy } from 'lucide-react';
 import AvisoError from '../../../components/feedback/AvisoError.jsx';
 import { Cargando, Panel, SelectorPeriodo, Vacio } from '../components/Panel.jsx';
 import { TooltipContenido, TooltipFlotante } from '../../../components/display/Tooltip.jsx';
@@ -10,6 +10,7 @@ const PERIODOS = [[1, 'Hoy'], [7, '7 días'], [30, '30 días']];
 const textoPeriodo = (dias) => (dias === 1 ? 'hoy' : `últimos ${dias} días`);
 const periodoCorto = (dias) => (dias === 1 ? 'hoy' : `${dias} días`);
 
+// Ranking compacto: puesto, nombre, barra fina (neutra; el líder en foco) y unidades tabulares.
 export default function TopProductosPanel({ cols, orden, sucursal }) {
   const [dias, setDias] = useState(7);
   const [activo, setActivo] = useState(null);
@@ -27,7 +28,7 @@ export default function TopProductosPanel({ cols, orden, sucursal }) {
   };
 
   let cuerpo;
-  if (cargando) cuerpo = <Cargando lineas={5} alto="h-8" />;
+  if (cargando) cuerpo = <Cargando lineas={5} texto="Cargando ranking" />;
   else if (!datos) cuerpo = <AvisoError error={error} onReintentar={recargar} />;
   else if (datos.estado === 'sin_sucursal') cuerpo = <Vacio Icono={Store} titulo="Sin sucursal asignada" texto="Pide a un administrador que te asigne una." />;
   else if (datos.estado === 'sin_datos') cuerpo = <Vacio Icono={Coffee} titulo={dias === 1 ? 'Aún no hay ventas hoy' : `Sin ventas en los últimos ${dias} días`} texto="El ranking aparecerá cuando se registren ventas." />;
@@ -37,10 +38,9 @@ export default function TopProductosPanel({ cols, orden, sucursal }) {
     const p = activo === null ? null : datos.productos[activo];
     cuerpo = (
       <div ref={marco} className="relative">
-        <ol className="-mx-2">
+        <ol className="divide-y divide-line">
           {datos.productos.map((prod, i) => {
             const lider = i === 0;
-            const bajoCursor = i === activo;
             const resumenAria = `Puesto ${prod.posicion} de ${total}: ${prod.nombre}, ${formatoEntero(prod.unidades)} unidades, ${prod.participacionPct} % del total${datos.incluyeImportes ? `, importe ${formatoDinero(prod.ingreso)}` : ''}`;
             return (
               <li
@@ -52,19 +52,18 @@ export default function TopProductosPanel({ cols, orden, sucursal }) {
                 onPointerLeave={() => setActivo(null)}
                 onFocus={(e) => anclar(i, e.currentTarget)}
                 onBlur={() => setActivo(null)}
-                style={{ '--retardo': `${i * 50}ms` }}
-                className={`anim-entrar grid min-w-0 cursor-default grid-cols-[1.75rem_minmax(0,1fr)_max-content] items-center gap-x-3 rounded-xl px-2 py-3 outline-offset-0 transition-colors motion-reduce:transition-none ${bajoCursor ? 'bg-muted' : ''}`}
+                className={`top-fila ${i === activo ? 'bg-muted' : ''}`}
               >
-                <span className="font-display text-xl font-bold tabular-nums" style={{ color: lider ? 'var(--serie-1-texto)' : 'var(--serie-5-texto)' }}>{prod.posicion}</span>
+                <span className={`num text-label ${lider ? 'text-primary-text' : 'text-fg-muted'}`}>{prod.posicion}</span>
                 <div className="min-w-0">
-                  <p title={prod.nombre} className={`line-clamp-2 min-w-0 break-words text-base sm:text-sm ${lider ? 'font-bold' : 'font-medium'}`}>{prod.nombre}</p>
-                  <div className="mt-1.5 h-2.5 rounded-full bg-line/70" aria-hidden="true">
-                    <div className="anim-barra-x h-full rounded-full transition-[filter] motion-reduce:transition-none" style={{ width: `${(prod.unidades / maximo) * 100}%`, '--retardo': `${120 + i * 60}ms`, background: lider ? 'var(--serie-1)' : 'var(--serie-5)', filter: bajoCursor ? 'brightness(1.12) saturate(1.1)' : undefined }} />
+                  <p title={prod.nombre} className={`line-clamp-2 min-w-0 break-words text-body ${lider ? 'font-semibold' : ''}`}>{prod.nombre}</p>
+                  <div className="top-barra" aria-hidden="true">
+                    <div className="anim-barra-x" style={{ width: `${(prod.unidades / maximo) * 100}%`, '--retardo': `${120 + i * 60}ms`, background: lider ? 'var(--chart-focus)' : 'var(--chart-neutral)' }} />
                   </div>
                 </div>
-                <div className="min-w-max whitespace-nowrap text-right tabular-nums">
-                  <p className="text-[clamp(.7rem,1vw,.9rem)] font-bold">{formatoEntero(prod.unidades)} <span className="text-xs font-normal text-fg-muted">u.</span></p>
-                  <p className="text-[clamp(.65rem,.9vw,.8rem)] text-fg-muted">{datos.incluyeImportes ? formatoDinero(prod.ingreso) : `${prod.participacionPct} %`}</p>
+                <div className="num whitespace-nowrap text-right">
+                  <p className="text-body font-semibold">{formatoEntero(prod.unidades)} <span className="text-label-sm text-fg-muted">u.</span></p>
+                  <p className="text-label-sm text-fg-muted">{datos.incluyeImportes ? formatoDinero(prod.ingreso) : `${prod.participacionPct} %`}</p>
                 </div>
               </li>
             );
@@ -90,10 +89,10 @@ export default function TopProductosPanel({ cols, orden, sucursal }) {
   }
 
   return (
-    <Panel titulo="Más vendidos" cols={cols} orden={orden} acento={2} acciones={datos && datos.estado !== 'sin_sucursal' && <SelectorPeriodo etiqueta="Periodo del ranking" valor={dias} opciones={PERIODOS} onCambiar={setDias} />}>
+    <Panel titulo="Más vendidos" icono={Trophy} cols={cols} orden={orden} acciones={datos && datos.estado !== 'sin_sucursal' && <SelectorPeriodo etiqueta="Periodo del ranking" valor={dias} opciones={PERIODOS} onCambiar={setDias} />}>
       {datos && error && <AvisoError className="mb-4" error={error} onReintentar={recargar} />}
       {cuerpo}
-      {datos?.estado === 'ok' && <p className="mt-4 border-t border-line pt-3 text-xs text-fg-muted">Ordenado por unidades vendidas, {textoPeriodo(dias)}.</p>}
+      {datos?.estado === 'ok' && <p className="mt-3 border-t border-line pt-3 text-label-sm text-fg-muted">Ordenado por unidades vendidas, {textoPeriodo(dias)}.</p>}
     </Panel>
   );
 }

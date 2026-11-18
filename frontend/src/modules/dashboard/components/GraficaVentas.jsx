@@ -27,10 +27,10 @@ export function LeyendaVentas({ className = '' }) {
   return (
     <ul className={`flex flex-wrap items-center gap-4 text-xs font-medium text-fg-muted ${className}`}>
       <li className="flex items-center gap-1.5">
-        <svg width="12" height="12" aria-hidden="true" className="border border-(--serie-1)"><defs><pattern id="ley-rayas" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" className="fill-(--serie-1)" fillOpacity=".28" /><rect width="2.5" height="5" className="fill-(--serie-1)" /></pattern></defs><rect width="12" height="12" fill="url(#ley-rayas)" /></svg>
+        <svg width="12" height="12" aria-hidden="true" className="border border-(--chart-focus)"><defs><pattern id="ley-rayas" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" className="fill-(--chart-focus)" fillOpacity=".28" /><rect width="2.5" height="5" className="fill-(--chart-focus)" /></pattern></defs><rect width="12" height="12" fill="url(#ley-rayas)" /></svg>
         Hoy (en curso)
       </li>
-      <li className="flex items-center gap-1.5"><span aria-hidden="true" className="inline-block h-3 w-3 rounded-sm bg-(--serie-5)" />Días cerrados</li>
+      <li className="flex items-center gap-1.5"><span aria-hidden="true" className="inline-block h-3 w-3 rounded-sm bg-(--chart-neutral)" />Días cerrados</li>
     </ul>
   );
 }
@@ -80,14 +80,14 @@ export default function GraficaVentas({ serie, hoy, centavos = false, mostrarTic
         <svg width={ancho} height={ALTO} className="block select-none font-sans" role="group" aria-label={`Ventas de los últimos ${n} días. Recorre los días con las flechas del teclado.`}>
           <defs>
             <pattern id={idRayas} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-              <rect width="6" height="6" className="fill-(--serie-1)" fillOpacity=".28" />
-              <rect width="3" height="6" className="fill-(--serie-1)" />
+              <rect width="6" height="6" className="fill-(--chart-focus)" fillOpacity=".28" />
+              <rect width="3" height="6" className="fill-(--chart-focus)" />
             </pattern>
           </defs>
 
           {eje.marcas.map((marca) => (
             <g key={marca}>
-              <line x1={M.izquierda} x2={ancho - M.derecha} y1={yDe(marca)} y2={yDe(marca)} className={marca === 0 ? 'stroke-fg-muted' : 'stroke-line'} strokeWidth="1" strokeDasharray={marca === 0 ? undefined : '2 4'} />
+              <line x1={M.izquierda} x2={ancho - M.derecha} y1={yDe(marca)} y2={yDe(marca)} className={marca === 0 ? 'stroke-line-strong' : 'stroke-chart-grid'} strokeWidth="1" />
               <text x={M.izquierda - 10} y={yDe(marca) + 4} textAnchor="end" className="fill-fg-muted tabular-nums" fontSize="12">{centavos ? formatoCentavos(Math.round(marca)) : formatoEje(marca, eje.paso)}</text>
             </g>
           ))}
@@ -102,15 +102,15 @@ export default function GraficaVentas({ serie, hoy, centavos = false, mostrarTic
             const x = xCentro(i) - anchoBarra / 2;
             const esHoy = i === indiceHoy;
             const bajoCursor = i === activo;
-            let relleno = 'fill-(--serie-5)'; // días cerrados: neutro de la paleta; hoy y cursor: Terracota
+            let relleno = 'fill-(--chart-neutral)'; // días cerrados: neutro de la paleta; hoy y cursor: Terracota
             if (esHoy) relleno = '';
-            else if (bajoCursor) relleno = 'fill-(--serie-1)';
+            else if (bajoCursor) relleno = 'fill-(--chart-focus)';
             return (
               <g key={f.fecha} opacity={activo !== null && !bajoCursor ? 0.6 : 1}>
               <rect x={x} y={base - alto} width={anchoBarra} height={alto} className={relleno} fill={esHoy ? `url(#${idRayas})` : undefined}
-                  strokeWidth={esHoy ? 1.5 : 0} stroke={esHoy ? 'var(--serie-1)' : undefined} rx={Math.min(6, anchoBarra / 2)} />
+                  strokeWidth={esHoy ? 1.5 : 0} stroke={esHoy ? 'var(--chart-focus)' : undefined} rx={Math.min(6, anchoBarra / 2)} />
                 {(indiceHoy - i) % cadaEtiqueta === 0 && (
-                  <text x={xCentro(i)} y={ALTO - 9} textAnchor="middle" fontSize="12" className={esHoy ? 'fill-(--serie-1-texto) font-bold' : bajoCursor ? 'fill-fg font-semibold' : 'fill-fg-muted'}>{etiquetaDia(f.fecha)}</text>
+                  <text x={xCentro(i)} y={ALTO - 9} textAnchor="middle" fontSize="12" className={esHoy ? 'fill-(--chart-focus-strong) font-bold' : bajoCursor ? 'fill-fg font-semibold' : 'fill-fg-muted'}>{etiquetaDia(f.fecha)}</text>
                 )}
               </g>
             );
@@ -118,7 +118,7 @@ export default function GraficaVentas({ serie, hoy, centavos = false, mostrarTic
 
           {indiceHoy >= 0 && activo === null && (
             <text x={indiceHoy === n - 1 ? xCentro(indiceHoy) + anchoBarra / 2 : xCentro(indiceHoy)} y={yDe(Number(serie[indiceHoy].total)) - 7}
-              textAnchor={indiceHoy === n - 1 ? 'end' : 'middle'} fontSize="13" paintOrder="stroke" stroke="var(--bg-surface)" strokeWidth="4" strokeLinejoin="round" className="fill-(--serie-1-texto) font-bold tabular-nums">{mostrarDinero(serie[indiceHoy].total)}</text>
+              textAnchor={indiceHoy === n - 1 ? 'end' : 'middle'} fontSize="13" paintOrder="stroke" stroke="var(--bg-surface)" strokeWidth="4" strokeLinejoin="round" className="fill-(--chart-focus-strong) font-bold tabular-nums">{mostrarDinero(serie[indiceHoy].total)}</text>
           )}
 
           {serie.map((f, i) => (
