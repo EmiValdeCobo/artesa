@@ -73,7 +73,7 @@ export default function Dialogo({
 
   return createPortal(
     <div
-      className="anim-scrim fixed inset-0 z-[60] flex items-end justify-center bg-espresso-950/60 sm:items-center sm:p-4"
+      className="anim-scrim fixed inset-0 z-[60] flex items-end justify-center bg-overlay sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={(evento) => { if (cerrarConFondo && evento.target === evento.currentTarget) cerrarRef.current?.(); }}
     >
@@ -84,7 +84,7 @@ export default function Dialogo({
         aria-labelledby={labelledBy}
         aria-describedby={describedBy}
         tabIndex={-1}
-        className={`anim-dialogo max-h-[92dvh] w-full overflow-y-auto rounded-t-2xl border border-line bg-surface pb-[env(safe-area-inset-bottom)] text-fg shadow-2xl outline-none sm:max-h-[90dvh] sm:rounded-2xl sm:pb-0 ${TAMANOS[tamano] || TAMANOS.md}`}
+        className={`anim-dialogo max-h-[92dvh] w-full overflow-y-auto rounded-t-xl border border-line bg-surface pb-[env(safe-area-inset-bottom)] text-fg shadow-lg outline-none sm:max-h-[90dvh] sm:rounded-xl sm:pb-0 ${TAMANOS[tamano] || TAMANOS.md}`}
       >
         {children}
       </div>

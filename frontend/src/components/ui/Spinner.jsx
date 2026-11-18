@@ -1,10 +1,11 @@
-import { Loader2 } from 'lucide-react';
+import { SkeletonTexto } from '../feedback/Skeleton.jsx';
 
+// Estado de carga genérico (se conserva el nombre por compatibilidad). Ya no gira:
+// muestra un esqueleto de texto y anuncia `texto` a lectores de pantalla.
 export default function Spinner({ texto = 'Cargando…', className = '' }) {
   return (
-    <div role="status" className={`flex items-center justify-center gap-2 p-8 text-sm text-fg-muted ${className}`}>
-      <Loader2 size={18} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
-      <span>{texto}</span>
+    <div className={`w-full p-6 ${className}`.trim()}>
+      <SkeletonTexto lineas={3} texto={texto} className="max-w-md" />
     </div>
   );
 }

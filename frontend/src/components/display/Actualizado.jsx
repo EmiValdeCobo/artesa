@@ -11,9 +11,9 @@ export default function Actualizado({ instante, actualizando, onRecargar }) {
       onClick={onRecargar}
       disabled={actualizando}
       title="Actualizar ahora"
-      className="inline-flex items-center gap-1.5 text-xs text-fg-muted transition-colors hover:text-fg motion-reduce:transition-none"
+      className="inline-flex items-center gap-1.5 rounded-xs text-label-sm text-fg-muted transition-colors hover:text-fg disabled:cursor-progress"
     >
-      <RefreshCw size={12} aria-hidden="true" className={actualizando ? 'motion-safe:animate-spin' : ''} />
+      <RefreshCw size={12} strokeWidth={2} aria-hidden="true" className={actualizando ? "opacity-40" : ""} />
       <span>Actualizado {haceCuanto(instante, ahora)}</span>
     </button>
   );

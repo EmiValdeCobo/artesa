@@ -29,7 +29,7 @@ export default function Paginacion({
 
   return (
     <div
-      className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-2 py-3 border-t border-line/70 text-xs text-fg ${className}`.trim()}
+      className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-4 py-3 border-t border-line text-label-sm text-fg ${className}`.trim()}
     >
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
@@ -48,7 +48,7 @@ export default function Paginacion({
           </div>
         </div>
 
-        <span className="text-fg-muted font-medium" role="status">
+        <span className="text-fg-muted font-medium tabular-nums" role="status">
           {textoResumen}
         </span>
       </div>
@@ -60,9 +60,9 @@ export default function Paginacion({
           disabled={paginaValida <= 1 || cargando}
           aria-label="Primera página"
           title="Primera página"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-line/60 text-fg hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+          className="inline-flex size-control-sm items-center justify-center rounded-md border border-line text-fg-muted hover:bg-muted hover:text-fg disabled:cursor-not-allowed disabled:opacity-40 transition-colors"
         >
-          <ChevronsLeft size={15} aria-hidden="true" />
+          <ChevronsLeft size={16} strokeWidth={1.75} aria-hidden="true" />
         </button>
 
         <button
@@ -71,9 +71,9 @@ export default function Paginacion({
           disabled={paginaValida <= 1 || cargando}
           aria-label="Página anterior"
           title="Página anterior"
-          className="inline-flex h-8 items-center gap-1 px-2 rounded-lg border border-line/60 text-fg hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+          className="inline-flex h-control-sm items-center gap-1 px-2.5 rounded-md border border-line text-fg-muted hover:bg-muted hover:text-fg disabled:cursor-not-allowed disabled:opacity-40 transition-colors"
         >
-          <ChevronLeft size={15} aria-hidden="true" />
+          <ChevronLeft size={16} strokeWidth={1.75} aria-hidden="true" />
           <span className="hidden sm:inline">Anterior</span>
         </button>
 
@@ -94,10 +94,10 @@ export default function Paginacion({
               disabled={cargando}
               aria-current={p === paginaValida ? 'page' : undefined}
               aria-label={`Página ${p}`}
-              className={`hidden sm:inline-flex items-center justify-center min-w-8 h-8 px-2 rounded-lg text-xs transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
+              className={`hidden sm:inline-flex items-center justify-center min-w-control-sm h-control-sm px-2 rounded-md text-label-sm tabular-nums transition-colors ${
                 p === paginaValida
-                  ? 'bg-primary text-on-accent font-semibold shadow-xs'
-                  : 'text-fg hover:bg-muted border border-line/60'
+                  ? 'bg-primary-soft text-primary-text font-semibold'
+                  : 'text-fg-muted hover:bg-muted hover:text-fg'
               }`.trim()}
             >
               {p}
@@ -111,10 +111,10 @@ export default function Paginacion({
           disabled={paginaValida >= totalPaginas || cargando}
           aria-label="Página siguiente"
           title="Página siguiente"
-          className="inline-flex h-8 items-center gap-1 px-2 rounded-lg border border-line/60 text-fg hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+          className="inline-flex h-control-sm items-center gap-1 px-2.5 rounded-md border border-line text-fg-muted hover:bg-muted hover:text-fg disabled:cursor-not-allowed disabled:opacity-40 transition-colors"
         >
           <span className="hidden sm:inline">Siguiente</span>
-          <ChevronRight size={15} aria-hidden="true" />
+          <ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" />
         </button>
 
         <button
@@ -123,9 +123,9 @@ export default function Paginacion({
           disabled={paginaValida >= totalPaginas || cargando}
           aria-label="Última página"
           title="Última página"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-line/60 text-fg hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+          className="inline-flex size-control-sm items-center justify-center rounded-md border border-line text-fg-muted hover:bg-muted hover:text-fg disabled:cursor-not-allowed disabled:opacity-40 transition-colors"
         >
-          <ChevronsRight size={15} aria-hidden="true" />
+          <ChevronsRight size={16} strokeWidth={1.75} aria-hidden="true" />
         </button>
       </nav>
     </div>

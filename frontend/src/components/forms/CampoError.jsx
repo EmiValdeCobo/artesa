@@ -10,7 +10,7 @@ export const idError = (id) => `${id}-error`;
 export default function CampoError({ id, mensaje }) {
   if (!mensaje) return null;
   return (
-    <p id={idError(id)} className="mt-1.5 flex items-start gap-1.5 text-xs font-medium leading-snug text-danger">
+    <p id={idError(id)} className="mt-1.5 flex items-start gap-1.5 text-label-sm text-danger-text">
       <CircleAlert size={14} aria-hidden="true" className="mt-px shrink-0" />
       <span>{mensaje}</span>
     </p>

@@ -11,9 +11,9 @@ const CampoTexto = forwardRef(function CampoTexto({ icono: Icono, id, invalid = 
           Icono
         ) : (
           <Icono
-            size={17}
+            size={18} strokeWidth={1.75}
             aria-hidden="true"
-            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-muted transition-colors group-focus-within:text-primary-text"
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-subtle transition-colors group-focus-within:text-primary-text"
           />
         )
       )}
