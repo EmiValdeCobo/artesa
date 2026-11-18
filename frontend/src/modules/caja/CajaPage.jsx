@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Wallet,
+  Banknote,
+  CreditCard,
+  Smartphone,
   CircleDollarSign,
   ArrowUpRight,
   ArrowDownLeft,
@@ -34,12 +37,34 @@ import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import Metrica from '../../components/display/Metrica.jsx';
 import Dialogo from '../../components/Dialogo.jsx';
 import Pestanas from '../../components/navigation/Pestanas.jsx';
-import { Button, Card, Select, Spinner, Table } from '../../components/ui/index.js';
-import { formatoDinero, horaDe, etiquetaDiaLarga, haceCuanto } from '../../utils/formato.js';
+import Skeleton from '../../components/feedback/Skeleton.jsx';
+import { BotonIcono, Button, Card, Select, Table } from '../../components/ui/index.js';
+import { formatoDinero, formatoCentavos, horaDe, etiquetaDiaLarga, haceCuanto } from '../../utils/formato.js';
 import { cajaApi } from '../../api/caja.api.js';
 import { listarVentas, obtenerDetalleVenta } from '../pos/posApi.js';
 
 const PATRON_MONTO = /^\d{1,8}(\.\d{1,2})?$/;
+
+// Convierte un monto en texto ("12.5", "-3.00") a centavos enteros (BigInt) sin pasar por float.
+// Devuelve null si el texto no es un monto válido.
+const aCentavos = (valor) => {
+  const texto = String(valor ?? '').trim();
+  if (!/^-?\d{1,10}(\.\d{1,2})?$/.test(texto)) return null;
+  const negativo = texto.startsWith('-');
+  const [entera, decimales = ''] = texto.replace('-', '').split('.');
+  const centavos = BigInt(entera) * 100n + BigInt(`${decimales}00`.slice(0, 2));
+  return negativo ? -centavos : centavos;
+};
+
+// Clase de color para una diferencia de cuadre: cero = éxito, cualquier otra = peligro.
+const claseDiferencia = (resultado) => {
+  if (resultado === 'CUADRADO') return 'text-success-text';
+  if (resultado === 'FALTANTE' || resultado === 'SOBRANTE') return 'text-danger-text';
+  return 'text-fg-muted';
+};
+
+const ETIQUETA_RESULTADO = { CUADRADO: 'Cuadrado', SOBRANTE: 'Sobrante', FALTANTE: 'Faltante' };
+const TIPO_RESULTADO = { CUADRADO: 'exito', SOBRANTE: 'aviso', FALTANTE: 'peligro' };
 
 export default function CajaPage() {
   const { usuario, tiene } = useAuth();
@@ -422,7 +447,7 @@ export default function CajaPage() {
       render: (m) => (
         <div>
           <p className="font-medium text-fg">{horaDe(m.creado_en)}</p>
-          <p className="text-xs text-fg-muted">{haceCuanto(m.creado_en, Date.now())}</p>
+          <p className="text-body-sm text-fg-muted">{haceCuanto(m.creado_en, Date.now())}</p>
         </div>
       ),
     },
@@ -432,15 +457,11 @@ export default function CajaPage() {
       tipo: 'texto',
       valorOrden: (m) => m.tipo,
       render: (m) => (
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-            m.tipo === 'INGRESO'
-              ? 'bg-success-soft text-success'
-              : 'bg-warning-soft text-warning'
-          }`}
-        >
-          {m.tipo === 'INGRESO' ? <TrendingUp size={13} aria-hidden="true" /> : <TrendingDown size={13} aria-hidden="true" />}
-          {m.tipo}
+        <span className="inline-flex items-center gap-1.5 text-body-sm text-fg-muted">
+          {m.tipo === 'INGRESO'
+            ? <TrendingUp size={16} strokeWidth={1.75} className="text-success-text" aria-hidden="true" />
+            : <TrendingDown size={16} strokeWidth={1.75} className="text-danger-text" aria-hidden="true" />}
+          {m.tipo === 'INGRESO' ? 'Ingreso' : 'Egreso'}
         </span>
       ),
     },
@@ -449,7 +470,7 @@ export default function CajaPage() {
       titulo: 'Concepto / Motivo',
       tipo: 'texto',
       valorOrden: (m) => m.concepto,
-      render: (m) => <span className="text-sm font-medium text-fg">{m.concepto}</span>,
+      render: (m) => <span className="font-medium text-fg">{m.concepto}</span>,
     },
     {
       clave: 'monto',
@@ -458,8 +479,8 @@ export default function CajaPage() {
       alinear: 'right',
       valorOrden: (m) => m.monto,
       render: (m) => (
-        <span className={`font-semibold ${m.tipo === 'INGRESO' ? 'text-success' : 'text-danger'}`}>
-          {m.tipo === 'INGRESO' ? '+' : '-'}{formatoDinero(m.monto)}
+        <span className={`font-medium tabular-nums ${m.tipo === 'INGRESO' ? 'text-success-text' : 'text-danger-text'}`}>
+          {m.tipo === 'INGRESO' ? '+' : '−'}{formatoDinero(m.monto)}
         </span>
       ),
     },
@@ -467,8 +488,9 @@ export default function CajaPage() {
       clave: 'usuario',
       titulo: 'Registrado por',
       tipo: 'texto',
+      clase: 'hidden md:table-cell',
       valorOrden: (m) => m.usuario,
-      render: (m) => <span className="text-xs text-fg-muted">{m.usuario}</span>,
+      render: (m) => <span className="text-body-sm text-fg-muted">{m.usuario}</span>,
     },
   ], []);
 
@@ -481,7 +503,7 @@ export default function CajaPage() {
       render: (c) => (
         <div>
           <p className="font-medium text-fg">{etiquetaDiaLarga(c.abierto_en.slice(0, 10))}</p>
-          <p className="text-xs text-fg-muted">
+          <p className="text-body-sm text-fg-muted">
             {horaDe(c.abierto_en)} — {c.cerrado_en ? horaDe(c.cerrado_en) : 'En curso'}
           </p>
         </div>
@@ -495,7 +517,7 @@ export default function CajaPage() {
       render: (c) => (
         <div>
           <p className="font-medium text-fg">{c.caja}</p>
-          <p className="text-xs text-fg-muted">{c.sucursal}</p>
+          <p className="text-body-sm text-fg-muted">{c.sucursal}</p>
         </div>
       ),
     },
@@ -504,7 +526,7 @@ export default function CajaPage() {
       titulo: 'Cajero',
       tipo: 'texto',
       valorOrden: (c) => c.cajero,
-      render: (c) => <span className="text-xs text-fg-muted">{c.cajero}</span>,
+      render: (c) => <span className="text-body-sm text-fg-muted">{c.cajero}</span>,
     },
     {
       clave: 'estado',
@@ -524,14 +546,15 @@ export default function CajaPage() {
       valorOrden: (c) => c.efectivo?.diferencia ?? '0.00',
       render: (c) => {
         const ef = c.efectivo;
-        if (!ef || !ef.resultado) return <span className="text-xs text-fg-muted">—</span>;
-        if (ef.resultado === 'CUADRADO') {
-          return <span className="inline-flex rounded-full bg-success-soft px-2 py-0.5 text-xs font-medium text-success">Cuadrado ($0.00)</span>;
-        }
-        if (ef.resultado === 'SOBRANTE') {
-          return <span className="inline-flex rounded-full bg-info-soft px-2 py-0.5 text-xs font-medium text-info">Sobrante (+{formatoDinero(ef.diferencia)})</span>;
-        }
-        return <span className="inline-flex rounded-full bg-danger-soft px-2 py-0.5 text-xs font-medium text-danger">Faltante ({formatoDinero(ef.diferencia)})</span>;
+        if (!ef || !ef.resultado) return <span className="text-body-sm text-fg-muted">—</span>;
+        return (
+          <span className="inline-flex flex-col items-end gap-0.5">
+            <span className={`font-medium tabular-nums ${claseDiferencia(ef.resultado)}`}>
+              {ef.resultado === 'SOBRANTE' ? '+' : ''}{formatoDinero(ef.diferencia)}
+            </span>
+            <span className="text-body-sm text-fg-muted">{ETIQUETA_RESULTADO[ef.resultado] || ef.resultado}</span>
+          </span>
+        );
       },
     },
     {
@@ -543,25 +566,21 @@ export default function CajaPage() {
         const esAbierto = c.estado === 'ABIERTO';
         const puedeCerrarEste = esAbierto && (puedeCerrarCualquiera || (puedeCerrar && (c.id_usuario === usuario?.id || c.cajero === usuario?.username)));
         return (
-          <div className="flex items-center justify-end gap-1.5">
+          <div className="flex items-center justify-end gap-1">
             {puedeCerrarEste && (
-              <Button
-                variante="danger"
-                onClick={() => abrirModalCierre(c)}
-                className="!px-2.5 !py-1 text-xs"
+              <BotonIcono
                 icono={Lock}
-              >
-                Cerrar turno
-              </Button>
+                etiqueta={`Cerrar turno de ${c.caja}`}
+                titulo="Cerrar turno"
+                onClick={() => abrirModalCierre(c)}
+              />
             )}
-            <Button
-              variante="ghost"
-              onClick={() => verDetalleCuadre(c.id_turno)}
-              className="!px-2.5 !py-1 text-xs"
+            <BotonIcono
               icono={Eye}
-            >
-              Ver cuadre
-            </Button>
+              etiqueta={`Ver cuadre de ${c.caja}`}
+              titulo="Ver cuadre"
+              onClick={() => verDetalleCuadre(c.id_turno)}
+            />
           </div>
         );
       },
@@ -577,7 +596,7 @@ export default function CajaPage() {
       render: (v) => (
         <div>
           <p className="font-medium text-fg">{horaDe(v.fecha_emision)}</p>
-          <p className="text-xs text-fg-muted">{haceCuanto(v.fecha_emision, Date.now())}</p>
+          <p className="text-body-sm text-fg-muted">{haceCuanto(v.fecha_emision, Date.now())}</p>
         </div>
       ),
     },
@@ -589,7 +608,7 @@ export default function CajaPage() {
       render: (v) => (
         <div>
           <p className="font-medium text-fg">{v.tipo_comprobante}</p>
-          <p className="text-xs text-fg-muted">{v.correlativo}</p>
+          <p className="text-body-sm text-fg-muted">{v.correlativo}</p>
         </div>
       ),
     },
@@ -598,7 +617,7 @@ export default function CajaPage() {
       titulo: 'Cajero',
       tipo: 'texto',
       valorOrden: (v) => v.cajero_username,
-      render: (v) => <span className="text-xs text-fg-muted">{v.cajero_username}</span>,
+      render: (v) => <span className="text-body-sm text-fg-muted">{v.cajero_username}</span>,
     },
     {
       clave: 'total_venta',
@@ -607,7 +626,7 @@ export default function CajaPage() {
       alinear: 'right',
       valorOrden: (v) => v.total,
       render: (v) => (
-        <span className="font-semibold text-success">{formatoDinero(v.total)}</span>
+        <span className="font-medium tabular-nums text-fg">{formatoDinero(v.total)}</span>
       ),
     },
     {
@@ -627,15 +646,13 @@ export default function CajaPage() {
       alinear: 'right',
       ordenable: false,
       render: (v) => (
-        <Button
-          variante="ghost"
-          onClick={() => verDetalleVenta(v.id_venta)}
-          className="!px-2.5 !py-1 text-xs"
+        <BotonIcono
           icono={Eye}
+          etiqueta={`Ver detalle de ${v.tipo_comprobante} ${v.correlativo}`}
+          titulo="Ver detalle"
+          onClick={() => verDetalleVenta(v.id_venta)}
           cargando={cargandoDetalleVenta}
-        >
-          Ver detalle
-        </Button>
+        />
       ),
     },
   ], [verDetalleVenta, cargandoDetalleVenta]);
@@ -667,17 +684,7 @@ export default function CajaPage() {
       tipo: 'dinero',
       alinear: 'right',
       render: (fila) => (
-        <span
-          className={`font-bold ${
-            fila.resultado === 'FALTANTE'
-              ? 'text-danger'
-              : fila.resultado === 'SOBRANTE'
-              ? 'text-info'
-              : fila.resultado === 'CUADRADO'
-              ? 'text-success'
-              : 'text-fg-muted'
-          }`}
-        >
+        <span className={`font-semibold tabular-nums ${claseDiferencia(fila.resultado)}`}>
           {fila.resultado === 'SOBRANTE' ? '+' : ''}
           {formatoDinero(fila.diferencia)}
         </span>
@@ -689,19 +696,9 @@ export default function CajaPage() {
       tipo: 'texto',
       alinear: 'center',
       render: (fila) => (
-        <span
-          className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-            fila.resultado === 'CUADRADO'
-              ? 'bg-success-soft text-success'
-              : fila.resultado === 'SOBRANTE'
-              ? 'bg-info-soft text-info'
-              : fila.resultado === 'FALTANTE'
-              ? 'bg-danger-soft text-danger'
-              : 'bg-muted text-fg-muted'
-          }`}
-        >
-          {fila.resultado}
-        </span>
+        <EstadoBadge tipo={TIPO_RESULTADO[fila.resultado] || 'cargando'}>
+          {ETIQUETA_RESULTADO[fila.resultado] || fila.resultado}
+        </EstadoBadge>
       ),
     },
   ], []);
@@ -736,10 +733,38 @@ export default function CajaPage() {
     },
   ], []);
 
+  // ─── Conteo del cierre: diferencia en vivo por medio (centavos enteros, sin float) ──
+  const objetivoCierre = turnoParaCierre || turno;
+  const filasConteo = useMemo(() => {
+    const t = objetivoCierre || {};
+    const medios = [
+      { clave: 'efectivo', medio: 'Efectivo en gaveta', icono: Banknote, ayuda: 'Billetes y monedas contados.', esperado: t.esperado_efectivo ?? t.efectivo?.esperado },
+      { clave: 'tarjeta', medio: 'Vouchers de tarjeta', icono: CreditCard, ayuda: 'Comprobantes de las terminales POS.', esperado: t.ventas_tarjeta ?? t.tarjeta?.esperado ?? t.ventas?.tarjeta },
+      { clave: 'digital', medio: 'Pagos digitales', icono: Smartphone, ayuda: 'Chivo Wallet / transferencias.', esperado: t.ventas_digital ?? t.digital?.esperado ?? t.ventas?.digital },
+    ];
+    return medios.map((m) => {
+      const esperado = aCentavos(m.esperado ?? '0') ?? 0n;
+      const contado = aCentavos(formCierre[m.clave]);
+      const diferencia = contado === null ? null : contado - esperado;
+      return { ...m, esperadoCent: esperado, diferencia };
+    });
+  }, [objetivoCierre, formCierre]);
+
   // ─── Render principal ────────────────────────────────────────────────────────
   if (cargando) {
     return (
-      <Spinner texto="Cargando estado de caja y turnos…" className="min-h-[400px]" />
+      <div className="space-y-6" aria-busy="true">
+        <span className="sr-only" role="status">Cargando estado de caja y turnos…</span>
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-8 w-64" />
+        </div>
+        <Skeleton className="h-24 w-full" />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-20" />)}
+        </div>
+        <Skeleton className="h-64 w-full" />
+      </div>
     );
   }
 
@@ -748,9 +773,9 @@ export default function CajaPage() {
       <EncabezadoPagina
         seccion="Operación · Caja y turnos"
         titulo="Caja y turnos"
-        descripcion="Gestión del ciclo operativo de caja: apertura de turnos, registro de entradas y salidas de efectivo, y arqueo con cuadre final."
+        descripcion="Apertura de turnos, entradas y salidas de efectivo, y arqueo con cuadre final."
         acciones={
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variante="ghost"
               onClick={() => cargarTurno(true)}
@@ -760,37 +785,10 @@ export default function CajaPage() {
             >
               Actualizar
             </Button>
-            {turno ? (
-              <>
-                {puedeMover && (
-                  <Button
-                    variante="secondary"
-                    onClick={abrirModalMovimiento}
-                    icono={Plus}
-                  >
-                    Nuevo movimiento
-                  </Button>
-                )}
-                {puedeCerrar && (
-                  <Button
-                    variante="danger"
-                    onClick={() => abrirModalCierre()}
-                    icono={Lock}
-                  >
-                    Cerrar turno
-                  </Button>
-                )}
-              </>
-            ) : (
-              puedeAbrir && (
-                <Button
-                  variante="primary"
-                  onClick={abrirModalApertura}
-                  icono={Unlock}
-                >
-                  Abrir turno
-                </Button>
-              )
+            {!turno && puedeAbrir && (
+              <Button variante="primary" onClick={abrirModalApertura} icono={Unlock}>
+                Abrir turno
+              </Button>
             )}
           </div>
         }
@@ -800,82 +798,71 @@ export default function CajaPage() {
         <BannerError
           error={errorCarga}
           onReintentar={() => cargarTurno(false)}
+          onCerrar={() => setErrorCarga(null)}
         />
       )}
 
       {/* CASO 1: TURNO ABIERTO */}
       {turno ? (
         <div className="space-y-6">
-          {/* Tarjeta de estado del turno actual */}
-          <section className="card flex flex-wrap items-center justify-between gap-4 border-l-4 border-l-primary !p-5">
-            <div className="flex items-center gap-4">
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary-text">
-                <Store size={24} aria-hidden="true" />
-              </span>
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-lg font-semibold text-fg">
-                    {turno.caja}
-                  </h2>
-                  <EstadoBadge tipo="info">Turno Abierto</EstadoBadge>
-                </div>
-                <p className="mt-0.5 text-xs text-fg-muted">
-                  {turno.sucursal} · Turno a cargo de <strong className="text-fg">{usuario?.username || 'Cajero'}</strong>
-                </p>
+          {/* Estado del turno actual */}
+          <Card
+            icono={Store}
+            titulo={turno.caja}
+            descripcion={`${turno.sucursal} · a cargo de ${usuario?.username || 'Cajero'}`}
+            acciones={
+              <div className="flex flex-wrap items-center gap-2">
+                {puedeMover && (
+                  <Button variante="ghost" tamano="sm" onClick={abrirModalMovimiento} icono={Plus}>
+                    Nuevo movimiento
+                  </Button>
+                )}
+                {puedeCerrar && (
+                  <Button variante="primary" tamano="sm" onClick={() => abrirModalCierre()} icono={Lock}>
+                    Cerrar turno
+                  </Button>
+                )}
               </div>
-            </div>
+            }
+          >
+            <dl className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <dt className="text-label-sm text-fg-muted">Estado</dt>
+                <dd className="mt-1"><EstadoBadge tipo="info">Turno abierto</EstadoBadge></dd>
+              </div>
+              <div>
+                <dt className="text-label-sm text-fg-muted">Monto inicial</dt>
+                <dd className="mt-1 font-semibold tabular-nums text-fg">{formatoDinero(turno.monto_apertura)}</dd>
+              </div>
+              <div>
+                <dt className="text-label-sm text-fg-muted">Apertura</dt>
+                <dd className="mt-1 flex flex-wrap items-center gap-1.5 text-body-sm text-fg">
+                  <Clock size={16} strokeWidth={1.75} className="text-fg-subtle" aria-hidden="true" />
+                  <span className="tabular-nums">
+                    {etiquetaDiaLarga(turno.abierto_en.slice(0, 10))} · {horaDe(turno.abierto_en)}
+                  </span>
+                  <span className="text-fg-muted">({haceCuanto(turno.abierto_en, Date.now())})</span>
+                </dd>
+              </div>
+            </dl>
+          </Card>
 
-            <div className="flex items-center gap-2 text-xs text-fg-muted">
-              <Clock size={15} aria-hidden="true" />
-              <span>
-                Abierto {etiquetaDiaLarga(turno.abierto_en.slice(0, 10))} a las {horaDe(turno.abierto_en)} ({haceCuanto(turno.abierto_en, Date.now())})
-              </span>
-            </div>
-          </section>
-
-          {/* Cuadrícula de métricas del turno */}
+          {/* KPIs del turno */}
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <Metrica
-              icono={Wallet}
-              etiqueta="Fondo inicial"
-              valor={formatoDinero(turno.monto_apertura)}
-              tono="neutro"
-            />
-            <Metrica
-              icono={CircleDollarSign}
-              etiqueta="Ventas en efectivo"
-              valor={formatoDinero(turno.ventas_efectivo)}
-              tono="exito"
-            />
+            <Metrica icono={Scale} etiqueta="Efectivo esperado" valor={formatoDinero(turno.esperado_efectivo)} />
+            <Metrica icono={CircleDollarSign} etiqueta="Ventas en efectivo" valor={formatoDinero(turno.ventas_efectivo)} />
             <Metrica
               icono={ArrowDownLeft}
-              etiqueta="Ingresos extra"
-              valor={formatoDinero(turno.ingresos_caja)}
-              tono="exito"
-            />
-            <Metrica
-              icono={ArrowUpRight}
-              etiqueta="Egresos extra"
-              valor={formatoDinero(turno.egresos_caja)}
-              tono="aviso"
-            />
-            <Metrica
-              icono={Scale}
-              etiqueta="Efectivo esperado"
-              valor={formatoDinero(turno.esperado_efectivo)}
-              tono="primario"
+              etiqueta="Ingresos / egresos extra"
+              valor={`+${formatoDinero(turno.ingresos_caja)} / −${formatoDinero(turno.egresos_caja)}`}
             />
             <Metrica
               icono={Receipt}
               etiqueta="Ventas otros medios"
-              valor={formatoDinero(
-                (Number(turno.ventas_tarjeta || 0) + Number(turno.ventas_digital || 0)).toFixed(2),
-              )}
-              tono="info"
+              valor={formatoCentavos((aCentavos(turno.ventas_tarjeta ?? '0') ?? 0n) + (aCentavos(turno.ventas_digital ?? '0') ?? 0n))}
             />
           </div>
 
-          {/* Navegación por pestañas */}
           {pestanasVisibles.length > 0 && (
             <Pestanas
               etiqueta="Secciones de caja"
@@ -888,22 +875,19 @@ export default function CajaPage() {
           {/* PESTAÑA: MOVIMIENTOS */}
           {pestanaActiva === 'movimientos' && (
             <Card
+              sinPadding
+              icono={Wallet}
               titulo="Movimientos de efectivo del turno"
-              descripcion="Registro de entradas extraordinarias (cambio, fondo extra) y salidas de efectivo (pagos menores, adelantos) de este turno."
-              acciones={
-                puedeMover && (
-                  <Button
-                    variante="secondary"
-                    onClick={abrirModalMovimiento}
-                    icono={Plus}
-                    className="!px-3 !py-1.5 text-xs"
-                  >
+              descripcion={`${movimientos.length} registros`}
+            >
+              {puedeMover && (
+                <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3">
+                  <p className="text-body-sm text-fg-muted">Entradas (cambio, fondo extra) y salidas (pagos menores, adelantos).</p>
+                  <Button variante="ghost" tamano="sm" className="ml-auto" onClick={abrirModalMovimiento} icono={Plus}>
                     Registrar movimiento
                   </Button>
-                )
-              }
-              sinPadding
-            >
+                </div>
+              )}
               <Table
                 idTabla="caja_movimientos"
                 columnas={columnasMovimientos}
@@ -911,60 +895,55 @@ export default function CajaPage() {
                 idFila="id_movimiento"
                 cargando={cargandoMovimientos}
                 ordenInicial={{ clave: 'creado_en', direccion: 'desc' }}
-                vacio="No se han registrado ingresos ni egresos extraordinarios durante este turno."
+                vacio={
+                  <EstadoVacio icono={ArrowUpRight} titulo="Sin movimientos">
+                    No se han registrado ingresos ni egresos extraordinarios durante este turno.
+                  </EstadoVacio>
+                }
               />
             </Card>
           )}
 
           {/* PESTAÑA: VENTAS Y MEDIOS DE PAGO */}
           {pestanaActiva === 'ventas' && (
-            <div className="grid gap-4 md:grid-cols-3">
-              <Card titulo="Efectivo en mostrador">
-                <p className="text-3xl font-bold text-success">
-                  {formatoDinero(turno.ventas_efectivo)}
-                </p>
-                <p className="mt-2 text-xs text-fg-muted">
-                  Total de cobros realizados en billetes y monedas que deben estar físicamente en caja.
-                </p>
-              </Card>
-
-              <Card titulo="Tarjetas de débito / crédito">
-                <p className="text-3xl font-bold text-info">
-                  {formatoDinero(turno.ventas_tarjeta)}
-                </p>
-                <p className="mt-2 text-xs text-fg-muted">
-                  Cobros procesados mediante terminal POS. Debes conservar los vouchers para el cuadre.
-                </p>
-              </Card>
-
-              <Card titulo="Pagos digitales y transferencias">
-                <p className="text-3xl font-bold text-primary-text">
-                  {formatoDinero(turno.ventas_digital)}
-                </p>
-                <p className="mt-2 text-xs text-fg-muted">
-                  Cobros por Bitcoin (Chivo Wallet) y transferencias electrónicas acreditadas.
-                </p>
-              </Card>
-            </div>
+            <Card sinPadding icono={Receipt} titulo="Medios de pago del turno" descripcion="Cobros acumulados por medio de pago">
+              <dl className="grid divide-y divide-line md:grid-cols-3 md:divide-x md:divide-y-0">
+                {[
+                  { titulo: 'Efectivo en mostrador', icono: Banknote, valor: turno.ventas_efectivo, ayuda: 'Billetes y monedas que deben estar físicamente en caja.' },
+                  { titulo: 'Tarjetas de débito / crédito', icono: CreditCard, valor: turno.ventas_tarjeta, ayuda: 'Cobros por terminal POS. Conserva los vouchers para el cuadre.' },
+                  { titulo: 'Pagos digitales y transferencias', icono: Smartphone, valor: turno.ventas_digital, ayuda: 'Cobros por Bitcoin (Chivo Wallet) y transferencias acreditadas.' },
+                ].map((m) => (
+                  <div key={m.titulo} className="p-5">
+                    <dt className="flex items-center gap-2 text-label-sm text-fg-muted">
+                      <m.icono size={16} strokeWidth={1.75} aria-hidden="true" />
+                      {m.titulo}
+                    </dt>
+                    <dd className="kpi mt-2 text-kpi">{formatoDinero(m.valor)}</dd>
+                    <dd className="mt-1 text-body-sm text-fg-muted">{m.ayuda}</dd>
+                  </div>
+                ))}
+              </dl>
+            </Card>
           )}
 
           {/* PESTAÑA: HISTORIAL DE VENTAS DEL TURNO */}
           {pestanaActiva === 'ventas-turno' && turno && (
             <Card
+              sinPadding
+              icono={ShoppingBag}
               titulo="Ventas realizadas en este turno"
-              descripcion="Listado de todas las ventas cobradas durante el turno activo. Haz clic en «Ver detalle» para ver los productos de cada venta."
+              descripcion={`${ventasTurno.length} registros`}
               acciones={
                 <Button
                   variante="ghost"
+                  tamano="sm"
                   onClick={() => cargarVentasTurno(turno.id_turno)}
                   cargando={cargandoVentasTurno}
                   icono={RefreshCw}
-                  className="!px-3 !py-1.5 text-xs"
                 >
                   Recargar
                 </Button>
               }
-              sinPadding
             >
               <Table
                 idTabla="caja_ventas_turno"
@@ -974,11 +953,9 @@ export default function CajaPage() {
                 cargando={cargandoVentasTurno}
                 ordenInicial={{ clave: 'fecha_emision', direccion: 'desc' }}
                 vacio={
-                  <EstadoVacio
-                    icono={ShoppingBag}
-                    mensaje="No hay ventas registradas en este turno."
-                    descripcion="Las ventas aparecerán aquí en cuanto se registre algún cobro en el punto de venta."
-                  />
+                  <EstadoVacio icono={ShoppingBag} titulo="No hay ventas registradas en este turno">
+                    Las ventas aparecerán aquí en cuanto se registre algún cobro en el punto de venta.
+                  </EstadoVacio>
                 }
               />
             </Card>
@@ -987,11 +964,12 @@ export default function CajaPage() {
           {/* PESTAÑA: HISTORIAL DE CUADRES */}
           {pestanaActiva === 'cuadres' && puedeVerCuadres && (
             <Card
-              titulo="Auditoría de cuadres y turnos anteriores"
-              descripcion="Historial de turnos de todas las cajas asignadas con su resultado de arqueo."
               sinPadding
+              icono={History}
+              titulo="Auditoría de cuadres y turnos anteriores"
+              descripcion={`${cuadres.length} registros`}
             >
-              <div className="flex flex-wrap items-center gap-3 border-b border-line p-4 text-xs">
+              <div className="flex flex-wrap items-end gap-3 border-b border-line px-5 py-3">
                 <Select
                   etiqueta="Estado"
                   value={filtroEstadoCuadre}
@@ -1001,16 +979,21 @@ export default function CajaPage() {
                     { valor: 'ABIERTO', texto: 'Turnos abiertos' },
                     { valor: 'CERRADO', texto: 'Turnos cerrados' },
                   ]}
-                  className="w-40"
+                  className="w-44"
                 />
                 <Button
                   variante="ghost"
+                  tamano="sm"
                   onClick={cargarCuadresHistorial}
                   cargando={cargandoCuadres}
-                  className="!px-3 !py-1.5 self-end"
                 >
                   Filtrar
                 </Button>
+                {filtroEstadoCuadre && (
+                  <Button variante="ghost" tamano="sm" className="ml-auto" onClick={() => setFiltroEstadoCuadre('')}>
+                    Limpiar filtros
+                  </Button>
+                )}
               </div>
               <Table
                 idTabla="caja_cuadres"
@@ -1019,7 +1002,11 @@ export default function CajaPage() {
                 idFila="id_turno"
                 cargando={cargandoCuadres}
                 ordenInicial={{ clave: 'abierto_en', direccion: 'desc' }}
-                vacio="No hay registros de cuadres que coincidan con los filtros."
+                vacio={
+                  <EstadoVacio icono={History} titulo="Sin cuadres">
+                    No hay registros de cuadres que coincidan con los filtros.
+                  </EstadoVacio>
+                }
               />
             </Card>
           )}
@@ -1027,36 +1014,23 @@ export default function CajaPage() {
       ) : (
         /* CASO 2: SIN TURNO ABIERTO */
         <div className="space-y-6">
-          <Card className="text-center py-12">
-            <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-primary-soft text-primary-text">
-              <Wallet size={32} aria-hidden="true" />
+          <Card icono={Store} titulo="Estado del turno">
+            <div className="flex flex-wrap items-center gap-2">
+              <EstadoBadge tipo="inactivo">Sin turno</EstadoBadge>
+              <h2 className="text-h3">No tienes ningún turno abierto</h2>
             </div>
-            <h2 className="mt-4 text-xl font-semibold text-fg">
-              No tienes ningún turno abierto
-            </h2>
-            <p className="mx-auto mt-2 max-w-md text-sm text-fg-muted">
+            <p className="mt-1 max-w-xl text-body text-fg-muted">
               Para registrar cobros en el punto de venta o realizar movimientos de efectivo, inicia un nuevo turno en una caja disponible de tu sucursal.
             </p>
-            {puedeAbrir && (
-              <div className="mt-6 flex justify-center">
-                <Button
-                  variante="primary"
-                  onClick={abrirModalApertura}
-                  icono={Unlock}
-                  className="!px-6 !py-2.5 font-semibold"
-                >
-                  Abrir turno de caja
-                </Button>
-              </div>
-            )}
           </Card>
 
           {/* Si no tiene turno abierto pero puede auditar, mostramos el historial de cuadres abajo */}
           {puedeVerCuadres && (
             <Card
-              titulo="Historial reciente de cuadres"
-              descripcion="Consulta turnos cerrados y arqueos realizados en tus sucursales."
               sinPadding
+              icono={History}
+              titulo="Historial reciente de cuadres"
+              descripcion={`${cuadres.length} registros`}
             >
               <Table
                 idTabla="caja_cuadres"
@@ -1065,7 +1039,11 @@ export default function CajaPage() {
                 idFila="id_turno"
                 cargando={cargandoCuadres}
                 ordenInicial={{ clave: 'abierto_en', direccion: 'desc' }}
-                vacio="No hay turnos registrados aún."
+                vacio={
+                  <EstadoVacio icono={History} titulo="Sin turnos registrados">
+                    Los arqueos aparecerán aquí cuando se cierre el primer turno.
+                  </EstadoVacio>
+                }
               />
             </Card>
           )}
@@ -1080,37 +1058,27 @@ export default function CajaPage() {
           labelledBy="apertura-titulo"
           describedBy="apertura-descripcion"
         >
-          <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+          <div className="flex items-start justify-between gap-4 px-6 pt-6">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">
-                Operación · Caja y turnos
-              </p>
-              <h2 id="apertura-titulo" className="mt-1 text-xl font-semibold">
-                Abrir turno de caja
-              </h2>
-              <p id="apertura-descripcion" className="mt-1 text-xs text-fg-muted">
+              <h2 id="apertura-titulo" className="text-h3">Abrir turno de caja</h2>
+              <p id="apertura-descripcion" className="mt-1 text-body text-fg-muted">
                 Selecciona la caja de tu sucursal e ingresa el fondo de efectivo inicial.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setMostrarApertura(false)}
-              className="rounded-md p-1.5 text-fg-muted hover:bg-muted hover:text-fg"
-              aria-label="Cerrar modal"
-            >
-              <X size={18} aria-hidden="true" />
-            </button>
+            <BotonIcono icono={X} etiqueta="Cerrar modal" onClick={() => setMostrarApertura(false)} />
           </div>
 
-          <form onSubmit={handleAbrirTurno} className="space-y-4 p-5">
-            <div>
-              <label htmlFor="apertura-caja" className="block text-sm font-medium text-fg">
-                Caja punto de venta <span className="text-danger">*</span>
-              </label>
-              {cargandoCajas ? (
-                <Spinner texto="Cargando cajas disponibles…" className="mt-1.5 !justify-start !p-0 !text-xs" />
-              ) : (
-                <div className="mt-1.5">
+          <form onSubmit={handleAbrirTurno}>
+            <div className="space-y-4 px-6 py-5">
+              <div>
+                <label htmlFor="apertura-caja" className="mb-1.5 block text-label">
+                  Caja punto de venta <span className="text-danger-text">*</span>
+                </label>
+                {cargandoCajas ? (
+                  <div role="status" aria-label="Cargando cajas disponibles…">
+                    <Skeleton className="h-control-md w-full" />
+                  </div>
+                ) : (
                   <Select
                     id="apertura-caja"
                     requerido
@@ -1126,53 +1094,51 @@ export default function CajaPage() {
                       })),
                     ]}
                   />
-                </div>
-              )}
-              {cajas.length > 0 && cajas.every((c) => c.ocupada) && (
-                <div className="mt-2 rounded-lg border border-warning/40 bg-warning-soft p-3 text-xs text-warning">
-                  <p className="font-semibold">Todas las cajas registradas tienen un turno abierto</p>
-                  <p className="mt-0.5 text-fg">
-                    Por regla de negocio, cada caja solo admite un turno activo a la vez. Para abrir un turno en una de ellas, el cajero a cargo debe cerrar el turno previo.
+                )}
+                {cajas.length > 0 && cajas.every((c) => c.ocupada) && (
+                  <div className="mt-2 flex gap-2 rounded-md border border-line bg-warning-soft px-4 py-3 text-body-sm text-warning-text">
+                    <AlertTriangle size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden="true" />
+                    <div>
+                      <p className="font-medium">Todas las cajas registradas tienen un turno abierto</p>
+                      <p className="mt-0.5">
+                        Por regla de negocio, cada caja solo admite un turno activo a la vez. Para abrir un turno en una de ellas, el cajero a cargo debe cerrar el turno previo.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {cajas.length === 0 && !cargandoCajas && (
+                  <p className="mt-1.5 text-body-sm text-warning-text">
+                    No hay cajas activas configuradas para tus sucursales asignadas.
                   </p>
-                </div>
-              )}
-              {cajas.length === 0 && !cargandoCajas && (
-                <p className="mt-1 text-xs text-warning">
-                  No hay cajas activas configuradas para tus sucursales asignadas.
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="apertura-monto" className="block text-sm font-medium text-fg">
-                Monto de apertura / Fondo inicial ($) <span className="text-danger">*</span>
-              </label>
-              <div className="relative mt-1.5">
-                <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-fg-muted">
-                  $
-                </span>
-                <input
-                  id="apertura-monto"
-                  type="text"
-                  inputMode="decimal"
-                  value={formApertura.montoApertura}
-                  onChange={(e) => setFormApertura({ ...formApertura, montoApertura: e.target.value })}
-                  placeholder="0.00"
-                  className="input w-full pl-8"
-                  required
-                />
+                )}
               </div>
-              <p className="mt-1 text-xs text-fg-muted">
-                Efectivo inicial en caja para cambio. Puede ser 0.00 si inicia sin fondo.
-              </p>
+
+              <div>
+                <label htmlFor="apertura-monto" className="mb-1.5 block text-label">
+                  Monto de apertura / Fondo inicial ($) <span className="text-danger-text">*</span>
+                </label>
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden="true">$</span>
+                  <input
+                    id="apertura-monto"
+                    type="text"
+                    inputMode="decimal"
+                    value={formApertura.montoApertura}
+                    onChange={(e) => setFormApertura({ ...formApertura, montoApertura: e.target.value })}
+                    placeholder="0.00"
+                    className="input w-full pl-8 text-right tabular-nums"
+                    aria-describedby="apertura-monto-ayuda"
+                    required
+                  />
+                </div>
+                <p id="apertura-monto-ayuda" className="mt-1.5 text-body-sm text-fg-muted">
+                  Efectivo inicial en caja para cambio. Puede ser 0.00 si inicia sin fondo.
+                </p>
+              </div>
             </div>
 
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-line">
-              <Button
-                variante="ghost"
-                onClick={() => setMostrarApertura(false)}
-                disabled={guardandoApertura}
-              >
+            <div className="flex flex-col-reverse gap-2 border-t border-line px-6 py-4 sm:flex-row sm:justify-end">
+              <Button variante="ghost" onClick={() => setMostrarApertura(false)} disabled={guardandoApertura}>
                 Cancelar
               </Button>
               <Button
@@ -1197,117 +1163,99 @@ export default function CajaPage() {
           labelledBy="movimiento-titulo"
           describedBy="movimiento-descripcion"
         >
-          <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+          <div className="flex items-start justify-between gap-4 px-6 pt-6">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">
-                Turno en curso · {turno?.caja}
-              </p>
-              <h2 id="movimiento-titulo" className="mt-1 text-xl font-semibold">
-                Registrar movimiento de caja
-              </h2>
-              <p id="movimiento-descripcion" className="mt-1 text-xs text-fg-muted">
-                Registra un ingreso extraordinario o egreso de efectivo en el turno activo.
+              <h2 id="movimiento-titulo" className="text-h3">Registrar movimiento de caja</h2>
+              <p id="movimiento-descripcion" className="mt-1 text-body text-fg-muted">
+                Ingreso extraordinario o egreso de efectivo en el turno activo · {turno?.caja}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setMostrarMovimiento(false)}
-              className="rounded-md p-1.5 text-fg-muted hover:bg-muted hover:text-fg"
-              aria-label="Cerrar modal"
-            >
-              <X size={18} aria-hidden="true" />
-            </button>
+            <BotonIcono icono={X} etiqueta="Cerrar modal" onClick={() => setMostrarMovimiento(false)} />
           </div>
 
-          <form onSubmit={handleRegistrarMovimiento} className="space-y-4 p-5">
-            <div>
-              <label className="block text-sm font-medium text-fg">
-                Tipo de movimiento <span className="text-danger">*</span>
-              </label>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFormMovimiento({ ...formMovimiento, tipo: 'INGRESO' })}
-                  className={`flex items-center justify-center gap-2 rounded-lg border p-2.5 text-sm font-semibold transition-colors ${
-                    formMovimiento.tipo === 'INGRESO'
-                      ? 'border-success bg-success-soft text-success shadow-xs'
-                      : 'border-line bg-surface text-fg-muted hover:bg-muted'
-                  }`}
-                >
-                  <TrendingUp size={16} aria-hidden="true" />
-                  INGRESO (+)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormMovimiento({ ...formMovimiento, tipo: 'EGRESO' })}
-                  className={`flex items-center justify-center gap-2 rounded-lg border p-2.5 text-sm font-semibold transition-colors ${
-                    formMovimiento.tipo === 'EGRESO'
-                      ? 'border-warning bg-warning-soft text-warning shadow-xs'
-                      : 'border-line bg-surface text-fg-muted hover:bg-muted'
-                  }`}
-                >
-                  <TrendingDown size={16} aria-hidden="true" />
-                  EGRESO (-)
-                </button>
-              </div>
-            </div>
+          <form onSubmit={handleRegistrarMovimiento}>
+            <div className="space-y-4 px-6 py-5">
+              <fieldset>
+                <legend className="mb-1.5 block text-label">
+                  Tipo de movimiento <span className="text-danger-text">*</span>
+                </legend>
+                <div className="grid grid-cols-2 gap-1 rounded-md border border-line bg-muted p-1" role="radiogroup">
+                  {[
+                    { valor: 'INGRESO', texto: 'Ingreso (+)', icono: TrendingUp, color: 'text-success-text' },
+                    { valor: 'EGRESO', texto: 'Egreso (−)', icono: TrendingDown, color: 'text-danger-text' },
+                  ].map((op) => {
+                    const activo = formMovimiento.tipo === op.valor;
+                    return (
+                      <button
+                        key={op.valor}
+                        type="button"
+                        role="radio"
+                        aria-checked={activo}
+                        onClick={() => setFormMovimiento({ ...formMovimiento, tipo: op.valor })}
+                        className={`flex h-control-sm items-center justify-center gap-2 rounded-sm text-body-sm font-medium transition-colors ${
+                          activo ? 'bg-surface text-fg shadow-sm' : 'text-fg-muted hover:text-fg'
+                        }`}
+                      >
+                        <op.icono size={16} strokeWidth={1.75} className={activo ? op.color : ''} aria-hidden="true" />
+                        {op.texto}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
 
-            <div>
-              <label htmlFor="movimiento-concepto" className="block text-sm font-medium text-fg">
-                Concepto / Justificación <span className="text-danger">*</span>
-              </label>
-              <input
-                id="movimiento-concepto"
-                type="text"
-                value={formMovimiento.concepto}
-                onChange={(e) => setFormMovimiento({ ...formMovimiento, concepto: e.target.value })}
-                placeholder={formMovimiento.tipo === 'INGRESO' ? 'Ej: Aporte extra para cambio' : 'Ej: Pago de hielo de emergencia'}
-                className="input mt-1.5 w-full"
-                maxLength={150}
-                required
-              />
-              <p className="mt-1 text-xs text-fg-muted">
-                Describe con claridad el motivo de la entrada o salida de dinero.
-              </p>
-            </div>
-
-            <div>
-              <label htmlFor="movimiento-monto" className="block text-sm font-medium text-fg">
-                Monto ($) <span className="text-danger">*</span>
-              </label>
-              <div className="relative mt-1.5">
-                <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-fg-muted">
-                  $
-                </span>
+              <div>
+                <label htmlFor="movimiento-concepto" className="mb-1.5 block text-label">
+                  Concepto / Justificación <span className="text-danger-text">*</span>
+                </label>
                 <input
-                  id="movimiento-monto"
+                  id="movimiento-concepto"
                   type="text"
-                  inputMode="decimal"
-                  value={formMovimiento.monto}
-                  onChange={(e) => setFormMovimiento({ ...formMovimiento, monto: e.target.value })}
-                  placeholder="0.00"
-                  className="input w-full pl-8"
+                  value={formMovimiento.concepto}
+                  onChange={(e) => setFormMovimiento({ ...formMovimiento, concepto: e.target.value })}
+                  placeholder={formMovimiento.tipo === 'INGRESO' ? 'Ej: Aporte extra para cambio' : 'Ej: Pago de hielo de emergencia'}
+                  className="input w-full"
+                  maxLength={150}
+                  aria-describedby="movimiento-concepto-ayuda"
                   required
                 />
-              </div>
-              {formMovimiento.tipo === 'EGRESO' && turno?.esperado_efectivo && (
-                <p className="mt-1 text-xs text-fg-muted">
-                  Efectivo disponible en caja: <strong className="text-fg">{formatoDinero(turno.esperado_efectivo)}</strong>
+                <p id="movimiento-concepto-ayuda" className="mt-1.5 text-body-sm text-fg-muted">
+                  Describe con claridad el motivo de la entrada o salida de dinero.
                 </p>
-              )}
+              </div>
+
+              <div>
+                <label htmlFor="movimiento-monto" className="mb-1.5 block text-label">
+                  Monto ($) <span className="text-danger-text">*</span>
+                </label>
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden="true">$</span>
+                  <input
+                    id="movimiento-monto"
+                    type="text"
+                    inputMode="decimal"
+                    value={formMovimiento.monto}
+                    onChange={(e) => setFormMovimiento({ ...formMovimiento, monto: e.target.value })}
+                    placeholder="0.00"
+                    className="input w-full pl-8 text-right tabular-nums"
+                    required
+                  />
+                </div>
+                {formMovimiento.tipo === 'EGRESO' && turno?.esperado_efectivo && (
+                  <p className="mt-1.5 text-body-sm text-fg-muted">
+                    Efectivo disponible en caja: <strong className="font-medium tabular-nums text-fg">{formatoDinero(turno.esperado_efectivo)}</strong>
+                  </p>
+                )}
+              </div>
             </div>
 
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-line">
-              <Button
-                variante="ghost"
-                onClick={() => setMostrarMovimiento(false)}
-                disabled={guardandoMovimiento}
-              >
+            <div className="flex flex-col-reverse gap-2 border-t border-line px-6 py-4 sm:flex-row sm:justify-end">
+              <Button variante="ghost" onClick={() => setMostrarMovimiento(false)} disabled={guardandoMovimiento}>
                 Cancelar
               </Button>
               <Button
                 type="submit"
-                variante={formMovimiento.tipo === 'INGRESO' ? 'primary' : 'secondary'}
+                variante="primary"
                 cargando={guardandoMovimiento}
                 icono={formMovimiento.tipo === 'INGRESO' ? TrendingUp : TrendingDown}
               >
@@ -1325,151 +1273,93 @@ export default function CajaPage() {
             setMostrarCierre(false);
             setTurnoParaCierre(null);
           }}
-          tamano="md"
+          tamano="lg"
           labelledBy="cierre-titulo"
           describedBy="cierre-descripcion"
         >
-          <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+          <div className="flex items-start justify-between gap-4 px-6 pt-6">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-danger">
-                Finalización de turno · {(turnoParaCierre || turno)?.caja}
-                {(turnoParaCierre || turno)?.cajero ? ` (${(turnoParaCierre || turno)?.cajero})` : ''}
-              </p>
-              <h2 id="cierre-titulo" className="mt-1 text-xl font-semibold">
-                Arqueo y cierre de caja
-              </h2>
-              <p id="cierre-descripcion" className="mt-1 text-xs text-fg-muted">
-                Ingresa el monto físico contado para cada método. El sistema calculará el cuadre automáticamente.
+              <h2 id="cierre-titulo" className="text-h3">Arqueo y cierre de caja</h2>
+              <p id="cierre-descripcion" className="mt-1 text-body text-fg-muted">
+                {objetivoCierre?.caja}{objetivoCierre?.cajero ? ` (${objetivoCierre.cajero})` : ''} · Ingresa el monto contado por medio; el sistema calculará el cuadre.
               </p>
             </div>
-            <button
-              type="button"
+            <BotonIcono
+              icono={X}
+              etiqueta="Cerrar modal"
               onClick={() => {
                 setMostrarCierre(false);
                 setTurnoParaCierre(null);
               }}
-              className="rounded-md p-1.5 text-fg-muted hover:bg-muted hover:text-fg"
-              aria-label="Cerrar modal"
-            >
-              <X size={18} aria-hidden="true" />
-            </button>
+            />
           </div>
 
-          <form onSubmit={handleCerrarTurno} className="space-y-4 p-5">
-            <div className="rounded-lg bg-muted/60 p-3 text-xs text-fg-muted space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <p className="font-semibold text-fg">Referencia del sistema:</p>
-                <button
-                  type="button"
-                  onClick={handleCargarMontosEsperados}
-                  className="inline-flex items-center gap-1.5 rounded-md bg-surface px-2.5 py-1 text-xs font-semibold text-primary-text border border-line hover:bg-muted transition-colors"
-                >
-                  <Scale size={13} aria-hidden="true" />
+          <form onSubmit={handleCerrarTurno}>
+            <div className="space-y-4 px-6 py-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="rotulo">Conteo por medio de pago</p>
+                <Button variante="ghost" tamano="sm" icono={Scale} onClick={handleCargarMontosEsperados}>
                   Cargar montos esperados
-                </button>
+                </Button>
               </div>
-              <div className="space-y-1">
-                <div className="flex justify-between">
-                  <span>Efectivo esperado en gaveta:</span>
-                  <span className="font-bold text-fg">{formatoDinero((turnoParaCierre || turno)?.esperado_efectivo ?? (turnoParaCierre || turno)?.efectivo?.esperado)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Vouchers de tarjeta registrados:</span>
-                  <span className="font-medium text-fg">{formatoDinero((turnoParaCierre || turno)?.ventas_tarjeta ?? (turnoParaCierre || turno)?.tarjeta?.esperado ?? (turnoParaCierre || turno)?.ventas?.tarjeta)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Pagos digitales registrados:</span>
-                  <span className="font-medium text-fg">{formatoDinero((turnoParaCierre || turno)?.ventas_digital ?? (turnoParaCierre || turno)?.digital?.esperado ?? (turnoParaCierre || turno)?.ventas?.digital)}</span>
-                </div>
-              </div>
-            </div>
 
-            <div>
-              <label htmlFor="cierre-efectivo" className="block text-sm font-medium text-fg">
-                Efectivo físico contado ($) <span className="text-danger">*</span>
-              </label>
-              <div className="relative mt-1.5">
-                <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-fg-muted">
-                  $
-                </span>
-                <input
-                  id="cierre-efectivo"
-                  type="text"
-                  inputMode="decimal"
-                  value={formCierre.efectivo}
-                  onChange={(e) => setFormCierre({ ...formCierre, efectivo: e.target.value })}
-                  placeholder="0.00"
-                  className="input w-full pl-8 font-semibold"
-                  required
-                />
+              <div className="overflow-x-auto rounded-lg border border-line">
+                <table className="w-full min-w-[520px] text-body-sm">
+                  <thead className="bg-muted text-label-sm text-fg-muted">
+                    <tr>
+                      <th scope="col" className="px-4 py-2.5 text-left font-medium">Medio</th>
+                      <th scope="col" className="px-4 py-2.5 text-right font-medium">Esperado</th>
+                      <th scope="col" className="px-4 py-2.5 text-right font-medium">Contado</th>
+                      <th scope="col" className="px-4 py-2.5 text-right font-medium">Diferencia</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {filasConteo.map((fila) => {
+                      const dif = fila.diferencia;
+                      const claseDif = dif === null ? 'text-fg-muted' : dif === 0n ? 'text-success-text' : 'text-danger-text';
+                      return (
+                        <tr key={fila.clave}>
+                          <th scope="row" className="px-4 py-3 text-left font-normal">
+                            <span className="flex items-center gap-2 font-medium text-fg">
+                              <fila.icono size={16} strokeWidth={1.75} className="text-fg-subtle" aria-hidden="true" />
+                              {fila.medio}
+                            </span>
+                            <span className="mt-0.5 block text-body-sm text-fg-muted">{fila.ayuda}</span>
+                          </th>
+                          <td className="px-4 py-3 text-right tabular-nums text-fg-muted">{formatoCentavos(fila.esperadoCent)}</td>
+                          <td className="px-4 py-3">
+                            <label htmlFor={`cierre-${fila.clave}`} className="sr-only">{fila.medio} contado ($)</label>
+                            <input
+                              id={`cierre-${fila.clave}`}
+                              type="text"
+                              inputMode="decimal"
+                              value={formCierre[fila.clave]}
+                              onChange={(e) => setFormCierre({ ...formCierre, [fila.clave]: e.target.value })}
+                              placeholder="0.00"
+                              className="input ml-auto h-control-sm w-32 text-right tabular-nums"
+                              aria-invalid={dif === null ? true : undefined}
+                              required
+                            />
+                          </td>
+                          <td className={`px-4 py-3 text-right font-semibold tabular-nums ${claseDif}`} aria-live="polite">
+                            {dif === null ? '—' : `${dif > 0n ? '+' : ''}${formatoCentavos(dif)}`}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-              <p className="mt-1 text-xs text-fg-muted">
-                Total de billetes y monedas contados en la gaveta.
+              <p className="text-body-sm text-fg-muted">
+                La diferencia es orientativa; el resultado final (cuadrado, sobrante o faltante) lo calcula el sistema al cerrar.
               </p>
             </div>
 
-            <div>
-              <label htmlFor="cierre-tarjeta" className="block text-sm font-medium text-fg">
-                Vouchers de tarjeta contados ($) <span className="text-danger">*</span>
-              </label>
-              <div className="relative mt-1.5">
-                <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-fg-muted">
-                  $
-                </span>
-                <input
-                  id="cierre-tarjeta"
-                  type="text"
-                  inputMode="decimal"
-                  value={formCierre.tarjeta}
-                  onChange={(e) => setFormCierre({ ...formCierre, tarjeta: e.target.value })}
-                  placeholder="0.00"
-                  className="input w-full pl-8 font-semibold"
-                  required
-                />
-              </div>
-              <p className="mt-1 text-xs text-fg-muted">
-                Suma de los comprobantes emitidos por las terminales POS.
-              </p>
-            </div>
-
-            <div>
-              <label htmlFor="cierre-digital" className="block text-sm font-medium text-fg">
-                Comprobantes digitales contados ($) <span className="text-danger">*</span>
-              </label>
-              <div className="relative mt-1.5">
-                <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-fg-muted">
-                  $
-                </span>
-                <input
-                  id="cierre-digital"
-                  type="text"
-                  inputMode="decimal"
-                  value={formCierre.digital}
-                  onChange={(e) => setFormCierre({ ...formCierre, digital: e.target.value })}
-                  placeholder="0.00"
-                  className="input w-full pl-8 font-semibold"
-                  required
-                />
-              </div>
-              <p className="mt-1 text-xs text-fg-muted">
-                Total de transacciones confirmadas por Bitcoin / Chivo Wallet o transferencia.
-              </p>
-            </div>
-
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-line">
-              <Button
-                variante="ghost"
-                onClick={() => setMostrarCierre(false)}
-                disabled={guardandoCierre}
-              >
+            <div className="flex flex-col-reverse gap-2 border-t border-line px-6 py-4 sm:flex-row sm:justify-end">
+              <Button variante="ghost" onClick={() => setMostrarCierre(false)} disabled={guardandoCierre}>
                 Cancelar
               </Button>
-              <Button
-                type="submit"
-                variante="danger"
-                cargando={guardandoCierre}
-                icono={Lock}
-              >
+              <Button type="submit" variante="danger" cargando={guardandoCierre} icono={Lock}>
                 Cerrar turno y cuadrar
               </Button>
             </div>
@@ -1485,72 +1375,54 @@ export default function CajaPage() {
           labelledBy="cuadre-titulo"
           describedBy="cuadre-descripcion"
         >
-          <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+          <div className="flex items-start justify-between gap-4 px-6 pt-6">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">
-                Operación · Caja y turnos
-              </p>
-              <h2 id="cuadre-titulo" className="mt-1 text-xl font-semibold">
-                Resumen de cuadre · {cuadreDetalle.caja}
-              </h2>
-              <p id="cuadre-descripcion" className="mt-1 text-xs text-fg-muted">
+              <h2 id="cuadre-titulo" className="text-h3">Resumen de cuadre · {cuadreDetalle.caja}</h2>
+              <p id="cuadre-descripcion" className="mt-1 text-body text-fg-muted">
                 {cuadreDetalle.sucursal} · Turno finalizado por {cuadreDetalle.cajero}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setMostrarCuadre(false)}
-              className="rounded-md p-1.5 text-fg-muted hover:bg-muted hover:text-fg"
-              aria-label="Cerrar modal"
-            >
-              <X size={18} aria-hidden="true" />
-            </button>
+            <BotonIcono icono={X} etiqueta="Cerrar modal" onClick={() => setMostrarCuadre(false)} />
           </div>
 
-          <div className="space-y-5 p-5">
+          <div className="space-y-5 px-6 py-5">
             {/* Estado general del efectivo */}
-            <div className="rounded-xl border border-line bg-muted/40 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <span className="text-xs font-semibold uppercase tracking-wide text-fg-muted">
-                    Resultado del arqueo en efectivo
-                  </span>
-                  <div className="mt-1 flex items-center gap-2">
-                    {cuadreDetalle.efectivo?.resultado === 'CUADRADO' ? (
-                      <span className="inline-flex items-center gap-1.5 text-base font-bold text-success">
-                        <CheckCircle2 size={18} aria-hidden="true" />
-                        Turno cuadrado exactamente ($0.00 de diferencia)
-                      </span>
-                    ) : cuadreDetalle.efectivo?.resultado === 'SOBRANTE' ? (
-                      <span className="inline-flex items-center gap-1.5 text-base font-bold text-info">
-                        <AlertCircle size={18} aria-hidden="true" />
-                        Sobrante de efectivo (+{formatoDinero(cuadreDetalle.efectivo?.diferencia)})
-                      </span>
-                    ) : cuadreDetalle.efectivo?.resultado === 'FALTANTE' ? (
-                      <span className="inline-flex items-center gap-1.5 text-base font-bold text-danger">
-                        <AlertTriangle size={18} aria-hidden="true" />
-                        Faltante de efectivo ({formatoDinero(cuadreDetalle.efectivo?.diferencia)})
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 text-base font-medium text-fg-muted">
-                        <Clock size={18} aria-hidden="true" />
-                        Turno en curso (arqueo físico pendiente al cierre)
-                      </span>
-                    )}
-                  </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line p-4">
+              <div>
+                <p className="rotulo">Resultado del arqueo en efectivo</p>
+                <div className="mt-1">
+                  {cuadreDetalle.efectivo?.resultado === 'CUADRADO' ? (
+                    <span className="inline-flex items-center gap-1.5 font-semibold text-success-text">
+                      <CheckCircle2 size={20} strokeWidth={1.75} aria-hidden="true" />
+                      Turno cuadrado exactamente ($0.00 de diferencia)
+                    </span>
+                  ) : cuadreDetalle.efectivo?.resultado === 'SOBRANTE' ? (
+                    <span className="inline-flex items-center gap-1.5 font-semibold text-danger-text">
+                      <AlertCircle size={20} strokeWidth={1.75} aria-hidden="true" />
+                      Sobrante de efectivo (+{formatoDinero(cuadreDetalle.efectivo?.diferencia)})
+                    </span>
+                  ) : cuadreDetalle.efectivo?.resultado === 'FALTANTE' ? (
+                    <span className="inline-flex items-center gap-1.5 font-semibold text-danger-text">
+                      <AlertTriangle size={20} strokeWidth={1.75} aria-hidden="true" />
+                      Faltante de efectivo ({formatoDinero(cuadreDetalle.efectivo?.diferencia)})
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 font-medium text-fg-muted">
+                      <Clock size={20} strokeWidth={1.75} aria-hidden="true" />
+                      Turno en curso (arqueo físico pendiente al cierre)
+                    </span>
+                  )}
                 </div>
-                <div className="text-right text-xs text-fg-muted">
-                  <p>Apertura: {horaDe(cuadreDetalle.abierto_en)}</p>
-                  <p>Cierre: {cuadreDetalle.cerrado_en ? horaDe(cuadreDetalle.cerrado_en) : 'En curso'}</p>
-                </div>
+              </div>
+              <div className="text-right text-body-sm tabular-nums text-fg-muted">
+                <p>Apertura: {horaDe(cuadreDetalle.abierto_en)}</p>
+                <p>Cierre: {cuadreDetalle.cerrado_en ? horaDe(cuadreDetalle.cerrado_en) : 'En curso'}</p>
               </div>
             </div>
 
             {/* Tabla comparativa de cuadre por método */}
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-fg-muted mb-2">
-                Conciliación por medio de pago
-              </h3>
+              <h3 className="rotulo mb-2">Conciliación por medio de pago</h3>
               <div className="overflow-hidden rounded-lg border border-line">
                 <Table
                   columnas={columnasConciliacion}
@@ -1589,28 +1461,26 @@ export default function CajaPage() {
             </div>
 
             {/* Desglose de operaciones adicionales */}
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="rounded-lg border border-line p-3">
-                <span className="text-fg-muted font-medium">Fondo de apertura:</span>
-                <p className="mt-1 text-base font-semibold text-fg">{formatoDinero(cuadreDetalle.monto_apertura)}</p>
+            <dl className="grid grid-cols-2 gap-4">
+              <div className="rounded-lg border border-line p-4">
+                <dt className="text-label-sm text-fg-muted">Fondo de apertura</dt>
+                <dd className="mt-1 font-semibold tabular-nums text-fg">{formatoDinero(cuadreDetalle.monto_apertura)}</dd>
               </div>
-              <div className="rounded-lg border border-line p-3">
-                <span className="text-fg-muted font-medium">Movimientos extraordinarios:</span>
-                <p className="mt-1 text-xs">
-                  <span className="text-success font-semibold">+{formatoDinero(cuadreDetalle.ingresos_caja)}</span> /{' '}
-                  <span className="text-danger font-semibold">-{formatoDinero(cuadreDetalle.egresos_caja)}</span>
-                </p>
+              <div className="rounded-lg border border-line p-4">
+                <dt className="text-label-sm text-fg-muted">Movimientos extraordinarios</dt>
+                <dd className="mt-1 tabular-nums">
+                  <span className="font-semibold text-success-text">+{formatoDinero(cuadreDetalle.ingresos_caja)}</span>
+                  <span className="text-fg-muted"> / </span>
+                  <span className="font-semibold text-danger-text">−{formatoDinero(cuadreDetalle.egresos_caja)}</span>
+                </dd>
               </div>
-            </div>
+            </dl>
+          </div>
 
-            <div className="flex justify-end pt-3 border-t border-line">
-              <Button
-                variante="primary"
-                onClick={() => setMostrarCuadre(false)}
-              >
-                Entendido y cerrar
-              </Button>
-            </div>
+          <div className="flex flex-col-reverse gap-2 border-t border-line px-6 py-4 sm:flex-row sm:justify-end">
+            <Button variante="primary" onClick={() => setMostrarCuadre(false)}>
+              Entendido y cerrar
+            </Button>
           </div>
         </Dialogo>
       )}
@@ -1622,50 +1492,37 @@ export default function CajaPage() {
           tamano="lg"
           labelledBy="detalle-venta-titulo"
         >
-          {/* Encabezado */}
-          <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary-text">
-                <ShoppingBag size={20} aria-hidden="true" />
-              </span>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">
-                  Detalle de venta
-                </p>
-                <h2 id="detalle-venta-titulo" className="mt-0.5 text-lg font-semibold text-fg">
-                  {ventaDetalleSeleccionada.tipo_comprobante} — {ventaDetalleSeleccionada.correlativo}
-                </h2>
-              </div>
+          <div className="flex items-start justify-between gap-4 px-6 pt-6">
+            <div>
+              <p className="rotulo">Detalle de venta</p>
+              <h2 id="detalle-venta-titulo" className="mt-1 text-h3">
+                {ventaDetalleSeleccionada.tipo_comprobante} — <span className="font-mono">{ventaDetalleSeleccionada.correlativo}</span>
+              </h2>
             </div>
-            <button
-              type="button"
+            <BotonIcono
+              icono={X}
+              etiqueta="Cerrar detalle"
               onClick={() => { setMostrarDetalleVenta(false); setVentaDetalleSeleccionada(null); }}
-              className="rounded-md p-1.5 text-fg-muted hover:bg-muted hover:text-fg"
-              aria-label="Cerrar detalle"
-            >
-              <X size={18} aria-hidden="true" />
-            </button>
+            />
           </div>
 
-          <div className="space-y-5 overflow-y-auto p-5" style={{ maxHeight: '70vh' }}>
-            {/* Metadatos */}
-            <div className="flex flex-wrap items-center gap-3 text-xs text-fg-muted">
-              <span className="flex items-center gap-1">
-                <Clock size={13} aria-hidden="true" />
+          <div className="max-h-[70vh] space-y-5 overflow-y-auto px-6 py-5">
+            <div className="flex flex-wrap items-center gap-3 text-body-sm text-fg-muted">
+              <span className="flex items-center gap-1.5 tabular-nums">
+                <Clock size={16} strokeWidth={1.75} aria-hidden="true" />
                 {etiquetaDiaLarga(ventaDetalleSeleccionada.fecha_emision?.slice(0, 10))} — {horaDe(ventaDetalleSeleccionada.fecha_emision)}
               </span>
               <EstadoBadge tipo={ventaDetalleSeleccionada.estado === 'ANULADA' ? 'peligro' : 'exito'}>
                 {ventaDetalleSeleccionada.estado === 'ANULADA' ? 'Anulada' : 'Válida'}
               </EstadoBadge>
               {ventaDetalleSeleccionada.cajero_username && (
-                <span>Cajero: <strong className="text-fg">{ventaDetalleSeleccionada.cajero_username}</strong></span>
+                <span>Cajero: <strong className="font-medium text-fg">{ventaDetalleSeleccionada.cajero_username}</strong></span>
               )}
             </div>
 
-            {/* Tabla de productos */}
             <div>
-              <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-fg">
-                <Package size={15} aria-hidden="true" />
+              <h3 className="rotulo mb-2 flex items-center gap-2">
+                <Package size={16} strokeWidth={1.75} aria-hidden="true" />
                 Productos / servicios
               </h3>
               {ventaDetalleSeleccionada.detalles?.length > 0 ? (
@@ -1683,48 +1540,43 @@ export default function CajaPage() {
                   />
                 </div>
               ) : (
-                <p className="rounded-lg border border-line p-4 text-sm text-fg-muted">Sin detalle de productos disponible.</p>
+                <p className="rounded-lg border border-line p-4 text-body-sm text-fg-muted">Sin detalle de productos disponible.</p>
               )}
             </div>
 
-            {/* Desglose de pagos */}
             {ventaDetalleSeleccionada.pagos?.length > 0 && (
               <div>
-                <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-fg">
-                  <CircleDollarSign size={15} aria-hidden="true" />
+                <h3 className="rotulo mb-2 flex items-center gap-2">
+                  <CircleDollarSign size={16} strokeWidth={1.75} aria-hidden="true" />
                   Medios de pago
                 </h3>
-                <div className="space-y-1.5">
+                <ul className="divide-y divide-line rounded-lg border border-line">
                   {ventaDetalleSeleccionada.pagos.map((p, i) => (
-                    <div key={i} className="flex items-center justify-between rounded-md border border-line px-3.5 py-2 text-sm">
+                    <li key={i} className="flex items-center justify-between px-4 py-2.5 text-body-sm">
                       <span className="text-fg-muted">{p.metodo}</span>
-                      <span className="font-semibold text-fg">{formatoDinero(p.monto)}</span>
-                    </div>
+                      <span className="font-medium tabular-nums text-fg">{formatoDinero(p.monto)}</span>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
             )}
 
-            {/* Total */}
-            <div className="flex items-center justify-between rounded-xl bg-primary-soft px-4 py-3">
-              <span className="text-sm font-semibold text-primary-text">Total de la venta</span>
-              <span className="text-2xl font-bold text-primary-text">
-                {formatoDinero(ventaDetalleSeleccionada.total)}
-              </span>
+            <div className="flex items-center justify-between rounded-lg bg-muted px-4 py-3">
+              <span className="font-medium text-fg">Total de la venta</span>
+              <span className="kpi text-kpi">{formatoDinero(ventaDetalleSeleccionada.total)}</span>
             </div>
+          </div>
 
-            <div className="flex justify-end pt-1">
-              <Button
-                variante="primary"
-                onClick={() => { setMostrarDetalleVenta(false); setVentaDetalleSeleccionada(null); }}
-              >
-                Cerrar
-              </Button>
-            </div>
+          <div className="flex flex-col-reverse gap-2 border-t border-line px-6 py-4 sm:flex-row sm:justify-end">
+            <Button
+              variante="ghost"
+              onClick={() => { setMostrarDetalleVenta(false); setVentaDetalleSeleccionada(null); }}
+            >
+              Cerrar
+            </Button>
           </div>
         </Dialogo>
       )}
     </div>
   );
 }
-

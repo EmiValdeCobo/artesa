@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { UserPlus, Search, Building2, UserCheck, Info } from 'lucide-react';
 import Dialogo from '../../components/Dialogo.jsx';
-import { BotonIcono, Button, Select, Table } from '../../components/ui/index.js';
+import { BotonIcono, Button, Card, Select, Table } from '../../components/ui/index.js';
+import Insignia from '../../components/branding/Insignia.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
@@ -277,7 +278,7 @@ export default function ClientesPage() {
       render: (c) => (
         <>
           <span className="font-medium text-fg">{c.nombre_razon_social}</span>
-          {c.direccion && <div className="text-xs font-normal text-fg-muted">{c.direccion}</div>}
+          {c.direccion && <div className="text-body-sm font-normal text-fg-muted">{c.direccion}</div>}
         </>
       ),
     },
@@ -286,7 +287,12 @@ export default function ClientesPage() {
       titulo: 'Documento',
       tipo: 'texto',
       valorOrden: (c) => c.num_documento || '',
-      render: (c) => (c.num_documento ? `${c.tipo_documento}: ${c.num_documento}` : '—'),
+      render: (c) => (c.num_documento ? (
+        <span>
+          <span className="text-fg-muted">{c.tipo_documento}: </span>
+          <span className="font-mono text-fg">{c.num_documento}</span>
+        </span>
+      ) : '—'),
     },
     {
       clave: 'tipo',
@@ -295,13 +301,9 @@ export default function ClientesPage() {
       valorOrden: (c) => (c.nrc && c.giro_economico ? 'Apto CCF' : 'Consumidor Final'),
       render: (c) => (
         c.nrc && c.giro_economico ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-primary-text">
-            <Building2 className="h-3 w-3" aria-hidden="true" /> Apto CCF
-          </span>
+          <Insignia variante="primario" icono={Building2}>Apto CCF</Insignia>
         ) : (
-          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-fg-muted">
-            <UserCheck className="h-3 w-3" aria-hidden="true" /> Consumidor Final
-          </span>
+          <Insignia icono={UserCheck}>Consumidor Final</Insignia>
         )
       ),
     },
@@ -313,8 +315,8 @@ export default function ClientesPage() {
       render: (c) => (
         c.nrc && c.giro_economico ? (
           <div>
-            <span className="font-mono font-semibold">{c.nrc}</span>
-            <div className="text-xs text-fg-muted">{c.giro_economico}</div>
+            <span className="font-mono font-medium text-fg">{c.nrc}</span>
+            <div className="text-body-sm text-fg-muted">{c.giro_economico}</div>
           </div>
         ) : '—'
       ),
@@ -325,7 +327,7 @@ export default function ClientesPage() {
       tipo: 'texto',
       valorOrden: (c) => c.telefono || c.email || '',
       render: (c) => (
-        <div className="text-xs text-fg-muted">
+        <div className="text-body-sm text-fg-muted">
           <div>{c.telefono || 'Sin teléfono'}</div>
           <div>{c.email || ''}</div>
         </div>
@@ -369,20 +371,29 @@ export default function ClientesPage() {
         )}
       />
 
+      {error && <BannerError error={{ titulo: 'No se pudo completar la operación', mensaje: error, accion: '' }} />}
+
+      <Card
+        sinPadding
+        className="overflow-hidden"
+        icono={Building2}
+        titulo="Clientes registrados"
+        descripcion={`${clientes.length} registros`}
+      >
       {/* Barra de búsqueda y filtro */}
-      <div className="card flex flex-col gap-3 !p-4 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-muted" />
+      <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3">
+        <div className="relative w-full max-w-xs">
+          <Search size={16} strokeWidth={1.75} aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" />
           <input
             type="text"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Buscar por nombre, razón social, DUI, NIT o NRC..."
             aria-label="Buscar cliente"
-            className="input h-10 w-full pl-9"
+            className="input w-full pl-9"
           />
         </div>
-        <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-fg">
+        <label className="inline-flex cursor-pointer items-center gap-2 text-body text-fg">
           <input
             type="checkbox"
             checked={soloCcf}
@@ -393,10 +404,7 @@ export default function ClientesPage() {
         </label>
       </div>
 
-      {error && <BannerError error={{ titulo: 'No se pudo completar la operación', mensaje: error, accion: '' }} />}
-
       {/* Tabla compartida (Table.jsx): misma cabecera, padding, hover y estados que el resto del sistema */}
-      <div className="card overflow-hidden !p-0">
         <Table
           idTabla="pos_clientes"
           cargando={cargando}
@@ -408,36 +416,36 @@ export default function ClientesPage() {
           ordenInicial={{ clave: 'nombre', direccion: 'asc' }}
           columnas={columnasClientes}
         />
-      </div>
+      </Card>
 
       {/* Modal Crear / Editar */}
       {modalAbierto && (
         <Dialogo onCerrar={() => !guardando && setModalAbierto(false)} tamano="lg" labelledBy="titulo-modal-cliente">
-          <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+          <div className="flex items-start justify-between gap-4 px-6 pt-6">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">
+              <p className="rotulo">
                 Operación · Clientes (CCF)
               </p>
-              <h2 id="titulo-modal-cliente" className="mt-1 text-xl font-semibold text-fg">
+              <h2 id="titulo-modal-cliente" className="mt-1 text-h3 text-fg">
                 {editando ? 'Editar cliente' : 'Registrar nuevo cliente'}
               </h2>
             </div>
             <BotonIcono icono={ICONOS.cerrar} etiqueta="Cerrar modal" onClick={() => setModalAbierto(false)} />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4 p-5">
+          <form onSubmit={handleSubmit} className="space-y-4 px-6 pt-5">
             {errorForm && (
-              <div className="rounded-xl border border-danger/30 bg-danger-soft px-3 py-2 text-xs text-danger">
+              <div className="rounded-md border border-danger/30 bg-danger-soft px-4 py-3 text-body-sm text-danger-text">
                 {errorForm}
               </div>
             )}
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="group sm:col-span-2">
-                <label className="mb-1 flex items-center justify-between text-xs font-semibold text-fg">
-                  <span>Nombre o Razón Social <span className="text-danger">*</span></span>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-normal text-fg-muted opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-                    <Info className="h-3 w-3" /> Mín. 2 caracteres (nombre legal o comercial)
+                <label className="mb-1.5 flex items-center justify-between gap-2 text-label text-fg">
+                  <span>Nombre o Razón Social <span className="text-danger-text">*</span></span>
+                  <span className="inline-flex items-center gap-1 text-label-sm font-normal text-fg-muted opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                    <Info size={16} strokeWidth={1.75} aria-hidden="true" /> Mín. 2 caracteres (nombre legal o comercial)
                   </span>
                 </label>
                 <input
@@ -449,14 +457,14 @@ export default function ClientesPage() {
                   value={form.nombre_razon_social}
                   onChange={handleChange}
                   placeholder="Ej. Inversiones Café S.A. de C.V."
-                  className="input h-10 w-full"
+                  className="input w-full"
                 />
               </div>
 
               <div className="group">
-                <label htmlFor="cliente-tipo-documento" className="mb-1 flex items-center justify-between text-xs font-semibold text-fg">
+                <label htmlFor="cliente-tipo-documento" className="mb-1.5 flex items-center justify-between gap-2 text-label text-fg">
                   <span>Tipo de documento</span>
-                  <span className="text-[11px] font-normal text-fg-muted opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                  <span className="text-label-sm font-normal text-fg-muted opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                     DUI, NIT o Pasaporte
                   </span>
                 </label>
@@ -476,9 +484,9 @@ export default function ClientesPage() {
               </div>
 
               <div className="group">
-                <label className="mb-1 flex items-center justify-between text-xs font-semibold text-fg">
+                <label className="mb-1.5 flex items-center justify-between gap-2 text-label text-fg">
                   <span>Número de documento</span>
-                  <span className="text-[11px] font-normal text-primary-text opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                  <span className="text-label-sm font-normal text-primary-text opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                     {reglaDocActual ? reglaDocActual.placeholder : 'Elige tipo primero'}
                   </span>
                 </label>
@@ -491,22 +499,22 @@ export default function ClientesPage() {
                   value={form.num_documento}
                   onChange={handleChange}
                   placeholder={reglaDocActual ? `Ej. ${reglaDocActual.placeholder}` : 'Selecciona tipo primero'}
-                  className="input h-10 w-full disabled:cursor-not-allowed disabled:opacity-50"
+                  className="input w-full disabled:cursor-not-allowed disabled:opacity-50"
                 />
                 {reglaDocActual && (
-                  <p className="mt-1 hidden text-[11px] text-fg-muted group-hover:block group-focus-within:block">
+                  <p className="mt-1 hidden text-label-sm text-fg-muted group-hover:block group-focus-within:block">
                     {reglaDocActual.ayuda}
                   </p>
                 )}
               </div>
 
-             <div className="rounded-xl border border-line bg-muted/40 p-4 text-center sm:col-span-2">
-                <p className="mb-3 text-xs font-semibold text-primary-text">
+             <div className="border-t border-line pt-4 sm:col-span-2">
+                <p className="rotulo mb-3">
                   Datos fiscales para Crédito Fiscal (CCF) — Obligatorios ambos si emite CCF
                 </p>
-                <div className="mx-auto grid max-w-xl grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="group flex flex-col items-center">
-                    <label className="mb-1.5 block text-xs font-medium text-fg">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="group flex flex-col">
+                    <label className="mb-1.5 block text-label text-fg">
                       NRC
                     </label>
                     <input
@@ -517,15 +525,15 @@ export default function ClientesPage() {
                       value={form.nrc}
                       onChange={handleChange}
                       placeholder="123456-7"
-                      className="input h-10 w-full text-center font-mono"
+                      className="input w-full font-mono"
                     />
-                    <span className="mt-1 text-[11px] text-fg-muted">
+                    <span className="mt-1 text-label-sm text-fg-muted">
                       2 a 8 dígitos + guion + dígito
                     </span>
                   </div>
 
-                  <div className="group flex flex-col items-center">
-                    <label className="mb-1.5 block text-xs font-medium text-fg">
+                  <div className="group flex flex-col">
+                    <label className="mb-1.5 block text-label text-fg">
                       Giro económico
                     </label>
                     <input
@@ -536,9 +544,9 @@ export default function ClientesPage() {
                       value={form.giro_economico}
                       onChange={handleChange}
                       placeholder="Ej. Servicios de alimentación"
-                      className="input h-10 w-full text-center"
+                      className="input w-full"
                     />
-                    <span className="mt-1 text-[11px] text-fg-muted">
+                    <span className="mt-1 text-label-sm text-fg-muted">
                       Actividad registrada en MH
                     </span>
                   </div>
@@ -546,9 +554,9 @@ export default function ClientesPage() {
               </div>
 
               <div className="group">
-                <label className="mb-1 flex items-center justify-between text-xs font-semibold text-fg">
+                <label className="mb-1.5 flex items-center justify-between gap-2 text-label text-fg">
                   <span>Teléfono</span>
-                  <span className="text-[11px] font-normal text-fg-muted opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                  <span className="text-label-sm font-normal text-fg-muted opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                     8 dígitos SV (inicia 2, 6 o 7)
                   </span>
                 </label>
@@ -560,14 +568,14 @@ export default function ClientesPage() {
                   value={form.telefono}
                   onChange={handleChange}
                   placeholder="2222-0000"
-                  className="input h-10 w-full"
+                  className="input w-full"
                 />
               </div>
 
               <div className="group">
-                <label className="mb-1 flex items-center justify-between text-xs font-semibold text-fg">
+                <label className="mb-1.5 flex items-center justify-between gap-2 text-label text-fg">
                   <span>Correo electrónico</span>
-                  <span className="text-[11px] font-normal text-fg-muted opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                  <span className="text-label-sm font-normal text-fg-muted opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                     Para envío de DTE
                   </span>
                 </label>
@@ -579,14 +587,14 @@ export default function ClientesPage() {
                   value={form.email}
                   onChange={handleChange}
                   placeholder="facturacion@empresa.com"
-                  className="input h-10 w-full"
+                  className="input w-full"
                 />
               </div>
 
               <div className="group sm:col-span-2">
-                <label className="mb-1 flex items-center justify-between text-xs font-semibold text-fg">
+                <label className="mb-1.5 flex items-center justify-between gap-2 text-label text-fg">
                   <span>Dirección fiscal / entrega</span>
-                  <span className="text-[11px] font-normal text-fg-muted opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                  <span className="text-label-sm font-normal text-fg-muted opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                     Departamento, municipio y calle
                   </span>
                 </label>
@@ -598,12 +606,12 @@ export default function ClientesPage() {
                   value={form.direccion}
                   onChange={handleChange}
                   placeholder="Colonia, calle, municipio..."
-                  className="input h-10 w-full"
+                  className="input w-full"
                 />
               </div>
             </div>
 
-            <div className="flex justify-end gap-2.5 border-t border-line pt-4">
+            <div className="-mx-6 mt-5 flex flex-col-reverse gap-2 border-t border-line px-6 py-4 sm:flex-row sm:justify-end">
               <Button variante="ghost" disabled={guardando} onClick={() => setModalAbierto(false)}>
                 Cancelar
               </Button>

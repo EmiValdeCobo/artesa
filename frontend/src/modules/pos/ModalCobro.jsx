@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { CreditCard, Banknote, Smartphone, ArrowRightLeft, Plus, AlertCircle, CheckCircle2 } from 'lucide-react';
 import Dialogo from '../../components/Dialogo.jsx';
-import { BotonIcono, Button, Select } from '../../components/ui/index.js';
+import { BotonIcono, Button } from '../../components/ui/index.js';
 import { ICONOS } from '../../config/iconos.js';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import { calcularTotales, formatoMoneda, IVA } from './impuestos.js';
@@ -199,15 +199,17 @@ export default function ModalCobro({
     <Dialogo onCerrar={enviando ? undefined : onCerrar} tamano="lg" labelledBy="titulo-cobro">
       <div className="p-5 sm:p-6">
         {/* ── Encabezado ── */}
-        <h2 id="titulo-cobro" className="text-lg font-bold text-fg">Confirmar cobro</h2>
-        <p className="mt-0.5 text-xs text-fg-muted">
+        <h2 id="titulo-cobro" className="text-h3 text-fg">Confirmar cobro</h2>
+        <p className="mt-0.5 text-body-sm text-fg-muted">
           {tipoDocumento === 'CCF' ? 'Crédito fiscal (CCF)' : 'Factura consumidor final (FCF)'}
           {clienteSeleccionado ? ` · ${clienteSeleccionado.nombre_razon_social}` : ' · Consumidor final'}
         </p>
 
+        <p className="mt-4 text-kpi tabular-nums text-fg">{formatoMoneda(Number(totalFinal))}</p>
+
         {/* ── Resumen ── */}
-        <div className="mt-5 rounded-lg border border-line bg-muted/40 p-4">
-          <dl className="space-y-1 text-sm">
+        <div className="mt-3 rounded-md border border-line p-4">
+          <dl className="space-y-1 text-body-sm">
             <div className="flex justify-between">
               <dt className="text-fg-muted">Subtotal ({items.length} {items.length === 1 ? 'producto' : 'productos'})</dt>
               <dd className="tabular-nums">{formatoMoneda(subtotal)}</dd>
@@ -222,14 +224,14 @@ export default function ModalCobro({
               <dt className="text-fg-muted flex items-center gap-1">
                 Descuento (%)
                 {descuentoCentavos > 0 && (
-                  <span className="text-xs text-success">(-{formatoMoneda(Number(descuentoEfectivoStr))})</span>
+                  <span className="text-label-sm text-success-text tabular-nums">(-{formatoMoneda(Number(descuentoEfectivoStr))})</span>
                 )}
               </dt>
               <dd className="flex items-center gap-1">
                 <input
                   type="text"
                   inputMode="decimal"
-                  className="input w-20 text-right text-sm !py-1"
+                  className="input w-20 text-right tabular-nums"
                   value={porcentajeDesc}
                   onChange={(e) => setPorcentajeDesc(formatearEntradaPorcentaje(e.target.value))}
                   placeholder="0"
@@ -239,7 +241,7 @@ export default function ModalCobro({
               </dd>
             </div>
 
-            <div className="flex justify-between border-t border-line pt-2 text-base font-bold">
+            <div className="flex justify-between border-t border-line pt-2 text-label text-fg">
               <dt>Total a cobrar</dt>
               <dd className="tabular-nums">{formatoMoneda(Number(totalFinal))}</dd>
             </div>
@@ -249,36 +251,36 @@ export default function ModalCobro({
         {/* ── Pagos mixtos ── */}
         <div className="mt-5">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-fg">Forma de pago</h3>
+            <h3 className="text-label text-fg">Forma de pago</h3>
             {pagos.length < 4 && (
-              <button type="button" onClick={agregarPago} className="inline-flex items-center gap-1 text-xs font-semibold text-primary-text hover:underline">
-                <Plus size={14} /> Agregar método
+              <button type="button" onClick={agregarPago} className="btn-ghost btn-sm">
+                <Plus size={16} strokeWidth={1.75} aria-hidden="true" /> Agregar método
               </button>
             )}
           </div>
 
           <div className="mt-3 space-y-3">
             {pagos.map((pago, idx) => (
-              <div key={idx} className="rounded-lg border border-line bg-surface p-3">
+              <div key={idx} className="rounded-md border border-line bg-surface p-3">
+                {/* Selector de método: control segmentado */}
+                <div className="mb-2 flex flex-wrap gap-1 rounded-md bg-muted p-1" role="group" aria-label="Método de pago">
+                  {METODOS.map((m) => (
+                    <button key={m.valor} type="button" aria-pressed={pago.metodo === m.valor}
+                      onClick={() => actualizarPago(idx, 'metodo', m.valor)}
+                      className={`h-control-sm flex-1 rounded-sm px-2.5 text-label-sm transition-colors ${pago.metodo === m.valor ? 'bg-surface text-fg shadow-xs' : 'text-fg-muted hover:text-fg'}`}>
+                      {m.texto}
+                    </button>
+                  ))}
+                </div>
                 <div className="flex items-center gap-2">
-                  {/* Selector de método */}
-                  <div className="min-w-0 flex-1">
-                    <Select
-                      aria-label="Método de pago"
-                      tamano="sm"
-                      placeholder=""
-                      value={pago.metodo}
-                      onChange={(e) => actualizarPago(idx, 'metodo', e.target.value)}
-                      opciones={METODOS.map((m) => ({ valor: m.valor, texto: m.texto }))}
-                    />
-                  </div>
+                  <span className="min-w-0 flex-1 text-label-sm text-fg-muted">Monto</span>
 
                   {/* Monto (con autocompletado de ceros) */}
                   <input
                     ref={idx === 0 ? primerInputRef : undefined}
                     type="text"
                     inputMode="decimal"
-                    className="input w-28 text-right text-sm !py-1.5"
+                    className="input w-28 text-right tabular-nums"
                     placeholder="0.00"
                     value={pago.monto}
                     onChange={(e) => actualizarPago(idx, 'monto', e.target.value)}
@@ -289,7 +291,7 @@ export default function ModalCobro({
                   <button
                     type="button"
                     onClick={() => asignarRestante(idx)}
-                    className="btn-ghost min-h-8 text-xs !px-2"
+                    className="btn-ghost btn-sm"
                     title="Asignar restante"
                   >
                     Todo
@@ -305,11 +307,11 @@ export default function ModalCobro({
                 {pago.metodo === 'EFECTIVO' && (
                   <div className="mt-2 space-y-2">
                     <div className="flex items-center gap-2">
-                      <label className="text-xs text-fg-muted whitespace-nowrap">Recibe:</label>
+                      <label className="flex-1 text-label-sm text-fg-muted whitespace-nowrap">Recibe:</label>
                       <input
                         type="text"
                         inputMode="decimal"
-                        className="input w-28 text-right text-sm !py-1"
+                        className="input w-28 text-right tabular-nums"
                         placeholder="0.00"
                         value={pago.monto_recibido}
                         onChange={(e) => actualizarPago(idx, 'monto_recibido', e.target.value)}
@@ -322,7 +324,7 @@ export default function ModalCobro({
                           key={b.etiqueta}
                           type="button"
                           onClick={() => aplicarBillete(idx, b)}
-                          className="rounded-md border border-line bg-muted/50 px-2.5 py-1 text-xs font-medium text-fg hover:bg-primary-soft hover:text-primary-text transition-colors"
+                          className="h-control-sm rounded-full border border-line px-3 text-label-sm tabular-nums text-fg transition-colors hover:border-primary/40"
                         >
                           {b.etiqueta}
                         </button>
@@ -339,7 +341,7 @@ export default function ModalCobro({
                       inputMode="numeric"
                       maxLength={12}
                       autoComplete="off"
-                      className="input w-full text-sm !py-1"
+                      className="input w-full"
                       placeholder="N.º de autorización"
                       value={pago.referencia}
                       onChange={(e) => actualizarPago(idx, 'referencia', mascaraReferenciaPago(e.target.value))}
@@ -353,28 +355,28 @@ export default function ModalCobro({
         </div>
 
         {/* ── Indicador faltante / vuelto ── */}
-        <div className="mt-4 rounded-lg border border-line p-3 text-sm">
+        <div className="mt-4 rounded-md bg-muted p-4 text-body-sm" aria-live="polite">
           {faltanteCentavos > 0 ? (
-            <div className="flex items-center justify-between text-danger">
-              <span className="flex items-center gap-1.5 font-medium">
-                <AlertCircle size={15} /> Falta por cubrir
+            <div className="flex items-center justify-between text-danger-text">
+              <span className="flex items-center gap-1.5 text-label">
+                <AlertCircle size={16} strokeWidth={1.75} aria-hidden="true" /> Falta por cubrir
               </span>
-              <span className="font-bold tabular-nums">{formatoMoneda(Number(desCentavos(faltanteCentavos)))}</span>
+              <span className="text-h3 tabular-nums">{formatoMoneda(Number(desCentavos(faltanteCentavos)))}</span>
             </div>
           ) : sobranteCentavos > 0 ? (
-            <div className="flex items-center justify-between text-danger">
-              <span className="flex items-center gap-1.5 font-medium">
-                <AlertCircle size={15} /> Montos exceden el total
+            <div className="flex items-center justify-between text-danger-text">
+              <span className="flex items-center gap-1.5 text-label">
+                <AlertCircle size={16} strokeWidth={1.75} aria-hidden="true" /> Montos exceden el total
               </span>
-              <span className="font-bold tabular-nums">+{formatoMoneda(Number(desCentavos(sobranteCentavos)))}</span>
+              <span className="text-h3 tabular-nums">+{formatoMoneda(Number(desCentavos(sobranteCentavos)))}</span>
             </div>
           ) : (
-            <div className="flex items-center justify-between text-success">
-              <span className="flex items-center gap-1.5 font-medium">
-                <CheckCircle2 size={15} /> Pago completo
+            <div className="flex items-center justify-between text-success-text">
+              <span className="flex items-center gap-1.5 text-label">
+                <CheckCircle2 size={16} strokeWidth={1.75} aria-hidden="true" /> Pago completo
               </span>
               {vueltoCentavos > 0 && (
-                <span className="text-fg font-bold tabular-nums">
+                <span className="text-h3 tabular-nums text-fg">
                   Vuelto: {formatoMoneda(Number(desCentavos(vueltoCentavos)))}
                 </span>
               )}
@@ -383,11 +385,11 @@ export default function ModalCobro({
         </div>
 
         {/* ── Acciones ── */}
-        <div className="mt-5 grid grid-cols-[auto_1fr] gap-3">
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button variante="ghost" onClick={onCerrar} disabled={enviando}>
             Cancelar
           </Button>
-          <Button onClick={confirmar} disabled={!puedeConfirmar}>
+          <Button onClick={confirmar} disabled={!puedeConfirmar} cargando={enviando}>
             {enviando ? 'Procesando…' : `Confirmar cobro ${formatoMoneda(Number(totalFinal))}`}
           </Button>
         </div>

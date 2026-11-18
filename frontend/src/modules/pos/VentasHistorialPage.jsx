@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { RefreshCw, Search } from 'lucide-react';
 import Dialogo from '../../components/Dialogo.jsx';
-import { BotonIcono, Button, Select, Table } from '../../components/ui/index.js';
+import { BotonIcono, Button, Card, Select, Table } from '../../components/ui/index.js';
+import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
@@ -122,7 +123,7 @@ export default function VentasHistorialPage() {
       tipo: 'texto',
       valorOrden: (v) => `${v.tipo_comprobante} ${String(v.correlativo ?? '').padStart(10, '0')}`,
       render: (v) => (
-        <span className="font-mono font-semibold text-fg">
+        <span className="font-mono font-medium tabular-nums text-fg">
           {v.tipo_comprobante} #{v.correlativo}
         </span>
       ),
@@ -158,7 +159,7 @@ export default function VentasHistorialPage() {
       tipo: 'dinero',
       alinear: 'right',
       valorOrden: (v) => v.total,
-      render: (v) => <span className="font-mono font-semibold text-fg">${v.total}</span>,
+      render: (v) => <span className="font-medium tabular-nums text-fg">${v.total}</span>,
     },
     {
       clave: 'estado',
@@ -166,15 +167,7 @@ export default function VentasHistorialPage() {
       tipo: 'texto',
       valorOrden: (v) => v.estado,
       render: (v) => (
-        <span
-          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-            v.estado === 'ANULADA'
-              ? 'bg-danger-soft text-danger'
-              : 'bg-success-soft text-success'
-          }`}
-        >
-          {v.estado}
-        </span>
+        <EstadoBadge tipo={v.estado === 'ANULADA' ? 'error' : 'exito'}>{v.estado}</EstadoBadge>
       ),
     },
     {
@@ -210,16 +203,25 @@ export default function VentasHistorialPage() {
         titulo="Historial y Reimpresión de Facturas"
         descripcion="Consulta comprobantes emitidos (FCF / CCF), revisa su desglose DTE y reimprime tickets."
         acciones={(
-          <Button variante="secondary" onClick={cargarVentas} icono={RefreshCw}>
+          <Button variante="ghost" onClick={cargarVentas} icono={RefreshCw}>
             Actualizar
           </Button>
         )}
       />
 
+      {error && <BannerError error={{ titulo: 'No se pudo consultar el historial de ventas', mensaje: error, accion: '' }} />}
+
+      <Card
+        sinPadding
+        className="overflow-hidden"
+        icono={ICONOS.ver}
+        titulo="Comprobantes emitidos"
+        descripcion={`${ventasFiltradas.length} registros`}
+      >
       {/* Barra de búsqueda y filtros */}
-      <div className="card flex flex-col gap-3 !p-4 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-muted" />
+      <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3">
+        <div className="relative w-full max-w-xs">
+          <Search size={16} strokeWidth={1.75} aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" />
           <input
             type="text"
             value={busqueda}
@@ -229,11 +231,11 @@ export default function VentasHistorialPage() {
             }}
             placeholder="Buscar factura por número (ej. 15, FCF #15, CCF) o por nombre de cliente..."
             aria-label="Buscar factura"
-            className="input h-10 w-full pl-9"
+            className="input w-full pl-9"
           />
         </div>
 
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Filtro por Sucursal */}
           <div className="w-full sm:w-52">
             <Select
@@ -279,10 +281,7 @@ export default function VentasHistorialPage() {
         </div>
       </div>
 
-      {error && <BannerError error={{ titulo: 'No se pudo consultar el historial de ventas', mensaje: error, accion: '' }} />}
-
       {/* Tabla */}
-      <div className="card overflow-hidden !p-0">
         <Table
           idTabla="pos_historial_ventas"
           cargando={cargando}
@@ -298,35 +297,38 @@ export default function VentasHistorialPage() {
           onCambiarPorPagina={(tam) => setPorPagina(tam)}
           columnas={columnasVentas}
         />
-      </div>
+      </Card>
 
       {/* Modal Detalle de Venta */}
       {detalleVenta && (
         <Dialogo onCerrar={() => setDetalleVenta(null)} tamano="lg" labelledBy="titulo-detalle-venta">
-          <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">
-                Operación · Historial ventas
-              </p>
-              <h2 id="titulo-detalle-venta" className="mt-1 text-xl font-semibold text-fg">
-                {detalleVenta.tipo_comprobante} #{detalleVenta.correlativo}
-              </h2>
-              <p className="mt-0.5 text-xs text-fg-muted">
-                Cliente: <strong className="text-fg">{detalleVenta.cliente_nombre || 'Consumidor Final'}</strong>
-                {detalleVenta.nrc ? ` · NRC: ${detalleVenta.nrc}` : ''}
+          <div className="flex items-start justify-between gap-4 px-6 pt-6">
+            <div className="min-w-0">
+              <p className="rotulo">Operación · Historial ventas</p>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <h2 id="titulo-detalle-venta" className="font-mono text-h3 tabular-nums text-fg">
+                  {detalleVenta.tipo_comprobante} #{detalleVenta.correlativo}
+                </h2>
+                {detalleVenta.estado && (
+                  <EstadoBadge tipo={detalleVenta.estado === 'ANULADA' ? 'error' : 'exito'}>{detalleVenta.estado}</EstadoBadge>
+                )}
+              </div>
+              <p className="mt-1 text-body text-fg-muted">
+                Cliente: <strong className="font-medium text-fg">{detalleVenta.cliente_nombre || 'Consumidor Final'}</strong>
+                {detalleVenta.nrc ? <> · NRC: <span className="font-mono">{detalleVenta.nrc}</span></> : ''}
               </p>
               {detalleVenta.cliente_direccion && (
-                <p className="text-xs text-fg-muted">
+                <p className="text-body-sm text-fg-muted">
                   Dirección cliente: <span className="text-fg">{detalleVenta.cliente_direccion}</span>
                 </p>
               )}
-              <p className="text-xs text-fg-muted">
+              <p className="text-body-sm text-fg-muted">
                 Sucursal: <span className="text-fg">{detalleVenta.sucursal_nombre || 'Principal'}</span>
                 {detalleVenta.sucursal_direccion ? ` (${detalleVenta.sucursal_direccion})` : ''}
-                {' · '}Generado por: <strong className="text-fg">{detalleVenta.cajero_username || '—'}</strong>
+                {' · '}Generado por: <strong className="font-medium text-fg">{detalleVenta.cajero_username || '—'}</strong>
               </p>
               {detalleVenta.numero_control && (
-                <p className="mt-0.5 font-mono text-[11px] text-fg-muted">
+                <p className="mt-0.5 break-all font-mono text-label-sm text-fg-muted">
                   Control DTE: {detalleVenta.numero_control}
                 </p>
               )}
@@ -334,55 +336,53 @@ export default function VentasHistorialPage() {
             <BotonIcono icono={ICONOS.cerrar} etiqueta="Cerrar modal" onClick={() => setDetalleVenta(null)} />
           </div>
 
-          <div className="space-y-4 p-5">
+          <div className="space-y-5 px-6 py-5">
             {detalleVenta.motivo_anulacion && (
-              <div className="rounded-xl border border-danger/30 bg-danger-soft px-3 py-2 text-xs text-danger">
-                <strong>Motivo de anulación:</strong> {detalleVenta.motivo_anulacion}
+              <div className="rounded-md border border-danger/30 bg-danger-soft px-4 py-3 text-body-sm text-danger-text">
+                <strong className="font-semibold">Motivo de anulación:</strong> {detalleVenta.motivo_anulacion}
               </div>
             )}
 
             <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-fg-muted">Productos</p>
-              <div className="divide-y divide-line rounded-xl border border-line bg-muted/20">
+              <p className="rotulo">Productos</p>
+              <div className="divide-y divide-line rounded-md border border-line">
                 {detalleVenta.detalles?.length > 0 ? (
                   detalleVenta.detalles.map((d) => (
-                    <div key={d.id_detalle} className="flex items-center justify-between px-3.5 py-2.5 text-sm text-fg">
+                    <div key={d.id_detalle} className="flex items-center justify-between gap-3 px-4 py-2.5 text-body text-fg">
                       <div>
-                        <span className="font-semibold">{d.cantidad}x</span> {d.nombre_producto}
-                        {d.nota && <span className="ml-2 text-xs text-fg-muted">({d.nota})</span>}
+                        <span className="font-medium tabular-nums">{d.cantidad}x</span> {d.nombre_producto}
+                        {d.nota && <span className="ml-2 text-body-sm text-fg-muted">({d.nota})</span>}
                       </div>
-                      <span className="font-mono font-medium">${d.subtotal_linea}</span>
+                      <span className="font-medium tabular-nums">${d.subtotal_linea}</span>
                     </div>
                   ))
                 ) : (
-                  <p className="px-3.5 py-2.5 text-xs text-fg-muted">Sin líneas de detalle registradas.</p>
+                  <p className="px-4 py-2.5 text-body-sm text-fg-muted">Sin líneas de detalle registradas.</p>
                 )}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 sm:items-start">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:items-start">
               <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wider text-fg-muted">
-                  Pagos recibidos
-                </p>
+                <p className="rotulo">Pagos recibidos</p>
                 {detalleVenta.pagos?.length > 0 ? (
-                  <div className="divide-y divide-line rounded-xl border border-line bg-muted/20">
+                  <div className="divide-y divide-line rounded-md border border-line">
                     {detalleVenta.pagos.map((p) => (
                       <div
                         key={p.id_pago}
-                        className="flex items-center justify-between px-3.5 py-2 text-xs text-fg"
+                        className="flex items-center justify-between px-4 py-2 text-body-sm text-fg"
                       >
-                        <span className="font-medium text-fg-muted">{p.metodo}</span>
-                        <span className="font-mono font-semibold text-fg">${p.monto}</span>
+                        <span className="text-fg-muted">{p.metodo}</span>
+                        <span className="font-medium tabular-nums text-fg">${p.monto}</span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="px-3.5 py-2.5 text-xs text-fg-muted">Sin pagos registrados.</p>
+                  <p className="text-body-sm text-fg-muted">Sin pagos registrados.</p>
                 )}
               </div>
 
-              <div className="space-y-1.5 rounded-xl border border-line bg-muted/20 px-4 py-3 text-right font-mono text-xs text-fg-muted">
+              <div className="space-y-1.5 rounded-md bg-muted p-4 text-body-sm tabular-nums text-fg-muted">
                 <div className="flex justify-between">
                   <span>Subtotal:</span>
                   <span className="text-fg">${detalleVenta.subtotal ?? '0.00'}</span>
@@ -395,25 +395,25 @@ export default function VentasHistorialPage() {
                   <span>IVA (13%):</span>
                   <span className="text-fg">${detalleVenta.iva ?? '0.00'}</span>
                 </div>
-                <div className="flex justify-between border-t border-line pt-2 text-base font-bold text-fg">
+                <div className="flex justify-between border-t border-line-strong pt-2 text-h3 text-fg">
                   <span>Total:</span>
                   <span>${detalleVenta.total ?? '0.00'}</span>
                 </div>
               </div>
             </div>
+          </div>
 
-            <div className="flex justify-end gap-2.5 border-t border-line pt-4">
-              <Button
-                variante="primary"
-                onClick={() => imprimirComprobante(detalleVenta)}
-                icono={ICONOS.imprimir}
-              >
-                Imprimir factura
-              </Button>
-              <Button variante="ghost" onClick={() => setDetalleVenta(null)}>
-                Cerrar
-              </Button>
-            </div>
+          <div className="flex flex-col-reverse gap-2 border-t border-line px-6 py-4 sm:flex-row sm:justify-end">
+            <Button variante="ghost" onClick={() => setDetalleVenta(null)}>
+              Cerrar
+            </Button>
+            <Button
+              variante="primary"
+              onClick={() => imprimirComprobante(detalleVenta)}
+              icono={ICONOS.imprimir}
+            >
+              Imprimir factura
+            </Button>
           </div>
         </Dialogo>
       )}
