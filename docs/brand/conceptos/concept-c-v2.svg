@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<g>
+  <path d="M160 310 L336 310 L336 250 L100 250 Z" fill="#1a1a1a" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M150 180 L330 180 L390 120 L150 120 Z" fill="#1a1a1a" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M330 180 L330 380 L390 440 L390 120 Z" fill="#6b6b6b" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M330 380 L160 380 L100 440 L390 440 Z" fill="#1a1a1a" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+  <path d="M160 380 L160 310 L100 250 L100 440 Z" fill="#6b6b6b" stroke="var(--bg,#fff)" stroke-width="8" paint-order="stroke" stroke-linejoin="miter"/>
+</g>
+</svg>
