@@ -3,10 +3,10 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import AppLayout from './layout/AppLayout.jsx';
 import ProtectedRoute from './components/navigation/ProtectedRoute.jsx';
 import Spinner from './components/ui/Spinner.jsx';
+import { useAuth } from './context/AuthContext.jsx';
 
 const LoginPage = lazy(() => import('./pages/LoginPage.jsx'));
-const ClienteLoginPage = lazy(() => import('./pages/ClienteLoginPage.jsx'));
-const ClienteHomePage = lazy(() => import('./pages/ClienteHomePage.jsx'));
+const SplashScreen = lazy(() => import('./pages/SplashScreen.jsx'));
 const DashboardPage = lazy(() => import('./modules/dashboard/DashboardPage.jsx'));
 const RolesPermisosPage = lazy(() => import('./modules/seguridad/RolesPermisosPage.jsx'));
 const UsuariosPage = lazy(() => import('./modules/seguridad/UsuariosPage.jsx'));
@@ -32,6 +32,8 @@ const CompraFacturaPage = lazy(() => import('./modules/compras/CompraFacturaPage
 const PuestosPage = lazy(() => import('./modules/rrhh/PuestosPage.jsx'));
 const EmpleadosPage = lazy(() => import('./modules/rrhh/EmpleadosPage.jsx'));
 const PlanillasPage = lazy(() => import('./modules/rrhh/PlanillasPage.jsx'));
+// Hoja viva del sistema de diseño: solo en desarrollo (en producción no se genera el chunk).
+const SistemaPage = import.meta.env.DEV ? lazy(() => import('./dev/SistemaPage.jsx')) : null;
 
 function CargandoPantalla() {
   return (
@@ -41,21 +43,26 @@ function CargandoPantalla() {
   );
 }
 
+// Entrada en "/": visitante sin sesión → splash (que luego lleva a /admin/login);
+// sesión válida → la aplicación. Durante la validación, ProtectedRoute muestra su esqueleto.
+function EntradaRaiz() {
+  const { usuario, tipoSesion, cargando } = useAuth();
+  if (!cargando && (!usuario || tipoSesion !== 'admin')) return <SplashScreen />;
+  return (
+    <ProtectedRoute portal="admin">
+      <AppLayout />
+    </ProtectedRoute>
+  );
+}
+
 export default function App() {
   return (
     <Suspense fallback={<CargandoPantalla />}>
       <Routes>
       <Route path="/login" element={<Navigate to="/admin/login" replace />} />
       <Route path="/admin/login" element={<LoginPage />} />
-      <Route path="/cliente/login" element={<ClienteLoginPage />} />
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute portal="admin">
-            <AppLayout />
-          </ProtectedRoute>
-        }
-      >
+      {SistemaPage && <Route path="/_sistema" element={<SistemaPage />} />}
+      <Route path="/" element={<EntradaRaiz />}>
         <Route index element={<DashboardPage />} />
         <Route
           path="inventario"
@@ -144,10 +151,7 @@ export default function App() {
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
-      <Route
-        path="/cliente"
-        element={<ProtectedRoute portal="cliente"><ClienteHomePage /></ProtectedRoute>}
-      />
+      <Route path="/cliente/*" element={<Navigate to="/admin/login" replace />} />
     </Routes>
     </Suspense>
   );

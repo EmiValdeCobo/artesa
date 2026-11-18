@@ -8,7 +8,7 @@ const TIMEOUT_MS = 20000;
 // Evento global que avisa que la sesión venció a mitad de uso (lo escuchan AuthContext y las notificaciones).
 export const EVENTO_SESION_EXPIRADA = 'artesa:sesion-expirada';
 // En estas rutas un 401 es esperado (credenciales, arranque sin sesión, cierre de sesión): no es "sesión vencida".
-const RUTAS_401_ESPERADO = /\/auth\/(cliente\/)?(login|me|logout)$/;
+const RUTAS_401_ESPERADO = /\/auth\/(login|me|logout)$/;
 
 // Convierte el fallo en un ErrorApi: su `message` ya es el texto para el usuario, y el detalle
 // técnico (estado, endpoint, texto crudo del servidor) va al registro, nunca a la pantalla.

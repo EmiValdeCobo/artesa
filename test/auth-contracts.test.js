@@ -15,7 +15,6 @@ test('auth: loginLimiter protege endpoints de login con límite estricto de inte
   const controller = await auth('auth.controller.js');
 
   assert.match(routes, /router\.post\('\/login',\s*controller\.loginLimiter/);
-  assert.match(routes, /router\.post\('\/cliente\/login',\s*controller\.loginLimiter/);
   assert.match(controller, /limit:\s*5/);
   assert.match(controller, /windowMs:\s*15\s*\*\s*60\s*\*\s*1000/);
   assert.match(controller, /skipSuccessfulRequests:\s*true/);
@@ -45,11 +44,10 @@ test('auth contexto: contextoSolicitud captura IP real del cliente con trust pro
   assert.equal(storeCapturado.agente, 'Mozilla/5.0 Agente');
 });
 
-test('auth: rutas protegidas diferencian portal admin y cliente', async () => {
+test('auth: rutas protegidas requieren autenticación y perfil administrativo', async () => {
   const routes = await auth('auth.routes.js');
   assert.match(routes, /router\.post\('\/logout',\s*authenticate/);
   assert.match(routes, /router\.get\('\/me',\s*authenticate,\s*requireTipo\('admin'\)/);
-  assert.match(routes, /router\.get\('\/cliente\/me',\s*authenticate,\s*requireTipo\('cliente'\)/);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -100,7 +98,6 @@ test('auth timing-attack: login mitiga timing attacks comparando contra DUMMY_HA
   const service = await auth('auth.service.js');
   assert.match(service, /DUMMY_HASH/);
   assert.match(service, /hashComparar\s*=\s*usuario\?\.password_hash\s*\|\|\s*DUMMY_HASH/);
-  assert.match(service, /hashComparar\s*=\s*cliente\?\.password_hash\s*\|\|\s*DUMMY_HASH/);
 });
 
 test('auth revocación: controller logout revoca el jti y middleware authenticate rechaza tokens revocados', async () => {

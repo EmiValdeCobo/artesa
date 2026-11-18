@@ -1,17 +1,61 @@
 import { useRef, useState } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { ArrowRight, CircleAlert, ConciergeBell, LockKeyhole, UserRound } from 'lucide-react';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { CircleAlert, UserRound } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { traducirError } from '../errors/traducirError.js';
-import CampoBorde from '../components/forms/CampoBorde.jsx';
-import Marca from '../layout/Marca.jsx';
+import PasswordInput from '../components/forms/PasswordInput.jsx';
+import Logo from '../components/branding/Logo.jsx';
 import { HiloSpinner } from '../components/branding/Espiral.jsx';
-import { EscenaBarra, RastroServicio, SiluetaDerecha, SiluetaIzquierda } from '../layout/LoginAdminArte.jsx';
 
-const retardo = (ms) => ({ '--retardo': `${ms}ms` });
+/* Acceso del ÁREA ADMINISTRATIVA. Panel dividido: a la izquierda la marca sobre Espresso con
+   una ilustración plana cálida (Terracota/Ocre/Alabastro); a la derecha el formulario sobre blanco. */
+
+// Ilustración plana de un mostrador de cafetería/panadería. Formas geométricas, una sola capa de sombras.
+function IlustracionMostrador() {
+  return (
+    <svg viewBox="0 0 320 280" role="img" aria-label="Mostrador de cafetería artesanal"
+      className="h-auto w-full max-w-sm" xmlns="http://www.w3.org/2000/svg">
+      {/* Ventana circular con sol/luz cálida detrás */}
+      <circle cx="160" cy="92" r="70" fill="#5f2e20" />
+      <circle cx="160" cy="92" r="52" fill="#7b3b27" />
+      <circle cx="160" cy="80" r="30" fill="#e8b866" />
+      <circle cx="160" cy="80" r="30" fill="#e1a651" opacity="0.5" />
+      {/* Lámpara colgante */}
+      <line x1="112" y1="0" x2="112" y2="34" stroke="#f4d79c" strokeWidth="2" />
+      <path d="M100 34 h24 l-6 16 h-12 z" fill="#e1a651" />
+      <ellipse cx="112" cy="51" rx="9" ry="3" fill="#f7f5f0" opacity="0.85" />
+      {/* Estante con hogazas y frascos */}
+      <rect x="196" y="40" width="96" height="6" rx="3" fill="#44211a" />
+      <ellipse cx="216" cy="34" rx="15" ry="9" fill="#c97752" />
+      <path d="M208 33 q8 -7 16 0" stroke="#5f2e20" strokeWidth="2" fill="none" />
+      <rect x="240" y="18" width="16" height="22" rx="3" fill="#de9776" />
+      <rect x="240" y="18" width="16" height="6" rx="3" fill="#b15c3d" />
+      <circle cx="276" cy="30" r="10" fill="#edc173" />
+      {/* Mostrador */}
+      <rect x="24" y="176" width="272" height="20" rx="4" fill="#f7f5f0" />
+      <rect x="40" y="196" width="240" height="60" fill="#5f2e20" />
+      <rect x="40" y="196" width="240" height="60" fill="#44211a" opacity="0.4" />
+      <rect x="64" y="212" width="40" height="44" rx="2" fill="#7b3b27" />
+      <rect x="216" y="212" width="40" height="44" rx="2" fill="#7b3b27" />
+      {/* Taza de café con vapor */}
+      <path d="M96 150 q6 -12 0 -22" stroke="#f4d79c" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.7" />
+      <path d="M108 150 q6 -12 0 -22" stroke="#f4d79c" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.5" />
+      <path d="M84 156 h40 v10 a20 20 0 0 1 -40 0 z" fill="#f7f5f0" />
+      <ellipse cx="104" cy="156" rx="20" ry="5" fill="#583b1d" />
+      <path d="M124 158 a10 10 0 0 1 0 14" stroke="#f7f5f0" strokeWidth="4" fill="none" />
+      {/* Croissant */}
+      <path d="M196 158 q22 -6 40 6 q-18 10 -40 -6 z" fill="#e1a651" />
+      <path d="M204 160 q14 -2 24 4" stroke="#b15c3d" strokeWidth="2" fill="none" />
+      {/* Pastel/rebanada sobre plato */}
+      <ellipse cx="160" cy="170" rx="22" ry="5" fill="#f7f5f0" />
+      <path d="M148 168 l12 -22 l12 22 z" fill="#c97752" />
+      <path d="M152 160 h16" stroke="#f7f5f0" strokeWidth="2" />
+    </svg>
+  );
+}
 
 export default function LoginPage() {
-  const { usuario, tipoSesion, login, cargando } = useAuth();
+  const { usuario, login, cargando } = useAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -22,7 +66,7 @@ export default function LoginPage() {
   const refUsuario = useRef(null);
   const refPassword = useRef(null);
 
-  if (usuario) return <Navigate to={tipoSesion === 'cliente' ? '/cliente' : '/'} replace />;
+  if (usuario) return <Navigate to="/" replace />;
 
   function fallar(mensaje, campo, ref) {
     setError(mensaje); setInvalido(campo);
@@ -41,7 +85,7 @@ export default function LoginPage() {
       await login(username, password, 'admin');
       navigate('/');
     } catch (err) {
-      // Credenciales incorrectas marcan los campos; un fallo de red o del servidor solo informa (los campos están bien).
+      // Credenciales incorrectas marcan los campos; un fallo de red o del servidor solo informa.
       const u = traducirError(err);
       const credenciales = u.id === 'CREDENCIALES';
       fallar(u.mensajeCompleto, credenciales ? 'ambos' : null, credenciales ? refPassword : null);
@@ -50,70 +94,77 @@ export default function LoginPage() {
     }
   }
 
+  const usuarioInvalido = invalido === 'usuario' || invalido === 'ambos';
+  const passwordInvalido = invalido === 'password' || invalido === 'ambos';
+
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-3 overflow-hidden bg-terracota-500 px-3 py-3 dark:bg-terracota-800 sm:gap-6 sm:px-8 sm:py-8">
-      <div className="relative flex min-h-0 w-full max-w-[68rem] 2xl:max-w-[84rem]">
-        {/* círculos que asoman detrás de la tarjeta */}
-        <span aria-hidden="true" className="absolute -left-7 -top-7 hidden h-24 w-24 rounded-full bg-ocre-400 sm:block" />
-        <span aria-hidden="true" className="absolute -bottom-8 -right-8 hidden h-28 w-28 rounded-full bg-espresso-50 sm:block" />
+    <div className="auth-admin flex min-h-dvh flex-col bg-surface text-fg lg:flex-row">
+      {/* Panel de marca (izquierda, 45 %) — oculto en móvil */}
+      <aside className="relative hidden shrink-0 flex-col justify-between overflow-hidden bg-sidebar p-10 text-on-sidebar lg:flex lg:w-[45%] xl:p-14">
+        <Logo variante="completo" tema="oscuro" alto={32} alt="artesa · ERP & POS" className="anim-subir" />
+        <div className="anim-subir flex flex-1 items-center justify-center py-8" style={{ '--retardo': '120ms' }}>
+          <IlustracionMostrador />
+        </div>
+        <p className="anim-subir font-display text-xl italic text-secondary" style={{ '--retardo': '220ms' }}>
+          Hecho con dedicación.
+        </p>
+      </aside>
 
-        <div className="relative z-10 grid min-h-0 w-full overflow-hidden rounded-[1.25rem] bg-surface shadow-2xl shadow-espresso-950/40 sm:rounded-[1.75rem] lg:h-[min(40rem,calc(100dvh-6rem))] lg:grid-cols-2 xl:h-[min(44rem,calc(100dvh-6rem))] 2xl:h-[min(52rem,calc(100dvh-6rem))]">
-          {/* Panel de marca: escena ilustrada */}
-          <aside className="relative hidden min-h-0 flex-col overflow-hidden bg-terracota-600 text-on-sidebar lg:flex">
-            <div className="relative z-10 px-10 pt-10 2xl:px-14 2xl:pt-14">
-              <Marca className="anim-subir" />
-              <p className="anim-subir mt-6 max-w-[17rem] text-lg font-semibold leading-snug 2xl:mt-8 2xl:max-w-[24rem] 2xl:text-2xl" style={retardo(120)}>
-                Una cocina ordenada empieza antes de abrir la puerta.
-              </p>
-            </div>
-            {/* Espacio propio de la ilustración: debajo del texto, nunca detrás de él */}
-            <div className="relative mt-6 min-h-0 flex-1 2xl:mt-10">
-              <EscenaBarra className="absolute inset-x-0 bottom-0 h-full w-full" />
-            </div>
-          </aside>
+      {/* Formulario (derecha) sobre blanco */}
+      <main className="flex flex-1 flex-col px-6 sm:px-10">
+        {/* Lockup para móvil, donde el panel no aparece */}
+        <header className="pt-8 lg:hidden">
+          <Logo variante="completo" tema="auto" alto={32} alt="artesa · ERP & POS" />
+        </header>
 
-          {/* Formulario */}
-          <main className="relative flex min-h-0 flex-col items-center px-5 pb-7 pt-7 sm:px-12 sm:pb-10 sm:pt-10 lg:justify-center lg:pb-14 lg:pt-10">
-            <div aria-hidden="true" className="absolute right-0 top-8 hidden w-60 text-primary sm:block">
-              <RastroServicio className="w-full" />
-              <ConciergeBell size={30} strokeWidth={1.75} className="absolute left-2 top-7 -rotate-12 fill-primary/15" />
-            </div>
+        <div className="flex flex-1 items-center justify-center py-10">
+          <div className="w-full max-w-[24rem]">
+            <p className="anim-subir rotulo">Área administrativa</p>
+            <h1 className="anim-subir mt-2 font-display text-display-sm text-fg" style={{ '--retardo': '80ms' }}>
+              Bienvenido de nuevo
+            </h1>
+            <p className="anim-subir mt-2 text-body text-fg-muted" style={{ '--retardo': '140ms' }}>
+              Ingresa con tu usuario para abrir el servicio.
+            </p>
 
-            <Marca tema="auto" className="mb-5 self-start lg:hidden" />
-
-            <h1 className="anim-subir font-display text-[3.25rem] font-bold leading-none tracking-tight text-primary-text sm:text-6xl 2xl:text-7xl">Bienvenido</h1>
-            <p className="anim-subir mt-3 text-sm text-fg-muted" style={retardo(80)}>Ingresa con tu usuario</p>
-
-            <form onSubmit={manejarEnvio} noValidate className="anim-subir mt-7 w-full max-w-[26rem] 2xl:mt-9 2xl:max-w-[30rem]" style={retardo(160)}>
-              <div className={`space-y-4 sm:space-y-6 ${sacudir ? 'anim-sacudir' : ''}`}>
-                <CampoBorde ref={refUsuario} id="username" etiqueta="Usuario" icono={UserRound} value={username} autoFocus autoComplete="username"
-                  autoCapitalize="none" spellCheck={false} invalid={invalido === 'usuario' || invalido === 'ambos'}
-                  onChange={(e) => { setUsername(e.target.value); limpiar(); }} />
-                <CampoBorde ref={refPassword} id="password" etiqueta="Contraseña" icono={LockKeyhole} type="password" value={password}
-                  autoComplete="current-password" invalid={invalido === 'password' || invalido === 'ambos'}
-                  onChange={(e) => { setPassword(e.target.value); limpiar(); }} />
+            <form onSubmit={manejarEnvio} noValidate aria-describedby={error ? 'login-error' : undefined}
+              className="anim-subir mt-9" style={{ '--retardo': '220ms' }}>
+              <div className={`space-y-5 ${sacudir ? 'anim-sacudir' : ''}`}>
+                <div>
+                  <label htmlFor="username" className="mb-1.5 block text-label text-fg">Usuario</label>
+                  <div className="group relative">
+                    <UserRound size={18} strokeWidth={1.75} aria-hidden="true"
+                      className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-subtle transition-colors group-focus-within:text-primary-text" />
+                    <input ref={refUsuario} id="username" type="text" value={username} autoFocus autoComplete="username"
+                      autoCapitalize="none" spellCheck={false} aria-invalid={usuarioInvalido || undefined}
+                      className={`input input-auth pl-11 ${usuarioInvalido ? 'border-danger' : ''}`}
+                      onChange={(e) => { setUsername(e.target.value); limpiar(); }} />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="password" className="mb-1.5 block text-label text-fg">Contraseña</label>
+                  <PasswordInput ref={refPassword} id="password" value={password} invalid={passwordInvalido}
+                    className={passwordInvalido ? 'border-danger' : ''}
+                    onChange={(e) => { setPassword(e.target.value); limpiar(); }} />
+                </div>
               </div>
 
               {error && (
-                <p role="alert" aria-live="assertive" className="anim-subir mt-5 flex items-start gap-2 rounded-lg bg-danger-soft px-3.5 py-3 text-sm text-danger">
-                  <CircleAlert size={17} aria-hidden="true" className="mt-px shrink-0" /> {error}
+                <p id="login-error" role="alert" aria-live="assertive" className="mt-5 flex items-start gap-2.5 rounded-md border border-danger/40 bg-danger-soft px-4 py-3 text-body text-fg">
+                  <CircleAlert size={18} strokeWidth={1.75} aria-hidden="true" className="mt-0.5 shrink-0 text-danger-text" /> {error}
                 </p>
               )}
 
-              <div className="mt-6 flex justify-center sm:mt-8">
-                <button type="submit" disabled={enviando || cargando}
-                  className="group inline-flex h-12 min-w-44 items-center justify-center gap-2 rounded-lg bg-primary px-9 text-[15px] font-semibold text-on-accent shadow-lg shadow-primary/30 outline-none transition hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:translate-y-px disabled:opacity-70">
-                  {enviando ? <><HiloSpinner /> Ingresando…</> : <>Ingresar <ArrowRight size={17} aria-hidden="true" className="transition-transform group-hover:translate-x-1" /></>}
-                </button>
-              </div>
+              <button type="submit" disabled={enviando || cargando} aria-busy={enviando || undefined}
+                className="btn-primary btn-lg mt-7 w-full">
+                {enviando ? <><HiloSpinner /> Ingresando…</> : <>Ingresar</>}
+              </button>
             </form>
-
-            <SiluetaIzquierda className="pointer-events-none absolute bottom-0 left-0 hidden h-28 text-primary sm:block lg:h-32 2xl:h-44" />
-            <SiluetaDerecha className="pointer-events-none absolute bottom-0 right-6 hidden h-28 text-primary sm:block lg:h-32 2xl:h-44" />
-          </main>
+          </div>
         </div>
-      </div>
-      <p className="text-xs text-on-accent/80">© 2026 artesa · Sistema ERP &amp; POS</p>
+
+        <footer className="mx-auto w-full max-w-[24rem] pb-6 text-xs text-fg-muted">© 2026 artesa · Sistema ERP &amp; POS</footer>
+      </main>
     </div>
   );
 }
