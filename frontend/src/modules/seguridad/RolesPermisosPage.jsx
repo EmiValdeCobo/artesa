@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, CircleAlert, Info, KeyRound, Layers, Lock, Save, Search, Undo2, Users } from 'lucide-react';
-import { BotonIcono, Button, Select, Spinner, Table } from '../../components/ui/index.js';
+import { BotonIcono, Button, Select, Table } from '../../components/ui/index.js';
+import { SkeletonTexto } from '../../components/feedback/Skeleton.jsx';
 import { ICONOS } from '../../config/iconos.js';
 import { api } from '../../api/client.js';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -29,7 +30,7 @@ const porcentaje = (parte, total) => (total ? Math.round((parte / total) * 100) 
 function Cobertura({ valor, total, className = '' }) {
   return (
     <div className={`h-1.5 overflow-hidden rounded-full bg-muted ${className}`} aria-hidden="true">
-      <div className="h-full rounded-full bg-primary transition-[width] duration-300" style={{ width: `${porcentaje(valor, total)}%` }} />
+      <div className="h-full rounded-full bg-chart-neutral transition-[width] duration-200" style={{ width: `${porcentaje(valor, total)}%` }} />
     </div>
   );
 }
@@ -43,16 +44,16 @@ function GrupoPermisos({ grupo, seleccion, bloqueos, soloLectura, abierto, onAbr
   return (
     <section className="card overflow-hidden !p-0" aria-labelledby={titulo}>
       <div className="flex items-center gap-2 px-4 py-3 sm:px-5">
-        <button type="button" className="-ml-1 flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-lg px-1 text-left hover:bg-muted/60" aria-expanded={abierto} aria-controls={`${titulo}-lista`} onClick={onAbrirCerrar}>
+        <button type="button" className="-ml-1 flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-md px-1 text-left hover:bg-muted" aria-expanded={abierto} aria-controls={`${titulo}-lista`} onClick={onAbrirCerrar}>
           <ChevronDown size={18} aria-hidden="true" className={`shrink-0 text-fg-muted transition-transform ${abierto ? '' : '-rotate-90'}`} />
           <span className="min-w-0">
-            <span id={titulo} className="block font-semibold">{grupo.etiqueta}</span>
-            <span className="block truncate text-xs text-fg-muted">{grupo.descripcion}</span>
+            <span id={titulo} className="rotulo block">{grupo.etiqueta}</span>
+            <span className="mt-0.5 block truncate text-body-sm text-fg-muted">{grupo.descripcion}</span>
           </span>
         </button>
         <Insignia variante={marcados ? 'primario' : 'neutro'}>{marcados}/{ids.length}</Insignia>
         {!soloLectura && (
-          <label className="flex min-h-11 cursor-pointer items-center gap-2 pl-2 text-xs font-semibold text-primary-text">
+          <label className="flex min-h-11 cursor-pointer items-center gap-2 pl-2 text-label-sm text-fg-muted">
             <input type="checkbox" className="h-4 w-4 accent-primary" checked={todos} ref={(el) => { if (el) el.indeterminate = marcados > 0 && !todos; }}
               onChange={() => onAlternarGrupo(ids, todos)} aria-label={`Seleccionar todos los permisos de ${grupo.etiqueta}`} />
             <span className="hidden sm:inline">Todo</span>
@@ -66,12 +67,12 @@ function GrupoPermisos({ grupo, seleccion, bloqueos, soloLectura, abierto, onAbr
           const inactivo = soloLectura || Boolean(bloqueo);
           return (
             <label key={permiso.id_permiso} title={bloqueo || undefined}
-              className={`flex items-start gap-3 rounded-lg border px-3 py-3 transition-colors ${marcado ? 'border-primary/30 bg-primary-soft/50' : 'border-transparent'} ${inactivo ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-muted'}`}>
+              className={`flex items-start gap-3 rounded-md border px-3 py-2.5 transition-colors ${marcado ? 'border-primary/30 bg-primary-soft' : 'border-transparent'} ${inactivo ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-muted'}`}>
               <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-primary" checked={marcado} disabled={inactivo} onChange={() => onAlternar(permiso.id_permiso)} aria-label={permiso.descripcion || permiso.codigo} />
               <span className="min-w-0">
-                <span className="block text-sm font-medium">{permiso.descripcion || permiso.codigo}</span>
-                <span className="mt-1 block truncate font-mono text-xs text-fg-muted">{permiso.codigo}</span>
-                {bloqueo && <span className="mt-1 flex items-start gap-1 text-xs text-fg-muted"><Lock size={12} aria-hidden="true" className="mt-0.5 shrink-0" /> {bloqueo}</span>}
+                <span className="block text-label text-fg">{permiso.descripcion || permiso.codigo}</span>
+                <span className="mt-0.5 block truncate font-mono text-body-sm text-fg-muted">{permiso.codigo}</span>
+                {bloqueo && <span className="mt-1 flex items-start gap-1 text-body-sm text-fg-muted"><Lock size={12} aria-hidden="true" className="mt-0.5 shrink-0" /> {bloqueo}</span>}
               </span>
             </label>
           );
@@ -436,7 +437,7 @@ export default function RolesPermisosPage() {
       tipo: 'texto',
       clase: 'w-44 lg:w-56',
       render: (permiso) => (
-        <span className="break-words font-mono text-xs font-medium [overflow-wrap:anywhere]">
+        <span className="break-words font-mono text-body-sm font-medium [overflow-wrap:anywhere]">
           {permiso.codigo}
         </span>
       ),
@@ -448,7 +449,7 @@ export default function RolesPermisosPage() {
       clase: 'hidden sm:table-cell w-36',
       valorOrden: (permiso) => infoModulo(permiso.modulo).etiqueta,
       render: (permiso) => (
-        <Insignia variante="primario">{infoModulo(permiso.modulo).etiqueta}</Insignia>
+        <Insignia>{infoModulo(permiso.modulo).etiqueta}</Insignia>
       ),
     },
     {
@@ -462,7 +463,7 @@ export default function RolesPermisosPage() {
       clave: 'roles',
       titulo: 'Roles',
       tipo: 'texto',
-      clase: 'hidden md:table-cell w-48 break-words text-xs',
+      clase: 'hidden md:table-cell w-48 break-words text-body-sm',
       valorOrden: (permiso) => rolesConPermiso(permiso).map((rol) => rol.nombre).join(', '),
       render: (permiso) => {
         const conPermiso = rolesConPermiso(permiso);
@@ -480,7 +481,7 @@ export default function RolesPermisosPage() {
             {conPermiso.length > 2 && (
               <span
                 role="tooltip"
-                className="pointer-events-none absolute left-0 z-20 hidden bottom-full mb-1 w-max max-w-64 rounded-lg bg-fg px-3 py-2 text-xs font-normal text-background shadow-lg group-hover:block group-focus-within:block"
+                className="pointer-events-none absolute left-0 z-20 hidden bottom-full mb-1 w-max max-w-64 rounded-md bg-fg px-3 py-2 text-body-sm font-normal text-background shadow-md group-hover:block group-focus-within:block"
               >
                 {conPermiso.map((rol) => rol.nombre).join(', ')}
               </span>
@@ -517,9 +518,9 @@ export default function RolesPermisosPage() {
       {listo && (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Metrica icono={ICONOS.rol} valor={roles.length} etiqueta="Roles" tono="primario" />
-          <Metrica icono={KeyRound} valor={permisos.length} etiqueta="Permisos" tono="info" />
-          <Metrica icono={Layers} valor={modulos.length} etiqueta="Módulos" tono="info" />
-          <Metrica icono={CircleAlert} valor={sinAsignar} etiqueta="Permisos sin asignar" tono={sinAsignar ? 'aviso' : 'exito'} />
+          <Metrica icono={KeyRound} valor={permisos.length} etiqueta="Permisos" tono="neutro" />
+          <Metrica icono={Layers} valor={modulos.length} etiqueta="Módulos" tono="neutro" />
+          <Metrica icono={CircleAlert} valor={sinAsignar} etiqueta="Permisos sin asignar" tono={sinAsignar ? 'aviso' : 'neutro'} />
         </div>
       )}
 
@@ -529,9 +530,9 @@ export default function RolesPermisosPage() {
       {errorCarga ? (
         <BannerError error={errorCarga} onReintentar={() => cargarDatos()} />
       ) : cargando ? (
-        <div className="card"><Spinner texto="Cargando roles y permisos…" /></div>
+        <div className="card"><SkeletonTexto lineas={6} texto="Cargando roles y permisos…" /></div>
       ) : pestana === 'roles' ? (
-        <div ref={panelRef} role="tabpanel" id="panel-roles" aria-labelledby="tab-roles" className="grid gap-6 lg:grid-cols-[300px_1fr] lg:grid-rows-[minmax(0,1fr)]">
+        <div ref={panelRef} role="tabpanel" id="panel-roles" aria-labelledby="tab-roles" className="grid gap-6 lg:grid-cols-[18.75rem_1fr] lg:grid-rows-[minmax(0,1fr)]">
           <aside className="h-fit lg:-mx-1 lg:h-full lg:min-h-0 scroll-fino lg:overflow-y-auto lg:px-1 lg:py-1 lg:[scrollbar-gutter:stable]">
             {/* Móvil: selector compacto en lugar de una lista larga */}
             <div className="card lg:hidden">
@@ -540,7 +541,7 @@ export default function RolesPermisosPage() {
             </div>
 
             <nav className="card hidden p-3 lg:block" aria-label="Roles disponibles">
-              <h2 className="px-2 pb-3 text-sm font-semibold">{plural(roles.length, 'rol', 'roles')}</h2>
+              <h2 className="rotulo px-2 pb-3">{plural(roles.length, 'rol', 'roles')}</h2>
               <ul className="space-y-1">
                 {roles.map((rol) => {
                   const n = usuariosDelRol(rol);
@@ -548,21 +549,21 @@ export default function RolesPermisosPage() {
                   return (
                     <li key={rol.id_rol}>
                       <button type="button" aria-current={actual ? 'true' : undefined} onClick={() => seleccionarRol(rol.id_rol)}
-                        className={`w-full rounded-lg border px-3 py-3 text-left transition-colors ${actual ? 'border-primary/40 bg-primary-soft' : 'border-transparent hover:bg-muted'}`}>
+                        className={`w-full rounded-md border px-3 py-3 text-left transition-colors ${actual ? 'border-primary/40 bg-primary-soft' : 'border-transparent hover:bg-muted'}`}>
                         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <span className={`break-all text-sm font-semibold ${actual ? 'text-primary-text' : ''}`}>{rol.nombre}</span>
+                          <span className={`break-all text-label ${actual ? 'text-primary-text' : ''}`}>{rol.nombre}</span>
                           {rol.es_sistema && <Insignia>Sistema</Insignia>}
                           {!rol.activo && <Insignia variante="aviso">Inactivo</Insignia>}
                         </span>
-                        {rol.descripcion && <span className="mt-1 line-clamp-2 block text-xs text-fg-muted">{rol.descripcion}</span>}
+                        {rol.descripcion && <span className="mt-1 line-clamp-2 block text-body-sm text-fg-muted">{rol.descripcion}</span>}
                         <Cobertura className="mt-3" valor={rol.permisos.length} total={permisos.length} />
-                        <span className="mt-1.5 block text-xs text-fg-muted">{rol.permisos.length}/{permisos.length} permisos{n !== null && ` · ${plural(n, 'usuario', 'usuarios')}`}</span>
+                        <span className="mt-1.5 block text-body-sm tabular-nums text-fg-muted">{rol.permisos.length}/{permisos.length} permisos{n !== null && ` · ${plural(n, 'usuario', 'usuarios')}`}</span>
                       </button>
                     </li>
                   );
                 })}
               </ul>
-              {!roles.length && <p className="px-3 py-6 text-center text-sm text-fg-muted">Aún no hay roles. Crea el primero con «Nuevo rol».</p>}
+              {!roles.length && <p className="px-3 py-6 text-body text-fg-muted">Aún no hay roles. Crea el primero con «Nuevo rol».</p>}
             </nav>
           </aside>
 
@@ -572,13 +573,13 @@ export default function RolesPermisosPage() {
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="break-all text-xl font-bold tracking-tight">{rolActivo.nombre}</h2>
+                      <h2 className="break-all text-h2">{rolActivo.nombre}</h2>
                       {rolActivo.es_sistema && <Insignia>Sistema</Insignia>}
                       {esRolDeSesion && <Insignia variante="info">Tu rol</Insignia>}
                       {!rolActivo.activo && <Insignia variante="aviso">Inactivo</Insignia>}
                       {esAdmin && <Insignia variante="primario">Protegido</Insignia>}
                     </div>
-                    <p className="mt-1 text-sm text-fg-muted">{rolActivo.descripcion || 'Sin descripción.'}</p>
+                    <p className="mt-1 text-body text-fg-muted">{rolActivo.descripcion || 'Sin descripción.'}</p>
                   </div>
                   <div className="flex gap-2">
                     <Button variante="ghost" icono={ICONOS.editar} className="min-h-10" disabled={soloLectura} title={soloLectura ? (esAdmin ? 'El rol ADMIN es un rol protegido del sistema en solo lectura' : 'Un rol inactivo no se puede modificar') : undefined} onClick={() => abrirModalRol(rolActivo)}>Editar</Button>
@@ -587,18 +588,18 @@ export default function RolesPermisosPage() {
                 </div>
                 <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-line pt-4">
                   <div className="min-w-48 flex-1">
-                    <p className="flex items-baseline justify-between text-sm"><span className="font-medium">Permisos activos</span><span className="text-fg-muted"><strong className="text-fg">{seleccion.length}</strong> de {permisos.length}</span></p>
+                    <p className="flex items-baseline justify-between text-body"><span className="text-label">Permisos activos</span><span className="tabular-nums text-fg-muted"><strong className="text-fg">{seleccion.length}</strong> de {permisos.length}</span></p>
                     <Cobertura className="mt-2" valor={seleccion.length} total={permisos.length} />
                   </div>
-                  <p className="text-sm text-fg-muted">
+                  <p className="text-body text-fg-muted">
                     {usuariosDelRol(rolActivo) === null ? 'Usuarios: sin acceso para consultarlos' : <><strong className="text-fg">{usuariosDelRol(rolActivo)}</strong> {usuariosDelRol(rolActivo) === 1 ? 'usuario asignado' : 'usuarios asignados'}</>}
                   </p>
                 </div>
               </div>
 
               {soloLectura && (
-                <div className="mb-5 flex items-start gap-2 rounded-lg border border-warning/30 bg-warning-soft px-4 py-3 text-sm" role="status">
-                  <Info size={17} aria-hidden="true" className="mt-0.5 shrink-0 text-warning" />
+                <div className="mb-5 flex items-start gap-2 rounded-md border border-warning/30 bg-warning-soft px-4 py-3 text-body text-warning-text" role="status">
+                  <Info size={16} strokeWidth={1.75} aria-hidden="true" className="mt-0.5 shrink-0" />
                   {esAdmin
                     ? 'El rol ADMIN es un rol protegido del sistema con todos los permisos: su configuración es de solo lectura.'
                     : 'Este rol está inactivo: puedes ver sus permisos, pero no modificarlos.'}
@@ -606,9 +607,9 @@ export default function RolesPermisosPage() {
               )}
 
               <div className="relative mb-5">
-                <Search size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" aria-hidden="true" />
-                <input className="input pl-10" value={filtro} onChange={(event) => setFiltro(event.target.value)} placeholder="Buscar permiso o módulo…" aria-label="Buscar permiso" />
-                {actualizandoRol && <span role="status" className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-fg-muted">Actualizando…</span>}
+                <Search size={16} strokeWidth={1.75} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden="true" />
+                <input className="input pl-9" value={filtro} onChange={(event) => setFiltro(event.target.value)} placeholder="Buscar permiso o módulo…" aria-label="Buscar permiso" />
+                {actualizandoRol && <span role="status" className="absolute right-3 top-1/2 -translate-y-1/2 text-body-sm text-fg-muted">Actualizando…</span>}
               </div>
 
               <div className="space-y-4">
@@ -626,8 +627,8 @@ export default function RolesPermisosPage() {
               </div>
 
               {hayCambios && (
-                <div className="sticky bottom-4 z-10 mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/40 bg-surface p-4 shadow-lg" role="region" aria-label="Cambios sin guardar">
-                  <p className="text-sm"><span className="font-semibold">Cambios sin guardar</span> · <span className="text-success">{agregados.length} por agregar</span> · <span className="text-danger">{quitados.length} por quitar</span></p>
+                <div className="sticky bottom-4 z-10 mt-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface p-4 shadow-md" role="region" aria-label="Cambios sin guardar">
+                  <p className="text-body tabular-nums"><span className="font-semibold">Cambios sin guardar</span> · <span className="text-success-text">{agregados.length} por agregar</span> · <span className="text-danger-text">{quitados.length} por quitar</span></p>
                   <div className="flex gap-2">
                     <Button variante="ghost" icono={Undo2} onClick={descartarCambios} disabled={guardando}>Descartar</Button>
                     <Button icono={Save} onClick={guardarAsignacion} cargando={guardando}>{guardando ? 'Guardando…' : 'Guardar cambios'}</Button>
@@ -640,19 +641,19 @@ export default function RolesPermisosPage() {
           )}
         </div>
       ) : (
-        <div role="tabpanel" id="panel-permisos" aria-labelledby="tab-permisos" className="card mt-6 min-w-0 overflow-hidden !p-0">
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line p-4 sm:p-5">
+        <div role="tabpanel" id="panel-permisos" aria-labelledby="tab-permisos" className="card min-w-0 overflow-hidden !p-0">
+          <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3">
             <div>
-              <h2 className="font-semibold">Catálogo de permisos</h2>
-              <p className="mt-1 text-xs text-fg-muted">{plural(permisosFiltrados.length, 'permiso', 'permisos')}{permisosFiltrados.length !== permisos.length && ` de ${permisos.length}`}</p>
+              <h2 className="text-h3">Catálogo de permisos</h2>
+              <p className="mt-0.5 text-body-sm tabular-nums text-fg-muted">{plural(permisosFiltrados.length, 'permiso', 'permisos')}{permisosFiltrados.length !== permisos.length && ` de ${permisos.length}`}</p>
             </div>
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <div className="flex w-full flex-col gap-2 sm:ml-auto sm:w-auto sm:flex-row">
               <div className="sm:w-48">
                 <Select aria-label="Filtrar por módulo" placeholder="Todos los módulos" value={filtroModulo} onChange={(event) => setFiltroModulo(event.target.value)}
                   opciones={modulos.map((modulo) => ({ valor: modulo, texto: infoModulo(modulo).etiqueta }))} />
               </div>
               <div className="relative sm:w-72">
-                <Search size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" aria-hidden="true" />
+                <Search size={16} strokeWidth={1.75} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden="true" />
                 <input className="input pl-9" value={filtroPermisos} onChange={(event) => setFiltroPermisos(event.target.value)} placeholder="Buscar código o descripción…" aria-label="Buscar permiso" />
               </div>
             </div>

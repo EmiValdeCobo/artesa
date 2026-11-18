@@ -52,4 +52,18 @@ export const detalle = (id) => select(`SELECT p.*,s.nombre AS sucursal, e.id_emp
   JOIN rrhh.planilla_detalles d USING(id_planilla) JOIN rrhh.empleados e USING(id_empleado)
   LEFT JOIN rrhh.planilla_ajustes a USING(id_planilla,id_empleado)
   WHERE p.id_planilla=$1 ORDER BY e.apellidos,e.nombres`, [id]);
+// Totales por columna del detalle, sumados en PostgreSQL (NUMERIC → texto; nunca float en JS).
+export const totalesDetalle = (id) => select(`SELECT count(*)::int AS empleados,
+  COALESCE(sum(salario_bruto),0)::numeric(12,2)::text AS salario_bruto,
+  COALESCE(sum(bonificaciones),0)::numeric(12,2)::text AS bonificaciones,
+  COALESCE(sum(isss_laboral),0)::numeric(12,2)::text AS isss_laboral,
+  COALESCE(sum(afp_laboral),0)::numeric(12,2)::text AS afp_laboral,
+  COALESCE(sum(renta_retenida),0)::numeric(12,2)::text AS renta_retenida,
+  COALESCE(sum(otros_descuentos),0)::numeric(12,2)::text AS otros_descuentos,
+  COALESCE(sum(total_descuentos),0)::numeric(12,2)::text AS total_descuentos,
+  COALESCE(sum(salario_neto),0)::numeric(12,2)::text AS salario_neto,
+  COALESCE(sum(isss_patronal),0)::numeric(12,2)::text AS isss_patronal,
+  COALESCE(sum(afp_patronal),0)::numeric(12,2)::text AS afp_patronal,
+  COALESCE(sum(insaforp_patronal),0)::numeric(12,2)::text AS insaforp_patronal
+  FROM rrhh.planilla_detalles WHERE id_planilla=$1`, [id]).then((x) => x[0]);
 export const unaPlanilla = (id) => select('SELECT * FROM rrhh.planillas WHERE id_planilla=$1', [id]).then((x) => x[0] ?? null);

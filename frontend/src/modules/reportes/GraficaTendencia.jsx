@@ -40,8 +40,8 @@ const etiquetaLargaDe = (f) => (ES_DIA.test(f.fecha) ? capitalizar(etiquetaDiaLa
 export function LeyendaTendencia({ className = '' }) {
   const idRayas = useId();
   return (
-    <ul className={`flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-fg-muted ${className}`}>
-      <li className="flex items-center gap-1.5"><span aria-hidden="true" className="inline-block h-3 w-3 rounded-sm bg-(--serie-5)" />Días cerrados</li>
+    <ul className={`flex flex-wrap items-center gap-x-5 gap-y-2 text-label-sm text-fg-muted ${className}`}>
+      <li className="flex items-center gap-1.5"><span aria-hidden="true" className="inline-block h-3 w-3 rounded-sm bg-(--chart-neutral)" />Días cerrados</li>
       <li className="flex items-center gap-1.5">
         <svg width="12" height="12" aria-hidden="true" className="border border-(--serie-1)">
           <defs><pattern id={idRayas} width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" className="fill-(--serie-1)" fillOpacity=".28" /><rect width="2.5" height="5" className="fill-(--serie-1)" /></pattern></defs>
@@ -85,8 +85,8 @@ export default function GraficaTendencia({ serie, hoy, cargando, error }) {
   }, [serie, hoy]);
 
   if (cargando) return <Spinner texto="Cargando tendencia de ventas…" className="h-64" />;
-  if (error) return <p className="flex h-64 items-center justify-center text-center text-sm text-danger" role="alert">No se pudo cargar la tendencia de ventas.</p>;
-  if (!serie.length) return <p className="flex h-64 items-center justify-center text-center text-sm text-fg-muted">Sin ventas en este rango</p>;
+  if (error) return <p className="flex h-64 items-center justify-center text-center text-body text-danger-text" role="alert">No se pudo cargar la tendencia de ventas.</p>;
+  if (!serie.length) return <p className="flex h-64 items-center justify-center text-center text-body text-fg-muted">Sin ventas en este rango</p>;
 
   const n = serie.length;
   const eje = calcularEje(Math.max(...serie.map((f) => f.total), promedio ?? 0));
@@ -131,7 +131,7 @@ export default function GraficaTendencia({ serie, hoy, cargando, error }) {
 
           {eje.marcas.map((marca) => (
             <g key={marca}>
-              <line x1={M.izquierda} x2={ancho - M.derecha} y1={yDe(marca)} y2={yDe(marca)} className={marca === 0 ? 'stroke-fg-muted' : 'stroke-line'} strokeWidth="1" strokeDasharray={marca === 0 ? undefined : '2 4'} />
+              <line x1={M.izquierda} x2={ancho - M.derecha} y1={yDe(marca)} y2={yDe(marca)} className={marca === 0 ? 'stroke-fg-muted' : 'stroke-(--chart-grid)'} strokeWidth="1" />
               <text x={M.izquierda - 10} y={yDe(marca) + 4} textAnchor="end" className="fill-fg-muted tabular-nums" fontSize="12">{Number.isInteger(eje.paso) ? formatoDineroCorto(marca / 100) : formatoCentavos(Math.round(marca))}</text>
             </g>
           ))}
@@ -157,9 +157,9 @@ export default function GraficaTendencia({ serie, hoy, cargando, error }) {
             const esHoy = i === indiceHoy;
             const bajoCursor = i === activo;
             const esMejor = i === indiceMejor;
-            let relleno = 'fill-(--serie-5)';
+            let relleno = 'fill-(--chart-neutral)';
             if (esHoy) relleno = '';
-            else if (bajoCursor || esMejor) relleno = 'fill-(--serie-1)';
+            else if (bajoCursor || esMejor) relleno = 'fill-(--chart-focus)';
             return (
               <g key={f.fecha} opacity={activo !== null && !bajoCursor ? 0.6 : 1}>
                 <rect x={x} y={base - alto} width={anchoBarra} height={alto} className={relleno} fill={esHoy ? `url(#${idRayas})` : undefined}

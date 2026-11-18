@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, ShieldCheck } from 'lucide-react';
+import { Search, ShieldCheck, UserPlus, Users } from 'lucide-react';
 import { api } from '../../api/client.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
@@ -8,7 +8,10 @@ import CampoError, { idError } from '../../components/forms/CampoError.jsx';
 import Dialogo from '../../components/Dialogo.jsx';
 import { traducirError } from '../../errors/traducirError.js';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
-import { BotonIcono, Button, Select, Spinner, Table } from '../../components/ui/index.js';
+import { BotonIcono, Button, Card, Select, Table } from '../../components/ui/index.js';
+import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
+import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
+import Insignia from '../../components/branding/Insignia.jsx';
 import { ICONOS } from '../../config/iconos.js';
 
 const formularioInicial = { username: '', password: '', idRol: '', sucursales: [] };
@@ -81,8 +84,8 @@ function UsuarioModal({ usuario, roles, sucursales, guardando, onClose, onSubmit
     <Dialogo tamano="lg" labelledBy="usuario-modal-titulo" describedBy="usuario-modal-descripcion" enfoqueInicial={usernameRef} cerrarConFondo={false} onCerrar={onClose}>
       <div className="flex items-start justify-between gap-4 border-b border-line p-5 sm:p-6">
         <div>
-          <h2 id="usuario-modal-titulo" className="text-xl font-bold tracking-tight">{usuario ? 'Editar usuario' : 'Nuevo usuario'}</h2>
-          <p id="usuario-modal-descripcion" className="mt-1 text-sm text-fg-muted">Asigna sus credenciales, rol y sucursales de operación.</p>
+          <h2 id="usuario-modal-titulo" className="text-h3">{usuario ? 'Editar usuario' : 'Nuevo usuario'}</h2>
+          <p id="usuario-modal-descripcion" className="mt-1 text-body-sm text-fg-muted">Asigna sus credenciales, rol y sucursales de operación.</p>
         </div>
         <BotonIcono icono={ICONOS.cerrar} etiqueta="Cerrar formulario" onClick={onClose} />
       </div>
@@ -90,14 +93,14 @@ function UsuarioModal({ usuario, roles, sucursales, guardando, onClose, onSubmit
       <form noValidate onSubmit={enviar}>
         <div className="space-y-5 p-5 sm:p-6">
           <div>
-            <label htmlFor={idCampo('username')} className="block text-sm font-medium">Nombre de usuario</label>
+            <label htmlFor={idCampo('username')} className="rotulo block">Nombre de usuario</label>
             <input id={idCampo('username')} ref={usernameRef} className={`input mt-1.5 ${claseInvalida}`} value={formulario.username} onChange={(event) => actualizar('username', event.target.value)}
               autoComplete="off" autoCapitalize="none" spellCheck={false} aria-invalid={errores.username ? true : undefined} aria-describedby={describir(errores, 'username')} />
             <CampoError id={idCampo('username')} mensaje={errores.username} />
           </div>
 
           <div>
-            <label htmlFor={idCampo('password')} className="block text-sm font-medium">{usuario ? 'Nueva contraseña (opcional)' : 'Contraseña'}</label>
+            <label htmlFor={idCampo('password')} className="rotulo block">{usuario ? 'Nueva contraseña (opcional)' : 'Contraseña'}</label>
             <input id={idCampo('password')} className={`input mt-1.5 ${claseInvalida}`} type="password" value={formulario.password} onChange={(event) => actualizar('password', event.target.value)}
               autoComplete="new-password" placeholder={usuario ? 'Dejar vacío para conservarla' : 'Mínimo 8 caracteres'} aria-invalid={errores.password ? true : undefined} aria-describedby={describir(errores, 'password')} />
             <CampoError id={idCampo('password')} mensaje={errores.password} />
@@ -110,12 +113,12 @@ function UsuarioModal({ usuario, roles, sucursales, guardando, onClose, onSubmit
           </div>
 
           <fieldset id={idCampo('sucursales')} tabIndex={-1} className="outline-none" aria-describedby={describir(errores, 'sucursales')}>
-            <legend className="text-sm font-medium">Sucursales asignadas</legend>
+            <legend className="rotulo">Sucursales asignadas</legend>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               {sucursales.map((sucursal) => (
-                <label key={sucursal.id_sucursal} className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border px-3 py-3 text-sm hover:bg-muted ${errores.sucursales ? 'border-danger' : 'border-line'}`}>
+                <label key={sucursal.id_sucursal} className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border px-3 py-3 text-body-sm transition-colors hover:bg-muted has-[:checked]:bg-primary-soft ${errores.sucursales ? 'border-danger' : 'border-line'}`}>
                   <input type="checkbox" className="h-4 w-4 accent-primary" checked={formulario.sucursales.includes(sucursal.id_sucursal)} onChange={() => alternarSucursal(sucursal.id_sucursal)} />
-                  <span><span className="block font-medium">{sucursal.nombre}</span><span className="text-xs text-fg-muted">{sucursal.codigo_establecimiento}</span></span>
+                  <span><span className="block font-medium">{sucursal.nombre}</span><span className="text-label-sm tabular-nums text-fg-muted">{sucursal.codigo_establecimiento}</span></span>
                 </label>
               ))}
             </div>
@@ -124,8 +127,8 @@ function UsuarioModal({ usuario, roles, sucursales, guardando, onClose, onSubmit
         </div>
 
         <div className="sticky bottom-0 flex flex-col-reverse gap-2.5 border-t border-line bg-surface p-5 sm:flex-row sm:justify-end sm:p-6">
-          <Button variante="ghost" className="min-h-11 sm:min-h-10" onClick={onClose}>Cancelar</Button>
-          <Button type="submit" className="min-h-11 sm:min-h-10" disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar usuario'}</Button>
+          <Button variante="ghost" onClick={onClose}>Cancelar</Button>
+          <Button type="submit" disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar usuario'}</Button>
         </div>
       </form>
     </Dialogo>
@@ -141,6 +144,7 @@ export default function UsuariosPage() {
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState(null);       // la lista no cargó → mensaje en línea con "Reintentar"
   const [filtro, setFiltro] = useState('');
+  const [filtroEstado, setFiltroEstado] = useState(''); // '' = todos · 'activos' · 'inactivos'
   const [usuarioEditando, setUsuarioEditando] = useState(null);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -166,7 +170,12 @@ export default function UsuariosPage() {
 
   useEffect(() => { cargarDatos(); }, []);
 
-  const usuariosFiltrados = useMemo(() => usuarios.filter((usuario) => `${usuario.username} ${usuario.rol}`.toLowerCase().includes(filtro.toLowerCase())), [usuarios, filtro]);
+  const usuariosFiltrados = useMemo(() => usuarios.filter((usuario) =>
+    `${usuario.username} ${usuario.rol}`.toLowerCase().includes(filtro.trim().toLowerCase())
+    && (!filtroEstado || (filtroEstado === 'activos') === Boolean(usuario.activo))), [usuarios, filtro, filtroEstado]);
+  const hayFiltros = Boolean(filtro.trim() || filtroEstado);
+  const limpiarFiltros = () => { setFiltro(''); setFiltroEstado(''); };
+  const abrirNuevo = () => { setUsuarioEditando(null); setModalAbierto(true); };
 
   const cerrarModal = () => { setModalAbierto(false); setUsuarioEditando(null); };
 
@@ -236,86 +245,103 @@ export default function UsuariosPage() {
 
   return (
     <div className="mx-auto max-w-7xl">
-      <EncabezadoPagina seccion="Administración · Usuarios y roles" titulo="Usuarios" descripcion="Administra cuentas, roles y sucursales de operación." acciones={<Button icono={ICONOS.crear} disabled={Boolean(errorCarga) || cargando} onClick={() => { setUsuarioEditando(null); setModalAbierto(true); }}>Nuevo usuario</Button>} />
+      <EncabezadoPagina seccion="Administración · Usuarios y roles" titulo="Usuarios" descripcion="Administra cuentas, roles y sucursales de operación." />
 
       {errorCarga ? (
         <BannerError className="mt-6" error={errorCarga} onReintentar={cargarDatos} />
       ) : (
-        <div className="card mt-6 overflow-hidden !p-0">
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line p-5">
-            <div><h2 className="font-semibold">Cuentas del sistema</h2><p className="mt-1 text-xs text-fg-muted">{usuarios.length} cuentas registradas</p></div>
-            <div className="relative w-full sm:w-72"><Search size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" aria-hidden="true" /><input className="input pl-9" value={filtro} onChange={(event) => setFiltro(event.target.value)} placeholder="Buscar usuario o rol…" aria-label="Buscar usuario" /></div>
+        <>
+          {/* Barra de herramientas: búsqueda + un filtro + acción principal */}
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative w-full sm:max-w-xs">
+              <Search size={16} strokeWidth={1.75} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" aria-hidden="true" />
+              <input type="search" className="input pl-9" value={filtro} onChange={(event) => setFiltro(event.target.value)} placeholder="Buscar usuario o rol…" aria-label="Buscar usuario" />
+            </div>
+            <div className="w-full sm:w-44">
+              <Select aria-label="Filtrar por estado" placeholder="Todos los estados" value={filtroEstado} onChange={(event) => setFiltroEstado(event.target.value)}
+                opciones={[{ valor: 'activos', texto: 'Activos' }, { valor: 'inactivos', texto: 'Inactivos' }]} />
+            </div>
+            <Button icono={ICONOS.crear} className="sm:ml-auto" disabled={cargando} onClick={abrirNuevo}>Nuevo usuario</Button>
           </div>
-          {cargando ? <Spinner texto="Cargando usuarios…" /> : (
-            <Table
-              filas={usuariosFiltrados}
-              idFila="id_usuario"
-              idTabla="seguridad-usuarios"
-              ordenInicial={{ clave: 'username', direccion: 'asc' }}
-              minAncho="min-w-[700px]"
-              vacio={usuarios.length ? 'Ningún usuario coincide con tu búsqueda. Prueba con otro nombre o rol.' : 'Aún no hay usuarios registrados. Crea el primero con «Nuevo usuario».'}
-              columnas={[
-                {
-                  clave: 'username',
-                  titulo: 'Usuario',
-                  tipo: 'texto',
-                  render: (usuario) => <span className="font-medium">{usuario.username}</span>,
-                },
-                {
-                  clave: 'rol',
-                  titulo: 'Rol',
-                  tipo: 'texto',
-                  valorOrden: (usuario) => usuario.rol,
-                  render: (usuario) => (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-primary-text">
-                      <ShieldCheck size={13} aria-hidden="true" />
-                      {usuario.rol}
-                    </span>
-                  ),
-                },
-                {
-                  clave: 'sucursales',
-                  titulo: 'Sucursales',
-                  tipo: 'texto',
-                  clase: 'max-w-xs',
-                  valorOrden: (usuario) => (usuario.sucursales ?? []).map((sucursal) => sucursal.nombre).join(', ') || 'Sin asignar',
-                  render: (usuario) => (
-                    <span className="text-xs text-fg-muted">
-                      {(usuario.sucursales ?? []).map((sucursal) => sucursal.nombre).join(', ') || 'Sin asignar'}
-                    </span>
-                  ),
-                },
-                {
-                  clave: 'activo',
-                  titulo: 'Estado',
-                  tipo: 'booleano',
-                  valorOrden: (usuario) => Boolean(usuario.activo),
-                  render: (usuario) => (
-                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${usuario.activo ? 'bg-success-soft text-success' : 'bg-muted text-fg-muted'}`}>
-                      {usuario.activo ? 'Activo' : 'Inactivo'}
-                    </span>
-                  ),
-                },
-                {
-                  clave: 'acciones',
-                  titulo: 'Acciones',
-                  alinear: 'right',
-                  ordenable: false,
-                  render: (usuario) => (
-                    <div className="flex justify-end gap-2">
-                      <BotonIcono icono={ICONOS.editar} etiqueta={`Editar ${usuario.username}`} titulo="Editar" onClick={() => { setUsuarioEditando(usuario); setModalAbierto(true); }} />
-                      {usuario.activo
-                        ? <BotonIcono icono={ICONOS.desactivarUsuario} tono="aviso" etiqueta={`Desactivar ${usuario.username}`} titulo="Desactivar" onClick={() => desactivar(usuario)} />
-                        : <BotonIcono icono={ICONOS.activarUsuario} tono="exito" etiqueta={`Activar ${usuario.username}`} titulo="Activar" onClick={() => activar(usuario)} />
-                      }
-                      <BotonIcono icono={ICONOS.eliminar} tono="peligro" etiqueta={`Eliminar ${usuario.username}`} titulo="Eliminar definitivamente" onClick={() => eliminar(usuario)} />
-                    </div>
-                  ),
-                },
-              ]}
-            />
-          )}
-        </div>
+
+          <Card sinPadding className="mt-4 overflow-hidden" icono={Users} titulo="Cuentas del sistema"
+            descripcion={cargando ? 'Cargando cuentas…' : <span className="tabular-nums">{hayFiltros ? `${usuariosFiltrados.length} de ${usuarios.length} cuentas` : `${usuarios.length} cuentas registradas`}</span>}>
+            {!cargando && !usuarios.length ? (
+              <EstadoVacio icono={UserPlus} titulo="Aún no hay usuarios registrados" accion={<Button icono={ICONOS.crear} onClick={abrirNuevo}>Nuevo usuario</Button>}>
+                Crea la primera cuenta y asígnale un rol y sus sucursales.
+              </EstadoVacio>
+            ) : !cargando && !usuariosFiltrados.length ? (
+              <EstadoVacio icono={Search} titulo="Sin resultados" accion={<Button variante="ghost" onClick={limpiarFiltros}>Limpiar filtros</Button>}>
+                Ningún usuario coincide con tu búsqueda. Prueba con otro nombre o rol.
+              </EstadoVacio>
+            ) : (
+              <Table
+                cargando={cargando}
+                filas={usuariosFiltrados}
+                idFila="id_usuario"
+                idTabla="seguridad-usuarios"
+                ordenInicial={{ clave: 'username', direccion: 'asc' }}
+                minAncho="min-w-[700px]"
+                idSeleccionado={modalAbierto ? usuarioEditando?.id_usuario : undefined}
+                columnas={[
+                  {
+                    clave: 'username',
+                    titulo: 'Usuario',
+                    tipo: 'texto',
+                    render: (usuario) => (
+                      <span className="inline-flex items-center gap-2 font-medium text-fg">
+                        {usuario.username}
+                        {String(usuario.id_usuario) === String(usuarioSesion?.id) && <Insignia variante="info">Tú</Insignia>}
+                      </span>
+                    ),
+                  },
+                  {
+                    clave: 'rol',
+                    titulo: 'Rol',
+                    tipo: 'texto',
+                    valorOrden: (usuario) => usuario.rol,
+                    render: (usuario) => <Insignia variante="primario" icono={ShieldCheck}>{usuario.rol}</Insignia>,
+                  },
+                  {
+                    clave: 'sucursales',
+                    titulo: 'Sucursales',
+                    tipo: 'texto',
+                    clase: 'max-w-xs',
+                    valorOrden: (usuario) => (usuario.sucursales ?? []).map((sucursal) => sucursal.nombre).join(', ') || 'Sin asignar',
+                    render: (usuario) => (
+                      <span className="text-body-sm text-fg-muted">
+                        {(usuario.sucursales ?? []).map((sucursal) => sucursal.nombre).join(', ') || 'Sin asignar'}
+                      </span>
+                    ),
+                  },
+                  {
+                    clave: 'activo',
+                    titulo: 'Estado',
+                    tipo: 'booleano',
+                    valorOrden: (usuario) => Boolean(usuario.activo),
+                    render: (usuario) => <EstadoBadge tipo={usuario.activo ? 'exito' : 'inactivo'}>{usuario.activo ? 'Activo' : 'Inactivo'}</EstadoBadge>,
+                  },
+                  {
+                    clave: 'acciones',
+                    titulo: 'Acciones',
+                    alinear: 'right',
+                    ordenable: false,
+                    render: (usuario) => (
+                      <div className="flex justify-end gap-1">
+                        <BotonIcono icono={ICONOS.editar} etiqueta={`Editar ${usuario.username}`} titulo="Editar" onClick={() => { setUsuarioEditando(usuario); setModalAbierto(true); }} />
+                        {usuario.activo
+                          ? <BotonIcono icono={ICONOS.desactivarUsuario} etiqueta={`Desactivar ${usuario.username}`} titulo="Desactivar" onClick={() => desactivar(usuario)} />
+                          : <BotonIcono icono={ICONOS.activarUsuario} etiqueta={`Activar ${usuario.username}`} titulo="Activar" onClick={() => activar(usuario)} />
+                        }
+                        <BotonIcono icono={ICONOS.eliminar} tono="peligro" etiqueta={`Eliminar ${usuario.username}`} titulo="Eliminar definitivamente" onClick={() => eliminar(usuario)} />
+                      </div>
+                    ),
+                  },
+                ]}
+              />
+            )}
+          </Card>
+        </>
       )}
 
       {modalAbierto && <UsuarioModal usuario={usuarioEditando} roles={roles} sucursales={sucursales} guardando={guardando} onClose={cerrarModal} onSubmit={guardarUsuario} />}

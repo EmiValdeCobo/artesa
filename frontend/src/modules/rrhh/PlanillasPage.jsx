@@ -416,7 +416,7 @@ export default function PlanillasPage() {
             <p className="font-semibold text-fg">
               {emp.apellidos}, {emp.nombres}
             </p>
-            <p className="text-[11px] text-fg-muted font-mono">{emp.dui}</p>
+            <p className="text-label-sm text-fg-muted font-mono">{emp.dui}</p>
           </div>
         ),
       },
@@ -444,7 +444,7 @@ export default function PlanillasPage() {
               </span>
               {(Array.isArray(emp.detalle) ? emp.detalle[0] : emp.detalle) ? (
                 <span
-                  className="text-[10px] text-fg-muted italic truncate max-w-[120px]"
+                  className="text-label-sm text-fg-muted italic truncate max-w-32"
                   title={Array.isArray(emp.detalle) ? emp.detalle.join(' · ') : emp.detalle}
                 >
                   {Array.isArray(emp.detalle) ? emp.detalle[0] : emp.detalle}
@@ -454,7 +454,7 @@ export default function PlanillasPage() {
                 <button
                   type="button"
                   onClick={() => abrirModalBono(emp)}
-                  className="mt-0.5 inline-flex items-center gap-0.5 text-[10px] font-medium text-primary-text hover:underline"
+                  className="mt-0.5 inline-flex items-center gap-0.5 text-label-sm font-medium text-primary-text hover:underline"
                 >
                   <Pencil size={10} aria-hidden="true" />
                   Editar
@@ -465,7 +465,7 @@ export default function PlanillasPage() {
             <button
               type="button"
               onClick={() => abrirModalBono(emp)}
-              className="inline-flex items-center gap-1 rounded bg-muted/60 px-2 py-0.5 text-[11px] font-medium text-primary-text hover:bg-primary-soft hover:text-primary transition-colors"
+              className="inline-flex items-center gap-1 rounded bg-muted/60 px-2 py-0.5 text-label-sm font-medium text-primary-text hover:bg-primary-soft hover:text-primary transition-colors"
               title="Asignar bono a este empleado"
             >
               <Plus size={11} aria-hidden="true" />
@@ -482,7 +482,7 @@ export default function PlanillasPage() {
         tipo: 'dinero',
         valorOrden: (emp) => emp.isss_laboral,
         render: (emp) => (
-          <span className="text-danger">-{formatoDinero(emp.isss_laboral)}</span>
+          <span className="text-danger-text">-{formatoDinero(emp.isss_laboral)}</span>
         ),
       },
       {
@@ -492,7 +492,7 @@ export default function PlanillasPage() {
         tipo: 'dinero',
         valorOrden: (emp) => emp.afp_laboral,
         render: (emp) => (
-          <span className="text-danger">-{formatoDinero(emp.afp_laboral)}</span>
+          <span className="text-danger-text">-{formatoDinero(emp.afp_laboral)}</span>
         ),
       },
       {
@@ -502,7 +502,7 @@ export default function PlanillasPage() {
         tipo: 'dinero',
         valorOrden: (emp) => emp.renta_retenida,
         render: (emp) => (
-          <span className="text-danger">-{formatoDinero(emp.renta_retenida)}</span>
+          <span className="text-danger-text">-{formatoDinero(emp.renta_retenida)}</span>
         ),
       },
       {
@@ -512,7 +512,7 @@ export default function PlanillasPage() {
         tipo: 'dinero',
         valorOrden: (emp) => emp.total_descuentos,
         render: (emp) => (
-          <span className="font-semibold text-danger">-{formatoDinero(emp.total_descuentos)}</span>
+          <span className="font-semibold text-danger-text">-{formatoDinero(emp.total_descuentos)}</span>
         ),
       },
       {
@@ -542,14 +542,14 @@ export default function PlanillasPage() {
                   emp.id_empleado
                 )
               }
-              className="inline-flex items-center gap-1 text-[11px] font-medium text-primary-text hover:underline"
+              className="inline-flex items-center gap-1 text-label-sm font-medium text-primary-text hover:underline"
               title="Descargar boleta individual"
             >
               <Download size={13} aria-hidden="true" />
               Boleta
             </button>
           ) : (
-            <span className="text-fg-muted text-[11px]">—</span>
+            <span className="text-fg-muted text-label-sm">—</span>
           ),
       },
     ],
@@ -601,13 +601,13 @@ export default function PlanillasPage() {
           icono={FileText}
           etiqueta="Total planillas"
           valor={metricas.total}
-          tono="primario"
+          tono="neutro"
         />
         <Metrica
           icono={CheckCircle2}
           etiqueta="Planillas procesadas"
           valor={metricas.procesadas}
-          tono="exito"
+          tono="neutro"
         />
         <Metrica
           icono={AlertTriangle}
@@ -619,7 +619,7 @@ export default function PlanillasPage() {
           icono={DollarSign}
           etiqueta="Neto histórico pagado"
           valor={formatoDinero(metricas.totalNeto)}
-          tono="info"
+          tono="neutro"
         />
       </div>
 
@@ -693,7 +693,7 @@ export default function PlanillasPage() {
           <form onSubmit={handleCrearPlanilla} className="space-y-4 p-5">
             <div>
               <label className="block text-sm font-medium text-fg">
-                Sucursal <span className="text-danger">*</span>
+                Sucursal <span className="text-danger-text">*</span>
               </label>
               <div className="mt-1.5">
                 <Select
@@ -710,7 +710,7 @@ export default function PlanillasPage() {
 
             <div>
               <label htmlFor="crear-periodo" className="block text-sm font-medium text-fg">
-                Mes a liquidar (AAAA-MM) <span className="text-danger">*</span>
+                Mes a liquidar (AAAA-MM) <span className="text-danger-text">*</span>
               </label>
               <input
                 id="crear-periodo"
@@ -841,6 +841,21 @@ export default function PlanillasPage() {
                     filas={planillaSeleccionada.empleados}
                     idFila="id_empleado"
                     idTabla="rrhh_planilla_detalle"
+                    pie={(() => {
+                      // Totales por columna calculados en SQL (GET /rrhh/planillas/:id → totales); no se suma en JS.
+                      const t = planillaSeleccionada.totales;
+                      if (!t) return null;
+                      return {
+                        empleado: 'Total',
+                        salario_bruto: formatoDinero(t.salario_bruto),
+                        bonificaciones: formatoDinero(t.bonificaciones),
+                        isss_laboral: formatoDinero(t.isss_laboral),
+                        afp_laboral: formatoDinero(t.afp_laboral),
+                        renta_retenida: formatoDinero(t.renta_retenida),
+                        total_descuentos: formatoDinero(t.total_descuentos),
+                        salario_neto: formatoDinero(t.salario_neto),
+                      };
+                    })()}
                     paginacion={planillaSeleccionada.empleados.length > 10}
                     filasPorPaginaInicial={25}
                     vacio="No hay empleados calculados en esta planilla."
@@ -906,7 +921,7 @@ export default function PlanillasPage() {
           <form onSubmit={handleGuardarBono} className="space-y-4 p-5">
             <div>
               <label htmlFor="bono-monto" className="block text-sm font-medium text-fg">
-                Monto del bono ($) <span className="text-danger">*</span>
+                Monto del bono ($) <span className="text-danger-text">*</span>
               </label>
               <input
                 id="bono-monto"
@@ -929,7 +944,7 @@ export default function PlanillasPage() {
 
             <div>
               <label htmlFor="bono-descripcion" className="block text-sm font-medium text-fg">
-                Descripción / Motivo del bono <span className="text-danger">*</span>
+                Descripción / Motivo del bono <span className="text-danger-text">*</span>
               </label>
               <input
                 id="bono-descripcion"
@@ -951,7 +966,7 @@ export default function PlanillasPage() {
                 <Button
                   variante="ghost"
                   type="button"
-                  className="text-danger hover:bg-danger-soft text-xs"
+                  className="text-danger-text hover:bg-danger-soft text-xs"
                   onClick={handleQuitarBono}
                   disabled={guardandoBono}
                   icono={Trash2}

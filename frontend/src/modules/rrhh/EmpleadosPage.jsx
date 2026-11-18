@@ -464,13 +464,13 @@ export default function EmpleadosPage() {
           icono={Users}
           etiqueta="Total empleados"
           valor={metricas.total}
-          tono="primario"
+          tono="neutro"
         />
         <Metrica
           icono={UserCheck}
           etiqueta="Empleados activos"
           valor={metricas.activos}
-          tono="exito"
+          tono="neutro"
         />
         <Metrica
           icono={UserX}
@@ -482,7 +482,7 @@ export default function EmpleadosPage() {
           icono={CreditCard}
           etiqueta="Planilla nominal estimada"
           valor={formatoDinero(metricas.totalNomina)}
-          tono="info"
+          tono="neutro"
         />
       </div>
 
@@ -574,7 +574,7 @@ export default function EmpleadosPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="emp-nombres" className="block text-sm font-medium text-fg">
-                  Nombres <span className="text-danger">*</span>
+                  Nombres <span className="text-danger-text">*</span>
                 </label>
                 <input
                   id="emp-nombres"
@@ -586,13 +586,13 @@ export default function EmpleadosPage() {
                   required
                 />
                 {erroresForm.nombres && (
-                  <p className="mt-1 text-xs text-danger">{erroresForm.nombres}</p>
+                  <p className="mt-1 text-xs text-danger-text">{erroresForm.nombres}</p>
                 )}
               </div>
 
               <div>
                 <label htmlFor="emp-apellidos" className="block text-sm font-medium text-fg">
-                  Apellidos <span className="text-danger">*</span>
+                  Apellidos <span className="text-danger-text">*</span>
                 </label>
                 <input
                   id="emp-apellidos"
@@ -604,7 +604,7 @@ export default function EmpleadosPage() {
                   required
                 />
                 {erroresForm.apellidos && (
-                  <p className="mt-1 text-xs text-danger">{erroresForm.apellidos}</p>
+                  <p className="mt-1 text-xs text-danger-text">{erroresForm.apellidos}</p>
                 )}
               </div>
             </div>
@@ -612,7 +612,7 @@ export default function EmpleadosPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="emp-dui" className="block text-sm font-medium text-fg">
-                  DUI <span className="text-danger">*</span>
+                  DUI <span className="text-danger-text">*</span>
                 </label>
                 <input
                   id="emp-dui"
@@ -626,7 +626,7 @@ export default function EmpleadosPage() {
                   required
                 />
                 {erroresForm.dui ? (
-                  <p className="mt-1 text-xs text-danger">{erroresForm.dui}</p>
+                  <p className="mt-1 text-xs text-danger-text">{erroresForm.dui}</p>
                 ) : (
                   <p className="mt-1 text-xs text-fg-muted">9 dígitos con guion.</p>
                 )}
@@ -647,7 +647,7 @@ export default function EmpleadosPage() {
                   className={`input mt-1.5 w-full font-mono ${erroresForm.nit ? 'border-danger' : ''}`}
                 />
                 {erroresForm.nit ? (
-                  <p className="mt-1 text-xs text-danger">{erroresForm.nit}</p>
+                  <p className="mt-1 text-xs text-danger-text">{erroresForm.nit}</p>
                 ) : (
                   <p className="mt-1 text-xs text-fg-muted">14 dígitos con guiones.</p>
                 )}
@@ -657,7 +657,7 @@ export default function EmpleadosPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-fg">
-                  Sucursal asignada <span className="text-danger">*</span>
+                  Sucursal asignada <span className="text-danger-text">*</span>
                 </label>
                 <div className="mt-1.5">
                   <Select
@@ -670,13 +670,13 @@ export default function EmpleadosPage() {
                   />
                 </div>
                 {erroresForm.idSucursal && (
-                  <p className="mt-1 text-xs text-danger">{erroresForm.idSucursal}</p>
+                  <p className="mt-1 text-xs text-danger-text">{erroresForm.idSucursal}</p>
                 )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-fg">
-                  Puesto de trabajo <span className="text-danger">*</span>
+                  Puesto de trabajo <span className="text-danger-text">*</span>
                 </label>
                 <div className="mt-1.5">
                   <Select
@@ -689,7 +689,7 @@ export default function EmpleadosPage() {
                   />
                 </div>
                 {erroresForm.idPuesto && (
-                  <p className="mt-1 text-xs text-danger">{erroresForm.idPuesto}</p>
+                  <p className="mt-1 text-xs text-danger-text">{erroresForm.idPuesto}</p>
                 )}
               </div>
             </div>
@@ -697,7 +697,7 @@ export default function EmpleadosPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="emp-salario" className="block text-sm font-medium text-fg">
-                  Salario nominal pactado ($) <span className="text-danger">*</span>
+                  Salario nominal pactado ($) <span className="text-danger-text">*</span>
                 </label>
                 <div className="relative mt-1.5">
                   <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-fg-muted">
@@ -717,7 +717,7 @@ export default function EmpleadosPage() {
                   />
                 </div>
                 {erroresForm.salarioNominal ? (
-                  <p className="mt-1 text-xs text-danger">{erroresForm.salarioNominal}</p>
+                  <p className="mt-1 text-xs text-danger-text">{erroresForm.salarioNominal}</p>
                 ) : (
                   <p className="mt-1 text-xs text-fg-muted">
                     Base mensual sobre la cual se calculan ISSS, AFP y Renta.
@@ -727,7 +727,7 @@ export default function EmpleadosPage() {
 
               <div>
                 <label htmlFor="emp-fecha" className="block text-sm font-medium text-fg">
-                  Fecha de ingreso <span className="text-danger">*</span>
+                  Fecha de ingreso <span className="text-danger-text">*</span>
                 </label>
                 <input
                   id="emp-fecha"
@@ -738,7 +738,7 @@ export default function EmpleadosPage() {
                   required
                 />
                 {erroresForm.fechaIngreso && (
-                  <p className="mt-1 text-xs text-danger">{erroresForm.fechaIngreso}</p>
+                  <p className="mt-1 text-xs text-danger-text">{erroresForm.fechaIngreso}</p>
                 )}
               </div>
             </div>
@@ -755,7 +755,7 @@ export default function EmpleadosPage() {
                 />
               </div>
               {erroresForm.idUsuario ? (
-                <p className="mt-1 text-xs text-danger">{erroresForm.idUsuario}</p>
+                <p className="mt-1 text-xs text-danger-text">{erroresForm.idUsuario}</p>
               ) : (
                 <p className="mt-1 text-xs text-fg-muted">
                   Vincula este empleado a una cuenta de usuario para trazabilidad en turnos y ventas.
