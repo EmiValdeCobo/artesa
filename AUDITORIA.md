@@ -82,3 +82,29 @@ Severidad: Crítica / Alta / Media / Baja · Esfuerzo: S (≤1 h) / M (≤medio 
 - **No verificados** (marcados en la tabla): A5/B5 (ratios de contraste exactos — requieren herramienta en ambos temas), C7 (código de permiso de `rrhh/puestos` contra `seguridad.permisos`).
 - **No se ejecutó** la app ni se tomaron capturas (acordado: auditoría estática). No se tocó la BD ni se corrieron comandos destructivos.
 - `pnpm audit`: 13 vulnerabilidades (1 alta, 11 moderadas, 1 baja); detalle en `DEP1`.
+
+---
+
+## 6. Estado de correcciones (2026-11-19)
+
+| ID | Estado | Nota |
+|----|--------|------|
+| C1 | ✅ | Botón "Anular venta" en el detalle (solo con `POS_ANULAR_VENTA` y estado ≠ ANULADA); diálogo `AnularVentaDialogo.jsx` con motivo obligatorio (5–255, igual que Zod). |
+| C2 | ✅ | `api.getConMeta()` devuelve `{ data, meta }` con X-Page/X-Total/X-Has-Next-Page; helper `api/paginacion.js`. |
+| C3 | ✅ | Kárdex recorre páginas hasta 500 y muestra el total real del servidor si se corta. |
+| C4 | ✅ | CxP y Compras usan `listarTodasLasCuentasPorPagar` (todas las páginas). |
+| B1 | ✅ | Hook `useTrampaFoco` (misma lógica que `Dialogo`) en InsumoDrawer, drawer de productos, modal de receta y modal de unidad. |
+| B2 | ✅ | `aria-invalid` + `aria-describedby` en los campos citados. |
+| B3 | ✅ | Enlace "Saltar al contenido" → `<main id="contenido-principal">`. |
+| A1/A2/A3 | ✅ | `bg-muted`; se quitó el override de fuente display; Splash usa `var(--color-espresso-*)`. |
+| C5/C6 | ✅ | `CONTEXT.md` corregido; import muerto `PendienteApiPage` eliminado. |
+| C7 | ✅ verificado | El backend protege `/rrhh/puestos` con el mismo permiso; no existe uno específico en `seguridad.permisos`. |
+| C8 | ✅ | Ruta `*` usa el `PaginaNoEncontrada` existente (404) en lugar de redirigir en silencio. |
+| C9/D4 | ✅ | Solo sesiones `admin`; `algorithms: ['HS256']` en verify y sign. |
+| D2/D3 | ✅ | `express.json({ limit: '100kb' })`; rate limit global 300 req/min (`middlewares/rateLimit.js`). |
+| D1 | ✅ | `01_schema.sql` no se edita (regla), así que `server.js` se niega a arrancar en producción si algún usuario activo conserva `Cambiar123*` (`utils/contrasenaDemo.js`). En desarrollo no cambia nada. |
+| DEP1 | ✅ | react-router-dom 7.18.2, vite 6.4.5 y overrides de pnpm para uuid ≥11.1.1 y minimatch ≥11.0.1. `pnpm audit`: 0 vulnerabilidades. |
+| A4 | ✅ | Los 28 colores del SVG del login usan `var(--color-*)` vía `style` (los atributos `fill`/`stroke` no admiten `var()`); valores idénticos, verificado en navegador. |
+| B4 | ✅ | La fila de alerta con destino es un `<Link>` nativo; sin `role="button"`/`tabIndex`/`onKeyDown` manuales. |
+| A5/B5 | ✅ medido | `--text-subtle` claro: 4,45:1 sobre `bg-muted` → `#6f6457` (4,86:1; 5,77:1 sobre blanco). El tema oscuro ya cumplía (≥4,6:1). |
+| D5 | ✅ documentado | CSRF: cookie `httpOnly` + `SameSite=lax`, CORS con origen fijo y API solo JSON (un formulario de otro sitio no envía `application/json` sin preflight). Opcional: `SameSite=strict` en producción. |

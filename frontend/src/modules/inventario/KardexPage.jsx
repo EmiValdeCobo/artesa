@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ArrowDown, ArrowUp, ArrowUpDown, Download, History, PackageSearch, Search, SlidersHorizontal, X } from 'lucide-react';
 import { api } from '../../api/client.js';
+import { obtenerTodasLasPaginas } from '../../api/paginacion.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
@@ -15,7 +16,8 @@ import { traducirError } from '../../errors/traducirError.js';
 import { ordenarFilas } from '../../utils/tabla.js';
 import { escaparCeldaCsv } from '../../utils/csv.js';
 
-const TOPE_API = 500; // el endpoint devuelve como máximo los 500 movimientos más recientes
+// El endpoint pagina (máx. 100 por página): se piden páginas hasta este tope para no descargar sin límite.
+const TOPE_API = 500;
 
 // Tipos posibles en inventario.movimientos_inventario (CHECK de la base de datos).
 const TIPOS_MOVIMIENTO = [
@@ -96,6 +98,8 @@ export default function KardexPage() {
 
   const [insumos, setInsumos] = useState([]);
   const [filas, setFilas] = useState([]);
+  const [totalServidor, setTotalServidor] = useState(0);
+  const [truncado, setTruncado] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
   const [textoBusqueda, setTextoBusqueda] = useState(buscar);
@@ -128,9 +132,13 @@ export default function KardexPage() {
     setCargando(true);
     setError(null);
     try {
-      const q = new URLSearchParams({ idSucursal: sucursal });
-      if (insumo) q.set('idInsumo', insumo);
-      setFilas(await api.get(`/inventario/movimientos?${q}`));
+      const { filas: datos, total, truncado: corte } = await obtenerTodasLasPaginas('/inventario/movimientos', {
+        params: { idSucursal: sucursal, idInsumo: insumo || null },
+        tope: TOPE_API,
+      });
+      setFilas(datos);
+      setTotalServidor(total);
+      setTruncado(corte);
     } catch (e) {
       setError(traducirError(e));
     } finally {
@@ -287,7 +295,7 @@ export default function KardexPage() {
     if (!ordenadas.length) return;
     const cabecera = ['fecha', 'sucursal', 'insumo', 'tipo', 'cantidad', 'saldo', 'costo_unitario', 'motivo', 'usuario'];
     const contenido = [
-      `# Kárdex exportado. La API entrega como máximo los ${TOPE_API} movimientos más recientes; este archivo contiene solo lo filtrado.`,
+      `# Kárdex exportado. ${truncado ? `Incluye los ${filas.length} movimientos más recientes de ${totalServidor}; ` : ''}este archivo contiene solo lo filtrado.`,
       cabecera.map(escaparCeldaCsv).join(','),
       ...ordenadas.map((f) => cabecera.map((c) => escaparCeldaCsv(c === 'fecha' ? f.creado_en : c === 'tipo' ? (ETIQUETA_TIPO[f.tipo] ?? f.tipo) : f[c])).join(',')),
     ].join('\r\n');
@@ -420,13 +428,13 @@ export default function KardexPage() {
         sinPadding
         icono={History}
         titulo="Movimientos registrados"
-        descripcion={<span className="tabular-nums">{`${filtradas.length} de ${filas.length} movimientos${filas.length >= TOPE_API ? ` · se muestran solo los ${TOPE_API} más recientes que entrega el sistema` : ''}`}</span>}
+        descripcion={<span className="tabular-nums">{`${filtradas.length} de ${filas.length} movimientos${truncado ? ` · cargados los ${filas.length} más recientes de ${totalServidor}` : ''}`}</span>}
         acciones={<Button variante="ghost" tamano="sm" onClick={cargar} cargando={cargando}>Recargar</Button>}
         className="min-w-0"
       >
-        {filas.length >= TOPE_API && (
+        {truncado && (
           <p className="mx-5 mt-4 rounded-md border border-warning/30 bg-warning-soft px-4 py-3 text-body-sm text-warning-text" role="status">
-            La consulta llegó al máximo de {TOPE_API} movimientos: estás viendo los más recientes. Afina los filtros de sucursal o insumo para ver otros.
+            Hay {totalServidor} movimientos y se cargaron los {filas.length} más recientes. Filtra por insumo para ver los anteriores.
           </p>
         )}
         {!cargando && !error && !filtradas.length ? (

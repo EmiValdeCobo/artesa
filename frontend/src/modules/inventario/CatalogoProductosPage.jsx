@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useTrampaFoco } from '../../hooks/useTrampaFoco.js';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -10,7 +11,7 @@ import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
 import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
-import CampoError from '../../components/forms/CampoError.jsx';
+import CampoError, { idError } from '../../components/forms/CampoError.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import AccionConTooltip from '../../components/display/AccionConTooltip.jsx';
 import { BotonIcono, Button, Card, Select, Table } from '../../components/ui/index.js';
@@ -33,6 +34,8 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
   const [componentes, setComponentes] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
+  const modalRef = useRef(null);
+  useTrampaFoco(modalRef);
 
   useEffect(() => {
     let cancelado = false;
@@ -97,6 +100,8 @@ function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEd
       }}
     >
       <div
+        ref={modalRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-receta-titulo"
@@ -396,6 +401,8 @@ export default function CatalogoProductosPage() {
   const [mostrarInactivos, setMostrarInactivos] = useState(false);
 
   const [drawerAbierto, setDrawerAbierto] = useState(false);
+  const drawerRef = useRef(null);
+  useTrampaFoco(drawerRef, drawerAbierto);
   const [productoEditando, setProductoEditando] = useState(null);
   const [productoPrevisualizar, setProductoPrevisualizar] = useState(null);
   const [form, setForm] = useState(FORM_VACIO);
@@ -1019,6 +1026,8 @@ export default function CatalogoProductosPage() {
 
             {/* Panel lateral (Drawer) en Alabastro cálido, estructura Flex vertical completa */}
             <div
+              ref={drawerRef}
+              tabIndex={-1}
               role="dialog"
               aria-modal="true"
               aria-label={productoEditando ? 'Editar Producto' : 'Nuevo Producto'}
@@ -1052,6 +1061,7 @@ export default function CatalogoProductosPage() {
                   </label>
                   <input
                     id="producto-nombre"
+                    aria-invalid={Boolean(errorNombre)} aria-describedby={errorNombre ? idError('producto-nombre') : undefined}
                     type="text"
                     className="input"
                     placeholder="Ej. Latte Grande, Croissant de Mantequilla"

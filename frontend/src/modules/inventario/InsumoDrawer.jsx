@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useTrampaFoco } from '../../hooks/useTrampaFoco.js';
 import { createPortal } from 'react-dom';
 
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import { BotonIcono, Button, Select } from '../../components/ui/index.js';
 import { ICONOS } from '../../config/iconos.js';
-import CampoError from '../../components/forms/CampoError.jsx';
+import CampoError, { idError } from '../../components/forms/CampoError.jsx';
 import { formatoDinero } from '../../utils/formato.js';
 import { aplicarMascara, completarDecimales, propsMascara } from '../../utils/mascaras.js';
 import { createInsumo, updateInsumo } from './inventarioApi.js';
@@ -106,6 +107,9 @@ export default function InsumoDrawer({ abierto, insumo, unidades = [], valoresIn
     };
   }, [abierto, onCerrar]);
 
+  const panelRef = useRef(null);
+  useTrampaFoco(panelRef, abierto);
+
   if (!abierto) return null;
 
   const opcionesUnidades = unidades.filter((u) => u.activo !== false || String(u.id_unidad) === String(insumo?.id_unidad_base)).map((u) => ({
@@ -129,6 +133,8 @@ export default function InsumoDrawer({ abierto, insumo, unidades = [], valoresIn
 
       {/* Panel lateral (Drawer) en Alabastro cálido, estructura Flex vertical completa */}
       <div
+        ref={panelRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label={esEdicion ? 'Editar insumo' : 'Nuevo insumo'}
@@ -156,6 +162,7 @@ export default function InsumoDrawer({ abierto, insumo, unidades = [], valoresIn
             <input
               className="input"
               id="insumo-nombre"
+              aria-invalid={Boolean(errorNombre)} aria-describedby={errorNombre ? idError('insumo-nombre') : undefined}
               placeholder="Ej. Café molido espresso"
               value={form.nombre}
               onChange={(e) => set('nombre')(e.target.value)}

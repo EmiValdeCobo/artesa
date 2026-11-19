@@ -72,7 +72,7 @@ export async function login(username, password) {
   }
 
   await repo.registrarLogin(usuario.id_usuario);
-  const token = jwt.sign({ id: usuario.id_usuario, rol: usuario.rol, tipo: 'admin', iat: Math.floor(Date.now() / 1000) }, env.jwtSecret, { expiresIn: env.jwtExpiresIn, jwtid: crypto.randomUUID() });
+  const token = jwt.sign({ id: usuario.id_usuario, rol: usuario.rol, tipo: 'admin', iat: Math.floor(Date.now() / 1000) }, env.jwtSecret, { algorithm: 'HS256', expiresIn: env.jwtExpiresIn, jwtid: crypto.randomUUID() });
   return { token, ...(await armarSesion(usuario)) };
 }
 

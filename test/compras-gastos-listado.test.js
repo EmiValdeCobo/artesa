@@ -54,7 +54,8 @@ test('un GASTO CREDITO queda pendiente y se puede listar en Cuentas por pagar', 
   const pantalla = await leer('frontend/src/modules/compras/CompraFacturaPage.jsx');
   assert.match(service, /else if \(compra\.estado_pago !== 'PENDIENTE'\)/);
   assert.match(query, /\$6::text = 'pendientes' AND f\.estado_pago IN \('PENDIENTE', 'PARCIAL'\)/);
-  assert.match(api, /listarTodasLasCuentasPorPagar = \(filtros = \{\}\) => listarTodasLasPaginas/);
+  // AUDITORIA C2/C4: recorre todas las páginas leyendo los headers X-* del backend.
+  assert.match(api, /listarTodasLasCuentasPorPagar = async \(filtros = \{\}\) => \(\s*await obtenerTodasLasPaginas\('\/compras\/cuentas-por-pagar'/);
   assert.match(cxp, /setFilas\(await listarTodasLasCuentasPorPagar\(/);
   assert.match(pantalla, /Gasto registrado como pendiente/);
   assert.match(pantalla, /Registrar abono/);

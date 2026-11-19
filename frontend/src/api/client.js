@@ -26,7 +26,7 @@ function construirError(datos) {
 }
 
 async function request(endpoint, options = {}) {
-  const { timeout = TIMEOUT_MS, signal: senalExterna, ...resto } = options;
+  const { timeout = TIMEOUT_MS, signal: senalExterna, conMeta = false, ...resto } = options;
   const metodo = (resto.method || 'GET').toUpperCase();
   const headers = {
     'Content-Type': 'application/json',
@@ -73,11 +73,26 @@ async function request(endpoint, options = {}) {
     });
   }
 
-  return data;
+  // Con `conMeta` también se devuelven los headers de paginación del backend (X-Page, X-Total…).
+  return conMeta ? { data, meta: leerMetaPaginacion(response.headers) } : data;
+}
+
+function leerMetaPaginacion(headers) {
+  const total = headers.get('X-Total');
+  if (total == null) return null;
+  return {
+    page: Number(headers.get('X-Page')),
+    limit: Number(headers.get('X-Limit')),
+    total: Number(total),
+    totalPages: Number(headers.get('X-Total-Pages')),
+    hasNext: headers.get('X-Has-Next-Page') === 'true',
+  };
 }
 
 export const api = {
   get: (endpoint, options) => request(endpoint, { ...options, method: 'GET' }),
+  // GET paginado: devuelve { data, meta } con los headers X-* (meta es null si el endpoint no pagina).
+  getConMeta: (endpoint, options) => request(endpoint, { ...options, method: 'GET', conMeta: true }),
   post: (endpoint, body, options) => request(endpoint, { ...options, method: 'POST', body: JSON.stringify(body) }),
   put: (endpoint, body, options) => request(endpoint, { ...options, method: 'PUT', body: JSON.stringify(body) }),
   patch: (endpoint, body, options) => request(endpoint, { ...options, method: 'PATCH', body: JSON.stringify(body) }),

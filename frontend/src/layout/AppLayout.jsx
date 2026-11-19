@@ -17,6 +17,8 @@ export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   return (
     <div className="flex min-h-screen bg-background text-fg">
+      {/* WCAG 2.4.1: permite saltar la navegación lateral con el teclado. */}
+      <a href="#contenido-principal" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-surface focus:px-4 focus:py-2 focus:text-label focus:text-fg focus:shadow-md focus:outline-2 focus:outline-primary">Saltar al contenido</a>
       <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-10 flex h-header items-center gap-3 border-b border-line bg-surface px-4 lg:hidden">
@@ -24,7 +26,7 @@ export default function AppLayout() {
           <Logo variante="isotipo" alto={28} />
           <span className="text-label text-fg">artesa</span>
         </header>
-        <main className="min-h-[calc(100dvh-var(--spacing-header))] p-4 sm:p-6 lg:min-h-screen lg:p-8">
+        <main id="contenido-principal" tabIndex={-1} className="focus:outline-none min-h-[calc(100dvh-var(--spacing-header))] p-4 sm:p-6 lg:min-h-screen lg:p-8">
           <Suspense fallback={<CargandoModulo />}>
             <Outlet />
           </Suspense>

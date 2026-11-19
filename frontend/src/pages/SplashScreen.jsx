@@ -7,7 +7,8 @@ import Logo from '../components/branding/Logo.jsx';
 // Tras 1.8 s se desvanece (opacidad 0.3 s) y redirige a /admin/login; no permanece montada.
 const ESPERA_MS = 1800;
 const FUNDIDO_MS = 300;
-const FONDO = 'radial-gradient(circle at 50% 40%, #44211a 0%, #1f120e 100%)';
+// Tokens de marca: el splash es siempre oscuro (Espresso), en ambos temas.
+const FONDO = 'radial-gradient(circle at 50% 40%, var(--color-espresso-800) 0%, var(--color-espresso-950) 100%)';
 
 export default function SplashScreen() {
   const navigate = useNavigate();

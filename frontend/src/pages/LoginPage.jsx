@@ -16,40 +16,40 @@ function IlustracionMostrador() {
     <svg viewBox="0 0 320 280" role="img" aria-label="Mostrador de cafetería artesanal"
       className="h-auto w-full max-w-sm" xmlns="http://www.w3.org/2000/svg">
       {/* Ventana circular con sol/luz cálida detrás */}
-      <circle cx="160" cy="92" r="70" fill="#5f2e20" />
-      <circle cx="160" cy="92" r="52" fill="#7b3b27" />
-      <circle cx="160" cy="80" r="30" fill="#e8b866" />
-      <circle cx="160" cy="80" r="30" fill="#e1a651" opacity="0.5" />
+      <circle cx="160" cy="92" r="70" style={{ fill: 'var(--color-terracota-800)' }} />
+      <circle cx="160" cy="92" r="52" style={{ fill: 'var(--color-terracota-700)' }} />
+      <circle cx="160" cy="80" r="30" style={{ fill: 'var(--color-ocre-400)' }} />
+      <circle cx="160" cy="80" r="30" opacity="0.5" style={{ fill: 'var(--color-ocre-500)' }} />
       {/* Lámpara colgante */}
-      <line x1="112" y1="0" x2="112" y2="34" stroke="#f4d79c" strokeWidth="2" />
-      <path d="M100 34 h24 l-6 16 h-12 z" fill="#e1a651" />
-      <ellipse cx="112" cy="51" rx="9" ry="3" fill="#f7f5f0" opacity="0.85" />
+      <line x1="112" y1="0" x2="112" y2="34" strokeWidth="2" style={{ stroke: 'var(--color-ocre-200)' }} />
+      <path d="M100 34 h24 l-6 16 h-12 z" style={{ fill: 'var(--color-ocre-500)' }} />
+      <ellipse cx="112" cy="51" rx="9" ry="3" opacity="0.85" style={{ fill: 'var(--color-espresso-50)' }} />
       {/* Estante con hogazas y frascos */}
-      <rect x="196" y="40" width="96" height="6" rx="3" fill="#44211a" />
-      <ellipse cx="216" cy="34" rx="15" ry="9" fill="#c97752" />
-      <path d="M208 33 q8 -7 16 0" stroke="#5f2e20" strokeWidth="2" fill="none" />
-      <rect x="240" y="18" width="16" height="22" rx="3" fill="#de9776" />
-      <rect x="240" y="18" width="16" height="6" rx="3" fill="#b15c3d" />
-      <circle cx="276" cy="30" r="10" fill="#edc173" />
+      <rect x="196" y="40" width="96" height="6" rx="3" style={{ fill: 'var(--color-terracota-900)' }} />
+      <ellipse cx="216" cy="34" rx="15" ry="9" style={{ fill: 'var(--color-terracota-400)' }} />
+      <path d="M208 33 q8 -7 16 0" strokeWidth="2" fill="none" style={{ stroke: 'var(--color-terracota-800)' }} />
+      <rect x="240" y="18" width="16" height="22" rx="3" style={{ fill: 'var(--color-terracota-300)' }} />
+      <rect x="240" y="18" width="16" height="6" rx="3" style={{ fill: 'var(--color-terracota-500)' }} />
+      <circle cx="276" cy="30" r="10" style={{ fill: 'var(--color-ocre-300)' }} />
       {/* Mostrador */}
-      <rect x="24" y="176" width="272" height="20" rx="4" fill="#f7f5f0" />
-      <rect x="40" y="196" width="240" height="60" fill="#5f2e20" />
-      <rect x="40" y="196" width="240" height="60" fill="#44211a" opacity="0.4" />
-      <rect x="64" y="212" width="40" height="44" rx="2" fill="#7b3b27" />
-      <rect x="216" y="212" width="40" height="44" rx="2" fill="#7b3b27" />
+      <rect x="24" y="176" width="272" height="20" rx="4" style={{ fill: 'var(--color-espresso-50)' }} />
+      <rect x="40" y="196" width="240" height="60" style={{ fill: 'var(--color-terracota-800)' }} />
+      <rect x="40" y="196" width="240" height="60" opacity="0.4" style={{ fill: 'var(--color-terracota-900)' }} />
+      <rect x="64" y="212" width="40" height="44" rx="2" style={{ fill: 'var(--color-terracota-700)' }} />
+      <rect x="216" y="212" width="40" height="44" rx="2" style={{ fill: 'var(--color-terracota-700)' }} />
       {/* Taza de café con vapor */}
-      <path d="M96 150 q6 -12 0 -22" stroke="#f4d79c" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.7" />
-      <path d="M108 150 q6 -12 0 -22" stroke="#f4d79c" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.5" />
-      <path d="M84 156 h40 v10 a20 20 0 0 1 -40 0 z" fill="#f7f5f0" />
-      <ellipse cx="104" cy="156" rx="20" ry="5" fill="#583b1d" />
-      <path d="M124 158 a10 10 0 0 1 0 14" stroke="#f7f5f0" strokeWidth="4" fill="none" />
+      <path d="M96 150 q6 -12 0 -22" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.7" style={{ stroke: 'var(--color-ocre-200)' }} />
+      <path d="M108 150 q6 -12 0 -22" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.5" style={{ stroke: 'var(--color-ocre-200)' }} />
+      <path d="M84 156 h40 v10 a20 20 0 0 1 -40 0 z" style={{ fill: 'var(--color-espresso-50)' }} />
+      <ellipse cx="104" cy="156" rx="20" ry="5" style={{ fill: 'var(--color-ocre-900)' }} />
+      <path d="M124 158 a10 10 0 0 1 0 14" strokeWidth="4" fill="none" style={{ stroke: 'var(--color-espresso-50)' }} />
       {/* Croissant */}
-      <path d="M196 158 q22 -6 40 6 q-18 10 -40 -6 z" fill="#e1a651" />
-      <path d="M204 160 q14 -2 24 4" stroke="#b15c3d" strokeWidth="2" fill="none" />
+      <path d="M196 158 q22 -6 40 6 q-18 10 -40 -6 z" style={{ fill: 'var(--color-ocre-500)' }} />
+      <path d="M204 160 q14 -2 24 4" strokeWidth="2" fill="none" style={{ stroke: 'var(--color-terracota-500)' }} />
       {/* Pastel/rebanada sobre plato */}
-      <ellipse cx="160" cy="170" rx="22" ry="5" fill="#f7f5f0" />
-      <path d="M148 168 l12 -22 l12 22 z" fill="#c97752" />
-      <path d="M152 160 h16" stroke="#f7f5f0" strokeWidth="2" />
+      <ellipse cx="160" cy="170" rx="22" ry="5" style={{ fill: 'var(--color-espresso-50)' }} />
+      <path d="M148 168 l12 -22 l12 22 z" style={{ fill: 'var(--color-terracota-400)' }} />
+      <path d="M152 160 h16" strokeWidth="2" style={{ stroke: 'var(--color-espresso-50)' }} />
     </svg>
   );
 }

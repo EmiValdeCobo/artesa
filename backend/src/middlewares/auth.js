@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import { AppError } from '../utils/AppError.js';
-import { Cliente, Rol, Usuario } from '../models/index.js';
+import { Rol, Usuario } from '../models/index.js';
 import { esTokenRevocado } from '../modules/auth/auth.service.js';
 
 // Exige cookie httpOnly (o Bearer para clientes externos) y revalida estado en BD.
@@ -11,21 +11,19 @@ export async function authenticate(req, _res, next) {
   const tokenSesion = req.cookies?.artesa_session || (tipo === 'Bearer' ? token : null);
   if (!tokenSesion) return next(new AppError('Token requerido', 401));
   try {
-    const payload = jwt.verify(tokenSesion, env.jwtSecret);
-    if (!payload.id || !payload.tipo || !['admin', 'cliente'].includes(payload.tipo)) {
-      throw new Error('Token sin tipo de sesión');
+    const payload = jwt.verify(tokenSesion, env.jwtSecret, { algorithms: ['HS256'] });
+    // El portal de clientes se eliminó: solo existen sesiones de personal ('admin').
+    if (!payload.id || payload.tipo !== 'admin') {
+      throw new Error('Token sin tipo de sesión válido');
     }
     if (payload.jti && (await esTokenRevocado(payload.jti))) {
       return next(new AppError('Token revocado', 401));
     }
-    const modelo = payload.tipo === 'admin' ? Usuario : Cliente;
-    const id = payload.tipo === 'admin' ? payload.id : Number(payload.id);
-    const usuario = payload.tipo === 'admin'
-      ? await Usuario.findOne({
-        where: { id_usuario: id, activo: true },
-        include: [{ model: Rol, as: 'rol', attributes: ['id_rol'], where: { activo: true }, required: true }],
-      })
-      : await modelo.findOne({ where: { id_cliente: id, activo: true } });
+    const id = payload.id;
+    const usuario = await Usuario.findOne({
+      where: { id_usuario: id, activo: true },
+      include: [{ model: Rol, as: 'rol', attributes: ['id_rol'], where: { activo: true }, required: true }],
+    });
     if (!usuario) return next(new AppError('Sesión inactiva', 401));
     req.user = { id, rol: payload.rol, tipo: payload.tipo, jti: payload.jti };
     req.tokenExp = payload.exp;
