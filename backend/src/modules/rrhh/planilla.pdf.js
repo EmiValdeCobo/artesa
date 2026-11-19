@@ -130,7 +130,7 @@ function buildPdf(pages, width, height) {
 
 export function generarPdf(textos) {
   const lines = Array.isArray(textos) ? textos : [];
-  if (lines[0]?.startsWith('Planilla mensual')) {
+  if (/^Planilla (mensual|quincenal)/.test(lines[0] ?? '')) {
     const rows = lines.slice(3);
     const totalFila = rows.at(-1)?.startsWith('TOTAL NETO |') ? rows.at(-1) : null;
     const filasDetalle = totalFila ? rows.slice(0, -1) : rows;

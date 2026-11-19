@@ -64,7 +64,15 @@ export async function registrarCompra(datos, userId) {
         throw new AppError('La factura a crédito no quedó pendiente de pago', 500);
       }
 
-      return idCompra;
+      // El precio de venta no se ajusta solo: se avisa a quien puede ver costos qué
+      // productos quedaron con margen bajo tras esta compra. Un GASTO no toca inventario.
+      let alertasMargen = [];
+      if (datos.tipoCosto === 'COSTO' && await repo.usuarioTienePermiso(userId, 'INV_VER_COSTOS', transaction)) {
+        const idsInsumo = [...new Set(datos.items.map((item) => item.idInsumo))];
+        alertasMargen = await repo.alertasMargenPorInsumos(idsInsumo, transaction);
+      }
+
+      return { idCompra, alertasMargen };
     }, userId);
   } catch (error) {
     throw mapearErrorCompra(error);

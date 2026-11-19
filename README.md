@@ -571,6 +571,8 @@ flowchart TD
 #### Aspectos destacados:
 * **Recálculo de costo promedio**: Cada compra actualiza el costo unitario de los insumos ponderando las existencias previas con las nuevas:
   $$\text{Costo Nuevo} = \frac{(\text{Stock Previo} \times \text{Costo Previo}) + (\text{Cantidad Nueva} \times \text{Costo Nuevo})}{\text{Stock Previo} + \text{Cantidad Nueva}}$$
+* **IVA y crédito fiscal**: El precio se captura tal como viene en el documento, **con IVA incluido**. Si el documento es un Comprobante de Crédito Fiscal (`CCF`), el sistema separa el 13 % en `iva_credito` y costea el insumo con el valor neto, porque ese IVA se recupera al declarar. Con Factura de Consumidor Final (`CF`) o de Sujeto Excluido (`FSE`), el IVA no se recupera y forma parte del costo.
+* **Margen protegido**: El precio de venta nunca cambia solo. Si una compra encarece una receta y su margen baja de `margen_minimo` (60 % por defecto), al guardar se muestra una alerta y el producto aparece en `GET /api/reportes/margen-bajo`. Detalle y ejemplo numérico en [docs/compras-iva-costeo.md](docs/compras-iva-costeo.md).
 * **Compras tipo Gasto vs. Costo**: Las facturas de energía eléctrica, internet o alquiler se registran como `GASTO` sin afectar existencias ni recetas.
 * **Automatización de CxP**: El trigger `compras.fn_trg_pago_proveedor` actualiza de forma automática el saldo pendiente de las compras al crédito.
 

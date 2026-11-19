@@ -36,3 +36,6 @@ export async function cuentasPorPagar(req, res) {
 export async function ventasPorMetodoPago(req, res) {
   res.json(await service.ventasPorMetodoPago(filtrosVentasSchema.parse(req.query), req.user.id));
 }
+export async function margenBajo(_req, res) {
+  res.json(await service.margenBajo());
+}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { RefreshCw, Search } from 'lucide-react';
 import Dialogo from '../../components/Dialogo.jsx';
 import { BotonIcono, Button, Card, Select, Table } from '../../components/ui/index.js';
@@ -94,6 +95,15 @@ export default function VentasHistorialPage() {
       setCargandoDetalle(false);
     }
   }, [notificarError]);
+
+  // Enlace profundo desde el dashboard (?venta=<id>): abre el detalle y limpia el parámetro.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const id = searchParams.get('venta');
+    if (!id) return;
+    verDetalle(id);
+    setSearchParams((p) => { p.delete('venta'); return p; }, { replace: true });
+  }, [searchParams, setSearchParams, verDetalle]);
 
 // Referencia requerida para satisfacer la prueba estática: window.print()
   const imprimirComprobante = useCallback(async (venta) => {

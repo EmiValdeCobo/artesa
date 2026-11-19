@@ -284,21 +284,21 @@ function ResumenMetodosPago({ metodos, cargando, error }) {
 }
 
 function importesEsperadosTurno(fila) {
-  return aCentavos(fila.esperado_efectivo) + aCentavos(fila.esperado_tarjeta) + aCentavos(fila.esperado_digital);
+  return aCentavos(fila.esperado_efectivo) + aCentavos(fila.esperado_tarjeta) + aCentavos(fila.esperado_digital) + aCentavos(fila.esperado_bitcoin);
 }
 
 function importesContadosTurno(fila) {
-  return aCentavos(fila.monto_cierre_efectivo) + aCentavos(fila.monto_cierre_pos_tarjeta) + aCentavos(fila.monto_cierre_digital);
+  return aCentavos(fila.monto_cierre_efectivo) + aCentavos(fila.monto_cierre_pos_tarjeta) + aCentavos(fila.monto_cierre_digital) + aCentavos(fila.monto_cierre_bitcoin);
 }
 
 function tieneDiferenciaTurno(fila) {
-  return [fila.dif_efectivo, fila.dif_tarjeta, fila.dif_digital].some((valor) => aCentavos(valor) !== 0n);
+  return [fila.dif_efectivo, fila.dif_tarjeta, fila.dif_digital, fila.dif_bitcoin].some((valor) => aCentavos(valor) !== 0n);
 }
 
 // Se suman diferencias absolutas por método: una diferencia positiva de efectivo
 // no debe compensar una diferencia negativa de tarjeta o pagos digitales.
 function desviacionAbsolutaTurno(fila) {
-  return [fila.dif_efectivo, fila.dif_tarjeta, fila.dif_digital]
+  return [fila.dif_efectivo, fila.dif_tarjeta, fila.dif_digital, fila.dif_bitcoin]
     .reduce((total, valor) => {
       const centavos = aCentavos(valor);
       return total + (centavos < 0n ? -centavos : centavos);

@@ -6,16 +6,23 @@ import { centavos, formatoDinero } from './planilla.calculos.js';
 
 const pgError = (e) => {
   const pg = e.original ?? e.parent ?? e;
-  if (pg.code === '23505') return new AppError('Ya existe una planilla para esa sucursal y mes', 409);
+  if (pg.code === '23505') return new AppError('Ya existe una planilla para esa sucursal y período', 409);
   if (pg.code === '23503') return new AppError('La sucursal o empleado indicado no existe', 400);
   if (pg.code === '22003') return new AppError('Un monto excede el máximo admitido', 400);
   if (pg.code === 'P0001') return new AppError(pg.message, 409);
   return e;
 };
+// Fechas del período: mes completo, quincena 1 (1-15) o quincena 2 (16 a último día del mes).
+export function rangoPeriodo({ periodo, tipoPeriodo = 'MENSUAL', quincena }) {
+  const [year, month] = periodo.split('-').map(Number);
+  const ultimo = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+  if (tipoPeriodo !== 'QUINCENAL') return { inicio: `${periodo}-01`, fin: ultimo };
+  return Number(quincena) === 1
+    ? { inicio: `${periodo}-01`, fin: `${periodo}-15` }
+    : { inicio: `${periodo}-16`, fin: ultimo };
+}
 export async function crear(datos, userId) {
-  const [year, month] = datos.periodo.split('-').map(Number);
-  const inicio = `${datos.periodo}-01`;
-  const fin = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+  const { inicio, fin } = rangoPeriodo(datos);
   try {
     return await withTransaction(async (t) => {
       if (!(await repo.sucursalActiva(datos.idSucursal, t))) throw new AppError('La sucursal no existe o está inactiva', 400);
@@ -23,7 +30,7 @@ export async function crear(datos, userId) {
       if (new Set(ids).size !== ids.length) throw new AppError('No repita empleados en ajustes', 400);
       if (ids.length && (await repo.empleadosActivos(datos.idSucursal, ids, t)).length !== ids.length)
         throw new AppError('Cada ajuste debe pertenecer a un empleado activo de la sucursal', 400);
-      return { idPlanilla: await repo.crear({ idSucursal: datos.idSucursal, inicio, fin, userId, ajustes: datos.ajustes }, t) };
+      return { idPlanilla: await repo.crear({ idSucursal: datos.idSucursal, inicio, fin, tipoPeriodo: datos.tipoPeriodo, userId, ajustes: datos.ajustes }, t) };
     }, userId);
   } catch (e) { throw pgError(e); }
 }
@@ -86,7 +93,7 @@ export async function pdfPlanilla(id) {
     0,
   );
   const totalNeto = formatoDinero(totalNetoCentavos);
-  const lines = [`Planilla mensual ${planilla.periodo_inicio}`, `Sucursal: ${empleados[0]?.sucursal ?? planilla.id_sucursal}`, 'ID | Nombre | Base | Bono | ISSS | AFP | Renta | Neto'];
+  const lines = [`Planilla ${(planilla.tipo_periodo ?? 'MENSUAL').toLowerCase()} ${planilla.periodo_inicio} al ${planilla.periodo_fin}`, `Sucursal: ${empleados[0]?.sucursal ?? planilla.id_sucursal}`, 'ID | Nombre | Base | Bono | ISSS | AFP | Renta | Neto'];
   for (const e of empleados) lines.push(`${e.id_empleado.slice(0,8)} | ${(e.nombres+' '+e.apellidos).slice(0,24)} | ${usd(e.salario_bruto)} | ${usd(e.bonificaciones)} | ${usd(e.isss_laboral)} | ${usd(e.afp_laboral)} | ${usd(e.renta_retenida)} | ${usd(e.salario_neto)}`);
   lines.push(`TOTAL NETO | | | | | | | ${usd(totalNeto)}`);
   return generarPdf(lines);
@@ -97,5 +104,5 @@ export async function pdfBoleta(id, empleadoId) {
   const e = empleados.find((item) => item.id_empleado === empleadoId);
   if (!e) throw new AppError('Boleta no encontrada para esa planilla', 404);
   const descBono = Array.isArray(e.detalle) && e.detalle.length ? ` (${e.detalle[0]})` : '';
-  return generarPdf([`Boleta de pago - ${planilla.periodo_inicio.slice(0,7)}`, `${e.nombres} ${e.apellidos}`, `DUI: ${e.dui}`, `Salario base bruto: ${usd(e.salario_bruto)}`, `Bonificaciones${descBono}: ${usd(e.bonificaciones)}`, `ISSS laboral: ${usd(e.isss_laboral)}`, `AFP laboral: ${usd(e.afp_laboral)}`, `Retencion de renta: ${usd(e.renta_retenida)}`, `Otros descuentos: ${usd(e.otros_descuentos)}`, `Salario liquido: ${usd(e.salario_neto)}`]);
+  return generarPdf([`Boleta de pago - ${planilla.tipo_periodo === 'QUINCENAL' ? `${planilla.periodo_inicio} al ${planilla.periodo_fin}` : planilla.periodo_inicio.slice(0,7)}`, `${e.nombres} ${e.apellidos}`, `DUI: ${e.dui}`, `Salario base bruto: ${usd(e.salario_bruto)}`, `Bonificaciones${descBono}: ${usd(e.bonificaciones)}`, `ISSS laboral: ${usd(e.isss_laboral)}`, `AFP laboral: ${usd(e.afp_laboral)}`, `Retencion de renta: ${usd(e.renta_retenida)}`, `Otros descuentos: ${usd(e.otros_descuentos)}`, `Salario liquido: ${usd(e.salario_neto)}`]);
 }

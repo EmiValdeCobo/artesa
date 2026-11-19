@@ -121,3 +121,32 @@ export async function alertas(idUsuario, { sucursal }) {
 
   return { ...base, estado: 'ok', alertas: recortada, totalAlertas: lista.length, resumen, incompleto: fallos.length > 0, fallos };
 }
+
+// ---------- Órdenes recientes ----------
+// Mismo alcance que las ventas: con permiso de sucursal ve todas; con "mis ventas", solo las suyas (filtro del servidor).
+export async function ordenesRecientes(idUsuario, { limite, sucursal }) {
+  const ctx = await construirContexto(idUsuario, sucursal);
+  const modo = modoVentas(ctx.permisos);
+  if (!modo) throw new AppError('No tienes permiso para ver las ventas', 403);
+
+  const base = { modo, limite, zonaHoraria: ctx.zona, sucursales: ctx.sucursales, generadoEn: new Date().toISOString() };
+  if (ctx.sucursales.length === 0) return { ...base, estado: 'sin_sucursal', ordenes: [] };
+
+  const filas = await repo.ordenesRecientes({
+    zona: ctx.zona, sucursalIds: ctx.sucursalIds, limite, idUsuario: modo === 'propio' ? idUsuario : null,
+  });
+  const ordenes = filas.map((f) => ({
+    id: f.id,
+    comprobante: f.correlativo,
+    fecha: f.fecha_utc,
+    fechaLocal: f.fecha_local,
+    sucursal: f.sucursal,
+    cliente: f.cliente,
+    canal: f.canal,
+    items: f.items,
+    metodoPago: f.metodo_pago,
+    estado: f.estado,
+    total: f.total,
+  }));
+  return { ...base, estado: ordenes.length ? 'ok' : 'sin_datos', ordenes };
+}

@@ -6,7 +6,7 @@ import { ICONOS } from '../../config/iconos.js';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import { calcularTotales, formatoMoneda, IVA } from './impuestos.js';
 import { registrarVenta } from './posApi.js';
-import { mascaraReferenciaPago } from '../../utils/mascaras.js';
+import { REFERENCIAS_PAGO, validarReferenciaPago } from '../../utils/mascaras.js';
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 const METODOS = [
@@ -110,7 +110,14 @@ export default function ModalCobro({
     return Math.max(totalRecibido - totalMontoEfectivo, 0);
   }, [pagos]);
 
+  // Cada pago no en efectivo necesita su comprobante con el formato del método.
+  const erroresReferencia = useMemo(
+    () => pagos.map((p) => validarReferenciaPago(p.metodo, p.referencia)),
+    [pagos],
+  );
+
   const puedeConfirmar = items.length > 0
+    && erroresReferencia.every((e) => !e)
     && faltanteCentavos === 0
     && sobranteCentavos === 0
     && sumaPagosCentavos === totalCentavos
@@ -123,6 +130,8 @@ export default function ModalCobro({
       if (campo === 'monto' || campo === 'monto_recibido') {
         return { ...p, [campo]: formatearEntradaDinero(valor) };
       }
+      // Al cambiar de método el comprobante anterior ya no aplica (cada uno tiene su formato).
+      if (campo === 'metodo' && valor !== p.metodo) return { ...p, metodo: valor, referencia: '' };
       return { ...p, [campo]: valor };
     }));
   }, []);
@@ -333,22 +342,36 @@ export default function ModalCobro({
                   </div>
                 )}
 
-                {/* Tarjeta/Transferencia/Bitcoin: referencia */}
-                {pago.metodo !== 'EFECTIVO' && (
-                  <div className="mt-2">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={12}
-                      autoComplete="off"
-                      className="input w-full"
-                      placeholder="N.º de autorización"
-                      value={pago.referencia}
-                      onChange={(e) => actualizarPago(idx, 'referencia', mascaraReferenciaPago(e.target.value))}
-                      aria-label="Referencia del pago"
-                    />
-                  </div>
-                )}
+                {/* Tarjeta/Transferencia/Bitcoin: comprobante con formato propio de cada método */}
+                {REFERENCIAS_PAGO[pago.metodo] && (() => {
+                  const cfg = REFERENCIAS_PAGO[pago.metodo];
+                  const idCampo = `referencia-pago-${idx}`;
+                  const error = pago.referencia ? erroresReferencia[idx] : '';
+                  return (
+                    <div className="mt-2">
+                      <label htmlFor={idCampo} className="mb-1 block text-label-sm text-fg-muted">
+                        {cfg.etiqueta} <span className="text-danger-text">*</span>
+                      </label>
+                      <input
+                        id={idCampo}
+                        type="text"
+                        inputMode={cfg.inputMode}
+                        maxLength={cfg.maxLength}
+                        autoComplete="off"
+                        spellCheck={false}
+                        className={`input w-full ${pago.metodo === 'BITCOIN_CHIVO' ? 'font-mono' : ''}`}
+                        placeholder={cfg.placeholder}
+                        value={pago.referencia}
+                        onChange={(e) => actualizarPago(idx, 'referencia', cfg.aplicar(e.target.value))}
+                        aria-invalid={error ? 'true' : undefined}
+                        aria-describedby={error ? `${idCampo}-error` : undefined}
+                      />
+                      {error && (
+                        <p id={`${idCampo}-error`} className="mt-1 text-label-sm text-danger-text">{error}</p>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             ))}
           </div>

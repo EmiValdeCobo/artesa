@@ -232,13 +232,13 @@ export const alertasCaidaVentas = ({ zona, sucursalIds, caidaVentasPct, caidaVen
 
 export const alertasCuadres = ({ zona, sucursalIds }) => query(
   `SELECT s.id_sucursal, s.nombre AS sucursal, COUNT(*)::int AS turnos,
-          SUM(ABS(COALESCE(t.dif_efectivo, 0)) + ABS(COALESCE(t.dif_tarjeta, 0)) + ABS(COALESCE(t.dif_digital, 0)))::numeric(12,2) AS diferencia_total
+          SUM(ABS(COALESCE(t.dif_efectivo, 0)) + ABS(COALESCE(t.dif_tarjeta, 0)) + ABS(COALESCE(t.dif_digital, 0)) + ABS(COALESCE(t.dif_bitcoin, 0)))::numeric(12,2) AS diferencia_total
    FROM pos.turnos_caja t
    JOIN pos.cajas c ON c.id_caja = t.id_caja
    JOIN empresa.sucursales s ON s.id_sucursal = c.id_sucursal
    WHERE t.estado = 'CERRADO' AND c.id_sucursal = ANY($2::int[])
      AND t.cerrado_en >= ${INICIO_UTC(`${LOCAL('$1')}::date - 6`, '$1')}
-     AND (COALESCE(t.dif_efectivo, 0) <> 0 OR COALESCE(t.dif_tarjeta, 0) <> 0 OR COALESCE(t.dif_digital, 0) <> 0)
+     AND (COALESCE(t.dif_efectivo, 0) <> 0 OR COALESCE(t.dif_tarjeta, 0) <> 0 OR COALESCE(t.dif_digital, 0) <> 0 OR COALESCE(t.dif_bitcoin, 0) <> 0)
    GROUP BY 1, 2
    ORDER BY 2`,
   [zona, sucursalIds],
@@ -314,4 +314,27 @@ export const alertasPlanillas = ({ zona, sucursalIds }) => query(
    GROUP BY 1, 2
    ORDER BY 2`,
   [zona, sucursalIds],
+);
+
+// ---------- Órdenes recientes ----------
+// Últimas ventas del alcance (EMITIDA y ANULADA). Ítems y método de pago se agregan en subconsultas;
+// si hubo pago mixto se devuelve 'MIXTO'. La fecha se entrega en la zona del negocio (texto) y en ISO UTC.
+export const ordenesRecientes = ({ zona, sucursalIds, idUsuario, limite }) => query(
+  `SELECT v.id_venta AS id, v.tipo_comprobante, v.correlativo, v.estado, v.total,
+          to_char(v.fecha_emision, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS fecha_utc,
+          to_char((v.fecha_emision AT TIME ZONE 'UTC') AT TIME ZONE $1::text, 'YYYY-MM-DD HH24:MI') AS fecha_local,
+          s.nombre AS sucursal,
+          COALESCE(NULLIF(o.etiqueta, ''), c.nombre_razon_social) AS cliente,
+          o.canal,
+          (SELECT COALESCE(SUM(d.cantidad), 0)::int FROM pos.venta_detalles d WHERE d.id_venta = v.id_venta) AS items,
+          (SELECT CASE WHEN COUNT(DISTINCT p.metodo) > 1 THEN 'MIXTO' ELSE MIN(p.metodo) END
+             FROM pos.pagos p WHERE p.id_venta = v.id_venta) AS metodo_pago
+   FROM pos.ventas v
+   JOIN empresa.sucursales s ON s.id_sucursal = v.id_sucursal
+   LEFT JOIN pos.ordenes o ON o.id_orden = v.id_orden
+   LEFT JOIN pos.clientes c ON c.id_cliente = v.id_cliente
+   WHERE v.id_sucursal = ANY($2::int[]) ${idUsuario ? 'AND v.id_usuario = $4::uuid' : ''}
+   ORDER BY v.fecha_emision DESC
+   LIMIT $3::int`,
+  [zona, sucursalIds, limite, ...(idUsuario ? [idUsuario] : [])],
 );

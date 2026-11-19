@@ -142,7 +142,7 @@ test('T31 service: mapea duplicado, excepción SQL y restricciones sin ocultar e
 
 test('T31 controller: responde 201 directo con id_compra', async () => {
   const controller = await leer('backend/src/modules/compras/facturas/facturas.controller.js');
-  assert.match(controller, /res\.status\(201\)\.json\(\{ id_compra: idCompra \}\)/);
+  assert.match(controller, /res\.status\(201\)\.json\(\{ id_compra: idCompra, idCompra, alertasMargen \}\)/);
   assert.doesNotMatch(controller, /sequelize|SQL|IVA|subtotal|total/);
 });
 
@@ -289,6 +289,6 @@ test('T33: conserva ruta, permiso y respuesta aprobados de T31; no agrega bitác
   const service = await leer('backend/src/modules/compras/facturas/facturas.service.js');
   assert.match(route, /requirePermiso\('COM_REGISTRAR_COMPRA'\)/);
   assert.match(route, /router\.post\(\s*'\/'/);
-  assert.match(controller, /res\.status\(201\)\.json\(\{ id_compra: idCompra \}\)/);
+  assert.match(controller, /res\.status\(201\)\.json\(\{ id_compra: idCompra, idCompra, alertasMargen \}\)/);
   assert.doesNotMatch(`${service}\n${route}`, /fn_auditar|bitacora/i);
 });

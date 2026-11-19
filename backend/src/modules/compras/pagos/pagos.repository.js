@@ -41,7 +41,7 @@ export const obtenerPagoRegistrado = async (idPago, transaction) => {
      SELECT p.id_pago, p.id_compra,
             to_char(p.fecha_pago, 'YYYY-MM-DD') AS fecha_pago,
             p.monto::text AS monto, p.metodo, p.referencia,
-            f.estado_pago, t.total_pagado::text AS total_pagado,
+            f.estado_pago, f.tipo_documento, t.total_pagado::text AS total_pagado,
             (f.total - t.total_pagado)::text AS saldo
      FROM compras.pagos_proveedor p
      JOIN compras.facturas_compra f ON f.id_compra = p.id_compra
