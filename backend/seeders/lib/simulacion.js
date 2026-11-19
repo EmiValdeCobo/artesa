@@ -48,6 +48,18 @@ export const fechaTexto = (msLocal) => new Date(msLocal).toISOString().slice(0, 
 // ROUND(a / b) de PostgreSQL (mitad lejos de cero) con enteros positivos.
 const dividirRedondeo = (a, b) => Math.floor((2 * a + b) / (2 * b));
 
+// costoConIvaMicros son millonésimas de dólar; importes de factura se trabajan en centavos.
+export function calcularImporteCompraLinea(cantidad, costoConIvaMicros, tasaIvaPct) {
+  const total = dividirRedondeo(cantidad * costoConIvaMicros, 10_000);
+  const subtotal = dividirRedondeo(total * 100, 100 + tasaIvaPct);
+  return {
+    costoSinIvaMicros: dividirRedondeo(costoConIvaMicros * 100, 100 + tasaIvaPct),
+    subtotal,
+    iva: total - subtotal,
+    total,
+  };
+}
+
 function eventosDelDia(msDia, diasAntes, lluvia) {
   const f = new Date(msDia);
   const mes = f.getUTCMonth() + 1;
@@ -472,28 +484,32 @@ export async function simularHistoria({ rnd, sink, ids, dias, hoyLocalMs, ahoraL
     const fecha = fechaTexto(msCompra);
     const condicion = prov.credito > 0 && rnd.prob(0.85) ? 'CREDITO' : 'CONTADO';
     const dias = condicion === 'CREDITO' ? prov.credito : 0;
-    const sumaMicros = items.reduce((a, it) => a + it.cantidad * it.cu, 0);
-    const subtotal = dividirRedondeo(sumaMicros, 10_000);
-    const iva = dividirRedondeo(subtotal * tasaIvaPct, 100);
-    const total = subtotal + iva;
+    const lineas = items.map((it) => {
+      const costoConIvaMicros = dividirRedondeo(it.cu * (100 + tasaIvaPct), 100);
+      return { ...it, costoConIvaMicros, importe: calcularImporteCompraLinea(it.cantidad, costoConIvaMicros, tasaIvaPct) };
+    });
+    const subtotal = lineas.reduce((a, it) => a + it.importe.subtotal, 0);
+    const iva = lineas.reduce((a, it) => a + it.importe.iva, 0);
+    const total = lineas.reduce((a, it) => a + it.importe.total, 0);
     seqFactura[prov.clave] += 1;
     compras.facturas.push({
       id_compra: idCompra, id_proveedor: prov.id, id_sucursal: s, id_usuario: idUsuario(usuario), num_factura: `${prov.prefijo}-${String(seqFactura[prov.clave]).padStart(6, '0')}`,
       tipo_costo: gasto ? 'GASTO' : 'COSTO', fecha_emision: fecha, condicion_pago: condicion, fecha_vencimiento: fechaTexto(msCompra + dias * DIA_MS),
       subtotal: fmtCentavos(subtotal), iva_credito: fmtCentavos(iva), total: fmtCentavos(total), estado_pago: 'PENDIENTE',
     });
-    for (const it of items) {
+    for (const it of lineas) {
       compras.detalles.push({
         id_compra: idCompra, id_insumo: it.ins?.id ?? null, descripcion: it.descripcion ?? null, cantidad: String(it.cantidad),
-        costo_unitario: fmtMicros(it.cu), subtotal: fmtCentavos(dividirRedondeo(it.cantidad * it.cu, 10_000)),
+        costo_unitario: fmtMicros(it.importe.costoSinIvaMicros), costo_unitario_con_iva: fmtMicros(it.costoConIvaMicros),
+        subtotal: fmtCentavos(it.importe.subtotal),
       });
       if (!it.ins) continue;
       // Costo promedio ponderado global (mismo cálculo que compras.fn_trg_detalle_compra).
       const stockTotal = sucIds.reduce((a, x) => a + Math.max(0, stock[x][it.ins.id] ?? 0), 0);
       const antes = costo[it.ins.id];
-      costo[it.ins.id] = Math.round((stockTotal * antes + it.cantidad * it.cu) / (stockTotal + it.cantidad));
+      costo[it.ins.id] = Math.round((stockTotal * antes + it.cantidad * it.importe.costoSinIvaMicros) / (stockTotal + it.cantidad));
       compras.auditoriaCostos.push({ idInsumo: it.ins.id, antes, despues: costo[it.ins.id], ms: msCompra, usuario });
-      mover(s, it.ins.id, it.cantidad, 'COMPRA', msCompra, { ref: idCompra, refTipo: 'COMPRA', usuario: idUsuario(usuario), costoUnit: it.cu });
+      mover(s, it.ins.id, it.cantidad, 'COMPRA', msCompra, { ref: idCompra, refTipo: 'COMPRA', usuario: idUsuario(usuario), costoUnit: it.importe.costoSinIvaMicros });
     }
     // Pagos: contado en efectivo el mismo día; crédito al vencer (algunos parciales o pendientes para CxP).
     const vence = msCompra + dias * DIA_MS;

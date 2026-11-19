@@ -342,6 +342,7 @@ CREATE TABLE compras.compra_detalles (
     descripcion     VARCHAR(150),
     cantidad        NUMERIC(12,4) NOT NULL CHECK (cantidad > 0),
     costo_unitario  NUMERIC(12,6) NOT NULL CHECK (costo_unitario >= 0),   -- sin IVA, por unidad base
+    costo_unitario_con_iva NUMERIC(12,6) CHECK (costo_unitario_con_iva >= 0), -- valor original ingresado en nuevas compras
     subtotal        NUMERIC(12,2) NOT NULL,
     CONSTRAINT ck_detalle_ident CHECK (id_insumo IS NOT NULL OR descripcion IS NOT NULL)
 );
@@ -655,41 +656,56 @@ $$ LANGUAGE plpgsql;
 
 -- 7.10 Compras: al insertar el detalle entra el stock y se recalcula el costo promedio ponderado
 CREATE OR REPLACE FUNCTION compras.fn_trg_detalle_compra() RETURNS TRIGGER AS $$
-DECLARE v_suc INT; v_stock_total NUMERIC; v_costo NUMERIC; v_nuevo NUMERIC; v_usr UUID;
+DECLARE v_suc INT; v_stock_total NUMERIC; v_costo NUMERIC; v_nuevo NUMERIC; v_usr UUID; v_costo_sin_iva NUMERIC;
 BEGIN
     IF NEW.id_insumo IS NULL THEN RETURN NEW; END IF;       -- es un gasto: no toca inventario
+    v_costo_sin_iva := NEW.costo_unitario;
     SELECT id_sucursal, id_usuario INTO v_suc, v_usr FROM compras.facturas_compra WHERE id_compra = NEW.id_compra;
     SELECT COALESCE(SUM(GREATEST(stock_actual, 0)), 0) INTO v_stock_total FROM inventario.stock_sucursal WHERE id_insumo = NEW.id_insumo;
     SELECT costo_promedio INTO v_costo FROM inventario.insumos WHERE id_insumo = NEW.id_insumo;
 
-    v_nuevo := (v_stock_total * v_costo + NEW.cantidad * NEW.costo_unitario) / (v_stock_total + NEW.cantidad);
+    v_nuevo := (v_stock_total * v_costo + NEW.cantidad * v_costo_sin_iva) / (v_stock_total + NEW.cantidad);
     UPDATE inventario.insumos SET costo_promedio = ROUND(v_nuevo, 6) WHERE id_insumo = NEW.id_insumo;
 
-    PERFORM inventario.fn_mover_stock(v_suc, NEW.id_insumo, NEW.cantidad, 'COMPRA', 'COMPRA', NEW.id_compra, v_usr, NEW.costo_unitario);
+    PERFORM inventario.fn_mover_stock(v_suc, NEW.id_insumo, NEW.cantidad, 'COMPRA', 'COMPRA', NEW.id_compra, v_usr, v_costo_sin_iva);
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 CREATE TRIGGER trg_detalle_compra AFTER INSERT ON compras.compra_detalles FOR EACH ROW EXECUTE FUNCTION compras.fn_trg_detalle_compra();
 
---   p_items = [{"id_insumo":1,"cantidad":5000,"costo_unitario":0.0310}]  o  [{"descripcion":"Energía eléctrica","cantidad":1,"costo_unitario":185.40}]
+--   costo_unitario recibido incluye IVA; costo_unitario almacenado se divide para inventario.
+--   Los importes se redondean por línea a centavos; total = suma de las líneas con IVA,
+--   subtotal = suma de subtotales por línea e IVA = suma de diferencias por línea.
 CREATE OR REPLACE FUNCTION compras.fn_registrar_compra(
     p_id_proveedor INT, p_id_sucursal INT, p_num_factura VARCHAR, p_fecha DATE, p_condicion VARCHAR,
     p_items JSONB, p_id_usuario UUID DEFAULT NULL, p_tipo_costo VARCHAR DEFAULT 'COSTO'
 ) RETURNS UUID AS $$
 DECLARE
-    v_id UUID := gen_random_uuid(); v_sub NUMERIC; v_iva NUMERIC; v_dias INT;
+    v_id UUID := gen_random_uuid(); v_sub NUMERIC; v_iva NUMERIC; v_total NUMERIC; v_dias INT; v_tasa NUMERIC;
 BEGIN
     SELECT CASE WHEN p_condicion = 'CREDITO' THEN dias_credito ELSE 0 END INTO v_dias FROM compras.proveedores WHERE id_proveedor = p_id_proveedor;
-    SELECT ROUND(SUM(cantidad * costo_unitario), 2) INTO v_sub FROM jsonb_to_recordset(p_items) AS i(cantidad NUMERIC, costo_unitario NUMERIC);
-    v_iva := ROUND(v_sub * empresa.fn_param('tasa_iva')::NUMERIC, 2);
+    v_tasa := empresa.fn_param('tasa_iva')::NUMERIC;
+    WITH importes AS (
+        SELECT ROUND(i.cantidad * i.costo_unitario, 2) AS total_linea
+        FROM jsonb_to_recordset(p_items) AS i(cantidad NUMERIC, costo_unitario NUMERIC)
+    ), lineas AS (
+        SELECT total_linea, ROUND(total_linea / (1 + v_tasa), 2) AS subtotal_linea
+        FROM importes
+    )
+    SELECT COALESCE(SUM(subtotal_linea), 0), COALESCE(SUM(total_linea - subtotal_linea), 0), COALESCE(SUM(total_linea), 0)
+    INTO v_sub, v_iva, v_total
+    FROM lineas;
+    IF v_total <= 0 THEN RAISE EXCEPTION 'El total de la compra debe ser mayor que cero'; END IF;
 
     INSERT INTO compras.facturas_compra(id_compra, id_proveedor, id_sucursal, id_usuario, num_factura, tipo_costo, fecha_emision,
                                         condicion_pago, fecha_vencimiento, subtotal, iva_credito, total)
     VALUES (v_id, p_id_proveedor, p_id_sucursal, p_id_usuario, p_num_factura, p_tipo_costo, p_fecha,
-            p_condicion, p_fecha + v_dias, v_sub, v_iva, v_sub + v_iva);
+            p_condicion, p_fecha + v_dias, v_sub, v_iva, v_total);
 
-    INSERT INTO compras.compra_detalles(id_compra, id_insumo, descripcion, cantidad, costo_unitario, subtotal)
-    SELECT v_id, i.id_insumo, i.descripcion, i.cantidad, i.costo_unitario, ROUND(i.cantidad * i.costo_unitario, 2)
+    INSERT INTO compras.compra_detalles(id_compra, id_insumo, descripcion, cantidad, costo_unitario, costo_unitario_con_iva, subtotal)
+    SELECT v_id, i.id_insumo, i.descripcion, i.cantidad,
+           ROUND(i.costo_unitario / (1 + v_tasa), 6), i.costo_unitario,
+           ROUND(ROUND(i.cantidad * i.costo_unitario, 2) / (1 + v_tasa), 2)
     FROM jsonb_to_recordset(p_items) AS i(id_insumo INT, descripcion TEXT, cantidad NUMERIC, costo_unitario NUMERIC);
     RETURN v_id;
 END;

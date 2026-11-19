@@ -6,7 +6,7 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (li
 
 ## Decisiones tomadas
 - Stack: Express + Sequelize (conductor `pg`) + PostgreSQL 16; React + Vite + Tailwind (sin Next.js); JS puro.
-- Lógica de negocio crítica en funciones PL/pgSQL (ver DB_MAP.md). Backend las invoca.
+- Lógica crítica en funciones PL/pgSQL (ver DB_MAP.md); compras recibe costo unitario con IVA, guarda ambos valores y conserva históricos con la nueva columna en NULL.
 - Precios incluyen IVA (13%); se desglosa en la factura. (Confirmar con docente si el CCF suma IVA aparte.)
 - Facturación electrónica DTE simulada (número de control, código de generación, sello simulado).
 - RBAC dinámico: roles y permisos en BD; middleware `requirePermiso`.
