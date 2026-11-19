@@ -47,7 +47,7 @@ test('P2.4 inventario: eliminado el residuo || true en filtros de catálogos', a
 
   assert.doesNotMatch(insumos, /mostrarInactivos \|\| true/);
   assert.doesNotMatch(productos, /mostrarInactivos \|\| true/);
-  assert.match(insumos, /mostrarInactivos \? true : ins\.activo !== false/);
+  assert.match(insumos, /filtroEstado === 'TODOS'\s*\? true/);
   assert.match(productos, /mostrarInactivos \? true : p\.activo !== false/);
 });
 

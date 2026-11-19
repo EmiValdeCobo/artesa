@@ -29,6 +29,8 @@ export default function Table({
   idSeleccionado = null,
   apilarEnMovil = true,
   pie = null, // fila de totales opcional: { [clave]: nodo } (p. ej. { nombre: 'Total', neto: '$1,200.00' })
+  etiqueta = null, // nombre accesible de la tabla (aria-label)
+  scrollConPaginacion = false, // true: conserva el scroll vertical (maxAltura) aunque haya paginación
   // Nuevas props de paginación y orden
   paginacion = true,
   filasPorPaginaInicial = 10,
@@ -154,7 +156,7 @@ export default function Table({
 
   // Cuando paginacion es true, se evita el scroll vertical interno para que thead sticky
   // funcione con el viewport y no genere dobles barras de desplazamiento.
-  const claseScrollY = paginacion
+  const claseScrollY = paginacion && !scrollConPaginacion
     ? 'overflow-y-visible'
     : (scrollVertical ? `overflow-y-auto scroll-fino ${maxAltura}` : 'overflow-y-visible');
 
@@ -165,7 +167,7 @@ export default function Table({
       </div>
 
       <div className={`${horizontal ? 'overflow-x-auto' : 'overflow-visible'} ${claseScrollY} ${className}`.trim()}>
-        <table className={`w-full ${minAncho} text-left text-body`}>
+        <table aria-label={etiqueta ?? undefined} className={`w-full ${minAncho} text-left text-body`}>
           <thead className="sticky top-0 z-10 border-b border-line bg-surface text-label-sm text-fg-muted">
             <tr>
               {columnas.map((c) => {
