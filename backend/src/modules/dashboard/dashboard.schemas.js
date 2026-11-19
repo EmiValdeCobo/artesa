@@ -19,3 +19,8 @@ export const topProductosQuery = z.strictObject({
 });
 
 export const alertasQuery = z.strictObject({ sucursal });
+
+export const ordenesRecientesQuery = z.strictObject({
+  limite: z.coerce.number({ error: 'El límite no es válido' }).int().min(1).max(10, 'Máximo 10 órdenes').default(8),
+  sucursal,
+});

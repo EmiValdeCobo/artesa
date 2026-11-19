@@ -315,3 +315,26 @@ export const alertasPlanillas = ({ zona, sucursalIds }) => query(
    ORDER BY 2`,
   [zona, sucursalIds],
 );
+
+// ---------- Órdenes recientes ----------
+// Últimas ventas del alcance (EMITIDA y ANULADA). Ítems y método de pago se agregan en subconsultas;
+// si hubo pago mixto se devuelve 'MIXTO'. La fecha se entrega en la zona del negocio (texto) y en ISO UTC.
+export const ordenesRecientes = ({ zona, sucursalIds, idUsuario, limite }) => query(
+  `SELECT v.id_venta AS id, v.tipo_comprobante, v.correlativo, v.estado, v.total,
+          to_char(v.fecha_emision, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS fecha_utc,
+          to_char((v.fecha_emision AT TIME ZONE 'UTC') AT TIME ZONE $1::text, 'YYYY-MM-DD HH24:MI') AS fecha_local,
+          s.nombre AS sucursal,
+          COALESCE(NULLIF(o.etiqueta, ''), c.nombre_razon_social) AS cliente,
+          o.canal,
+          (SELECT COALESCE(SUM(d.cantidad), 0)::int FROM pos.venta_detalles d WHERE d.id_venta = v.id_venta) AS items,
+          (SELECT CASE WHEN COUNT(DISTINCT p.metodo) > 1 THEN 'MIXTO' ELSE MIN(p.metodo) END
+             FROM pos.pagos p WHERE p.id_venta = v.id_venta) AS metodo_pago
+   FROM pos.ventas v
+   JOIN empresa.sucursales s ON s.id_sucursal = v.id_sucursal
+   LEFT JOIN pos.ordenes o ON o.id_orden = v.id_orden
+   LEFT JOIN pos.clientes c ON c.id_cliente = v.id_cliente
+   WHERE v.id_sucursal = ANY($2::int[]) ${idUsuario ? 'AND v.id_usuario = $4::uuid' : ''}
+   ORDER BY v.fecha_emision DESC
+   LIMIT $3::int`,
+  [zona, sucursalIds, limite, ...(idUsuario ? [idUsuario] : [])],
+);
