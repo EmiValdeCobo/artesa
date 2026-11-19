@@ -7,3 +7,8 @@ allowBuilds:
 
 ignoredBuiltDependencies:
   - esbuild
+
+# AUDITORIA DEP1: dependencias transitivas con vulnerabilidades conocidas.
+overrides:
+  uuid@<11.1.1: ^11.1.1
+  minimatch@>=7.0.0 <11.0.1: ^11.0.1

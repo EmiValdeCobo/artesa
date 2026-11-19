@@ -102,7 +102,9 @@ Severidad: Crítica / Alta / Media / Baja · Esfuerzo: S (≤1 h) / M (≤medio 
 | C8 | ✅ | Ruta `*` usa el `PaginaNoEncontrada` existente (404) en lugar de redirigir en silencio. |
 | C9/D4 | ✅ | Solo sesiones `admin`; `algorithms: ['HS256']` en verify y sign. |
 | D2/D3 | ✅ | `express.json({ limit: '100kb' })`; rate limit global 300 req/min (`middlewares/rateLimit.js`). |
-| D1 | ⏳ | Requiere decisión: `01_schema.sql` no se edita por regla; propuesta: migración que fuerce cambio de contraseña o no sembrar admin en prod. |
-| DEP1 | ⏳ | Actualizar react-router ≥7.18, uuid y vite exige revisar breaking changes; pendiente en rama aparte. |
-| A4, B4 | ⏳ | Deuda menor (arte decorativo del login; `<li role="button">` ya accesible). |
-| A5/B5 | ⏳ | El caso de `ProductoCard` es estado deshabilitado (exento de AA); medir placeholders en ambos temas. |
+| D1 | ✅ | `01_schema.sql` no se edita (regla), así que `server.js` se niega a arrancar en producción si algún usuario activo conserva `Cambiar123*` (`utils/contrasenaDemo.js`). En desarrollo no cambia nada. |
+| DEP1 | ✅ | react-router-dom 7.18.2, vite 6.4.5 y overrides de pnpm para uuid ≥11.1.1 y minimatch ≥11.0.1. `pnpm audit`: 0 vulnerabilidades. |
+| A4 | ✅ | Los 28 colores del SVG del login usan `var(--color-*)` vía `style` (los atributos `fill`/`stroke` no admiten `var()`); valores idénticos, verificado en navegador. |
+| B4 | ✅ | La fila de alerta con destino es un `<Link>` nativo; sin `role="button"`/`tabIndex`/`onKeyDown` manuales. |
+| A5/B5 | ✅ medido | `--text-subtle` claro: 4,45:1 sobre `bg-muted` → `#6f6457` (4,86:1; 5,77:1 sobre blanco). El tema oscuro ya cumplía (≥4,6:1). |
+| D5 | ✅ documentado | CSRF: cookie `httpOnly` + `SameSite=lax`, CORS con origen fijo y API solo JSON (un formulario de otro sitio no envía `application/json` sin preflight). Opcional: `SameSite=strict` en producción. |

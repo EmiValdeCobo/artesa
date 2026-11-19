@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Bell, ChevronRight, CircleCheck, Store, TriangleAlert } from 'lucide-react';
 import AvisoError from '../../../components/feedback/AvisoError.jsx';
 import EstadoBadge from '../../../components/feedback/EstadoBadge.jsx';
@@ -40,23 +40,11 @@ function resolverRutaAlerta(a) {
   return null;
 }
 
-function FilaAlerta({ a, grupo, navigate }) {
+// Fila de alerta: si tiene destino es un <Link> nativo (navegación real, teclado y lector sin ARIA extra).
+function FilaAlerta({ a, grupo }) {
   const ruta = resolverRutaAlerta(a);
-  const ir = () => ruta && navigate(ruta);
-  return (
-    <li
-      onClick={ir}
-      onKeyDown={(e) => {
-        if ((e.key === 'Enter' || e.key === ' ') && ruta) {
-          e.preventDefault();
-          navigate(ruta);
-        }
-      }}
-      role={ruta ? 'button' : undefined}
-      tabIndex={ruta ? 0 : undefined}
-      aria-label={ruta ? `${grupo.texto}: ${a.titulo}. Ir a ${a.modulo}` : undefined}
-      className={`alerta-fila group ${ruta ? 'cursor-pointer hover:bg-muted' : ''}`}
-    >
+  const contenido = (
+    <>
       <span aria-hidden="true" className={`mt-1.5 size-2 shrink-0 rounded-full ${grupo.marca}`} />
       <div className="min-w-0 flex-1">
         <p className="text-body font-semibold leading-snug text-fg">
@@ -66,13 +54,24 @@ function FilaAlerta({ a, grupo, navigate }) {
         <p className="mt-0.5 text-body-sm text-fg-muted">{a.detalle}</p>
         <p className="rotulo mt-1 min-w-0 break-words">{a.modulo} · {a.sucursal}</p>
       </div>
-      {ruta && <ChevronRight size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-fg-muted transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none" />}
+      {ruta && (
+        <>
+          <span className="sr-only">. Ir a {a.modulo}</span>
+          <ChevronRight size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-fg-muted transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none" />
+        </>
+      )}
+    </>
+  );
+  return (
+    <li>
+      {ruta
+        ? <Link to={ruta} className="alerta-fila group text-left hover:bg-muted">{contenido}</Link>
+        : <div className="alerta-fila">{contenido}</div>}
     </li>
   );
 }
 
 export default function AlertasPanel({ cols, titulo, orden, sucursal, onResumen }) {
-  const navigate = useNavigate();
   const params = useMemo(() => (sucursal ? { sucursal } : {}), [sucursal]);
   const { datos, error, cargando, actualizando, recargar } = useDashboardData('/dashboard/alertas', params, { intervalo: REFRESCO_MS });
 
@@ -117,7 +116,7 @@ export default function AlertasPanel({ cols, titulo, orden, sucursal, onResumen 
                     <EstadoBadge tipo={g.badge}>{g.alertas.length} {g.titulo(g.alertas.length)}</EstadoBadge>
                   </h3>
                   <ul className="divide-y divide-line">
-                    {g.alertas.map((a) => <FilaAlerta key={a.id} a={a} grupo={g} navigate={navigate} />)}
+                    {g.alertas.map((a) => <FilaAlerta key={a.id} a={a} grupo={g} />)}
                   </ul>
                 </section>
               ))}

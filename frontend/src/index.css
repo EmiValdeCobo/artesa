@@ -98,7 +98,7 @@
   --bg-overlay:   rgb(31 18 14 / 0.6); /* fondo de diálogos */
   --text-primary:   #321f19;
   --text-secondary: #5a4f45;
-  --text-subtle:    #756a5d;  /* placeholders y metadatos (5,3:1 sobre blanco) */
+  --text-subtle:    #6f6457;  /* placeholders y metadatos: 5,8:1 sobre blanco, 4,9:1 sobre --bg-muted (AA) */
   --text-on-sidebar:#f7f5f0;
   --text-on-sidebar-muted: #bfb5a7;
   --text-on-accent: #ffffff;
