@@ -21,8 +21,8 @@ const SIN_BARRA = '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
 const FOCO = 'outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring-sidebar';
 const ITEM = `relative flex items-center rounded-md text-label transition-colors ${FOCO}`;
 const ITEM_INACTIVO = 'text-on-sidebar-muted hover:bg-on-sidebar/10 hover:text-on-sidebar';
-// Activo: tinte Terracota suave + barra Ocre de 3 px a la izquierda (sin relleno sólido).
-const ITEM_ACTIVO = 'bg-primary/15 text-on-sidebar before:absolute before:inset-y-2 before:left-0 before:w-0.75 before:rounded-full before:bg-ring-sidebar';
+// Activo: tinte Terracota suave + barra Ocre a la izquierda (sin relleno sólido para hijos).
+const ITEM_ACTIVO = 'bg-primary/15 text-on-sidebar before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-full before:bg-ring-sidebar';
 
 /* ---- Utilidades ---------------------------------------------------------- */
 
@@ -41,10 +41,10 @@ function useAbrirAlPasar() {
 }
 
 // Cierra un flotante con Esc, scroll, resize o click fuera.
-function useCerrarFlotante(abierto, ancla, cerrarYa) {
+function useCerrarFlotante(abierto, ancla, cerrarYa, alEscape) {
   useEffect(() => {
     if (!abierto) return undefined;
-    const alTecla = (e) => { if (e.key === 'Escape') cerrarYa(); };
+    const alTecla = (e) => { if (e.key === 'Escape') { cerrarYa(); alEscape?.(); } };
     const alClick = (e) => {
       if (ancla.current?.contains(e.target) || e.target.closest?.('[data-flotante]')) return;
       cerrarYa();
@@ -59,7 +59,7 @@ function useCerrarFlotante(abierto, ancla, cerrarYa) {
       window.removeEventListener('scroll', cerrarYa, true);
       window.removeEventListener('resize', cerrarYa);
     };
-  }, [abierto, ancla, cerrarYa]);
+  }, [abierto, ancla, cerrarYa, alEscape]);
 }
 
 // Flotante en un portal con position:fixed: no lo recorta el overflow del nav.
@@ -122,7 +122,7 @@ function Enlace({ item, colapsado, onNavigate }) {
       onClick={() => { tip.cerrarYa(); onNavigate?.(); }}
       onMouseEnter={colapsado ? tip.abrir : undefined} onMouseLeave={() => tip.cerrar(0)}
       onFocus={colapsado ? tip.abrir : undefined} onBlur={tip.cerrarYa}
-      className={({ isActive }) => `${ITEM} h-9.5 ${colapsado ? 'justify-center' : 'gap-3 px-3'} ${isActive ? ITEM_ACTIVO : ITEM_INACTIVO}`}>
+      className={({ isActive }) => `${ITEM} h-nav-item ${colapsado ? 'justify-center' : 'gap-3 px-3'} ${isActive ? ITEM_ACTIVO : ITEM_INACTIVO}`}>
       <Icono size={20} strokeWidth={1.75} aria-hidden="true" className="shrink-0" />
       {!colapsado && <span className="truncate">{item.texto}</span>}
     </NavLink>
@@ -134,28 +134,54 @@ function Grupo({ item, colapsado, actual, abierto, onToggle, onNavigate }) {
   const Icono = item.icono;
   const activo = item.hijos.some((h) => esActivo(h.ruta, actual, h.end));
   const ref = useRef(null);
+  const primerEnlaceRef = useRef(null);
+  const enfocarPrimerEnlace = useRef(false);
   const fly = useAbrirAlPasar();
   const idSubmenu = `submenu-${item.id}`;
-  useCerrarFlotante(fly.abierto, ref, fly.cerrarYa);
+  const devolverFoco = useCallback(() => ref.current?.focus(), []);
+  useCerrarFlotante(fly.abierto, ref, fly.cerrarYa, devolverFoco);
+  useEffect(() => {
+    if (fly.abierto && enfocarPrimerEnlace.current) {
+      primerEnlaceRef.current?.focus();
+      enfocarPrimerEnlace.current = false;
+    }
+  }, [fly.abierto]);
 
-  const claseBoton = `${ITEM} h-9.5 w-full ${activo ? (abierto && !colapsado ? 'text-on-sidebar' : ITEM_ACTIVO) : ITEM_INACTIVO}`;
+  const claseBoton = `${ITEM} h-nav-item w-full ${activo ? (abierto && !colapsado ? 'text-on-sidebar' : ITEM_ACTIVO) : ITEM_INACTIVO}`;
 
   if (colapsado) {
     return <>
-      <button ref={ref} type="button" aria-label={item.texto} aria-haspopup="menu" aria-expanded={fly.abierto}
-        onClick={() => fly.setAbierto((v) => !v)} onMouseEnter={fly.abrir} onMouseLeave={() => fly.cerrar()}
+      <button ref={ref} type="button" aria-label={item.texto} aria-expanded={fly.abierto} aria-controls={idSubmenu}
+        onClick={(event) => { if (!fly.abierto && event.detail === 0) enfocarPrimerEnlace.current = true; fly.setAbierto((v) => !v); }} onMouseEnter={fly.abrir} onMouseLeave={() => fly.cerrar()}
         className={`${claseBoton} justify-center`}>
         <Icono size={20} strokeWidth={1.75} aria-hidden="true" />
       </button>
-      {fly.abierto && <Flotante ancla={ref} role="menu" onMouseEnter={fly.abrir} onMouseLeave={() => fly.cerrar()}
+      {fly.abierto && <Flotante ancla={ref} onMouseEnter={fly.abrir} onMouseLeave={() => fly.cerrar()}
         className="min-w-48 rounded-md border border-line bg-surface p-1 text-fg shadow-lg">
-        <p className="rotulo px-3 pb-1 pt-2">{item.texto}</p>
-        {item.hijos.map((h) => (
-          <NavLink key={h.ruta} to={h.ruta} end={h.end} role="menuitem" onClick={() => { fly.cerrarYa(); onNavigate?.(); }}
-            className={({ isActive }) => `block rounded-sm px-3 py-2 text-body outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${isActive ? 'bg-primary-soft font-medium text-primary-text' : 'hover:bg-muted'}`}>
-            {h.texto}
-          </NavLink>
-        ))}
+        <ul id={idSubmenu} aria-label={item.texto} onKeyDown={(event) => {
+          const enlaces = [...event.currentTarget.querySelectorAll('a[href]')];
+          const primero = enlaces[0]; const ultimo = enlaces.at(-1);
+          if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+            event.preventDefault();
+            const indice = enlaces.indexOf(document.activeElement);
+            const siguiente = event.key === 'Home' ? 0
+              : event.key === 'End' ? enlaces.length - 1
+                : (indice + (event.key === 'ArrowDown' ? 1 : -1) + enlaces.length) % enlaces.length;
+            enlaces[siguiente]?.focus();
+            return;
+          }
+          if (event.key !== 'Tab') return;
+          if ((event.shiftKey && document.activeElement === primero) || (!event.shiftKey && document.activeElement === ultimo)) {
+            event.preventDefault(); fly.cerrarYa(); devolverFoco();
+          }
+        }}>
+          {item.hijos.map((h, i) => (
+            <li key={h.ruta}><NavLink ref={i === 0 ? primerEnlaceRef : undefined} to={h.ruta} end={h.end} onClick={() => { fly.cerrarYa(); onNavigate?.(); }}
+              className={({ isActive }) => `block rounded-sm px-3 py-2 text-body-sm outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${isActive ? 'bg-primary-soft font-medium text-primary-text' : 'hover:bg-muted'}`}>
+              {h.texto}
+            </NavLink></li>
+          ))}
+        </ul>
       </Flotante>}
     </>;
   }
@@ -167,14 +193,14 @@ function Grupo({ item, colapsado, actual, abierto, onToggle, onNavigate }) {
       <span className="flex-1 truncate">{item.texto}</span>
       <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" className={`shrink-0 text-on-sidebar-muted transition-transform motion-reduce:transition-none ${abierto ? 'rotate-180' : ''}`} />
     </button>
-    {abierto && <div id={idSubmenu} className="ml-5.5 mt-0.5 space-y-0.5 border-l border-on-sidebar/15 pl-2">
+    {abierto && <ul id={idSubmenu} className="ml-5 mt-0.5 space-y-0.5 border-l border-on-sidebar/15 pl-2">
       {item.hijos.map((h) => (
-        <NavLink key={h.ruta} to={h.ruta} end={h.end} onClick={onNavigate}
-          className={({ isActive }) => `${ITEM} h-8 px-3 text-body ${isActive ? ITEM_ACTIVO : ITEM_INACTIVO}`}>
+        <li key={h.ruta}><NavLink to={h.ruta} end={h.end} onClick={onNavigate}
+          className={({ isActive }) => `${ITEM} h-nav-subitem px-3 text-body-sm font-normal ${isActive ? 'font-medium text-on-sidebar before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-full before:bg-ring-sidebar' : ITEM_INACTIVO}`}>
           <span className="truncate">{h.texto}</span>
-        </NavLink>
+        </NavLink></li>
       ))}
-    </div>}
+    </ul>}
   </div>;
 }
 
@@ -290,17 +316,21 @@ export default function Sidebar({ mobileOpen, onClose }) {
       {/* Nav sin barra de scroll visible; si hay más contenido, degradado + flecha en el borde */}
       <div className="relative min-h-0 flex-1">
         <nav ref={navRef} aria-label="Navegación principal" className={`h-full overflow-y-auto px-3 py-4 ${SIN_BARRA}`}>
-          <div className="space-y-0.5">
+          <ul className="space-y-0.5" aria-label="Navegación">
             {items.map((entrada, i) => {
-              if (!entrada.seccion) return renderItem(entrada);
-              return <div key={entrada.seccion} className="space-y-0.5">
+              if (!entrada.seccion) return <li key={entrada.ruta}>{renderItem(entrada)}</li>;
+              const idRotulo = `seccion-${entrada.seccion.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+              return <li key={entrada.seccion} className="space-y-0.5">
                 {colapsado
-                  ? <div className="mx-3 !my-3 border-t border-on-sidebar/10" aria-hidden="true" />
-                  : <p className={`px-3 pb-1.5 text-overline uppercase text-on-sidebar-muted ${i === 0 ? 'pt-1' : 'pt-5'}`}>{entrada.seccion}</p>}
-                {entrada.items.map(renderItem)}
-              </div>;
+                  ? <>
+                    <p id={idRotulo} className="sr-only">{entrada.seccion}</p>
+                    <div className="mx-3 !my-3 border-t border-on-sidebar/10" aria-hidden="true" />
+                  </>
+                  : <p id={idRotulo} className={`px-3 pb-1.5 text-label-sm uppercase tracking-wider text-on-sidebar-muted ${i === 0 ? 'pt-1' : 'pt-5'}`}>{entrada.seccion}</p>}
+                <ul aria-labelledby={idRotulo} className="space-y-0.5">{entrada.items.map((item) => <li key={item.id ?? item.ruta}>{renderItem(item)}</li>)}</ul>
+              </li>;
             })}
-          </div>
+          </ul>
         </nav>
         {arriba && <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 flex h-9 justify-center pt-0.5"
           style={{ background: 'linear-gradient(to bottom, var(--bg-sidebar) 35%, transparent)' }}>

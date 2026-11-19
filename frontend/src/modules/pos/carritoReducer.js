@@ -19,6 +19,8 @@ export function carritoReducer(items, accion) {
       return items.filter((i) => i.id_producto !== accion.id);
     case 'vaciar':
       return carritoInicial;
+    case 'restaurar':
+      return accion.items.map((item) => ({ ...item }));
     default:
       return items;
   }

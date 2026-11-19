@@ -145,7 +145,7 @@ export default function ProveedoresPage() {
   return (
     <div className="space-y-6">
       <EncabezadoPagina
-        seccion="Operación · Compras"
+        seccion="Gestión · Compras"
         titulo="Proveedores"
         descripcion="Administra la información comercial y las condiciones de crédito de tus proveedores."
         acciones={puedeEditar && <Button icono={Plus} onClick={() => { setModal({ ...VACIO }); }}>Nuevo proveedor</Button>}

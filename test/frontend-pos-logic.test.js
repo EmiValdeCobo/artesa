@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { IVA, PRECIOS_INCLUYEN_IVA, calcularTotales, formatoMoneda } from '../frontend/src/modules/pos/impuestos.js';
 import { carritoInicial, carritoReducer } from '../frontend/src/modules/pos/carritoReducer.js';
+import { etiquetaCobro } from '../frontend/src/modules/pos/etiquetaCobro.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. IMPUESTOS Y CÁLCULO DE TOTALES (POS)
@@ -45,6 +46,18 @@ test('pos impuestos: formatoMoneda da formato USD con símbolo de dólar', () =>
   const formatted = formatoMoneda(15.5);
   assert.match(formatted, /\$/);
   assert.match(formatted, /15\.50/);
+});
+
+test('pos etiquetaCobro: no sugiere cobrar una venta vacía', () => {
+  assert.equal(etiquetaCobro([], 0), 'Cobrar');
+});
+
+test('pos etiquetaCobro: muestra el total para una venta con productos', () => {
+  assert.equal(etiquetaCobro([{ id_producto: 1 }], 4.5), `Cobrar ${formatoMoneda(4.5)}`);
+});
+
+test('pos etiquetaCobro: conserva dos decimales en importes fraccionarios', () => {
+  assert.equal(etiquetaCobro([{ id_producto: 1 }], 1.05), `Cobrar ${formatoMoneda(1.05)}`);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

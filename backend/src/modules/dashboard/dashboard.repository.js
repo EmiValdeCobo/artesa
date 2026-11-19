@@ -186,20 +186,15 @@ export const topProductos = ({ zona, dias, sucursalIds, limite }) => query(
 );
 
 // ---------- Alertas (una consulta agregada por tipo) ----------
-// Stock: igual que reportes.vw_alertas_stock, pero con alcance por sucursal y agrupado en la BD.
-// Un insumo sin mínimo definido (0) no genera alerta mientras no tenga stock negativo.
+// Agrega la vista compartida para mantener idéntico el criterio de alertas en dashboard e inventario.
 export const alertasStock = (sucursalIds) => query(
-  `SELECT s.id_sucursal, s.nombre AS sucursal,
-          CASE WHEN ss.stock_actual <= 0 THEN 'AGOTADO' ELSE 'BAJO_MINIMO' END AS nivel,
+  `SELECT a.id_sucursal, a.sucursal, a.nivel,
           COUNT(*)::int AS total,
-          (array_agg(i.nombre ORDER BY ss.stock_minimo - ss.stock_actual DESC, i.nombre))[1:3] AS ejemplos
-   FROM inventario.stock_sucursal ss
-   JOIN inventario.insumos i ON i.id_insumo = ss.id_insumo
-   JOIN empresa.sucursales s ON s.id_sucursal = ss.id_sucursal
-   WHERE i.activo AND i.deleted_at IS NULL AND ss.id_sucursal = ANY($1::int[])
-     AND ss.stock_actual <= ss.stock_minimo AND (ss.stock_minimo > 0 OR ss.stock_actual < 0)
-   GROUP BY 1, 2, 3
-   ORDER BY 3, 2`,
+          (array_agg(a.insumo ORDER BY a.faltante DESC, a.insumo))[1:3] AS ejemplos
+   FROM reportes.vw_alertas_stock a
+   WHERE a.id_sucursal = ANY($1::int[])
+   GROUP BY a.id_sucursal, a.sucursal, a.nivel
+   ORDER BY a.id_sucursal, a.nivel`,
   [sucursalIds],
 );
 

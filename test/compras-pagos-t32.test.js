@@ -151,7 +151,7 @@ test('T32 reportes y Compras reutilizan una consulta CxP común', async () => {
   assert.match(shared, /AS saldo/);
   assert.match(shared, /JOIN visibles s ON s\.id_sucursal = f\.id_sucursal/);
   assert.match(shared, /ORDER BY f\.fecha_vencimiento ASC, pr\.razon_social, f\.num_factura, f\.id_compra/);
-  assert.match(shared, /LIMIT \$7::int OFFSET \$8::int/);
+  assert.match(shared, /LIMIT \$8::int OFFSET \$9::int/);
   assert.match(shared, /COUNT\(\*\) OVER\(\)::text AS __total/);
   assert.doesNotMatch(shared, /LIMIT 500/);
 });

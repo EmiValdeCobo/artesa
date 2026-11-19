@@ -110,7 +110,7 @@ export const guardarReceta = async (id, componentes, transaction) => {
   }
 };
 export const stockSucursal = (idSucursal = null) => select(`SELECT ss.id_sucursal, s.nombre AS sucursal, ss.id_insumo, i.nombre AS insumo, u.codigo AS unidad, ss.stock_actual, ss.stock_minimo, i.activo FROM inventario.stock_sucursal ss JOIN empresa.sucursales s USING (id_sucursal) JOIN inventario.insumos i USING (id_insumo) JOIN inventario.unidades_medida u ON u.id_unidad = i.id_unidad_base WHERE ($1::int IS NULL OR ss.id_sucursal = $1) AND i.deleted_at IS NULL ORDER BY s.nombre, i.nombre`, [idSucursal]);
-export const alertas = (idSucursal = null) => select(`SELECT ss.id_sucursal, a.* FROM reportes.vw_alertas_stock a JOIN empresa.sucursales s ON s.nombre = a.sucursal JOIN inventario.insumos i ON i.nombre = a.insumo AND i.deleted_at IS NULL JOIN inventario.stock_sucursal ss ON ss.id_sucursal = s.id_sucursal AND ss.id_insumo = i.id_insumo WHERE ($1::int IS NULL OR ss.id_sucursal = $1) AND i.deleted_at IS NULL ORDER BY a.sucursal, a.insumo`, [idSucursal]);
+export const alertas = (idSucursal = null) => select(`SELECT * FROM reportes.vw_alertas_stock WHERE ($1::int IS NULL OR id_sucursal = $1) ORDER BY sucursal, insumo`, [idSucursal]);
 const FILTROS_MOVIMIENTOS = `
   WHERE EXISTS (
     SELECT 1 FROM seguridad.usuario_sucursal us

@@ -59,6 +59,8 @@
   --spacing-sidebar: 15.5rem;     /* 248 */
   --spacing-sidebar-colapsada: 4.5rem; /* 72 */
   --spacing-header: 4rem;         /* 64 */
+  --spacing-nav-item: 2.375rem;   /* 38 */
+  --spacing-nav-subitem: 2.25rem; /* 36 */
 
   --color-terracota-50:  #fbf1ec;  --color-terracota-100: #f5ddd2;
   --color-terracota-200: #ebbca7;  --color-terracota-300: #de9776;

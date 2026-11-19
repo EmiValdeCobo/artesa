@@ -1,13 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Minus,
   Plus,
   ReceiptText,
   UserCheck,
-  Building2,
   Search,
   X,
-  Sparkles,
   UserPlus,
 } from 'lucide-react';
 import Dialogo from '../../components/Dialogo.jsx';
@@ -72,6 +70,8 @@ export default function Carrito({
   onSeleccionarCliente,
   dispatch,
   onCobrar,
+  onVaciar,
+  etiquetaCobro: textoCobro,
 }) {
   const { tiene } = useAuth();
   const { notificar, notificarError } = useAlert();
@@ -86,6 +86,43 @@ export default function Carrito({
   const [terminoCliente, setTerminoCliente] = useState('');
   const [resultadosCliente, setResultadosCliente] = useState([]);
   const [cargandoClientes, setCargandoClientes] = useState(false);
+  const buscarRef = useRef(null);
+  const entradaBusquedaRef = useRef(null);
+  const clienteFilaRef = useRef(null);
+  const filasRef = useRef(new Map());
+  const itemsPreviosRef = useRef(items);
+
+  useEffect(() => {
+    const previos = itemsPreviosRef.current;
+    const cambiado = [...items].reverse().find((item) => previos.find((anterior) => anterior.id_producto === item.id_producto)?.cantidad !== item.cantidad);
+    if (cambiado) filasRef.current.get(cambiado.id_producto)?.scrollIntoView?.({ block: 'nearest' });
+    itemsPreviosRef.current = items;
+  }, [items]);
+
+  useEffect(() => {
+    if (!buscandoCliente) return undefined;
+    entradaBusquedaRef.current?.focus();
+    const cerrarFuera = (evento) => {
+      if (clienteFilaRef.current && !clienteFilaRef.current.contains(evento.target)) {
+        setBuscandoCliente(false);
+        setTerminoCliente('');
+        buscarRef.current?.focus();
+      }
+    };
+    const cerrarEscape = (evento) => {
+      if (evento.key === 'Escape') {
+        setBuscandoCliente(false);
+        setTerminoCliente('');
+        buscarRef.current?.focus();
+      }
+    };
+    document.addEventListener('pointerdown', cerrarFuera);
+    document.addEventListener('keydown', cerrarEscape);
+    return () => {
+      document.removeEventListener('pointerdown', cerrarFuera);
+      document.removeEventListener('keydown', cerrarEscape);
+    };
+  }, [buscandoCliente]);
 
   // Modal de registro rápido de cliente
   const [modalNuevoCliente, setModalNuevoCliente] = useState(false);
@@ -122,6 +159,7 @@ export default function Carrito({
     if (onSeleccionarCliente) onSeleccionarCliente(c);
     setBuscandoCliente(false);
     setTerminoCliente('');
+    buscarRef.current?.focus();
   };
 
   const abrirModalNuevoCliente = () => {
@@ -266,15 +304,17 @@ export default function Carrito({
   };
 
   return (
-    <aside id="pedido-actual" className="flex h-auto flex-col gap-4 scroll-mt-20 rounded-lg border border-line bg-surface p-4 shadow-xs" aria-label="Pedido actual">
-      <header className="shrink-0">
-        <h2 className="font-semibold text-sm sm:text-base">Pedido actual</h2>
-        <p className="text-xs text-fg-muted">{unidades} {unidades === 1 ? 'producto' : 'productos'}</p>
-        {tipos.length < 2 ? <p className="mt-2.5 text-xs text-fg-muted sm:mt-3">Documento: {tipos[0].texto}</p> : (
-          <div className="mt-2.5 grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 sm:mt-3" role="radiogroup" aria-label="Tipo de documento">
+    <aside id="pedido-actual" className="flex h-auto flex-col gap-3 scroll-mt-20 rounded-lg border border-line bg-surface p-4 shadow-xs lg:h-full lg:min-h-0 lg:gap-2" aria-label="Pedido actual">
+      <header className="relative shrink-0 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-body font-semibold">Pedido actual · <span aria-live="polite" aria-atomic="true">{unidades} {unidades === 1 ? 'producto' : 'productos'}</span></h2>
+          {items.length > 0 && <Button variante="ghost" tamano="sm" className="h-control-sm shrink-0 !px-2 text-label-sm" onClick={onVaciar}>Vaciar</Button>}
+        </div>
+        {tipos.length < 2 ? <p className="text-label-sm text-fg-muted">Documento: {tipos[0].texto}</p> : (
+          <div className="grid grid-cols-2 gap-1 rounded-md bg-muted p-1" role="radiogroup" aria-label="Tipo de documento">
             {tipos.map((t) => (
               <button key={t.valor} type="button" role="radio" aria-checked={tipoDocumento === t.valor} onClick={() => onTipoDocumento(t.valor)}
-                className={`rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${tipoDocumento === t.valor ? 'bg-surface text-fg shadow-sm' : 'text-fg-muted hover:text-fg'}`}>
+                className={`h-control-sm rounded-md px-2 text-label-sm font-medium ${tipoDocumento === t.valor ? 'bg-surface text-fg shadow-sm' : 'text-fg-muted hover:text-fg'}`}>
                 {t.texto}
               </button>
             ))}
@@ -282,90 +322,35 @@ export default function Carrito({
         )}
 
         {/* Afiliación de cliente (Opcional para FCF / Cliente Premium, Obligatorio con NRC para CCF) */}
-        <div className="mt-2.5 rounded-lg border border-line bg-muted/40 p-2 sm:mt-3 sm:p-2.5 text-xs">
-          <div className="flex items-center justify-between gap-2">
-            <span className="font-medium text-fg">
-              {esCCF ? 'Contribuyente CCF *' : 'Cliente afiliado (opcional)'}
-            </span>
-            {clienteSeleccionado ? (
-              <button
-                type="button"
-                onClick={() => onSeleccionarCliente && onSeleccionarCliente(null)}
-                className="inline-flex items-center gap-1 text-label-sm text-danger hover:underline"
-              >
-                <X size={12} /> Quitar
-              </button>
-            ) : (
-              <div className="inline-flex items-center gap-2.5">
-                {puedeCrearClientes && (
-                  <button
-                    type="button"
-                    onClick={abrirModalNuevoCliente}
-                    className="inline-flex items-center gap-1 text-label-sm font-semibold text-primary-text hover:underline"
-                  >
-                    <UserPlus size={12} /> Nuevo
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setBuscandoCliente((prev) => !prev)}
-                  className="inline-flex items-center gap-1 text-label-sm font-semibold text-fg-muted hover:text-fg hover:underline"
-                >
-                  <Search size={12} /> {buscandoCliente ? 'Cerrar' : 'Buscar'}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {clienteSeleccionado ? (
-            <div className="mt-1.5 flex items-start justify-between gap-2 rounded-md border border-line bg-surface p-2">
-              <div className="min-w-0">
-                <p className="flex items-center gap-1 truncate font-semibold text-fg">
-                  {clienteSeleccionado.nrc ? <Building2 size={13} className="shrink-0 text-primary-text" /> : <Sparkles size={13} className="shrink-0 text-primary-text" />}
-                  {clienteSeleccionado.nombre_razon_social}
-                </p>
-                <p className="text-label-sm text-fg-muted">
-                  {clienteSeleccionado.nrc
-                    ? `NRC: ${clienteSeleccionado.nrc} · ${clienteSeleccionado.giro_economico}`
-                    : clienteSeleccionado.num_documento
-                      ? `${clienteSeleccionado.tipo_documento}: ${clienteSeleccionado.num_documento} · Cliente afiliado`
-                      : 'Cliente frecuente / afiliado'}
-                </p>
-                {esCCF && !clienteValidoParaCCF && (
-                  <p className="mt-1 text-label-sm font-medium text-danger">
-                    Este cliente no posee NRC ni giro económico para emitir CCF.
-                  </p>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => setBuscandoCliente(true)}
-                className="shrink-0 text-label-sm font-medium text-primary-text hover:underline"
-              >
-                Cambiar
-              </button>
-            </div>
-          ) : (
-            <p className="mt-1 text-label-sm text-fg-muted">
-              {esCCF
-                ? 'Selecciona o registra un cliente con NRC y giro.'
-                : 'Sin afiliar: se emitirá como Consumidor Final.'}
-            </p>
-          )}
+        <div ref={clienteFilaRef} className="relative flex min-w-0 items-center gap-1.5 text-label-sm">
+          <span className="shrink-0 text-fg-muted">Cliente:</span>
+          <span className="min-w-0 flex-1 truncate font-medium text-fg" title={clienteSeleccionado?.nombre_razon_social || undefined}>
+            {clienteSeleccionado?.nombre_razon_social || 'Consumidor final'}
+          </span>
+          {clienteSeleccionado && <button type="button" onClick={() => onSeleccionarCliente?.(null)} className="btn-ghost h-control-sm !px-1.5 text-label-sm text-danger" aria-label="Quitar cliente"><X size={14} /> Quitar</button>}
+          {puedeCrearClientes && !clienteSeleccionado && <button type="button" onClick={abrirModalNuevoCliente} className="btn-ghost h-control-sm !px-1.5 text-label-sm"><UserPlus size={14} /> Nuevo</button>}
+          {puedeVerClientes && <button
+            ref={buscarRef}
+            type="button"
+            aria-expanded={buscandoCliente}
+            onClick={() => setBuscandoCliente((prev) => !prev)}
+            className="btn-ghost h-control-sm !px-1.5 text-label-sm text-primary-text"
+          ><Search size={14} /> Buscar</button>}
 
           {buscandoCliente && (
-            <div className="mt-2 space-y-1.5 border-t border-line pt-2">
+            <div className="absolute right-0 top-full z-20 mt-1 w-full rounded-md border border-line bg-surface p-2 shadow-md" role="dialog" aria-label="Buscar cliente">
               <div className="relative">
-                <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-fg-muted" />
+                <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-fg-muted" />
                 <input
+                  ref={entradaBusquedaRef}
                   type="text"
                   value={terminoCliente}
                   onChange={(e) => setTerminoCliente(e.target.value)}
                   placeholder={esCCF ? 'Buscar por nombre, NIT o NRC...' : 'Buscar cliente por nombre, DUI o NIT...'}
-                  className="input w-full !py-1.5 pl-7 pr-2 text-xs"
+                  className="input h-control-sm w-full pl-8 pr-2 text-body-sm"
                 />
               </div>
-              <div className="max-h-28 divide-y divide-line overflow-y-auto rounded-md border border-line bg-surface sm:max-h-36">
+              <div className="scroll-fino mt-1 max-h-56 divide-y divide-line overflow-y-auto rounded-md border border-line bg-surface">
                 {cargandoClientes ? (
                   <p className="p-2 text-center text-label-sm text-fg-muted">Buscando clientes...</p>
                 ) : resultadosCliente.length === 0 ? (
@@ -379,7 +364,7 @@ export default function Carrito({
                         onClick={abrirModalNuevoCliente}
                         className="inline-flex items-center gap-1 rounded-md bg-primary-soft px-2.5 py-1 text-label-sm font-semibold text-primary-text hover:opacity-90"
                       >
-                        <UserPlus size={12} /> Registrar y afiliar ahora
+                        <UserPlus size={14} /> Registrar y afiliar ahora
                       </button>
                     )}
                   </div>
@@ -389,7 +374,7 @@ export default function Carrito({
                       key={c.id_cliente}
                       type="button"
                       onClick={() => elegirCliente(c)}
-                      className="flex w-full items-center justify-between px-2.5 py-1.5 text-left text-xs transition-colors hover:bg-muted"
+                      className="flex w-full items-center justify-between gap-2 px-2.5 py-1.5 text-left text-body-sm hover:bg-muted"
                     >
                       <div className="min-w-0">
                         <p className="truncate font-medium text-fg">{c.nombre_razon_social}</p>
@@ -397,7 +382,7 @@ export default function Carrito({
                           {c.nrc ? `NRC: ${c.nrc}` : c.num_documento ? `${c.tipo_documento}: ${c.num_documento}` : 'Cliente afiliado'}
                         </p>
                       </div>
-                      <UserCheck size={13} className="shrink-0 text-primary-text" />
+                      <UserCheck size={14} className="shrink-0 text-primary-text" />
                     </button>
                   ))
                 )}
@@ -407,17 +392,18 @@ export default function Carrito({
         </div>
       </header>
 
-      <div className="overflow-hidden rounded-md border border-line bg-surface">
-        <div className="scroll-fino min-h-[210px] max-h-[340px] overflow-y-auto px-3 [scrollbar-gutter:stable] lg:max-h-[380px]">
+      {esCCF && bloqueoPorCCF && <p id="pos-ccf-bloqueo" className="sr-only">Selecciona un cliente con NRC y giro económico para cobrar con crédito fiscal.</p>}
+      <div className="min-h-32 flex-1 overflow-hidden rounded-md border border-line bg-surface lg:min-h-0">
+        <div className="scroll-fino h-full min-h-32 overflow-y-auto px-3 [scrollbar-gutter:stable] lg:min-h-0">
           {items.length === 0 ? (
-            <div className="flex min-h-[210px] flex-col items-center justify-center gap-2 text-center text-sm text-fg-muted">
+            <div className="flex min-h-32 h-full flex-col items-center justify-center gap-2 text-center text-body-sm text-fg-muted">
               <ReceiptText size={26} aria-hidden="true" />
-              <p>Toca un producto del catálogo para empezar el pedido.</p>
+              <div><p className="font-medium text-fg">Tu pedido está vacío</p><p>Toca un producto del menú para agregarlo.</p></div>
             </div>
           ) : (
             <ul className="divide-y divide-line">
               {items.map((i) => (
-                <li key={i.id_producto} className="flex items-center justify-between gap-2 py-2.5">
+                <li ref={(elemento) => elemento ? filasRef.current.set(i.id_producto, elemento) : filasRef.current.delete(i.id_producto)} key={i.id_producto} className="flex items-center justify-between gap-2 py-2.5">
                   <div className="min-w-0 flex-1 pr-2">
                     <p className="line-clamp-2 text-label text-fg">{i.nombre}</p>
                     <p className="text-label-sm tabular-nums text-fg-muted">{formatoMoneda(i.precio)} c/u</p>
@@ -426,11 +412,11 @@ export default function Carrito({
                     <div className="flex items-center gap-1">
                       <BotonIcono icono={Minus} className="size-control-sm justify-center" etiqueta={`Quitar una unidad de ${i.nombre}`}
                         onClick={() => dispatch({ tipo: 'cambiarCantidad', id: i.id_producto, cantidad: i.cantidad - 1 })} />
-                      <span className="w-6 text-center text-sm font-semibold tabular-nums" aria-live="polite">{i.cantidad}</span>
+                      <span className="w-6 text-center text-body-sm font-semibold tabular-nums" aria-live="polite">{i.cantidad}</span>
                       <BotonIcono icono={Plus} className="size-control-sm justify-center" etiqueta={`Agregar una unidad de ${i.nombre}`} disabled={i.cantidad >= i.stock}
                         onClick={() => dispatch({ tipo: 'cambiarCantidad', id: i.id_producto, cantidad: i.cantidad + 1 })} />
                     </div>
-                    <p className="w-16 text-right text-sm font-semibold tabular-nums">{formatoMoneda(i.precio * i.cantidad)}</p>
+                    <p className="w-16 text-right text-body-sm font-semibold tabular-nums">{formatoMoneda(i.precio * i.cantidad)}</p>
                     <BotonIcono icono={ICONOS.eliminar} tono="peligro" className="size-control-sm justify-center" etiqueta={`Eliminar ${i.nombre}`}
                       onClick={() => dispatch({ tipo: 'quitar', id: i.id_producto })} />
                   </div>
@@ -441,14 +427,13 @@ export default function Carrito({
         </div>
       </div>
 
-      <footer className="shrink-0 border-t border-line pt-3">
-        <dl className="space-y-1 text-body-sm tabular-nums">
+      <footer className="shrink-0 border-t border-line pt-2">
+        <dl className="space-y-0.5 text-body-sm tabular-nums">
           <div className="flex justify-between"><dt className="text-fg-muted">Subtotal</dt><dd>{formatoMoneda(subtotal)}</dd></div>
           <div className="flex justify-between"><dt className="text-fg-muted">IVA ({IVA * 100}%)</dt><dd>{formatoMoneda(iva)}</dd></div>
-          <div className="flex items-end justify-between border-t border-line pt-2"><dt className="text-label text-fg">Total</dt><dd className="text-kpi text-fg">{formatoMoneda(total)}</dd></div>
+          <div className="flex items-end justify-between border-t border-line pt-1"><dt className="text-label text-fg">Total</dt><dd className="text-kpi text-fg">{formatoMoneda(total)}</dd></div>
         </dl>
-        <Button tamano="lg" className="mt-3 w-full" disabled={!items.length || bloqueoPorCCF} onClick={onCobrar}>Cobrar {formatoMoneda(total)}</Button>
-        <Button variante="ghost" tamano="sm" className="mt-2 w-full !border-transparent" disabled={!items.length} onClick={() => dispatch({ tipo: 'vaciar' })}>Vaciar pedido</Button>
+        <Button tamano="lg" className="mt-2 w-full" disabled={!items.length || bloqueoPorCCF} aria-describedby={bloqueoPorCCF ? 'pos-ccf-bloqueo' : undefined} onClick={onCobrar}>{textoCobro}</Button>
       </footer>
 
       {/* Modal rápido de registro y afiliación de cliente */}
@@ -460,7 +445,7 @@ export default function Carrito({
         >
           <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-primary-text">
+              <p className="text-label-sm font-semibold uppercase tracking-widest text-primary-text">
                 Operación · Punto de venta
               </p>
               <h2 id="titulo-afiliar-cliente-pos" className="mt-1 text-xl font-semibold text-fg">
@@ -475,7 +460,7 @@ export default function Carrito({
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <label className="mb-1 block text-xs font-semibold text-fg">
+                  <label className="mb-1 block text-label-sm font-semibold text-fg">
                   Nombre o Razón Social <span className="text-danger">*</span>
                 </label>
                 <input
@@ -491,7 +476,7 @@ export default function Carrito({
               </div>
 
               <div>
-                <label htmlFor="pos-cliente-tipo-documento" className="mb-1 block text-xs font-semibold text-fg">Tipo de documento</label>
+                <label htmlFor="pos-cliente-tipo-documento" className="mb-1 block text-label-sm font-semibold text-fg">Tipo de documento</label>
                 <Select
                   id="pos-cliente-tipo-documento"
                   name="tipo_documento"
@@ -507,7 +492,7 @@ export default function Carrito({
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-fg">Número de documento</label>
+                <label className="mb-1 block text-label-sm font-semibold text-fg">Número de documento</label>
                 <input
                   type="text"
                   name="num_documento"
@@ -521,12 +506,12 @@ export default function Carrito({
               </div>
 
               <div className="rounded-md border border-line bg-muted p-4 text-center sm:col-span-2">
-                <p className="mb-3 text-xs font-semibold text-primary-text">
+                <p className="mb-3 text-label-sm font-semibold text-primary-text">
                   Datos fiscales para Crédito Fiscal (CCF) {esCCF ? '— Obligatorios para este comprobante' : '— Opcional'}
                 </p>
                 <div className="mx-auto grid max-w-xl grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="flex flex-col items-center">
-                    <label className="mb-1.5 block text-xs font-medium text-fg">
+                    <label className="mb-1.5 block text-label-sm font-medium text-fg">
                       NRC {esCCF && <span className="text-danger">*</span>}
                     </label>
                     <input
@@ -542,7 +527,7 @@ export default function Carrito({
                   </div>
 
                   <div className="flex flex-col items-center">
-                    <label className="mb-1.5 block text-xs font-medium text-fg">
+                    <label className="mb-1.5 block text-label-sm font-medium text-fg">
                       Giro económico {esCCF && <span className="text-danger">*</span>}
                     </label>
                     <input
@@ -560,7 +545,7 @@ export default function Carrito({
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-fg">Teléfono</label>
+                <label className="mb-1 block text-label-sm font-semibold text-fg">Teléfono</label>
                 <input
                   type="text"
                   name="telefono"
@@ -573,7 +558,7 @@ export default function Carrito({
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-fg">Correo electrónico</label>
+                <label className="mb-1 block text-label-sm font-semibold text-fg">Correo electrónico</label>
                 <input
                   type="email"
                   name="email"
@@ -586,7 +571,7 @@ export default function Carrito({
               </div>
 
               <div className="sm:col-span-2">
-                <label className="mb-1 block text-xs font-semibold text-fg">Dirección fiscal / entrega</label>
+                <label className="mb-1 block text-label-sm font-semibold text-fg">Dirección fiscal / entrega</label>
                 <input
                   type="text"
                   name="direccion"

@@ -1,4 +1,5 @@
 import { api } from '../../api/client.js';
+import { listarTodasLasPaginas } from './paginacionApi.js';
 
 export const listarProveedores = (activo = true) => api.get(`/compras/proveedores?activo=${activo}`);
 export const crearProveedor = (datos) => api.post('/compras/proveedores', datos);
@@ -8,6 +9,14 @@ export const registrarCompra = (datos) => api.post('/compras', datos);
 export const listarCuentasPorPagar = (filtros = {}) => {
   const query = new URLSearchParams(Object.fromEntries(Object.entries(filtros).filter(([, v]) => v !== '' && v != null)));
   return api.get(`/compras/cuentas-por-pagar${query.size ? `?${query}` : ''}`);
+};
+export const listarTodasLasCuentasPorPagar = (filtros = {}) => listarTodasLasPaginas(
+  (paginacion) => listarCuentasPorPagar({ ...filtros, ...paginacion }),
+);
+export const listarGastos = async (filtros = {}) => {
+  return listarTodasLasPaginas(
+    (paginacion) => listarCuentasPorPagar({ ...filtros, ...paginacion, tipoCosto: 'GASTO' }),
+  );
 };
 export const registrarPago = (idCompra, datos) => api.post(`/compras/${idCompra}/pagos`, datos);
 export const listarInsumosCompra = () => api.get('/inventario/insumos');

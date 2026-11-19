@@ -18,6 +18,7 @@ import ProductoCard from './ProductoCard.jsx';
 import Carrito from './Carrito.jsx';
 import ModalCobro from './ModalCobro.jsx';
 import VentaExitosaModal from './VentaExitosaModal.jsx';
+import { etiquetaCobro } from './etiquetaCobro.js';
 
 export default function PosPage() {
   const { usuario, tiene } = useAuth();
@@ -111,12 +112,24 @@ export default function PosPage() {
     cargar();
   };
 
-  return (
-    <div className={`mx-auto max-w-7xl ${unidades > 0 ? 'pb-20 lg:pb-0' : ''}`}>
-      <EncabezadoPagina seccion="Operación · Punto de venta" titulo="Punto de venta" descripcion="Toca un producto del menú para agregarlo al pedido." className="shrink-0" />
+  const vaciarPedido = () => {
+    if (!items.length) return;
+    const instantanea = items.map((item) => ({ ...item }));
+    dispatch({ tipo: 'vaciar' });
+    notificar.exito('Pedido vaciado', {
+      acciones: [{ etiqueta: 'Deshacer', onClick: () => dispatch({ tipo: 'restaurar', items: instantanea }) }],
+    });
+  };
 
-      {/* Indicador de sucursal operativa y estado del turno de caja */}
-      <div className="mt-3 flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-2 text-body-sm shadow-xs">
+  return (
+    <div className={`mx-auto flex max-w-7xl flex-col lg:h-[calc(100dvh-4rem)] lg:min-h-[34rem] ${unidades > 0 ? 'pb-20 lg:pb-0' : ''}`}>
+      <EncabezadoPagina
+        seccion="Operación · Punto de venta"
+        titulo="Punto de venta"
+        descripcion="Toca un producto del menú para agregarlo al pedido."
+        className="shrink-0"
+        acciones={(
+          <div className="flex shrink-0 flex-wrap items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-body-sm shadow-xs">
         <div className="flex items-center gap-2">
           <Store size={16} strokeWidth={1.75} className="text-fg-muted" aria-hidden="true" />
           <span className="text-label-sm text-fg-muted">Sucursal:</span>
@@ -138,7 +151,7 @@ export default function PosPage() {
           )}
         </div>
 
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex items-center gap-2 text-body-sm">
           {turnoActivo ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-success-soft px-2.5 py-1 text-label-sm text-success-text">
               <Wallet size={16} strokeWidth={1.75} aria-hidden="true" />
@@ -153,10 +166,13 @@ export default function PosPage() {
             </div>
           )}
         </div>
-      </div>
+          </div>
+        )}
+      />
 
-      <div className="mt-4 grid gap-4 sm:mt-5 lg:items-start lg:grid-cols-[1fr_22rem] xl:grid-cols-[1fr_24rem]">
-        <section aria-label="Menú" className="scroll-fino lg:max-h-[calc(100dvh-14rem)] lg:overflow-y-auto lg:pb-4 lg:pl-1 lg:pr-2 lg:pt-1 lg:[scrollbar-gutter:stable]">
+      {/* 4rem descuenta el padding vertical lg:p-8 de AppLayout para ocupar el alto útil. */}
+      <div className="mt-4 grid min-w-0 gap-4 sm:mt-5 lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_24rem]">
+        <section aria-label="Menú" className="scroll-fino lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pb-4 lg:pl-1 lg:pr-2 lg:pt-1 lg:[scrollbar-gutter:stable]">
           {!puedeVerMenu ? (
             <div className="card">
               <EstadoVacio icono={ShieldAlert} titulo="Tu rol no puede consultar el menú">
@@ -217,7 +233,7 @@ export default function PosPage() {
           )}
         </section>
 
-        <div className="flex flex-col">
+        <div className="flex flex-col lg:h-full lg:min-h-0">
           <Carrito
             items={items}
             tipoDocumento={documento}
@@ -226,6 +242,8 @@ export default function PosPage() {
             onSeleccionarCliente={setClienteSeleccionado}
             dispatch={dispatch}
             onCobrar={cobrar}
+            onVaciar={vaciarPedido}
+            etiquetaCobro={etiquetaCobro(items, total)}
           />
         </div>
       </div>

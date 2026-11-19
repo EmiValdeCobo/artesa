@@ -126,6 +126,18 @@ export default function InventarioPage() {
   }, [idSucursal, cargarSucursal]);
 
   useEffect(() => {
+    const recargarSiVisible = () => {
+      if (!document.hidden && idSucursal) void cargarSucursal(idSucursal);
+    };
+    window.addEventListener('focus', recargarSiVisible);
+    document.addEventListener('visibilitychange', recargarSiVisible);
+    return () => {
+      window.removeEventListener('focus', recargarSiVisible);
+      document.removeEventListener('visibilitychange', recargarSiVisible);
+    };
+  }, [idSucursal, cargarSucursal]);
+
+  useEffect(() => {
     if (tiposIniciados.current) return;
     tiposIniciados.current = true;
     void cargarTiposInsumo();
@@ -170,8 +182,11 @@ export default function InventarioPage() {
     setSeleccion(new Set());
   };
 
-  // Las alertas no traen id_insumo: se resuelve por nombre contra el catálogo (mismo criterio del backend).
-  const insumoDeAlerta = useCallback((fila) => insumosPorNombre[fila.insumo] ?? null, [insumosPorNombre]);
+  const insumoDeAlerta = useCallback((fila) => (
+    fila.id_insumo != null
+      ? Object.values(insumosPorNombre).find((insumo) => String(insumo.id_insumo) === String(fila.id_insumo)) ?? null
+      : insumosPorNombre[fila.insumo] ?? null
+  ), [insumosPorNombre]);
 
   const alternarSeleccion = (fila) => {
     const insumo = insumoDeAlerta(fila);
@@ -189,11 +204,12 @@ export default function InventarioPage() {
   // cuando el usuario tiene permiso de ver costos y el proveedor queda por elegir.
   const crearBorradorCompra = (filas) => {
     const items = filas
+      .filter((fila) => Number(fila.faltante) > 0)
       .map((fila) => ({ fila, insumo: insumoDeAlerta(fila) }))
       .filter(({ insumo }) => insumo && insumo.activo !== false)
       .map(({ fila, insumo }) => ({
         idInsumo: String(insumo.id_insumo),
-        cantidad: String(Math.max(1, Math.ceil(Number(fila.faltante) || 0))),
+        cantidad: String(Math.ceil(Number(fila.faltante))),
         costoUnitario: insumo.costo_promedio != null ? String(insumo.costo_promedio) : '',
         origen: 'faltante',
         unidad: String(insumo.unidad_codigo ?? fila.unidad ?? '').toLowerCase(),
@@ -267,7 +283,7 @@ export default function InventarioPage() {
     },
   ];
 
-  const seleccionables = alertas.filter((fila) => insumoDeAlerta(fila));
+  const seleccionables = alertas.filter((fila) => Number(fila.faltante) > 0 && insumoDeAlerta(fila));
   const todasSeleccionadas = seleccionables.length > 0 && seleccionables.every((fila) => seleccion.has(String(insumoDeAlerta(fila).id_insumo)));
   const alternarTodas = () => setSeleccion(
     todasSeleccionadas ? new Set() : new Set(seleccionables.map((fila) => String(insumoDeAlerta(fila).id_insumo))),
@@ -312,7 +328,7 @@ export default function InventarioPage() {
         <BotonIcono
           icono={ICONOS.comprar}
           etiqueta={`Comprar a proveedor: ${fila.insumo}`}
-          disabled={!insumoDeAlerta(fila)}
+          disabled={!insumoDeAlerta(fila) || Number(fila.faltante) <= 0}
           onClick={() => crearBorradorCompra([fila])}
         />
       ),

@@ -25,6 +25,8 @@ test('paginación CxP: defaults, filtros válidos y rechazo de páginas o límit
   assert.deepEqual(filtrosCuentasPorPagarSchema.parse({ page: '3', limit: '100', estado: 'todas' }), {
     page: 3, limit: 100, estado: 'todas',
   });
+  assert.equal(filtrosCuentasPorPagarSchema.parse({ tipoCosto: 'GASTO' }).tipoCosto, 'GASTO');
+  assert.throws(() => filtrosCuentasPorPagarSchema.parse({ tipoCosto: 'MERMA' }));
   for (const entrada of [{ page: 0 }, { page: '-1' }, { page: '1.1' }, { page: '1e2' }, { page: 'texto' }, { limit: 0 }, { limit: 101 }]) {
     assert.throws(() => filtrosCuentasPorPagarSchema.parse(entrada));
   }
@@ -43,11 +45,26 @@ test('paginación CxP: páginas consecutivas recorren un total superior a 500 co
   assert.equal(segunda.pagination.page, 2);
   assert.equal(primera.data.length, 50);
   assert.equal(typeof primera.data[0].importe, 'string');
-  assert.match(calls[0].sql, /LIMIT \$7::int OFFSET \$8::int/);
+  assert.match(calls[0].sql, /LIMIT \$8::int OFFSET \$9::int/);
   assert.match(calls[0].sql, /ORDER BY f\.fecha_vencimiento ASC, pr\.razon_social, f\.num_factura, f\.id_compra/);
   assert.deepEqual(calls[0].opciones.bind.slice(-2), [50, 0]);
   assert.deepEqual(calls[1].opciones.bind.slice(-2), [50, 50]);
+  assert.equal(calls[0].opciones.bind[6], null);
   assert.doesNotMatch(calls[0].sql, /LIMIT 500/);
+});
+
+test('paginación CxP: filtra tipo de compra antes de paginar y conserva binds del listado', async (t) => {
+  let llamada;
+  t.mock.method(sequelize, 'query', async (sql, opciones) => {
+    llamada = { sql, opciones };
+    return Array.from({ length: 38 }, (_, i) => ({ id_compra: `gasto-${i}`, tipo_costo: 'GASTO', __total: '38' }));
+  });
+  const filtros = filtrosCuentasPorPagarSchema.parse({ estado: 'pagadas', tipoCosto: 'GASTO', page: '1', limit: '100' });
+  const resultado = await listarCuentasPorPagar('usuario', filtros);
+  assert.equal(resultado.pagination.total, 38);
+  assert.equal(resultado.data.length, 38);
+  assert.match(llamada.sql, /f\.estado_pago = 'PAGADO'[\s\S]*f\.tipo_costo = \$7::text[\s\S]*LIMIT \$8::int OFFSET \$9::int/);
+  assert.deepEqual(llamada.opciones.bind, ['usuario', null, null, null, false, 'pagadas', 'GASTO', 100, 0]);
 });
 
 test('paginación CxP: una página vacía conserva el total real para marcar el fin del recorrido', async (t) => {

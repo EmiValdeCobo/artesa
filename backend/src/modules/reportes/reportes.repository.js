@@ -50,20 +50,16 @@ export const topProductos = (idUsuario, { desde, hasta, idSucursal, limite }) =>
   [idUsuario, desde ?? null, hasta ?? null, idSucursal ?? null, limite],
 );
 
-// Replica vw_alertas_stock conservando id_sucursal para evitar cruces por nombres repetidos.
+// Usa la vista como única definición del umbral y limita el resultado a sucursales visibles.
 export const alertasStock = (idUsuario, { idSucursal, nivel }) => consultar(
   `${VISIBLES}
-   SELECT s.id_sucursal, s.nombre AS sucursal, i.nombre AS insumo, u.codigo AS unidad,
-          ss.stock_actual, ss.stock_minimo, ss.stock_minimo - ss.stock_actual AS faltante,
-          CASE WHEN ss.stock_actual <= 0 THEN 'AGOTADO' ELSE 'BAJO_MINIMO' END AS nivel
-   FROM inventario.stock_sucursal ss
-   JOIN visibles s ON s.id_sucursal = ss.id_sucursal
-   JOIN inventario.insumos i ON i.id_insumo = ss.id_insumo
-   JOIN inventario.unidades_medida u ON u.id_unidad = i.id_unidad_base
-   WHERE i.activo AND ss.stock_actual <= ss.stock_minimo
-     AND ($2::int IS NULL OR s.id_sucursal = $2::int)
-     AND ($3::text IS NULL OR CASE WHEN ss.stock_actual <= 0 THEN 'AGOTADO' ELSE 'BAJO_MINIMO' END = $3::text)
-   ORDER BY (ss.stock_actual <= 0) DESC, ss.stock_minimo - ss.stock_actual DESC, s.nombre, s.id_sucursal, i.nombre`,
+   SELECT a.id_sucursal, a.sucursal, a.insumo, a.unidad,
+          a.stock_actual, a.stock_minimo, a.faltante, a.nivel, a.id_insumo
+   FROM reportes.vw_alertas_stock a
+   JOIN visibles s ON s.id_sucursal = a.id_sucursal
+   WHERE ($2::int IS NULL OR a.id_sucursal = $2::int)
+     AND ($3::text IS NULL OR a.nivel = $3::text)
+   ORDER BY (a.nivel = 'AGOTADO') DESC, a.faltante DESC, a.sucursal, a.id_sucursal, a.insumo`,
   [idUsuario, idSucursal ?? null, nivel ?? null],
 );
 

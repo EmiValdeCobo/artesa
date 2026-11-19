@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Building2, CreditCard, FileText, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
 import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
-import Dialogo from '../../components/Dialogo.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import Metrica from '../../components/display/Metrica.jsx';
 import { BotonIcono, Button, Card, Select, Table } from '../../components/ui/index.js';
-import { listarCuentasPorPagar, registrarPago } from './comprasApi.js';
+import { listarTodasLasCuentasPorPagar } from './comprasApi.js';
+import PagoDialogo from './PagoDialogo.jsx';
 
 const dinero = (valor) => `$${String(valor ?? '0.00')}`;
 const ESTADOS = [
@@ -23,73 +22,6 @@ function EstadoPago({ factura }) {
   if (Number(factura.dias_vencida) > 0) return <EstadoBadge tipo="error">Vencida · {factura.dias_vencida} d</EstadoBadge>;
   if (factura.estado_pago === 'PARCIAL') return <EstadoBadge tipo="info">Pago parcial</EstadoBadge>;
   return <EstadoBadge tipo="alerta">Pendiente</EstadoBadge>;
-}
-
-function PagoDialogo({ factura, cerrar, onPagado }) {
-  const { notificar, notificarError } = useAlert();
-  const [monto, setMonto] = useState(factura?.saldo ?? '');
-  const [metodo, setMetodo] = useState('TRANSFERENCIA');
-  const [referencia, setReferencia] = useState('');
-  const [guardando, setGuardando] = useState(false);
-
-  async function enviar(evento) {
-    evento.preventDefault();
-    const montoNum = Number(monto);
-    const saldoNum = Number(factura.saldo);
-    if (!monto || isNaN(montoNum) || montoNum <= 0) {
-      notificar.advertencia('Monto inválido', {
-        mensaje: 'Ingresa un monto de pago mayor a $0.00.',
-      });
-      return;
-    }
-    if (montoNum > saldoNum) {
-      notificar.advertencia('Monto excede el saldo', {
-        mensaje: `El monto no puede superar el saldo pendiente de ${dinero(factura.saldo)}.`,
-      });
-      return;
-    }
-    setGuardando(true);
-    try {
-      const pago = await registrarPago(factura.id_compra, { monto, metodo, referencia: referencia.trim() || null });
-      notificar.exito('Pago registrado', {
-        mensaje: `Se registró el pago de ${dinero(monto)} a ${factura.proveedor}.`,
-      });
-      onPagado(pago);
-    } catch (err) {
-      notificarError(err);
-    } finally {
-      setGuardando(false);
-    }
-  }
-
-  return (
-    <Dialogo onCerrar={() => !guardando && cerrar()} tamano="sm" labelledBy="pago-titulo">
-      <div className="px-6 pt-6">
-        <h2 id="pago-titulo" className="text-h3">Registrar pago</h2>
-        <p className="mt-1 text-body text-fg-muted">{factura.proveedor} · Factura {factura.num_factura}</p>
-      </div>
-      <form onSubmit={enviar}>
-        <div className="space-y-4 px-6 py-5">
-        <div className="rounded-md bg-muted p-3 text-body"><div className="flex justify-between"><span className="text-fg-muted">Saldo pendiente</span><strong className="tabular-nums">{dinero(factura.saldo)}</strong></div></div>
-        <label className="flex flex-col text-label">Monto del pago
-          <input className="input mt-1.5 h-10 text-right tabular-nums" type="number" min="0.01" step="0.01" max={factura.saldo} value={monto} onChange={(evento) => setMonto(evento.target.value)} required />
-          <span className="mt-1 block text-body-sm font-normal text-fg-muted">No puede superar el saldo pendiente.</span>
-        </label>
-        <Select etiqueta="Método" value={metodo} onChange={(evento) => setMetodo(evento.target.value)} opciones={[
-          { valor: 'EFECTIVO', texto: 'Efectivo' }, { valor: 'TRANSFERENCIA', texto: 'Transferencia' },
-          { valor: 'CHEQUE', texto: 'Cheque' }, { valor: 'TARJETA', texto: 'Tarjeta' },
-        ]} />
-        <label className="flex flex-col text-label">Referencia <span className="font-normal text-fg-muted">(opcional)</span>
-          <input className="input mt-1.5 h-10" maxLength={100} value={referencia} onChange={(evento) => setReferencia(evento.target.value)} />
-        </label>
-        </div>
-        <div className="flex flex-col-reverse gap-2 border-t border-line px-6 py-4 sm:flex-row sm:justify-end">
-          <Button variante="ghost" onClick={cerrar}>Cancelar</Button>
-          <Button type="submit" icono={CreditCard} cargando={guardando}>Registrar pago</Button>
-        </div>
-      </form>
-    </Dialogo>
-  );
 }
 
 export default function CuentasPorPagarPage() {
@@ -107,7 +39,7 @@ export default function CuentasPorPagarPage() {
     setCargando(true);
     setError(null);
     try {
-      setFilas(await listarCuentasPorPagar({ ...(sucursal ? { idSucursal: sucursal } : {}), estado }));
+      setFilas(await listarTodasLasCuentasPorPagar({ ...(sucursal ? { idSucursal: sucursal } : {}), estado }));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -214,8 +146,8 @@ export default function CuentasPorPagarPage() {
               ) : (
                 <BotonIcono
                   icono={CreditCard}
-                  etiqueta={`Pagar factura ${factura.num_factura}`}
-                  titulo="Pagar factura"
+                  etiqueta={`Registrar abono a factura ${factura.num_factura}`}
+                  titulo="Registrar abono"
                   onClick={() => setModal(factura)}
                 />
               ),
@@ -232,7 +164,7 @@ export default function CuentasPorPagarPage() {
 
   return (
     <div className="space-y-6">
-      <EncabezadoPagina seccion="Operación · Compras" titulo="Cuentas por pagar" descripcion="Consulta facturas y registra pagos a proveedores." />
+      <EncabezadoPagina seccion="Gestión · Compras" titulo="Cuentas por pagar" descripcion="Consulta facturas y registra pagos a proveedores." />
       {error && <BannerError error={{ titulo: 'No se pudieron cargar las cuentas por pagar', mensaje: error, accion: '' }} />}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Metrica icono={FileText} cargando={cargando} valor={cargando ? null : visibles.length} etiqueta="Facturas mostradas" />

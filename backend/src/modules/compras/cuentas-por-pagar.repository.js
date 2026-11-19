@@ -37,14 +37,15 @@ const CONTAR_CXP = `${CTE_VISIBLES}
   SELECT COUNT(*)::text AS total
   FROM compras.facturas_compra f
   JOIN visibles s ON s.id_sucursal = f.id_sucursal
-  WHERE (${FILTROS_CXP}) AND ${FILTROS_FECHA}`;
+  WHERE (${FILTROS_CXP}) AND ${FILTROS_FECHA}
+    AND ($7::text IS NULL OR f.tipo_costo = $7::text)`;
 
 export const listarCuentasPorPagar = async (idUsuario, opciones) => {
   const {
-    desde, hasta, idSucursal, estado = 'pendientes', page = 1, limit = 50,
+    desde, hasta, idSucursal, tipoCosto, estado = 'pendientes', page = 1, limit = 50,
     periodoRecientePorDefecto = false,
   } = opciones;
-  const binds = [idUsuario, desde ?? null, hasta ?? null, idSucursal ?? null, periodoRecientePorDefecto, estado];
+  const binds = [idUsuario, desde ?? null, hasta ?? null, idSucursal ?? null, periodoRecientePorDefecto, estado, tipoCosto ?? null];
   const rows = await sequelize.query(
     `${CTE_VISIBLES}, totales AS (
        SELECT id_compra, SUM(monto) AS pagado
@@ -63,8 +64,9 @@ export const listarCuentasPorPagar = async (idUsuario, opciones) => {
      JOIN compras.proveedores pr ON pr.id_proveedor = f.id_proveedor
      LEFT JOIN totales t ON t.id_compra = f.id_compra
      WHERE (${FILTROS_CXP}) AND ${FILTROS_FECHA}
+       AND ($7::text IS NULL OR f.tipo_costo = $7::text)
      ORDER BY f.fecha_vencimiento ASC, pr.razon_social, f.num_factura, f.id_compra
-     LIMIT $7::int OFFSET $8::int`,
+     LIMIT $8::int OFFSET $9::int`,
     {
       bind: [...binds, limit, (page - 1) * limit],
       type: QueryTypes.SELECT,

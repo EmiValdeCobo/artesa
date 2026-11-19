@@ -44,7 +44,7 @@ tramos_renta(tipo_periodo, tramo, desde, hasta, cuota_fija, porcentaje, exceso_s
 fn: rrhh.fn_calcular_planilla(id_planilla) → nº empleados, mensual y transaccional; migración 007 impone unicidad de sucursal/mes. API/PDF protegidos por RRHH_CALCULAR_PLANILLA y RRHH_VER_PLANILLA.
 
 ## reportes (vistas)
-vw_alertas_stock · vw_costo_margen_producto · vw_cuadre_turno · vw_ventas_diarias · vw_top_productos · vw_cuentas_por_pagar · vw_permisos_usuario(id_usuario, username, rol, modulo, permiso)
+vw_alertas_stock (única regla: mínimo > 0 y stock_actual < stock_minimo; faltante no negativo; expone id_sucursal/id_insumo) · vw_costo_margen_producto · vw_cuadre_turno · vw_ventas_diarias · vw_top_productos · vw_cuentas_por_pagar · vw_permisos_usuario(id_usuario, username, rol, modulo, permiso)
 
 ## Permisos (códigos)
 SEG_GESTIONAR_USUARIOS SEG_GESTIONAR_ROLES SEG_VER_BITACORA · EMP_GESTIONAR_SUCURSALES EMP_EDITAR_PARAMETROS · INV_VER_STOCK INV_VER_KARDEX INV_GESTIONAR_INSUMOS INV_GESTIONAR_PRODUCTOS INV_GESTIONAR_RECETAS INV_REGISTRAR_MERMA INV_VER_COSTOS

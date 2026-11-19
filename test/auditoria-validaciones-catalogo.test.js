@@ -58,11 +58,11 @@ test('inventario: repositorio soporta buscarProductoPorInsumoReventa y borrado l
   // Listar productos filtra insumos eliminados en n_ingredientes
   assert.match(invRepo, /COUNT\(\*\)::int FROM inventario\.recetas r JOIN inventario\.insumos ri USING \(id_insumo\) WHERE r\.id_producto = p\.id_producto AND ri\.deleted_at IS NULL/);
 
-  // Alertas de inventario filtran insumos eliminados
-  assert.match(invRepo, /JOIN inventario\.insumos i ON i\.nombre = a\.insumo AND i\.deleted_at IS NULL/);
+  // Alertas de inventario consumen la vista común, que excluye insumos eliminados.
+  assert.match(invRepo, /SELECT \* FROM reportes\.vw_alertas_stock/);
 
-  // Alertas de stock en dashboard filtran insumos eliminados
-  assert.match(dashRepo, /WHERE i\.activo AND i\.deleted_at IS NULL AND ss\.id_sucursal = ANY\(\$1::int\[\]\)/);
+  // Dashboard agrega la misma vista, que aplica activo y deleted_at en un único sitio.
+  assert.match(dashRepo, /FROM reportes\.vw_alertas_stock a[\s\S]*WHERE a\.id_sucursal = ANY\(\$1::int\[\]\)/);
 });
 
 test('inventario service: validaciones de unidad activa y producto de reventa 1:1', async () => {

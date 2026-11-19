@@ -4,11 +4,11 @@ import { LayoutDashboard, ShoppingBag, ChefHat, Wallet, Boxes, Truck, Users, Bar
 export const menu = [
   { ruta: '/', texto: 'Inicio', permiso: null, icono: LayoutDashboard, end: true },
   { seccion: 'Operación', items: [
+    { ruta: '/caja', texto: 'Caja y turnos', permiso: 'CAJA_ABRIR_TURNO', icono: Wallet },
     { ruta: '/pos', texto: 'Punto de venta', permiso: 'POS_COBRAR', icono: ShoppingBag, end: true },
     { ruta: '/pos/ventas', texto: 'Historial ventas', permiso: 'POS_COBRAR', icono: Receipt },
     { ruta: '/pos/clientes', texto: 'Clientes (CCF)', permiso: 'POS_GESTIONAR_CLIENTES', icono: UserCheck },
     { ruta: '/preparacion', texto: 'Preparación', permiso: 'POS_VER_COLA_PREPARACION', icono: ChefHat },
-    { ruta: '/caja', texto: 'Caja y turnos', permiso: 'CAJA_ABRIR_TURNO', icono: Wallet },
     { id: 'inventario', texto: 'Inventario', icono: Boxes, hijos: [
       { ruta: '/inventario', texto: 'Existencias', permiso: 'INV_VER_STOCK', end: true },
       { ruta: '/inventario/kardex', texto: 'Kárdex', permiso: 'INV_VER_KARDEX' },
@@ -17,15 +17,15 @@ export const menu = [
       { ruta: '/catalogo/insumos', texto: 'Insumos y unidades', permiso: 'INV_GESTIONAR_INSUMOS' },
       { ruta: '/catalogo/productos', texto: 'Productos', permiso: 'INV_VER_STOCK' },
     ]},
-    { id: 'compras', texto: 'Compras', icono: Truck, hijos: [
-      { ruta: '/compras', texto: 'Compras', permiso: 'COM_VER_CXP', end: true },
-      { ruta: '/compras/registrar', texto: 'Registrar factura', permiso: 'COM_REGISTRAR_COMPRA' },
-      { ruta: '/compras/proveedores', texto: 'Proveedores', permiso: 'COM_GESTIONAR_PROVEEDORES' },
-      { ruta: '/compras/cuentas-por-pagar', texto: 'Cuentas por pagar', permiso: 'COM_VER_CXP' },
-      { ruta: '/compras/gastos', texto: 'Gastos operativos', permiso: 'COM_REGISTRAR_COMPRA' },
-    ]},
   ]},
   { seccion: 'Gestión', items: [
+    { id: 'compras', texto: 'Compras', icono: Truck, hijos: [
+      { ruta: '/compras', texto: 'Resumen', permiso: 'COM_VER_CXP', end: true },
+      { ruta: '/compras/registrar', texto: 'Nueva factura', permiso: 'COM_REGISTRAR_COMPRA' },
+      { ruta: '/compras/gastos', texto: 'Gastos', permiso: 'COM_REGISTRAR_COMPRA' },
+      { ruta: '/compras/cuentas-por-pagar', texto: 'Cuentas por pagar', permiso: 'COM_VER_CXP' },
+      { ruta: '/compras/proveedores', texto: 'Proveedores', permiso: 'COM_GESTIONAR_PROVEEDORES' },
+    ]},
     { id: 'rrhh', texto: 'RR. HH.', icono: Users, hijos: [
       { ruta: '/rrhh/empleados', texto: 'Empleados', permiso: 'RRHH_GESTIONAR_EMPLEADOS' },
       { ruta: '/rrhh/puestos', texto: 'Puestos', permiso: 'RRHH_GESTIONAR_EMPLEADOS' },

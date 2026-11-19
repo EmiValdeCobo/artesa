@@ -1,18 +1,25 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Plus, ReceiptText, Search, Trash2, X } from 'lucide-react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeft, CreditCard, Plus, ReceiptText, Search, Trash2, X } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
 import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
+import CampoError from '../../components/forms/CampoError.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
-import { Button, Card, Select, Table } from '../../components/ui/index.js';
+import { BotonIcono, Button, Card, Select, Table } from '../../components/ui/index.js';
 import { mascaraDecimal, mascaraEntero, mascaraIdentificador } from '../../utils/mascaras.js';
-import { listarCuentasPorPagar, listarInsumosCompra, listarProveedores, registrarCompra } from './comprasApi.js';
+import { listarGastos, listarInsumosCompra, listarProveedores, registrarCompra } from './comprasApi.js';
+import PagoDialogo from './PagoDialogo.jsx';
 
 const nuevaLinea = (gasto) => gasto ? { descripcion: '', cantidad: '', costoUnitario: '' } : { idInsumo: '', cantidad: '', costoUnitario: '' };
-const hoy = () => new Date().toLocaleDateString('sv-SE');
+const hoy = () => {
+  const partes = new Intl.DateTimeFormat('en-US', { timeZone: 'America/El_Salvador', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+  const fecha = Object.fromEntries(partes.map(({ type, value }) => [type, value]));
+  return `${fecha.year}-${fecha.month}-${fecha.day}`;
+};
+const ERROR_FECHA_FUTURA = 'La fecha de emisión no puede ser futura. Registra la factura cuando llegue su fecha de emisión; si es a crédito, el vencimiento sí puede quedar en una fecha futura.';
 const dinero = (valor) => `$${String(valor ?? '0.00')}`;
 function aCentavos(valor) {
   const partes = /^(-?)(\d+)(?:\.(\d+))?$/.exec(String(valor ?? '0').trim());
@@ -40,20 +47,21 @@ function EstadoFactura({ factura }) {
   return <EstadoBadge tipo="alerta">Pendiente</EstadoBadge>;
 }
 
-function HistorialGastos({ sucursales, recargarClave }) {
+function HistorialGastos({ sucursales, recargarClave, puedePagar }) {
   const [estado, setEstado] = useState('pagadas');
   const [sucursal, setSucursal] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [filas, setFilas] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
+  const [modalPago, setModalPago] = useState(null);
 
   const cargar = useCallback(async () => {
     setCargando(true);
     setError(null);
     try {
-      const datos = await listarCuentasPorPagar({ estado, ...(sucursal ? { idSucursal: sucursal } : {}) });
-      setFilas(datos.filter((fila) => fila.tipo_costo === 'GASTO'));
+      const datos = await listarGastos({ estado, ...(sucursal ? { idSucursal: sucursal } : {}) });
+      setFilas(datos);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -134,10 +142,19 @@ function HistorialGastos({ sucursales, recargarClave }) {
           : 'Pendiente',
       render: (fila) => <EstadoFactura factura={fila} />,
     },
+    ...(puedePagar ? [{
+      clave: 'acciones',
+      titulo: 'Acciones',
+      alinear: 'right',
+      ordenable: false,
+      render: (fila) => fila.estado_pago === 'PAGADO' ? '—' : (
+        <BotonIcono icono={CreditCard} etiqueta={`Registrar abono a factura ${fila.num_factura}`} titulo="Registrar abono" onClick={() => setModalPago(fila)} />
+      ),
+    }] : []),
   ];
 
   return (
-    <Card sinPadding className="overflow-hidden" icono={ReceiptText} titulo="Gastos registrados" descripcion="Consulta el importe, los abonos y el saldo de cada factura de gasto." acciones={<Link to="/compras/cuentas-por-pagar" className="text-label text-primary-text hover:underline">Abrir cuentas por pagar</Link>}>
+    <Card sinPadding className="overflow-hidden" icono={ReceiptText} titulo="Gastos registrados" descripcion="Consulta el importe, los abonos y el saldo de cada factura de gasto.">
       {error && <div className="px-5 pt-4"><BannerError error={{ titulo: 'No se pudieron cargar los gastos', mensaje: error, accion: '' }} /></div>}
       <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3">
         <div className="relative w-full max-w-xs"><Search size={16} strokeWidth={1.75} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden="true" /><input className="input pl-9" aria-label="Buscar gasto" placeholder="Proveedor o factura" value={busqueda} onChange={(evento) => setBusqueda(evento.target.value)} /></div>
@@ -158,14 +175,15 @@ function HistorialGastos({ sucursales, recargarClave }) {
         <p className="text-fg-muted">Facturas pagadas: <span className="font-semibold text-fg">{pagadas.length}</span></p>
         <p className="font-semibold">Total pagado en la lista: <span className="tabular-nums">{formatoCentavos(totalPagado)}</span></p>
       </div>}
-      {!error && <p className="px-5 pb-4 text-body-sm text-fg-muted">Para revisar el saldo o registrar un abono, abre Cuentas por pagar.</p>}
+      {!error && <p className="px-5 pb-4 text-body-sm text-fg-muted">{puedePagar ? 'Los gastos a crédito permanecen pendientes hasta registrar sus abonos.' : 'Consulta disponible en modo lectura; no tienes permiso para registrar abonos.'}</p>}
+      {modalPago && <PagoDialogo factura={modalPago} cerrar={() => setModalPago(null)} onPagado={() => { setModalPago(null); cargar(); }} />}
     </Card>
   );
 }
 
 export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
   const gasto = tipoCosto === 'GASTO';
-  const titulo = gasto ? 'Gastos operativos' : 'Registrar factura de compra';
+  const titulo = gasto ? 'Gastos operativos' : 'Nueva factura de compra';
   const { usuario, tiene } = useAuth();
   const { notificar, notificarError } = useAlert();
   const navigate = useNavigate();
@@ -173,6 +191,7 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
   const [borradorAviso, setBorradorAviso] = useState(() => Boolean(location.state?.borrador?.items?.length));
   const sucursales = useMemo(() => usuario?.sucursales ?? [], [usuario?.sucursales]);
   const puedeVerCuentas = tiene('COM_VER_CXP');
+  const puedePagar = tiene('COM_PAGAR_PROVEEDOR');
   const [proveedores, setProveedores] = useState([]);
   const [insumos, setInsumos] = useState([]);
   const [form, setForm] = useState({ idProveedor: '', idSucursal: '', numeroFactura: '', fechaEmision: hoy(), condicionPago: 'CONTADO', items: [nuevaLinea(gasto)] });
@@ -180,6 +199,7 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
   const [guardando, setGuardando] = useState(false);
   const [errorCarga, setErrorCarga] = useState(null);
   const [recargarClave, setRecargarClave] = useState(0);
+  const [errorFechaEmision, setErrorFechaEmision] = useState('');
   const borradorAplicado = useRef(false);
 
   useEffect(() => {
@@ -232,7 +252,10 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
       : linea.idInsumo && linea.cantidad && linea.costoUnitario
   )), [form.items, gasto]);
 
-  const editarCampo = (campo, valor) => setForm((actual) => ({ ...actual, [campo]: valor }));
+  const editarCampo = (campo, valor) => {
+    setForm((actual) => ({ ...actual, [campo]: valor }));
+    if (campo === 'fechaEmision') setErrorFechaEmision(valor > hoy() ? ERROR_FECHA_FUTURA : '');
+  };
   const editarLinea = (indice, campo, valor) => setForm((actual) => ({
     ...actual,
     items: actual.items.map((linea, posicion) => posicion === indice ? { ...linea, [campo]: valor } : linea),
@@ -240,6 +263,11 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
 
   async function enviar(evento) {
     evento.preventDefault();
+    if (form.fechaEmision > hoy()) {
+      setErrorFechaEmision(ERROR_FECHA_FUTURA);
+      notificar.advertencia('Fecha de emisión no válida', { mensaje: ERROR_FECHA_FUTURA });
+      return;
+    }
     if (!form.idProveedor || !form.idSucursal || !lineasValidas) {
       notificar.advertencia('Datos incompletos', {
         mensaje: 'Completa los datos de la factura y todos sus conceptos antes de continuar.',
@@ -262,14 +290,24 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
     try {
       await registrarCompra(datos);
       notificar.exito(gasto ? 'Gasto registrado' : 'Factura registrada', {
-        mensaje: form.condicionPago === 'CREDITO' && puedeVerCuentas
-          ? (gasto ? 'Gasto registrado. Puedes consultar el saldo en Cuentas por pagar.' : 'Factura registrada. Puedes consultar el saldo en Cuentas por pagar.')
-          : (gasto ? 'Gasto registrado correctamente.' : 'Factura registrada correctamente.'),
+        mensaje: gasto && form.condicionPago === 'CREDITO'
+          ? 'Gasto registrado como pendiente. Si no aparece con el filtro Pagadas, selecciona Pendientes o Todas y confirma la sucursal.'
+          : form.condicionPago === 'CREDITO' && puedeVerCuentas
+          ? 'Factura registrada. Puedes consultar el saldo en Cuentas por pagar.'
+          : (gasto ? 'Gasto registrado correctamente. Si no aparece, revisa los filtros de estado y sucursal.' : 'Factura registrada correctamente.'),
       });
       setBorradorAviso(false);
       setForm((actual) => ({ ...actual, numeroFactura: '', fechaEmision: hoy(), items: [nuevaLinea(gasto)] }));
+      setErrorFechaEmision('');
       if (gasto && puedeVerCuentas) setRecargarClave((clave) => clave + 1);
     } catch (err) {
+      const detalleFecha = err.detalles?.find((detalle) => String(detalle.campo).startsWith('fechaEmision'))?.mensaje;
+      if (detalleFecha) {
+        const mensajeFecha = /futura/i.test(detalleFecha) ? ERROR_FECHA_FUTURA : detalleFecha;
+        setErrorFechaEmision(mensajeFecha);
+        notificar.advertencia('Fecha de emisión no válida', { mensaje: mensajeFecha });
+        return;
+      }
       notificarError(err);
     } finally {
       setGuardando(false);
@@ -279,7 +317,7 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
   return (
     <div className="space-y-6">
       <EncabezadoPagina
-        seccion="Operación · Compras"
+        seccion="Gestión · Compras"
         titulo={titulo}
         descripcion={gasto
           ? 'Registra facturas de servicios y otros gastos de funcionamiento del negocio.'
@@ -288,23 +326,23 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
       />
       {borradorAviso && (
         <div role="status" className="flex items-start justify-between gap-3 rounded-md border border-warning/30 bg-warning-soft px-4 py-3 text-body text-warning-text">
-          <p><strong>Borrador sugerido.</strong> Revisa los datos antes de guardar: las cantidades se calcularon con lo que falta para llegar al mínimo y el costo promedio conocido. Elige el proveedor y confirma con «Registrar factura»; si sales de esta pantalla el borrador se descarta.</p>
+          <p><strong>Borrador sugerido.</strong> Revisa los datos antes de guardar: las cantidades se calcularon con lo que falta para llegar al mínimo y el costo promedio conocido. Elige el proveedor y confirma con «Nueva factura»; si sales de esta pantalla el borrador se descarta.</p>
           <button type="button" className="btn-ghost min-h-8 shrink-0 !p-1.5" onClick={() => setBorradorAviso(false)} aria-label="Cerrar aviso de borrador"><X size={15} aria-hidden="true" /></button>
         </div>
       )}
       {errorCarga && <BannerError error={{ titulo: gasto ? 'No se pudieron cargar los datos de compras' : 'No se pudieron cargar los insumos y proveedores', mensaje: errorCarga, accion: '' }} />}
 
-      <form onSubmit={enviar} className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+      <form onSubmit={enviar} className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
         <div className="min-w-0 space-y-6">
         <Card titulo={gasto ? '1. Datos de la factura' : 'Datos de la factura'} descripcion={gasto ? 'Indica quién emitió el comprobante y a qué sucursal corresponde.' : 'Indica el proveedor, la sucursal y los datos del comprobante.'}>
-          <div className="grid items-end gap-4 sm:grid-cols-2">
+          <div className="grid min-w-0 grid-cols-1 items-end gap-4 sm:grid-cols-2">
             <Select etiqueta="Proveedor" value={form.idProveedor} onChange={(evento) => editarCampo('idProveedor', evento.target.value)} placeholder={cargando ? 'Cargando proveedores…' : 'Selecciona proveedor'} opciones={proveedores.map((item) => ({ valor: String(item.id_proveedor), texto: item.razon_social }))} />
             <Select etiqueta="Sucursal" value={form.idSucursal} onChange={(evento) => editarCampo('idSucursal', evento.target.value)} placeholder="Selecciona sucursal" opciones={sucursales.map((item) => ({ valor: String(item.id_sucursal), texto: item.nombre }))} />
             <label className="flex h-full flex-col text-label">Número de factura<input className="input mt-1.5 h-10" value={form.numeroFactura} onChange={(evento) => editarCampo('numeroFactura', mascaraIdentificador(evento.target.value, 50))} maxLength={50} autoCapitalize="characters" spellCheck={false} required /></label>
-            <label className="flex h-full flex-col text-label">Fecha de emisión<input className="input mt-1.5 h-10" type="date" value={form.fechaEmision} onChange={(evento) => editarCampo('fechaEmision', evento.target.value)} required /></label>
+            <label className="flex h-full flex-col text-label">Fecha de emisión<input id="fecha-emision" aria-invalid={Boolean(errorFechaEmision)} aria-describedby={errorFechaEmision ? 'fecha-emision-error' : undefined} className="input mt-1.5 h-10" type="date" max={hoy()} value={form.fechaEmision} onChange={(evento) => editarCampo('fechaEmision', evento.target.value)} required /><CampoError id="fecha-emision" mensaje={errorFechaEmision} /></label>
             <Select etiqueta="Condición de pago" value={form.condicionPago} onChange={(evento) => editarCampo('condicionPago', evento.target.value)} opciones={[{ valor: 'CONTADO', texto: 'Contado' }, { valor: 'CREDITO', texto: 'Crédito' }]} />
           </div>
-          {gasto && <p className="mt-4 rounded-lg bg-muted/60 p-3 text-body text-fg-muted">Si eliges crédito, la factura aparecerá en Cuentas por pagar para registrar abonos.</p>}
+          {gasto && <p className="mt-4 rounded-lg bg-muted/60 p-3 text-body text-fg-muted">En contado el sistema registra el pago al guardar. En crédito queda pendiente; podrás registrar abonos desde esta lista. La fecha de vencimiento del crédito sí puede ser futura.</p>}
         </Card>
 
         <Card
@@ -314,7 +352,7 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
         >
           <div className="space-y-3">
             {form.items.map((linea, indice) => (
-              <div key={indice} className="grid gap-3 border-b border-line pb-3 last:border-b-0 last:pb-0 md:grid-cols-[minmax(180px,2fr)_minmax(100px,1fr)_minmax(130px,1fr)_auto] md:items-start">
+              <div key={indice} className="grid min-w-0 gap-3 border-b border-line pb-3 last:border-b-0 last:pb-0 md:grid-cols-[minmax(180px,2fr)_minmax(100px,1fr)_minmax(130px,1fr)_auto] md:items-start">
                 {gasto
                   ? <label className="flex flex-col text-label">Concepto<input className="input mt-1.5 h-10" placeholder="Ej. servicio de internet" value={linea.descripcion} onChange={(evento) => editarLinea(indice, 'descripcion', evento.target.value)} maxLength={150} required /></label>
                   : <Select etiqueta="Insumo" value={linea.idInsumo} onChange={(evento) => editarLinea(indice, 'idInsumo', evento.target.value)} placeholder="Selecciona insumo" opciones={insumos.map((item) => ({ valor: String(item.id_insumo), texto: `${item.nombre} · ${item.unidad_codigo}` }))} />}
@@ -328,19 +366,19 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
           {!gasto && <p className="mt-4 text-body text-fg-muted">Las existencias y el costo promedio se actualizarán al guardar la factura.</p>}
         </Card>
         </div>
-        <aside aria-label="Totales de la factura" className="space-y-4 rounded-lg bg-muted p-4 lg:sticky lg:top-4">
+        <aside aria-label="Totales de la factura" className="min-w-0 space-y-4 rounded-lg bg-muted p-4 xl:sticky xl:top-4">
           <p className="rotulo">Resumen</p>
           <dl className="space-y-2 text-body">
             <div className="flex justify-between gap-3"><dt className="text-fg-muted">Líneas</dt><dd className="tabular-nums">{form.items.length}</dd></div>
             <div className="flex justify-between gap-3"><dt className="text-fg-muted">Condición</dt><dd>{form.condicionPago === 'CREDITO' ? 'Crédito' : 'Contado'}</dd></div>
           </dl>
           <p className="text-body-sm text-fg-muted">El total definitivo lo calcula el sistema al guardar.</p>
-          <div className="flex"><Button className="w-full" type="submit" cargando={guardando} disabled={cargando || !lineasValidas || !proveedores.length || !sucursales.length}>{gasto ? 'Guardar gasto' : 'Registrar factura'}</Button></div>
+          <div className="flex"><Button className="w-full" type="submit" cargando={guardando} disabled={cargando || !lineasValidas || !proveedores.length || !sucursales.length}>{gasto ? 'Guardar gasto' : 'Nueva factura'}</Button></div>
         </aside>
       </form>
 
       {gasto && (puedeVerCuentas
-        ? <HistorialGastos sucursales={sucursales} recargarClave={recargarClave} />
+        ? <HistorialGastos sucursales={sucursales} recargarClave={recargarClave} puedePagar={puedePagar} />
         : <Card titulo="Consulta de gastos"><p className="text-body text-fg-muted">La consulta de facturas no está habilitada para tu usuario. Puedes guardar gastos y pedir acceso a Cuentas por pagar para revisar sus saldos.</p></Card>)}
     </div>
   );
