@@ -1,9 +1,9 @@
 import { createPortal } from 'react-dom';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, LogOut, Monitor, Moon, Sun, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
-import { menu, filtrarMenu, esRutaActiva as esActivo, grupoDeRuta } from '../config/menu.js';
+import { menu, filtrarMenu, esItemActivo, grupoDeRuta } from '../config/menu.js';
 import { useSidebar } from '../hooks/useSidebar.js';
 import { useTheme } from '../hooks/useTheme.js';
 import Logo from '../components/branding/Logo.jsx';
@@ -130,9 +130,21 @@ function Enlace({ item, colapsado, onNavigate }) {
   </>;
 }
 
+// Enlace de submenú: como NavLink, pero el estado activo respeta `tambienActivaEn` (config/menu.js)
+// y conserva aria-current="page".
+const EnlaceHijo = forwardRef(function EnlaceHijo({ item, actual, className, children, ...resto }, ref) {
+  const activo = esItemActivo(item, actual);
+  return (
+    <Link ref={ref} to={item.ruta} aria-current={activo ? 'page' : undefined}
+      className={className({ isActive: activo })} {...resto}>
+      {children}
+    </Link>
+  );
+});
+
 function Grupo({ item, colapsado, actual, abierto, onToggle, onNavigate }) {
   const Icono = item.icono;
-  const activo = item.hijos.some((h) => esActivo(h.ruta, actual, h.end));
+  const activo = item.hijos.some((h) => esItemActivo(h, actual));
   const ref = useRef(null);
   const primerEnlaceRef = useRef(null);
   const enfocarPrimerEnlace = useRef(false);
@@ -176,10 +188,10 @@ function Grupo({ item, colapsado, actual, abierto, onToggle, onNavigate }) {
           }
         }}>
           {item.hijos.map((h, i) => (
-            <li key={h.ruta}><NavLink ref={i === 0 ? primerEnlaceRef : undefined} to={h.ruta} end={h.end} onClick={() => { fly.cerrarYa(); onNavigate?.(); }}
+            <li key={h.ruta}><EnlaceHijo ref={i === 0 ? primerEnlaceRef : undefined} item={h} actual={actual} onClick={() => { fly.cerrarYa(); onNavigate?.(); }}
               className={({ isActive }) => `block rounded-sm px-3 py-2 text-body-sm outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${isActive ? 'bg-primary-soft font-medium text-primary-text' : 'hover:bg-muted'}`}>
               {h.texto}
-            </NavLink></li>
+            </EnlaceHijo></li>
           ))}
         </ul>
       </Flotante>}
@@ -195,10 +207,10 @@ function Grupo({ item, colapsado, actual, abierto, onToggle, onNavigate }) {
     </button>
     {abierto && <ul id={idSubmenu} className="ml-5 mt-0.5 space-y-0.5 border-l border-on-sidebar/15 pl-2">
       {item.hijos.map((h) => (
-        <li key={h.ruta}><NavLink to={h.ruta} end={h.end} onClick={onNavigate}
+        <li key={h.ruta}><EnlaceHijo item={h} actual={actual} onClick={onNavigate}
           className={({ isActive }) => `${ITEM} h-nav-subitem px-3 text-body-sm font-normal ${isActive ? 'font-medium text-on-sidebar before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-full before:bg-ring-sidebar' : ITEM_INACTIVO}`}>
           <span className="truncate">{h.texto}</span>
-        </NavLink></li>
+        </EnlaceHijo></li>
       ))}
     </ul>}
   </div>;

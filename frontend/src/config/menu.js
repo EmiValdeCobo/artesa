@@ -29,7 +29,7 @@ export const menu = [
     { id: 'rrhh', texto: 'RR. HH.', icono: Users, hijos: [
       { ruta: '/rrhh/empleados', texto: 'Empleados', permiso: 'RRHH_GESTIONAR_EMPLEADOS' },
       { ruta: '/rrhh/puestos', texto: 'Puestos', permiso: 'RRHH_GESTIONAR_EMPLEADOS' },
-      { ruta: '/rrhh', texto: 'Planilla', permiso: 'RRHH_VER_PLANILLA', end: true },
+      { ruta: '/rrhh', texto: 'Planilla', permiso: 'RRHH_VER_PLANILLA', end: true, tambienActivaEn: ['/rrhh/planillas'] },
     ]},
     { ruta: '/reportes', texto: 'Reportes', permiso: 'REP_VER_DASHBOARD', icono: BarChart3 },
   ]},
@@ -47,9 +47,15 @@ export const menu = [
 // Una ruta con `end` solo coincide exacta; sin `end` también coincide con sus rutas anidadas
 export const esRutaActiva = (ruta, actual, end) => (end ? actual === ruta : actual === ruta || actual.startsWith(`${ruta}/`));
 
+// Un ítem también queda activo en las rutas anidadas de `tambienActivaEn` (p. ej. el detalle
+// /rrhh/planillas/:id mantiene resaltado "Planilla" sin quitarle `end` a /rrhh).
+export const esItemActivo = (item, actual) =>
+  esRutaActiva(item.ruta, actual, item.end)
+  || (item.tambienActivaEn ?? []).some((ruta) => esRutaActiva(ruta, actual, false));
+
 export function grupoDeRuta(items, actual) {
   const grupos = items.flatMap((e) => (e.items ? e.items : [e])).filter((e) => e.hijos);
-  return grupos.find((g) => g.hijos.some((h) => esRutaActiva(h.ruta, actual, h.end)))?.id ?? null;
+  return grupos.find((g) => g.hijos.some((h) => esItemActivo(h, actual)))?.id ?? null;
 }
 
 export function filtrarMenu(definicion, tiene) {

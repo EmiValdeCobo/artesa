@@ -32,6 +32,7 @@ const CompraFacturaPage = lazy(() => import('./modules/compras/CompraFacturaPage
 const PuestosPage = lazy(() => import('./modules/rrhh/PuestosPage.jsx'));
 const EmpleadosPage = lazy(() => import('./modules/rrhh/EmpleadosPage.jsx'));
 const PlanillasPage = lazy(() => import('./modules/rrhh/PlanillasPage.jsx'));
+const PlanillaDetallePage = lazy(() => import('./modules/rrhh/PlanillaDetallePage.jsx'));
 // Hoja viva del sistema de diseño: solo en desarrollo (en producción no se genera el chunk).
 const SistemaPage = import.meta.env.DEV ? lazy(() => import('./dev/SistemaPage.jsx')) : null;
 
@@ -88,6 +89,7 @@ export default function App() {
         <Route path="rrhh/empleados" element={<ProtectedRoute permiso="RRHH_GESTIONAR_EMPLEADOS"><EmpleadosPage /></ProtectedRoute>} />
         <Route path="rrhh/puestos" element={<ProtectedRoute permiso="RRHH_GESTIONAR_EMPLEADOS"><PuestosPage /></ProtectedRoute>} />
         <Route path="rrhh" element={<ProtectedRoute permiso="RRHH_VER_PLANILLA"><PlanillasPage /></ProtectedRoute>} />
+        <Route path="rrhh/planillas/:idPlanilla" element={<ProtectedRoute permiso="RRHH_VER_PLANILLA"><PlanillaDetallePage /></ProtectedRoute>} />
         <Route path="compras/proveedores" element={<ProtectedRoute permiso="COM_GESTIONAR_PROVEEDORES"><ProveedoresPage /></ProtectedRoute>} />
         <Route path="compras/cuentas-por-pagar" element={<ProtectedRoute permiso="COM_VER_CXP"><CuentasPorPagarPage /></ProtectedRoute>} />
         <Route path="compras/registrar" element={<ProtectedRoute permiso="COM_REGISTRAR_COMPRA"><CompraFacturaPage key="COSTO" /></ProtectedRoute>} />

@@ -68,7 +68,7 @@ test('rrhh frontend: todos los iconos de lucide-react usados en los módulos de 
     // Verificar que los JSX usan identificadores importados
     const tagsUsados = [...contenido.matchAll(/<([A-Z][A-Za-z0-9]+)\s/g)].map((m) => m[1]);
     for (const tag of tagsUsados) {
-      if (['Button', 'Card', 'Table', 'Select', 'Spinner', 'BotonIcono', 'Dialogo', 'BannerError', 'EstadoBadge', 'EstadoVacio', 'EncabezadoPagina', 'Metrica'].includes(tag)) {
+      if (['Button', 'Card', 'Table', 'Select', 'Spinner', 'BotonIcono', 'Dialogo', 'BannerError', 'EstadoBadge', 'EstadoVacio', 'EncabezadoPagina', 'Metrica', 'Link'].includes(tag)) {
         continue;
       }
       assert.ok(importados.has(tag), `Icono ${tag} en ${archivo} debe estar importado de lucide-react`);
