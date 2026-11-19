@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
 import { Package, Ruler, Pencil, Power, PowerOff, X, Plus, Boxes, Search, Trash2 } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -141,12 +142,12 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={esEdicion ? 'Editar Unidad' : 'Nueva Unidad'}
+        aria-label={esEdicion ? 'Editar unidad' : 'Nueva unidad'}
         className="flex w-full flex-col overflow-hidden rounded-t-xl border border-line bg-surface shadow-lg sm:max-w-md sm:rounded-xl"
       >
         <div className="flex items-start justify-between gap-4 px-6 pt-6">
           <h2 className="text-h3 text-fg">
-            {esEdicion ? 'Editar Unidad' : 'Nueva Unidad de Medida'}
+            {esEdicion ? 'Editar unidad' : 'Nueva unidad de medida'}
           </h2>
           <BotonIcono icono={ICONOS.cerrar} etiqueta="Cerrar" onClick={onCerrar} />
         </div>
@@ -171,7 +172,7 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
 
           <div>
             <label htmlFor="unidad-nombre" className="mb-1.5 block text-label text-fg">
-              Nombre de la Unidad <span className="text-danger-text">*</span>
+              Nombre de la unidad <span className="text-danger-text">*</span>
             </label>
             <input
               className="input"
@@ -226,7 +227,7 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
 }
 
 // ─── PESTAÑA 1: Insumos ───────────────────────────────────────────────────────
-function PestanaInsumos({ unidades, onTotal }) {
+function PestanaInsumos({ unidades, onTotal, onCargandoTotal, onErrorTotal }) {
   const { tiene, usuario } = useAuth();
   const { confirm, notificar, notificarError } = useAlert();
   const puedeGestionar = tiene('INV_GESTIONAR_INSUMOS');
@@ -238,7 +239,6 @@ function PestanaInsumos({ unidades, onTotal }) {
   const [busqueda, setBusqueda] = useState('');
   const [filtroTipo, setFiltroTipo] = useState('TODOS');
   const [filtroEstado, setFiltroEstado] = useState('TODOS');
-  const [mostrarInactivos, setMostrarInactivos] = useState(false);
 
   const [drawerAbierto, setDrawerAbierto] = useState(false);
   const [insumoActual, setInsumoActual] = useState(null);
@@ -246,6 +246,7 @@ function PestanaInsumos({ unidades, onTotal }) {
 
   const cargar = useCallback(async () => {
     setCargando(true);
+    onCargandoTotal?.();
     try {
       const data = await getInsumos();
       const lista = Array.isArray(data) ? data : (data?.data ?? []);
@@ -254,16 +255,19 @@ function PestanaInsumos({ unidades, onTotal }) {
     } catch (err) {
       setInsumos([]);
       setErrorBanner(traducirError(err));
+      onErrorTotal?.();
     } finally {
       setCargando(false);
     }
-  }, []);
+  }, [onCargandoTotal, onErrorTotal]);
 
   useEffect(() => {
     cargar();
   }, [cargar]);
 
-  useEffect(() => onTotal?.(insumos.length), [insumos.length, onTotal]);
+  useEffect(() => {
+    if (!cargando && !errorBanner) onTotal?.(insumos.length);
+  }, [cargando, errorBanner, insumos.length, onTotal]);
 
   const insumosFiltrados = useMemo(() => {
     return insumos.filter((ins) => {
@@ -276,14 +280,14 @@ function PestanaInsumos({ unidades, onTotal }) {
 
       const coincideEstado =
         filtroEstado === 'TODOS'
-          ? (mostrarInactivos ? true : ins.activo !== false)
+          ? true
           : filtroEstado === 'ACTIVOS'
             ? ins.activo !== false
             : ins.activo === false;
 
       return coincideBusqueda && coincideTipo && coincideEstado;
     });
-  }, [insumos, busqueda, filtroTipo, filtroEstado, mostrarInactivos]);
+  }, [insumos, busqueda, filtroTipo, filtroEstado]);
 
   const abrirCrear = () => {
     setInsumoActual(null);
@@ -421,21 +425,8 @@ function PestanaInsumos({ unidades, onTotal }) {
   ];
 
   return (
-    <div className="space-y-6">
-      <EncabezadoPagina
-        seccion="Operación · Catálogo"
-        titulo="Catálogo de Insumos"
-        descripcion="Gestión de materias primas, empaques y artículos de reventa"
-        acciones={
-          puedeGestionar && (
-            <Button variante="primary" icono={Plus} onClick={abrirCrear}>
-              Nuevo insumo
-            </Button>
-          )
-        }
-      />
-
-      <p className="text-body-sm text-fg-muted">El stock y las alertas por sucursal se consultan en Inventario › {tiene('INV_VER_STOCK') ? <a className="font-medium text-primary-text underline" href="/inventario/existencias">Existencias</a> : 'Existencias'}.</p>
+    <div className="space-y-4">
+      <p className="text-body-sm text-fg-muted">El stock y las alertas por sucursal se consultan en Inventario › {tiene('INV_VER_STOCK') ? <Link className="font-medium text-primary-text underline" to="/inventario">Existencias</Link> : 'Existencias'}.</p>
 
       {errorBanner && (
         <BannerError
@@ -446,7 +437,8 @@ function PestanaInsumos({ unidades, onTotal }) {
       )}
 
       {/* Tabla de Insumos con barra de herramientas */}
-      <Card sinPadding icono={Package} titulo="Insumos registrados" descripcion={<span className="tabular-nums" aria-live="polite">{insumosFiltrados.length} encontrados</span>}>
+      <Card sinPadding icono={Package} titulo="Insumos registrados" descripcion={<span className="tabular-nums" aria-live="polite">{cargando ? 'Cargando insumos…' : errorBanner ? 'No disponible' : `${insumosFiltrados.length} encontrados`}</span>}
+        acciones={puedeGestionar ? <Button variante="primary" icono={Plus} onClick={abrirCrear}>Nuevo insumo</Button> : null}>
         <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3">
           <div className="relative w-full max-w-xs">
             <label htmlFor="buscar-insumo" className="sr-only">Buscar insumo</label>
@@ -464,29 +456,28 @@ function PestanaInsumos({ unidades, onTotal }) {
             <button
               type="button"
               className={`h-7 rounded-sm px-3 transition-colors ${filtroEstado === 'TODOS' ? 'bg-surface text-fg shadow-xs' : 'text-fg-muted hover:text-fg'}`}
-              onClick={() => { setFiltroEstado('TODOS'); setMostrarInactivos(true); }}
+              onClick={() => setFiltroEstado('TODOS')}
             >
               Todos
             </button>
             <button
               type="button"
               className={`h-7 rounded-sm px-3 transition-colors ${filtroEstado === 'ACTIVOS' ? 'bg-surface text-fg shadow-xs' : 'text-fg-muted hover:text-fg'}`}
-              onClick={() => { setFiltroEstado('ACTIVOS'); setMostrarInactivos(false); }}
+              onClick={() => setFiltroEstado('ACTIVOS')}
             >
               Activos
             </button>
             <button
               type="button"
               className={`h-7 rounded-sm px-3 transition-colors ${filtroEstado === 'INACTIVOS' ? 'bg-surface text-fg shadow-xs' : 'text-fg-muted hover:text-fg'}`}
-              onClick={() => { setFiltroEstado('INACTIVOS'); setMostrarInactivos(true); }}
+              onClick={() => setFiltroEstado('INACTIVOS')}
               title="Mostrar inactivos"
             >
               Inactivos
             </button>
           </div>
-          <span className="sr-only">Mostrar inactivos</span>
           {(busqueda || filtroTipo !== 'TODOS' || filtroEstado !== 'TODOS') && (
-            <Button variante="ghost" tamano="sm" className="ml-auto" onClick={() => { setBusqueda(''); setFiltroTipo('TODOS'); setFiltroEstado('TODOS'); setMostrarInactivos(false); }}>Limpiar filtros</Button>
+            <Button variante="ghost" tamano="sm" className="ml-auto" onClick={() => { setBusqueda(''); setFiltroTipo('TODOS'); setFiltroEstado('TODOS'); }}>Limpiar filtros</Button>
           )}
         </div>
         <Table
@@ -495,7 +486,7 @@ function PestanaInsumos({ unidades, onTotal }) {
           idFila="id_insumo"
           idTabla="catalogo-insumos"
           cargando={cargando}
-          vacio={<EstadoVacio icono={Package} titulo={insumos.length === 0 ? 'Aún no hay insumos' : 'Sin resultados'} accion={insumos.length === 0 && tiene('INV_GESTIONAR_INSUMOS') ? <Button onClick={abrirCrear}>Crear primer insumo</Button> : null}>{insumos.length === 0 ? 'Registra el primer insumo para abastecer el catálogo.' : 'No hay insumos para los criterios seleccionados.'}</EstadoVacio>}
+          vacio={errorBanner ? null : <EstadoVacio icono={Package} titulo={insumos.length === 0 ? 'Aún no hay insumos' : 'Sin resultados'} accion={insumos.length === 0 && tiene('INV_GESTIONAR_INSUMOS') ? <Button onClick={abrirCrear}>Crear primer insumo</Button> : null}>{insumos.length === 0 ? 'Registra el primer insumo para abastecer el catálogo.' : 'No hay insumos para los criterios seleccionados.'}</EstadoVacio>}
         />
       </Card>
 
@@ -515,38 +506,14 @@ function PestanaInsumos({ unidades, onTotal }) {
 }
 
 // ─── PESTAÑA 2: Unidades de Medida ───────────────────────────────────────────
-function PestanaUnidades({ onTotal }) {
+function PestanaUnidades({ unidades, cargando, errorBanner, recargar, limpiarError }) {
   const { tiene } = useAuth();
   const { confirm, notificar, notificarError } = useAlert();
   const puedeGestionar = tiene('INV_GESTIONAR_INSUMOS');
 
-  const [unidades, setUnidades] = useState([]);
-  const [cargando, setCargando] = useState(true);
-  const [errorBanner, setErrorBanner] = useState(null);
-
   const [modalAbierto, setModalAbierto] = useState(false);
   const [mostrarInactivas, setMostrarInactivas] = useState(false);
   const [unidadActual, setUnidadActual] = useState(null);
-
-  const cargar = useCallback(async () => {
-    setCargando(true);
-    try {
-      const data = await getUnidades();
-      setUnidades(Array.isArray(data) ? data : (data?.data ?? []));
-      setErrorBanner(null);
-    } catch (err) {
-      setUnidades([]);
-      setErrorBanner(traducirError(err));
-    } finally {
-      setCargando(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    cargar();
-  }, [cargar]);
-
-  useEffect(() => onTotal?.(unidades.length), [unidades.length, onTotal]);
 
   const abrirCrear = () => {
     setUnidadActual(null);
@@ -576,12 +543,12 @@ function PestanaUnidades({ onTotal }) {
     try {
       await updateUnidad(u.id_unidad, { activo: false });
       notificar.exito('Unidad de medida desactivada.');
-      cargar();
+      await recargar();
     } catch (err) {
       notificarError(err);
     }
   };
-  const reactivar = async (u) => { try { await updateUnidad(u.id_unidad, { activo: true }); notificar.exito('Unidad de medida reactivada.'); await cargar(); } catch (err) { notificarError(err); } };
+  const reactivar = async (u) => { try { await updateUnidad(u.id_unidad, { activo: true }); notificar.exito('Unidad de medida reactivada.'); await recargar(); } catch (err) { notificarError(err); } };
   const unidadesVisibles = unidades.filter((u) => mostrarInactivas || u.activo !== false);
 
   const columnas = [
@@ -592,7 +559,7 @@ function PestanaUnidades({ onTotal }) {
       valorOrden: (fila) => fila.codigo,
       render: (fila) => <span className="font-mono font-medium text-fg">{fila.codigo}</span>,
     },
-    { clave: 'nombre', titulo: 'Nombre de la Unidad', tipo: 'texto', valorOrden: (fila) => fila.nombre },
+    { clave: 'nombre', titulo: 'Nombre de la unidad', tipo: 'texto', valorOrden: (fila) => fila.nombre },
     {
       clave: 'factor_conversion',
       titulo: 'Factor de conversión',
@@ -646,15 +613,15 @@ function PestanaUnidades({ onTotal }) {
       {errorBanner && (
         <BannerError
           error={errorBanner}
-          onReintentar={cargar}
-          onCerrar={() => setErrorBanner(null)}
+          onReintentar={recargar}
+          onCerrar={limpiarError}
         />
       )}
 
-      <Card sinPadding icono={Ruler} titulo="Unidades de Medida Operativas" descripcion="Unidades de cafetería y panadería con factor de conversión para costeo y recetas"
+      <Card sinPadding icono={Ruler} titulo="Unidades de medida" descripcion="Unidades para costeo y recetas"
         acciones={puedeGestionar ? (
           <Button variante="primary" icono={Plus} onClick={abrirCrear}>
-            Nueva Unidad
+            Nueva unidad
           </Button>
         ) : null}>
         <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3">
@@ -666,7 +633,7 @@ function PestanaUnidades({ onTotal }) {
           idFila="id_unidad"
           idTabla="catalogo-unidades"
           cargando={cargando}
-          vacio={<EstadoVacio icono={Ruler} titulo="Sin unidades registradas">No hay unidades de medida disponibles.</EstadoVacio>}
+          vacio={errorBanner ? null : <EstadoVacio icono={Ruler} titulo="Sin unidades registradas">No hay unidades de medida disponibles.</EstadoVacio>}
         />
       </Card>
 
@@ -676,7 +643,7 @@ function PestanaUnidades({ onTotal }) {
         onCerrar={cerrarModal}
         onGuardado={() => {
           cerrarModal();
-          cargar();
+          recargar();
         }}
       />
     </div>
@@ -686,18 +653,27 @@ function PestanaUnidades({ onTotal }) {
 // ─── PÁGINA PRINCIPAL ─────────────────────────────────────────────────────────
 export default function CatalogoInsumosPage() {
   const [pestanaActiva, setPestanaActiva] = useState('insumos');
-  const [totales, setTotales] = useState({ insumos: 0, unidades: 0 });
+  const [totales, setTotales] = useState({ insumos: null, unidades: null });
 
   const [unidades, setUnidades] = useState([]);
+  const [cargandoUnidades, setCargandoUnidades] = useState(true);
   const [errorUnidades, setErrorUnidades] = useState(null);
   const cargarUnidades = useCallback(async () => {
+    setCargandoUnidades(true);
+    setErrorUnidades(null);
+    setTotales((actual) => ({ ...actual, unidades: null }));
     try {
       const data = await getUnidades();
-      setUnidades(Array.isArray(data) ? data : (data?.data ?? []));
+      const lista = Array.isArray(data) ? data : (data?.data ?? []);
+      setUnidades(lista);
+      setTotales((actual) => ({ ...actual, unidades: lista.filter((unidad) => unidad.activo !== false).length }));
       setErrorUnidades(null);
     } catch (err) {
       setUnidades([]);
       setErrorUnidades(traducirError(err));
+      setTotales((actual) => ({ ...actual, unidades: undefined }));
+    } finally {
+      setCargandoUnidades(false);
     }
   }, []);
   useEffect(() => {
@@ -708,29 +684,28 @@ export default function CatalogoInsumosPage() {
     setTotales((actual) => (actual.insumos === total ? actual : { ...actual, insumos: total }));
   }, []);
 
-  const handleTotalUnidades = useCallback((total) => {
-    setTotales((actual) => (actual.unidades === total ? actual : { ...actual, unidades: total }));
-  }, []);
+  const marcarInsumosCargando = useCallback(() => setTotales((actual) => ({ ...actual, insumos: null })), []);
+  const marcarErrorInsumos = useCallback(() => setTotales((actual) => ({ ...actual, insumos: undefined })), []);
 
   return (
     <div className="space-y-6">
+      <EncabezadoPagina seccion="Operación · Catálogo" titulo="Insumos y unidades" descripcion="Gestiona materias primas, empaques, artículos de reventa y unidades de medida." />
       <Pestanas
         pestanas={PESTANAS_DEF.map((pestana) => ({ ...pestana, total: totales[pestana.clave] }))}
         activa={pestanaActiva}
         onCambiar={setPestanaActiva}
         etiqueta="Secciones de catálogo"
+        className="flex-wrap"
       />
-
-      {pestanaActiva === 'unidades' && errorUnidades && <BannerError error={errorUnidades} onReintentar={cargarUnidades} onCerrar={() => setErrorUnidades(null)} />}
 
       {pestanaActiva === 'insumos' && (
         <section id="panel-insumos" role="tabpanel" aria-labelledby="tab-insumos">
-          <PestanaInsumos unidades={unidades} onTotal={handleTotalInsumos} />
+          <PestanaInsumos unidades={unidades} onTotal={handleTotalInsumos} onCargandoTotal={marcarInsumosCargando} onErrorTotal={marcarErrorInsumos} />
         </section>
       )}
       {pestanaActiva === 'unidades' && (
         <section id="panel-unidades" role="tabpanel" aria-labelledby="tab-unidades">
-          <PestanaUnidades onTotal={handleTotalUnidades} />
+          <PestanaUnidades unidades={unidades} cargando={cargandoUnidades} errorBanner={errorUnidades} recargar={cargarUnidades} limpiarError={() => setErrorUnidades(null)} />
         </section>
       )}
     </div>
