@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import AlertasPanel from './paneles/AlertasPanel.jsx';
 import TopProductosPanel from './paneles/TopProductosPanel.jsx';
 import VentasDiariasPanel from './paneles/VentasDiariasPanel.jsx';
+import OrdenesRecientesPanel from './paneles/OrdenesRecientesPanel.jsx';
 import { fechaISODelNegocio, fechaNegocio, horaNegocio, saludoPorHora } from '../../utils/formato.js';
 import { PERMISOS_ALERTAS, PERMISOS_TOP, PERMISOS_VENTAS } from './lib/permisos.js';
 import { useAhora } from '../../hooks/useAhora.js';
@@ -20,13 +21,14 @@ import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 const PANELES = [
   { id: 'ventas', permisos: PERMISOS_VENTAS, Componente: VentasDiariasPanel },
   { id: 'top', permisos: PERMISOS_TOP, Componente: TopProductosPanel },
+  { id: 'ordenes', permisos: PERMISOS_VENTAS, Componente: OrdenesRecientesPanel },
   { id: 'alertas', permisos: PERMISOS_ALERTAS, Componente: AlertasPanel },
 ];
 
 // Ancho de cada bloque según cuáles tiene el usuario: sin ventas, las notificaciones pasan al lugar principal.
 function anchos(ids) {
   const tiene = (id) => ids.includes(id);
-  if (tiene('ventas')) return { ventas: tiene('top') ? 8 : 12, top: 4, alertas: 12 };
+  if (tiene('ventas')) return { ventas: tiene('top') ? 8 : 12, top: 4, ordenes: 12, alertas: 12 };
   return { top: tiene('alertas') ? 4 : 12, alertas: tiene('top') ? 8 : 12 };
 }
 
@@ -111,6 +113,7 @@ export default function DashboardPage() {
               titulo={sinVentas ? 'Notificaciones de tu área' : 'Alertas'}
               sucursal={idSucursalFiltro}
               onResumen={avisos[id]}
+              hoyISO={fechaISO}
             />
           ))
         ) : (

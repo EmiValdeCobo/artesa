@@ -101,19 +101,20 @@ function formatearCuadre(fila) {
     abierto_en: fila.abierto_en,
     cerrado_en: fila.cerrado_en,
     monto_apertura: fila.monto_apertura,
-    ventas: { efectivo: fila.ventas_efectivo, tarjeta: fila.ventas_tarjeta, digital: fila.ventas_digital },
+    ventas: { efectivo: fila.ventas_efectivo, tarjeta: fila.ventas_tarjeta, digital: fila.ventas_digital, bitcoin: fila.ventas_bitcoin },
     ingresos_caja: fila.ingresos_caja,
     egresos_caja: fila.egresos_caja,
     efectivo: porMetodo(fila, 'efectivo'),
     tarjeta: porMetodo(fila, 'tarjeta'),
     digital: porMetodo(fila, 'digital'),
+    bitcoin: porMetodo(fila, 'bitcoin'),
   };
 }
 
-// RN: no se puede cerrar la caja si en algún método (efectivo, tarjeta o digital) la diferencia absoluta
+// RN: no se puede cerrar la caja si en algún método (efectivo, tarjeta, transferencia o Bitcoin/Chivo) la diferencia absoluta
 // supera la tolerancia configurada en el parámetro `tolerancia_cuadre`. El turno sigue ABIERTO para que el
 // cajero recuente o registre el movimiento que falta. Se evalúa dentro de la misma transacción que bloquea el turno.
-const METODOS = ['efectivo', 'tarjeta', 'digital'];
+const METODOS = ['efectivo', 'tarjeta', 'digital', 'bitcoin'];
 async function validarToleranciaDescuadre(transaction, idTurno, contado) {
   const tolerancia = await repo.obtenerToleranciaCuadre(transaction);
   if (!/^\d+(\.\d{1,2})?$/.test(tolerancia)) {

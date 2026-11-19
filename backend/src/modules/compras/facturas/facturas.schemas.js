@@ -60,6 +60,8 @@ const compraComun = {
   numeroFactura: z.string().trim().min(1).max(50),
   fechaEmision,
   condicionPago: z.enum(['CONTADO', 'CREDITO']),
+  // Solo CCF da crédito fiscal; CF/FSE cargan el IVA al costo. Por defecto CCF (comportamiento histórico).
+  tipoDocumento: z.enum(['CCF', 'CF', 'FSE']).optional().default('CCF'),
 };
 
 const compraCostoSchema = z.strictObject({

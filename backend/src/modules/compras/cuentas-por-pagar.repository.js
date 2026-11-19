@@ -53,7 +53,7 @@ export const listarCuentasPorPagar = async (idUsuario, opciones) => {
        GROUP BY id_compra
      )
      SELECT f.id_compra, s.nombre AS sucursal, pr.razon_social AS proveedor,
-            f.num_factura, f.tipo_costo, f.fecha_emision, f.fecha_vencimiento,
+            f.num_factura, f.tipo_costo, f.tipo_documento, f.fecha_emision, f.fecha_vencimiento,
             f.total::text AS total, COALESCE(t.pagado, 0)::text AS pagado,
             CASE WHEN f.estado_pago = 'PAGADO' THEN 0.00::numeric
                  ELSE f.total - COALESCE(t.pagado, 0) END::text AS saldo,

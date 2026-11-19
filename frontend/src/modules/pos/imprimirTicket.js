@@ -6,6 +6,11 @@ function escaparHtml(texto) {
     .replace(/"/g, '&quot;');
 }
 
+const NOMBRE_METODO = { EFECTIVO: 'Efectivo', TARJETA: 'Tarjeta', TRANSFERENCIA: 'Transferencia', BITCOIN_CHIVO: 'Bitcoin / Chivo' };
+const ETIQUETA_REFERENCIA = { TARJETA: 'Autorización', TRANSFERENCIA: 'Ref. bancaria', BITCOIN_CHIVO: 'ID transacción' };
+// Los hash Lightning son largos: el ticket muestra inicio…fin; el valor completo queda en pos.pagos.referencia.
+const abreviarReferencia = (ref) => (ref.length > 24 ? `${ref.slice(0, 12)}…${ref.slice(-8)}` : ref);
+
 export function abrirVentanaImpresion(venta, { esReimpresion = false } = {}) {
   const ancho = 780;
   const alto = 680;
@@ -67,9 +72,14 @@ export function abrirVentanaImpresion(venta, { esReimpresion = false } = {}) {
       return `
         <div style="margin-bottom:3px;">
           <div style="display:flex;justify-content:space-between;font-size:11px;">
-            <span>${escaparHtml(p.metodo)}${p.referencia ? ` (${escaparHtml(p.referencia)})` : ''}</span>
+            <span>${escaparHtml(NOMBRE_METODO[p.metodo] ?? p.metodo)}</span>
             <span>$${escaparHtml(p.monto)}</span>
           </div>
+          ${
+            p.referencia
+              ? `<div style="font-size:10px;color:#444;word-break:break-all;">${escaparHtml(ETIQUETA_REFERENCIA[p.metodo] ?? 'Ref.')}: ${escaparHtml(abreviarReferencia(p.referencia))}</div>`
+              : ''
+          }
           ${
             recibidoNum != null && p.metodo === 'EFECTIVO'
               ? `<div style="display:flex;justify-content:space-between;font-size:10px;color:#444;">

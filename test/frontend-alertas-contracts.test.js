@@ -40,7 +40,8 @@ test('alertas: no se permite window.alert() ni window.confirm() en módulos del 
   const archivos = [
     'frontend/src/modules/compras/CompraFacturaPage.jsx',
     'frontend/src/modules/compras/ProveedoresPage.jsx',
-    'frontend/src/modules/compras/CuentasPorPagarPage.jsx',
+    // El abono (única mutación de Cuentas por pagar) vive en PagoDialogo; la página solo lista.
+    'frontend/src/modules/compras/PagoDialogo.jsx',
     'frontend/src/modules/pos/PosPage.jsx',
     'frontend/src/modules/pos/ModalCobro.jsx',
     'frontend/src/modules/pos/Carrito.jsx',
@@ -68,7 +69,8 @@ test('alertas: pantallas principales de acción consumen useAlert()', async () =
   const pantallasAccion = [
     'frontend/src/modules/compras/CompraFacturaPage.jsx',
     'frontend/src/modules/compras/ProveedoresPage.jsx',
-    'frontend/src/modules/compras/CuentasPorPagarPage.jsx',
+    // El abono (única mutación de Cuentas por pagar) vive en PagoDialogo; la página solo lista.
+    'frontend/src/modules/compras/PagoDialogo.jsx',
     'frontend/src/modules/pos/PosPage.jsx',
     'frontend/src/modules/pos/ModalCobro.jsx',
     'frontend/src/modules/pos/ClientesPage.jsx',
@@ -99,7 +101,8 @@ test('alertas: acciones de mutación invocan notificarError en catch', async () 
   const archivosMutacion = [
     'frontend/src/modules/compras/CompraFacturaPage.jsx',
     'frontend/src/modules/compras/ProveedoresPage.jsx',
-    'frontend/src/modules/compras/CuentasPorPagarPage.jsx',
+    // El abono (única mutación de Cuentas por pagar) vive en PagoDialogo; la página solo lista.
+    'frontend/src/modules/compras/PagoDialogo.jsx',
     'frontend/src/modules/pos/ModalCobro.jsx',
     'frontend/src/modules/pos/ClientesPage.jsx',
     'frontend/src/modules/caja/CajaPage.jsx',

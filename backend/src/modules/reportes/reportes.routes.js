@@ -13,6 +13,8 @@ router.get('/ventas-por-metodo-pago', asyncHandler(controller.ventasPorMetodoPag
 router.get('/alertas-stock', asyncHandler(controller.alertasStock));
 // El costo de receta es información sensible: además de REP_VER_DASHBOARD exige INV_VER_COSTOS.
 router.get('/margen-productos', requirePermiso('INV_VER_COSTOS'), asyncHandler(controller.margenProductos));
+// Productos bajo el margen mínimo (empresa.parametros.margen_minimo); mismo permiso que el margen.
+router.get('/margen-bajo', requirePermiso('INV_VER_COSTOS'), asyncHandler(controller.margenBajo));
 router.get('/cuadre-turnos', requirePermiso('CAJA_VER_CUADRES'), asyncHandler(controller.cuadreTurnos));
 router.get('/cuentas-por-pagar', requirePermiso('COM_VER_CXP'), asyncHandler(controller.cuentasPorPagar));
 

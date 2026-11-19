@@ -15,3 +15,7 @@ export async function topProductos(req, res) {
 export async function alertas(req, res) {
   responder(res, await service.alertas(req.user.id, req.query));
 }
+
+export async function ordenesRecientes(req, res) {
+  responder(res, await service.ordenesRecientes(req.user.id, req.query));
+}
