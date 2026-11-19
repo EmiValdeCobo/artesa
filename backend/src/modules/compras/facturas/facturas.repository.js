@@ -57,7 +57,7 @@ export const registrarCompra = async (datos, idUsuario, transaction) => {
   const rows = await select(
     `SELECT compras.fn_registrar_compra(
        $1::int, $2::int, $3::varchar, $4::date, $5::varchar,
-       $6::jsonb, $7::uuid, $8::varchar
+       $6::jsonb, $7::uuid, $8::varchar, $9::varchar
      ) AS id_compra`,
     [
       datos.idProveedor,
@@ -68,6 +68,7 @@ export const registrarCompra = async (datos, idUsuario, transaction) => {
       JSON.stringify(items),
       idUsuario,
       datos.tipoCosto,
+      datos.tipoDocumento ?? 'CCF',
     ],
     transaction,
   );
@@ -108,3 +109,25 @@ export const obtenerEstadoPago = async (idCompra, transaction) => {
   );
   return rows[0]?.estado_pago;
 };
+
+export const usuarioTienePermiso = async (idUsuario, codigo, transaction) => {
+  const rows = await select('SELECT seguridad.fn_tiene_permiso($1::uuid, $2) AS tiene', [idUsuario, codigo], transaction);
+  return rows[0]?.tiene === true;
+};
+
+// Productos cuyo margen quedó bajo el mínimo y que usan alguno de los insumos comprados
+// (por receta o como insumo de reventa). Se lee dentro de la misma transacción para ver
+// el costo promedio ya recalculado por el trigger de la compra.
+export const alertasMargenPorInsumos = (idsInsumo, transaction) => select(
+  `SELECT v.id_producto AS "idProducto", v.nombre,
+          v.precio_sin_iva::text AS "precioSinIva", v.costo_receta::text AS "costoReceta",
+          v.margen_pct::text AS "margenPct", v.margen_minimo_pct::text AS "margenMinimoPct"
+   FROM reportes.vw_productos_margen_bajo v
+   JOIN inventario.productos p ON p.id_producto = v.id_producto
+   WHERE p.id_insumo_reventa = ANY($1::int[])
+      OR EXISTS (SELECT 1 FROM inventario.recetas r
+                 WHERE r.id_producto = v.id_producto AND r.id_insumo = ANY($1::int[]))
+   ORDER BY v.margen_pct ASC, v.nombre`,
+  [idsInsumo],
+  transaction,
+);

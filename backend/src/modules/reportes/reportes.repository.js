@@ -120,3 +120,14 @@ export const ventasPorMetodoPago = (idUsuario, { desde, hasta, idSucursal }) => 
    ORDER BY SUM(p.monto) DESC, p.metodo`,
   [idUsuario, desde ?? null, hasta ?? null, idSucursal ?? null],
 );
+
+// Vista reportes.vw_productos_margen_bajo: alerta para revisar precios de venta, que nunca
+// se ajustan solos. NUMERIC se devuelve como texto (camelCase, mismo formato que alertasMargen).
+export const margenBajo = () => consultar(
+  `SELECT id_producto AS "idProducto", nombre,
+          precio_sin_iva::text AS "precioSinIva", costo_receta::text AS "costoReceta",
+          margen_pct::text AS "margenPct", margen_minimo_pct::text AS "margenMinimoPct"
+   FROM reportes.vw_productos_margen_bajo
+   ORDER BY margen_pct ASC, nombre`,
+  [],
+);

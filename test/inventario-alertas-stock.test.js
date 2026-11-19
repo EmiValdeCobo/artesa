@@ -21,7 +21,7 @@ async function leerBloqueEsquema(inicio, fin) {
 
 test('inventario: la vista única define bajo mínimo, faltante y nivel coherentes', async () => {
   const [migracion, init] = await Promise.all([
-    leer('database/migrations/017_alertas_stock_bajo_minimo.sql'),
+    leer('database/migrations/016_alertas_stock_bajo_minimo.sql'),
     leer('database/init/18_alertas_stock_bajo_minimo.sql'),
   ]);
   assert.equal(init, migracion);

@@ -1,5 +1,5 @@
 # CONTEXT — estado vivo del proyecto (máx. 60 líneas; actualizar al cerrar tareas)
-Actualizado: 2026-11-16
+Actualizado: 2026-11-19
 
 ## Meta y fechas
 Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (listo en docs/Documentacion_IEEE con compilador y visor), manual de usuario, doc técnica, flujo de trabajo.
@@ -7,7 +7,7 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (li
 ## Decisiones tomadas
 - Stack: Express + Sequelize (conductor `pg`) + PostgreSQL 16; React + Vite + Tailwind (sin Next.js); JS puro.
 - Lógica crítica en funciones PL/pgSQL (ver DB_MAP.md); compras recibe costo unitario con IVA, guarda ambos valores y conserva históricos con la nueva columna en NULL.
-- Precios incluyen IVA (13%); se desglosa en la factura. (Confirmar con docente si el CCF suma IVA aparte.)
+- Precios incluyen IVA (13%); se desglosa en la factura. Compras: `tipo_documento` CCF (separa IVA como crédito fiscal) vs CF/FSE (IVA es costo); alerta de margen bajo con `margen_minimo` (0.60). Ver docs/compras-iva-costeo.md.
 - Facturación electrónica DTE simulada (número de control, código de generación, sello simulado).
 - RBAC dinámico: roles y permisos en BD; middleware `requirePermiso`.
 - El Kárdex requiere `INV_VER_KARDEX`; su `costo_unitario` solo se incluye con `INV_VER_COSTOS` además del permiso de Kárdex.

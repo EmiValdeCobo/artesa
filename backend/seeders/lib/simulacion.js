@@ -496,6 +496,8 @@ export async function simularHistoria({ rnd, sink, ids, dias, hoyLocalMs, ahoraL
       id_compra: idCompra, id_proveedor: prov.id, id_sucursal: s, id_usuario: idUsuario(usuario), num_factura: `${prov.prefijo}-${String(seqFactura[prov.clave]).padStart(6, '0')}`,
       tipo_costo: gasto ? 'GASTO' : 'COSTO', fecha_emision: fecha, condicion_pago: condicion, fecha_vencimiento: fechaTexto(msCompra + dias * DIA_MS),
       subtotal: fmtCentavos(subtotal), iva_credito: fmtCentavos(iva), total: fmtCentavos(total), estado_pago: 'PENDIENTE',
+      // El simulador separa IVA como crédito fiscal, por eso todas sus compras son CCF.
+      tipo_documento: 'CCF',
     });
     for (const it of lineas) {
       compras.detalles.push({

@@ -36,7 +36,7 @@ fn: pos.fn_registrar_venta(id_turno, tipo, id_cliente, items jsonb, pagos jsonb,
 ## compras
 proveedores(id_proveedor, razon_social, nrc, nit, contacto, telefono, dias_credito, activo, deleted_at, modificado_en) [facturas conservan FK; bitácora por migración 008] · facturas_compra(id_compra U, id_proveedor, id_sucursal, id_usuario, num_factura, tipo_costo[COSTO|GASTO], fecha_emision, condicion_pago, fecha_vencimiento, subtotal, iva_credito, total, estado_pago)
 compra_detalles(id_detalle, id_compra, id_insumo?, descripcion, cantidad, costo_unitario [sin IVA], costo_unitario_con_iva [nullable para históricos], subtotal) [trigger: entra stock con costo sin IVA + costo promedio] · pagos_proveedor(id_pago, id_compra, fecha_pago, monto, metodo, referencia, id_usuario) [trigger: actualiza estado_pago]
-fn: compras.fn_registrar_compra(id_proveedor, id_sucursal, num_factura, fecha, condicion, items jsonb, id_usuario, tipo_costo) → id_compra   items=[{id_insumo,cantidad,costo_unitario}] ó [{descripcion,cantidad,costo_unitario}] (JSON costo_unitario CON IVA; subtotal/IVA redondeados por línea)
+fn: compras.fn_registrar_compra(id_proveedor, id_sucursal, num_factura, fecha, condicion, items jsonb, id_usuario, tipo_costo, tipo_documento CCF|CF|FSE) → id_compra   items=[{id_insumo,cantidad,costo_unitario}] ó [{descripcion,cantidad,costo_unitario}] (JSON costo_unitario CON IVA; subtotal/IVA redondeados por línea); solo CCF separa iva_credito, CF/FSE costean el precio completo (018). Vista reportes.vw_productos_margen_bajo + parámetro margen_minimo
 Columna `costo_unitario_con_iva` introducida por `database/migrations/017_compras_costos_con_iva.sql` / `database/init/19_compras_costos_con_iva.sql`; nullable para históricos, sin alterar sus importes.
 
 ## rrhh

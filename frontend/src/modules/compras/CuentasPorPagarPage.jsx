@@ -91,6 +91,7 @@ export default function CuentasPorPagarPage() {
           {factura.num_factura}
           <p className="text-body-sm text-fg-muted">
             {factura.tipo_costo === 'GASTO' ? 'Gasto' : 'Compra de insumos'}
+            {factura.tipo_documento ? ` · ${factura.tipo_documento}` : ''}
           </p>
         </div>
       ),

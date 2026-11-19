@@ -41,6 +41,7 @@ Todas las respuestas de error usan `{ "error": "texto" }`, con `detalles` adicio
 | GET | `/api/reportes/ventas-por-metodo-pago` | Cookie JWT + tipo admin | `REP_VER_DASHBOARD` | query: `desde?,hasta?,idSucursal?` | 200; 400; 401; 403 |
 | GET | `/api/reportes/alertas-stock` | Cookie JWT + tipo admin | `REP_VER_DASHBOARD` | query: `idSucursal?,nivel?` | 200; 400; 401; 403 |
 | GET | `/api/reportes/margen-productos` | Cookie JWT + tipo admin | `REP_VER_DASHBOARD` + `INV_VER_COSTOS` | — | 200; 401; 403 |
+| GET | `/api/reportes/margen-bajo` | Cookie JWT + tipo admin | `REP_VER_DASHBOARD` + `INV_VER_COSTOS` | — | 200 (productos bajo `margen_minimo`); 401; 403 |
 | GET | `/api/reportes/cuadre-turnos` | Cookie JWT + tipo admin | `REP_VER_DASHBOARD` + `CAJA_VER_CUADRES` | query: `desde?,hasta?,idSucursal?` | 200; 400; 401; 403 |
 | GET | `/api/reportes/cuentas-por-pagar` | Cookie JWT + tipo admin | `REP_VER_DASHBOARD` + `COM_VER_CXP` | query: `desde?,hasta?,idSucursal?,page?,limit?` | 200; 400; 401; 403 |
 | GET | `/api/preparacion/cola` | Cookie JWT + tipo admin | `POS_VER_COLA_PREPARACION` | query: `idSucursal?` | 200; 400; 401; 403 |

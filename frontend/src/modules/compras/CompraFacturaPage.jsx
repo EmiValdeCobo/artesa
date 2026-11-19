@@ -12,6 +12,7 @@ import { BotonIcono, Button, Card, Select, Table } from '../../components/ui/ind
 import { mascaraDecimal, mascaraEntero, mascaraIdentificador } from '../../utils/mascaras.js';
 import { listarGastos, listarInsumosCompra, listarProveedores, registrarCompra } from './comprasApi.js';
 import PagoDialogo from './PagoDialogo.jsx';
+import { TIPOS_DOCUMENTO, costoBorradorConIva, resumenCompra } from './ivaCompras.js';
 
 const nuevaLinea = (gasto) => gasto ? { descripcion: '', cantidad: '', costoUnitario: '' } : { idInsumo: '', cantidad: '', costoUnitario: '' };
 const hoy = () => {
@@ -103,6 +104,12 @@ function HistorialGastos({ sucursales, recargarClave, puedePagar }) {
       titulo: 'N.º de factura',
       tipo: 'texto',
       valorOrden: (fila) => fila.num_factura,
+      render: (fila) => (
+        <div>
+          {fila.num_factura}
+          {fila.tipo_documento && <p className="text-body-sm text-fg-muted">{fila.tipo_documento}</p>}
+        </div>
+      ),
     },
     {
       clave: 'total',
@@ -194,7 +201,8 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
   const puedePagar = tiene('COM_PAGAR_PROVEEDOR');
   const [proveedores, setProveedores] = useState([]);
   const [insumos, setInsumos] = useState([]);
-  const [form, setForm] = useState({ idProveedor: '', idSucursal: '', numeroFactura: '', fechaEmision: hoy(), condicionPago: 'CONTADO', items: [nuevaLinea(gasto)] });
+  const [form, setForm] = useState({ idProveedor: '', idSucursal: '', numeroFactura: '', fechaEmision: hoy(), condicionPago: 'CONTADO', tipoDocumento: 'CCF', items: [nuevaLinea(gasto)] });
+  const [alertasMargen, setAlertasMargen] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [errorCarga, setErrorCarga] = useState(null);
@@ -225,7 +233,11 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
             items: borrador.items.map((linea) => ({
               idInsumo: String(linea.idInsumo),
               cantidad: linea.cantidad ?? '',
-              costoUnitario: linea.costoUnitario ?? '',
+              // El borrador trae costo_promedio (NETO, sin IVA) pero el campo espera el precio
+              // del documento con IVA incluido: se convierte (× 1.13 en CCF) para no registrar
+              // un costo 11.5 % menor. Se guarda el neto para reconvertir si cambia el documento.
+              costoUnitario: linea.costoUnitario != null && linea.costoUnitario !== '' ? costoBorradorConIva(linea.costoUnitario, actual.tipoDocumento) : '',
+              costoNeto: linea.costoUnitario ?? '',
               origen: linea.origen,
               unidad: linea.unidad,
             })),
@@ -252,7 +264,20 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
       : linea.idInsumo && linea.cantidad && linea.costoUnitario
   )), [form.items, gasto]);
 
+  const resumen = useMemo(() => resumenCompra(form.items, form.tipoDocumento), [form.items, form.tipoDocumento]);
+
   const editarCampo = (campo, valor) => {
+    if (campo === 'tipoDocumento') {
+      // Las líneas del borrador que el usuario no tocó se recalculan con el nuevo documento.
+      setForm((actual) => ({
+        ...actual,
+        tipoDocumento: valor,
+        items: actual.items.map((linea) => (linea.costoNeto && linea.costoUnitario === costoBorradorConIva(linea.costoNeto, actual.tipoDocumento)
+          ? { ...linea, costoUnitario: costoBorradorConIva(linea.costoNeto, valor) }
+          : linea)),
+      }));
+      return;
+    }
     setForm((actual) => ({ ...actual, [campo]: valor }));
     if (campo === 'fechaEmision') setErrorFechaEmision(valor > hoy() ? ERROR_FECHA_FUTURA : '');
   };
@@ -283,12 +308,22 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
       fechaEmision: form.fechaEmision,
       condicionPago: form.condicionPago,
       tipoCosto,
+      tipoDocumento: form.tipoDocumento,
       items: form.items.map((linea) => (gasto
         ? { descripcion: linea.descripcion.trim(), cantidad: linea.cantidad, costoUnitario: linea.costoUnitario }
         : { idInsumo: Number(linea.idInsumo), cantidad: linea.cantidad, costoUnitario: linea.costoUnitario })),
     };
     try {
-      await registrarCompra(datos);
+      const respuesta = await registrarCompra(datos);
+      // El servidor avisa qué productos quedaron con margen bajo el mínimo tras el nuevo costo;
+      // el precio de venta nunca cambia solo, por eso se pide a la persona revisarlo.
+      const alertas = Array.isArray(respuesta?.alertasMargen) ? respuesta.alertasMargen : [];
+      setAlertasMargen(alertas);
+      if (alertas.length) {
+        notificar.advertencia('Margen bajo el mínimo', {
+          mensaje: `${alertas.length === 1 ? 'Un producto quedó' : `${alertas.length} productos quedaron`} con margen menor al mínimo. Revisa su precio de venta.`,
+        });
+      }
       notificar.exito(gasto ? 'Gasto registrado' : 'Factura registrada', {
         mensaje: gasto && form.condicionPago === 'CREDITO'
           ? 'Gasto registrado como pendiente. Si no aparece con el filtro Pagadas, selecciona Pendientes o Todas y confirma la sucursal.'
@@ -326,8 +361,21 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
       />
       {borradorAviso && (
         <div role="status" className="flex items-start justify-between gap-3 rounded-md border border-warning/30 bg-warning-soft px-4 py-3 text-body text-warning-text">
-          <p><strong>Borrador sugerido.</strong> Revisa los datos antes de guardar: las cantidades se calcularon con lo que falta para llegar al mínimo y el costo promedio conocido. Elige el proveedor y confirma con «Nueva factura»; si sales de esta pantalla el borrador se descarta.</p>
+          <p><strong>Borrador sugerido.</strong> Revisa los datos antes de guardar: las cantidades se calcularon con lo que falta para llegar al mínimo y el precio parte del costo promedio conocido (con IVA si el documento es CCF). Elige el proveedor y confirma con «Nueva factura»; si sales de esta pantalla el borrador se descarta.</p>
           <button type="button" className="btn-ghost min-h-8 shrink-0 !p-1.5" onClick={() => setBorradorAviso(false)} aria-label="Cerrar aviso de borrador"><X size={15} aria-hidden="true" /></button>
+        </div>
+      )}
+      {alertasMargen.length > 0 && (
+        <div role="status" className="flex items-start justify-between gap-3 rounded-md border border-warning/30 bg-warning-soft px-4 py-3 text-body text-warning-text">
+          <div>
+            <p><strong>Margen bajo el mínimo.</strong> Con el nuevo costo, estos productos ganan menos de lo esperado. Revisa su precio de venta en el catálogo.</p>
+            <ul className="mt-2 space-y-1">
+              {alertasMargen.map((alerta) => (
+                <li key={alerta.idProducto ?? alerta.nombre} className="tabular-nums">{alerta.nombre}: margen {alerta.margenPct} % (mínimo {alerta.margenMinimoPct} %)</li>
+              ))}
+            </ul>
+          </div>
+          <button type="button" className="btn-ghost min-h-8 shrink-0 !p-1.5" onClick={() => setAlertasMargen([])} aria-label="Cerrar aviso de margen bajo"><X size={15} aria-hidden="true" /></button>
         </div>
       )}
       {errorCarga && <BannerError error={{ titulo: gasto ? 'No se pudieron cargar los datos de compras' : 'No se pudieron cargar los insumos y proveedores', mensaje: errorCarga, accion: '' }} />}
@@ -341,13 +389,17 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
             <label className="flex h-full flex-col text-label">Número de factura<input className="input mt-1.5 h-10" value={form.numeroFactura} onChange={(evento) => editarCampo('numeroFactura', mascaraIdentificador(evento.target.value, 50))} maxLength={50} autoCapitalize="characters" spellCheck={false} required /></label>
             <label className="flex h-full flex-col text-label">Fecha de emisión<input id="fecha-emision" aria-invalid={Boolean(errorFechaEmision)} aria-describedby={errorFechaEmision ? 'fecha-emision-error' : undefined} className="input mt-1.5 h-10" type="date" max={hoy()} value={form.fechaEmision} onChange={(evento) => editarCampo('fechaEmision', evento.target.value)} required /><CampoError id="fecha-emision" mensaje={errorFechaEmision} /></label>
             <Select etiqueta="Condición de pago" value={form.condicionPago} onChange={(evento) => editarCampo('condicionPago', evento.target.value)} opciones={[{ valor: 'CONTADO', texto: 'Contado' }, { valor: 'CREDITO', texto: 'Crédito' }]} />
+            <Select etiqueta="Tipo de documento" value={form.tipoDocumento} onChange={(evento) => editarCampo('tipoDocumento', evento.target.value)} opciones={TIPOS_DOCUMENTO} />
           </div>
+          <p className="mt-3 text-body-sm text-fg-muted">{form.tipoDocumento === 'CCF'
+            ? 'Con CCF se separa el 13 % de IVA como crédito fiscal; el costo queda sin IVA.'
+            : 'Con CF o sujeto excluido el IVA no se recupera: queda como parte del costo.'}</p>
           {gasto && <p className="mt-4 rounded-lg bg-muted/60 p-3 text-body text-fg-muted">En contado el sistema registra el pago al guardar. En crédito queda pendiente; podrás registrar abonos desde esta lista. La fecha de vencimiento del crédito sí puede ser futura.</p>}
         </Card>
 
         <Card
           titulo={gasto ? '2. Conceptos del gasto' : 'Insumos recibidos'}
-          descripcion={gasto ? 'Anota cada concepto que aparece en la factura. Los gastos no cambian las existencias.' : 'Indica los insumos, las cantidades y el costo unitario que aparecen en la factura.'}
+          descripcion={gasto ? 'Anota cada concepto que aparece en la factura. Los gastos no cambian las existencias.' : 'Indica los insumos, las cantidades y el precio unitario tal como aparece en la factura (IVA incluido).'}
           acciones={<Button icono={Plus} variante="secondary" onClick={() => setForm((actual) => ({ ...actual, items: [...actual.items, nuevaLinea(gasto)] }))}>{gasto ? 'Agregar concepto' : 'Agregar insumo'}</Button>}
         >
           <div className="space-y-3">
@@ -357,7 +409,9 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
                   ? <label className="flex flex-col text-label">Concepto<input className="input mt-1.5 h-10" placeholder="Ej. servicio de internet" value={linea.descripcion} onChange={(evento) => editarLinea(indice, 'descripcion', evento.target.value)} maxLength={150} required /></label>
                   : <Select etiqueta="Insumo" value={linea.idInsumo} onChange={(evento) => editarLinea(indice, 'idInsumo', evento.target.value)} placeholder="Selecciona insumo" opciones={insumos.map((item) => ({ valor: String(item.id_insumo), texto: `${item.nombre} · ${item.unidad_codigo}` }))} />}
                 <label className="flex flex-col text-label">Cantidad<input className="input mt-1.5 h-10 text-right tabular-nums" type="text" inputMode="numeric" placeholder="0" maxLength={8} value={linea.cantidad} onChange={(evento) => editarLinea(indice, 'cantidad', mascaraEntero(evento.target.value, 8))} required />{linea.origen === 'faltante' && <span className="mt-1 block text-body-sm font-normal text-fg-muted">Faltante para llegar al mínimo{linea.unidad ? ` (${linea.unidad})` : ''}</span>}</label>
-                <label className="flex flex-col text-label">Costo por unidad<input className="input mt-1.5 h-10 text-right tabular-nums" type="text" inputMode="decimal" placeholder="0.00" value={linea.costoUnitario} onChange={(evento) => editarLinea(indice, 'costoUnitario', mascaraDecimal(evento.target.value, 6, 6))} required /><span className="mt-1 block text-body-sm font-normal text-fg-muted">USD, sin IVA</span></label>
+                <label className="flex flex-col text-label">Costo por unidad<input className="input mt-1.5 h-10 text-right tabular-nums" type="text" inputMode="decimal" placeholder="0.00" value={linea.costoUnitario} onChange={(evento) => editarLinea(indice, 'costoUnitario', mascaraDecimal(evento.target.value, 6, 6))} required />{/* Desde la migración 017 la BD interpreta este valor CON IVA y lo divide entre 1.13 (en CCF).
+                    Antes decía «sin IVA»: el usuario escribía el neto y el IVA se quitaba dos veces,
+                    dejando el costo 11.5 % menor al real. */}<span className="mt-1 block text-body-sm font-normal text-fg-muted">USD, IVA incluido</span></label>
                 {/* Separador invisible con la altura de la etiqueta: alinea el botón con los controles, no con el texto. */}
                 <div className="flex flex-col"><span className="mb-1.5 hidden text-body md:block" aria-hidden="true">&nbsp;</span><Button className="h-10" variante="ghost" icono={Trash2} aria-label={`Quitar ${gasto ? 'concepto' : 'insumo'} ${indice + 1}`} disabled={form.items.length === 1} onClick={() => setForm((actual) => ({ ...actual, items: actual.items.filter((_, posicion) => posicion !== indice) }))} /></div>
               </div>
@@ -371,8 +425,11 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
           <dl className="space-y-2 text-body">
             <div className="flex justify-between gap-3"><dt className="text-fg-muted">Líneas</dt><dd className="tabular-nums">{form.items.length}</dd></div>
             <div className="flex justify-between gap-3"><dt className="text-fg-muted">Condición</dt><dd>{form.condicionPago === 'CREDITO' ? 'Crédito' : 'Contado'}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-fg-muted">Subtotal</dt><dd className="tabular-nums">{formatoCentavos(resumen.subtotal)}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-fg-muted">IVA crédito fiscal</dt><dd className="tabular-nums">{formatoCentavos(resumen.iva)}</dd></div>
+            <div className="flex justify-between gap-3 border-t border-line pt-2 font-semibold"><dt>Total</dt><dd className="tabular-nums">{formatoCentavos(resumen.total)}</dd></div>
           </dl>
-          <p className="text-body-sm text-fg-muted">El total definitivo lo calcula el sistema al guardar.</p>
+          <p className="text-body-sm text-fg-muted">Vista previa. El total definitivo lo calcula el sistema al guardar.</p>
           <div className="flex"><Button className="w-full" type="submit" cargando={guardando} disabled={cargando || !lineasValidas || !proveedores.length || !sucursales.length}>{gasto ? 'Guardar gasto' : 'Nueva factura'}</Button></div>
         </aside>
       </form>
