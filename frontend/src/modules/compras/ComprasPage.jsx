@@ -8,7 +8,7 @@ import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import Metrica from '../../components/display/Metrica.jsx';
 import { formatoCentavos } from '../../utils/formato.js';
 import { Button, Card, Table } from '../../components/ui/index.js';
-import { listarCuentasPorPagar } from './comprasApi.js';
+import { listarTodasLasCuentasPorPagar } from './comprasApi.js';
 
 // Convierte un string NUMERIC ("12.50") a centavos BigInt, sin pasar por float.
 function aCentavos(valor) {
@@ -25,7 +25,7 @@ function Acceso({ to, icono: Icono, titulo, descripcion }) {
 
 export default function ComprasPage(){
   const {tiene}=useAuth(); const [pendientes,setPendientes]=useState([]); const [cargando,setCargando]=useState(true); const [error,setError]=useState(null);
-  useEffect(()=>{let vivo=true;listarCuentasPorPagar().then(x=>{if(vivo)setPendientes(x);}).catch(e=>{if(vivo)setError(e.message);}).finally(()=>{if(vivo)setCargando(false);});return()=>{vivo=false;};},[]);
+  useEffect(()=>{let vivo=true;listarTodasLasCuentasPorPagar().then(x=>{if(vivo)setPendientes(x);}).catch(e=>{if(vivo)setError(e.message);}).finally(()=>{if(vivo)setCargando(false);});return()=>{vivo=false;};},[]);
   const puedeRegistrar=tiene('COM_REGISTRAR_COMPRA'); const puedeVer=tiene('COM_VER_CXP'); const puedeProveedores=tiene('COM_GESTIONAR_PROVEEDORES');
   // Resumen de la cola de pago (solo la primera página que devuelve el backend: 50 por defecto).
   const vencidas=pendientes.filter(f=>Number(f.dias_vencida)>0).length;

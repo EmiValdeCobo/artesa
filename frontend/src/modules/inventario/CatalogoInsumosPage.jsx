@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { Package, Ruler, Pencil, Power, PowerOff, X, Plus, Boxes, Search, Trash2 } from 'lucide-react';
@@ -13,7 +13,8 @@ import Pestanas from '../../components/navigation/Pestanas.jsx';
 import { BotonIcono, Button, Card, Select, Table } from '../../components/ui/index.js';
 import Insignia from '../../components/branding/Insignia.jsx';
 import { ICONOS } from '../../config/iconos.js';
-import CampoError from '../../components/forms/CampoError.jsx';
+import CampoError, { idError } from '../../components/forms/CampoError.jsx';
+import { useTrampaFoco } from '../../hooks/useTrampaFoco.js';
 import { formatoDinero, formatearUnidades, enteroParaInput } from '../../utils/formato.js';
 import { traducirError } from '../../errors/traducirError.js';
 import InsumoDrawer from './InsumoDrawer.jsx';
@@ -135,11 +136,16 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
     };
   }, [abierto, onCerrar]);
 
+  const panelRef = useRef(null);
+  useTrampaFoco(panelRef, abierto);
+
   if (!abierto) return null;
 
   return createPortal(
     <div className="anim-scrim fixed inset-0 w-screen h-dvh z-50 flex items-end justify-center bg-overlay sm:items-center sm:p-4">
       <div
+        ref={panelRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label={esEdicion ? 'Editar unidad' : 'Nueva unidad'}
@@ -160,6 +166,7 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
             <input
               className="input"
               id="unidad-codigo"
+              aria-invalid={Boolean(erroresCampos.codigo)} aria-describedby={erroresCampos.codigo ? idError('unidad-codigo') : undefined}
               placeholder="Ej. KG, ML, G, OZ, UNIDAD"
               value={form.codigo}
               onChange={set('codigo')}
@@ -177,6 +184,7 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
             <input
               className="input"
               id="unidad-nombre"
+              aria-invalid={Boolean(erroresCampos.nombre)} aria-describedby={erroresCampos.nombre ? idError('unidad-nombre') : undefined}
               placeholder="Ej. Kilogramo, Mililitro"
               value={form.nombre}
               onChange={set('nombre')}

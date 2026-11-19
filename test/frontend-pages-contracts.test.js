@@ -75,7 +75,8 @@ test('frontend kardex y reportes: consultas filtradas y exportación CSV con cod
   const kardex = await leer('frontend/src/modules/inventario/KardexPage.jsx');
   const reportes = await leer('frontend/src/modules/reportes/ReportesPage.jsx');
 
-  assert.match(kardex, /api\.get\(`\/inventario\/movimientos\?\$\{q\}`\)/);
+  // Paginación de servidor (AUDITORIA C3): recorre páginas leyendo X-Total.
+  assert.match(kardex, /obtenerTodasLasPaginas\('\/inventario\/movimientos'/);
   assert.match(kardex, /<Table/);
 
   assert.match(reportes, /api\.get\(`\/reportes\/ventas-diarias\?\$\{query\}`/);

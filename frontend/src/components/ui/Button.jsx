@@ -2,13 +2,14 @@ import { forwardRef } from 'react';
 import { PuntosCarga } from '../feedback/Skeleton.jsx';
 
 // Usa las clases .btn-* de index.css (@layer components).
-//   variante: primary (Terracota, la acción principal) · secondary (tonal) · ghost (borde) · danger
+//   variante: primary (Terracota, la acción principal) · secondary (tonal) · ghost (borde) · danger · danger-outline
 //   tamano: sm 32 px · md 40 px · lg 48 px
 const VARIANTES = {
   primary: 'btn-primary',
   secondary: 'btn-secondary',
   ghost: 'btn-ghost',
   danger: 'btn-danger',
+  'danger-outline': 'btn-danger-outline',
 };
 const TAMANOS = { sm: 'btn-sm', md: '', lg: 'btn-lg' };
 

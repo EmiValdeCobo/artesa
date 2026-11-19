@@ -94,7 +94,7 @@ export default function DashboardPage() {
               />
             </div>
           ) : (
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-line bg-canvas px-3 py-1 text-label text-fg-muted">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-line bg-muted px-3 py-1 text-label text-fg-muted">
               <ICONOS.sucursal aria-hidden="true" className="size-3.5 text-fg-muted" />
               Sin sucursal asignada
             </div>

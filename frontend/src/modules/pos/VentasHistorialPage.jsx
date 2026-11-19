@@ -10,6 +10,8 @@ import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import { ICONOS } from '../../config/iconos.js';
 import { listarVentas, obtenerDetalleVenta } from './posApi.js';
 import { abrirVentanaImpresion } from './imprimirTicket.js';
+import AnularVentaDialogo from './AnularVentaDialogo.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 
 export default function VentasHistorialPage() {
   const { notificar, notificarError } = useAlert();
@@ -28,6 +30,9 @@ export default function VentasHistorialPage() {
   const [detalleVenta, setDetalleVenta] = useState(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const [imprimiendoId, setImprimiendoId] = useState(null);
+  const [anulando, setAnulando] = useState(false);
+  const { tiene } = useAuth();
+  const puedeAnular = tiene('POS_ANULAR_VENTA');
 
   const cargarVentas = useCallback(async () => {
     setCargando(true);
@@ -414,6 +419,11 @@ export default function VentasHistorialPage() {
           </div>
 
           <div className="flex flex-col-reverse gap-2 border-t border-line px-6 py-4 sm:flex-row sm:justify-end">
+            {puedeAnular && detalleVenta.estado !== 'ANULADA' && (
+              <Button variante="danger-outline" onClick={() => setAnulando(true)} className="sm:mr-auto">
+                Anular venta
+              </Button>
+            )}
             <Button variante="ghost" onClick={() => setDetalleVenta(null)}>
               Cerrar
             </Button>
@@ -426,6 +436,19 @@ export default function VentasHistorialPage() {
             </Button>
           </div>
         </Dialogo>
+      )}
+
+      {anulando && detalleVenta && (
+        <AnularVentaDialogo
+          venta={detalleVenta}
+          onCerrar={() => setAnulando(false)}
+          onAnulada={async () => {
+            setAnulando(false);
+            notificar.exito('Venta anulada', { mensaje: `${detalleVenta.tipo_comprobante} #${detalleVenta.correlativo} quedó anulada.` });
+            await verDetalle(detalleVenta.id_venta);
+            cargarVentas();
+          }}
+        />
       )}
     </div>
   );

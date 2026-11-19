@@ -8,7 +8,6 @@
    ============================================================================ */
 
 .tema-dashboard {
-  --font-display: var(--font-sans);
   font-family: var(--font-sans);
 }
 

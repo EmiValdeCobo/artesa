@@ -1,3 +1,4 @@
+// Compatibilidad: recorre páginas hasta un lote incompleto. Preferir api/paginacion.js (lee X-Total).
 export async function listarTodasLasPaginas(solicitarPagina, filtros = {}, limite = 100) {
   const filas = [];
   let pagina = 1;

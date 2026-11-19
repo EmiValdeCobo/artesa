@@ -21,7 +21,7 @@ const EditorRecetasPage = lazy(() => import('./modules/inventario/EditorRecetasP
 const ReportesPage = lazy(() => import('./modules/reportes/ReportesPage.jsx'));
 const SucursalesPage = lazy(() => import('./modules/empresa/SucursalesPage.jsx'));
 const ParametrosPage = lazy(() => import('./modules/empresa/ParametrosPage.jsx'));
-const PendienteApiPage = lazy(() => import('./modules/PendienteApiPage.jsx'));
+const PaginaNoEncontrada = lazy(() => import('./components/sistema/PaginaNoEncontrada.jsx'));
 const BitacoraPage = lazy(() => import('./modules/seguridad/BitacoraPage.jsx'));
 const CajaPage = lazy(() => import('./modules/caja/CajaPage.jsx'));
 const PreparacionPage = lazy(() => import('./modules/pos/PreparacionPage.jsx'));
@@ -151,7 +151,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<PaginaNoEncontrada />} />
       </Route>
       <Route path="/cliente/*" element={<Navigate to="/admin/login" replace />} />
     </Routes>
