@@ -82,11 +82,11 @@ export const cuadreTurnos = (idUsuario, { desde, hasta, idSucursal }) => consult
   `${VISIBLES}
    SELECT q.id_turno, s.nombre AS sucursal, c.nombre_identificador AS caja, u.username AS usuario,
           q.estado, t.abierto_en, t.cerrado_en,
-          q.monto_apertura, q.ventas_efectivo, q.ventas_tarjeta, q.ventas_digital,
+          q.monto_apertura, q.ventas_efectivo, q.ventas_tarjeta, q.ventas_digital, q.ventas_bitcoin,
           q.ingresos_caja, q.egresos_caja,
-          q.esperado_efectivo, q.esperado_tarjeta, q.esperado_digital,
-          q.monto_cierre_efectivo, q.monto_cierre_pos_tarjeta, q.monto_cierre_digital,
-          q.dif_efectivo, q.dif_tarjeta, q.dif_digital
+          q.esperado_efectivo, q.esperado_tarjeta, q.esperado_digital, q.esperado_bitcoin,
+          q.monto_cierre_efectivo, q.monto_cierre_pos_tarjeta, q.monto_cierre_digital, q.monto_cierre_bitcoin,
+          q.dif_efectivo, q.dif_tarjeta, q.dif_digital, q.dif_bitcoin
    FROM reportes.vw_cuadre_turno q
    JOIN pos.turnos_caja t ON t.id_turno = q.id_turno
    JOIN pos.cajas c ON c.id_caja = q.id_caja

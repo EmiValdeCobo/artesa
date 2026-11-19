@@ -37,6 +37,47 @@ export const mascaraNrc = (valor) => {
 // Referencia de pago (autorización de tarjeta, transferencia o Chivo): solo dígitos, máximo 12.
 export const mascaraReferenciaPago = (valor) => soloDigitos(valor).slice(0, 12);
 
+// Comprobante de pago no en efectivo: se guarda en pos.pagos.referencia y el formato depende del método.
+// Debe coincidir con REFERENCIA_POR_METODO de backend/src/modules/pos/ventas/ventas.schemas.js.
+export const REFERENCIAS_PAGO = {
+  TARJETA: {
+    etiqueta: 'N.º de autorización del voucher',
+    placeholder: '123456',
+    inputMode: 'numeric',
+    maxLength: 12,
+    patron: /^\d{6,12}$/,
+    mensaje: 'La autorización de tarjeta debe tener de 6 a 12 dígitos.',
+    aplicar: (v) => soloDigitos(v).slice(0, 12),
+  },
+  TRANSFERENCIA: {
+    etiqueta: 'N.º de referencia de la transferencia',
+    placeholder: 'TRX20261119001',
+    inputMode: 'text',
+    maxLength: 30,
+    patron: /^[A-Z0-9-]{6,30}$/,
+    mensaje: 'La referencia bancaria debe tener de 6 a 30 letras o números.',
+    aplicar: (v) => String(v ?? '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 30),
+  },
+  BITCOIN_CHIVO: {
+    etiqueta: 'ID de transacción (Chivo Wallet / hash Lightning)',
+    placeholder: 'a1b2c3d4…',
+    inputMode: 'text',
+    maxLength: 100,
+    patron: /^[A-Za-z0-9]{8,100}$/,
+    mensaje: 'El ID de transacción Bitcoin/Chivo debe tener de 8 a 100 letras o números.',
+    aplicar: (v) => String(v ?? '').replace(/[^A-Za-z0-9]/g, '').slice(0, 100),
+  },
+};
+
+// '' si la referencia es válida para el método; mensaje en español si falta o no cumple el formato.
+export function validarReferenciaPago(metodo, valor) {
+  const cfg = REFERENCIAS_PAGO[metodo];
+  if (!cfg) return '';
+  const v = String(valor ?? '').trim();
+  if (!v) return `Falta el comprobante: ${cfg.etiqueta.toLowerCase()}.`;
+  return cfg.patron.test(v) ? '' : cfg.mensaje;
+}
+
 // Código alfanumérico en mayúsculas y largo fijo (código de establecimiento DTE: M001).
 export const mascaraCodigo = (valor, largo = 4) => String(valor ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, largo);
 

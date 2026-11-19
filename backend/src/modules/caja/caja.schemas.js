@@ -25,7 +25,8 @@ export const crearMovimientoSchema = z.object({
 export const cerrarTurnoSchema = z.object({
   efectivo: montoTexto,
   tarjeta: montoTexto,
-  digital: montoTexto, // Bitcoin/Chivo + transferencias
+  digital: montoTexto, // transferencias bancarias
+  bitcoin: montoTexto.default('0.00'), // Bitcoin / Chivo Wallet (se cuadra aparte)
 });
 
 export const filtrosCuadresSchema = z

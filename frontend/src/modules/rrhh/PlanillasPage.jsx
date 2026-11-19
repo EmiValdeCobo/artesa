@@ -58,6 +58,8 @@ export default function PlanillasPage() {
   const [formCrear, setFormCrear] = useState({
     idSucursal: '',
     periodo: new Date().toISOString().slice(0, 7), // AAAA-MM
+    tipoPeriodo: 'QUINCENAL',
+    quincena: new Date().getDate() <= 15 ? '1' : '2',
   });
   const [guardandoCrear, setGuardandoCrear] = useState(false);
 
@@ -97,6 +99,8 @@ export default function PlanillasPage() {
     setFormCrear({
       idSucursal: sucursales[0]?.id_sucursal ? String(sucursales[0].id_sucursal) : '',
       periodo: new Date().toISOString().slice(0, 7),
+      tipoPeriodo: 'QUINCENAL',
+      quincena: new Date().getDate() <= 15 ? '1' : '2',
     });
     setModalCrearAbierto(true);
   };
@@ -122,6 +126,8 @@ export default function PlanillasPage() {
       const res = await rrhhApi.crearPlanilla({
         idSucursal: Number(formCrear.idSucursal),
         periodo: formCrear.periodo,
+        tipoPeriodo: formCrear.tipoPeriodo,
+        ...(formCrear.tipoPeriodo === 'QUINCENAL' ? { quincena: Number(formCrear.quincena) } : {}),
         ajustes: [],
       });
 
@@ -162,6 +168,11 @@ export default function PlanillasPage() {
           <div>
             <p className="font-semibold text-fg">
               {p.periodo_inicio ? p.periodo_inicio.slice(0, 7) : '—'}
+              <span className="ml-2 text-xs font-normal text-fg-muted">
+                {p.tipo_periodo === 'QUINCENAL'
+                  ? `Quincena ${Number(p.periodo_inicio?.slice(8, 10)) <= 15 ? 1 : 2}`
+                  : 'Mensual'}
+              </span>
             </p>
             <p className="text-xs text-fg-muted">
               {p.periodo_inicio?.slice(0, 10)} al {p.periodo_fin?.slice(0, 10)}
@@ -260,7 +271,7 @@ export default function PlanillasPage() {
       <EncabezadoPagina
         seccion="Gestión · RR. HH."
         titulo="Planillas de pago"
-        descripcion="Cálculo mensual de remuneraciones del personal, retenciones de ley (ISSS, AFP, Renta) y aportes patronales."
+        descripcion="Cálculo quincenal o mensual de remuneraciones del personal, retenciones de ley (ISSS, AFP, Renta) y aportes patronales."
         acciones={
           <div className="flex flex-wrap items-center gap-2.5">
             <Button
@@ -413,10 +424,47 @@ export default function PlanillasPage() {
                 className="input mt-1.5 w-full"
                 required
               />
-              <p className="mt-1 text-xs text-fg-muted">
-                Se liquidará a todos los empleados activos de la sucursal durante el mes seleccionado.
-              </p>
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-fg">
+                  Tipo de planilla <span className="text-danger-text">*</span>
+                </label>
+                <div className="mt-1.5">
+                  <Select
+                    value={formCrear.tipoPeriodo}
+                    onChange={(e) => setFormCrear({ ...formCrear, tipoPeriodo: e.target.value })}
+                    opciones={[
+                      { valor: 'QUINCENAL', texto: 'Quincenal' },
+                      { valor: 'MENSUAL', texto: 'Mensual' },
+                    ]}
+                  />
+                </div>
+              </div>
+              {formCrear.tipoPeriodo === 'QUINCENAL' && (
+                <div>
+                  <label className="block text-sm font-medium text-fg">
+                    Quincena <span className="text-danger-text">*</span>
+                  </label>
+                  <div className="mt-1.5">
+                    <Select
+                      value={formCrear.quincena}
+                      onChange={(e) => setFormCrear({ ...formCrear, quincena: e.target.value })}
+                      opciones={[
+                        { valor: '1', texto: '1.ª (días 1 al 15)' },
+                        { valor: '2', texto: '2.ª (16 a fin de mes)' },
+                      ]}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-fg-muted">
+              {formCrear.tipoPeriodo === 'QUINCENAL'
+                ? 'Se liquida la mitad del salario mensual con el tope de ISSS y la tabla de Renta quincenales.'
+                : 'Se liquida el salario mensual completo con la tabla de Renta mensual.'}
+            </p>
 
             <div className="flex justify-end gap-2.5 pt-3 border-t border-line">
               <Button

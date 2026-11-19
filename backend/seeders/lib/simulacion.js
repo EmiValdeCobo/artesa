@@ -287,7 +287,7 @@ export async function simularHistoria({ rnd, sink, ids, dias, hoyLocalMs, ahoraL
           return {
             id: rnd.uuid(), idCaja: caja.id, username, idUsuario: idUsuario(username), inicio,
             finVentas: msDia + franja.fin * HORA_MS, cierre: msDia + franja.fin * HORA_MS + rnd.entero(8, 25) * MIN_MS,
-            efectivo: 0, tarjeta: 0, digital: 0, ingresos: 0, egresos: 0, ultimo: f === suc.turnos.length - 1,
+            efectivo: 0, tarjeta: 0, digital: 0, bitcoin: 0, ingresos: 0, egresos: 0, ultimo: f === suc.turnos.length - 1,
           };
         });
       });
@@ -409,11 +409,12 @@ export async function simularHistoria({ rnd, sink, ids, dias, hoyLocalMs, ahoraL
           for (const [i, c] of l.receta) mover(s, i, -c * l.cantidad, 'VENTA', msVenta, { ref: idVenta, refTipo: 'VENTA', usuario: turno.idUsuario });
         }
         for (const p of pagos) {
-          const referencia = p.metodo === 'TARJETA' ? `AUTH-${rnd.entero(100000, 999999)}` : p.metodo === 'TRANSFERENCIA' ? `TRF-${rnd.entero(10000000, 99999999)}` : p.metodo === 'BITCOIN_CHIVO' ? `CHIVO-${idVenta.slice(0, 12)}` : null;
+          const referencia = p.metodo === 'TARJETA' ? String(rnd.entero(100000, 999999)) : p.metodo === 'TRANSFERENCIA' ? `TRF-${rnd.entero(10000000, 99999999)}` : p.metodo === 'BITCOIN_CHIVO' ? idVenta.replace(/-/g, '') : null;
           buffer.pagos.push({ id_venta: idVenta, metodo: p.metodo, monto: fmtCentavos(p.monto), monto_recibido: p.recibido === null ? null : fmtCentavos(p.recibido), referencia });
           if (!anulada) {
             if (p.metodo === 'EFECTIVO') turno.efectivo += p.monto;
             else if (p.metodo === 'TARJETA') turno.tarjeta += p.monto;
+            else if (p.metodo === 'BITCOIN_CHIVO') turno.bitcoin += p.monto;
             else turno.digital += p.monto;
           }
         }
@@ -447,9 +448,9 @@ export async function simularHistoria({ rnd, sink, ids, dias, hoyLocalMs, ahoraL
             const dif = r < 0.8 ? 0 : r < 0.92 ? rnd.entero(-15, 15) * 5 : r < 0.98 ? rnd.entero(-60, 60) * 5 : -rnd.entero(100, 240) * 5;
             const difTarjeta = rnd.prob(0.03) ? rnd.entero(-40, 40) * 5 : 0;
             Object.assign(fila, {
-              monto_cierre_efectivo: fmtCentavos(Math.max(0, esperado + dif)), monto_cierre_pos_tarjeta: fmtCentavos(Math.max(0, turno.tarjeta + difTarjeta)), monto_cierre_digital: fmtCentavos(turno.digital),
-              esperado_efectivo: fmtCentavos(esperado), esperado_tarjeta: fmtCentavos(turno.tarjeta), esperado_digital: fmtCentavos(turno.digital),
-              dif_efectivo: fmtCentavos(Math.max(0, esperado + dif) - esperado), dif_tarjeta: fmtCentavos(Math.max(0, turno.tarjeta + difTarjeta) - turno.tarjeta), dif_digital: '0.00',
+              monto_cierre_efectivo: fmtCentavos(Math.max(0, esperado + dif)), monto_cierre_pos_tarjeta: fmtCentavos(Math.max(0, turno.tarjeta + difTarjeta)), monto_cierre_digital: fmtCentavos(turno.digital), monto_cierre_bitcoin: fmtCentavos(turno.bitcoin),
+              esperado_efectivo: fmtCentavos(esperado), esperado_tarjeta: fmtCentavos(turno.tarjeta), esperado_digital: fmtCentavos(turno.digital), esperado_bitcoin: fmtCentavos(turno.bitcoin),
+              dif_efectivo: fmtCentavos(Math.max(0, esperado + dif) - esperado), dif_tarjeta: fmtCentavos(Math.max(0, turno.tarjeta + difTarjeta) - turno.tarjeta), dif_digital: '0.00', dif_bitcoin: '0.00',
               cerrado_en: aUtc(turno.cierre),
             });
           }

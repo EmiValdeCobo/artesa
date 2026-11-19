@@ -232,13 +232,13 @@ export const alertasCaidaVentas = ({ zona, sucursalIds, caidaVentasPct, caidaVen
 
 export const alertasCuadres = ({ zona, sucursalIds }) => query(
   `SELECT s.id_sucursal, s.nombre AS sucursal, COUNT(*)::int AS turnos,
-          SUM(ABS(COALESCE(t.dif_efectivo, 0)) + ABS(COALESCE(t.dif_tarjeta, 0)) + ABS(COALESCE(t.dif_digital, 0)))::numeric(12,2) AS diferencia_total
+          SUM(ABS(COALESCE(t.dif_efectivo, 0)) + ABS(COALESCE(t.dif_tarjeta, 0)) + ABS(COALESCE(t.dif_digital, 0)) + ABS(COALESCE(t.dif_bitcoin, 0)))::numeric(12,2) AS diferencia_total
    FROM pos.turnos_caja t
    JOIN pos.cajas c ON c.id_caja = t.id_caja
    JOIN empresa.sucursales s ON s.id_sucursal = c.id_sucursal
    WHERE t.estado = 'CERRADO' AND c.id_sucursal = ANY($2::int[])
      AND t.cerrado_en >= ${INICIO_UTC(`${LOCAL('$1')}::date - 6`, '$1')}
-     AND (COALESCE(t.dif_efectivo, 0) <> 0 OR COALESCE(t.dif_tarjeta, 0) <> 0 OR COALESCE(t.dif_digital, 0) <> 0)
+     AND (COALESCE(t.dif_efectivo, 0) <> 0 OR COALESCE(t.dif_tarjeta, 0) <> 0 OR COALESCE(t.dif_digital, 0) <> 0 OR COALESCE(t.dif_bitcoin, 0) <> 0)
    GROUP BY 1, 2
    ORDER BY 2`,
   [zona, sucursalIds],

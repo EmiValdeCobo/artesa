@@ -6,9 +6,9 @@ export const sucursalActiva = (id, t) => select('SELECT 1 FROM empresa.sucursale
 export const empleadosActivos = (sucursal, ids, t) => select(
   'SELECT id_empleado FROM rrhh.empleados WHERE id_sucursal=$1 AND activo AND id_empleado=ANY($2::uuid[])', [sucursal, ids], t,
 );
-export async function crear({ idSucursal, inicio, fin, userId, ajustes }, t) {
+export async function crear({ idSucursal, inicio, fin, tipoPeriodo = 'MENSUAL', userId, ajustes }, t) {
   const [planilla] = await select(`INSERT INTO rrhh.planillas(id_sucursal,periodo_inicio,periodo_fin,tipo_periodo,id_usuario)
-    VALUES($1,$2,$3,'MENSUAL',$4) RETURNING id_planilla`, [idSucursal, inicio, fin, userId], t);
+    VALUES($1,$2,$3,$5,$4) RETURNING id_planilla`, [idSucursal, inicio, fin, userId, tipoPeriodo], t);
   for (const a of ajustes) await select(`INSERT INTO rrhh.planilla_ajustes(id_planilla,id_empleado,bonificaciones,otros_descuentos,detalle)
     VALUES($1,$2,$3,$4,$5::jsonb)`, [planilla.id_planilla, a.idEmpleado, a.bonificaciones, a.otrosDescuentos, JSON.stringify(a.detalle)], t);
   return planilla.id_planilla;

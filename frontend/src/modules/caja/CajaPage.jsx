@@ -3,7 +3,6 @@ import {
   Wallet,
   Banknote,
   CreditCard,
-  Smartphone,
   CircleDollarSign,
   ArrowUpRight,
   ArrowDownLeft,
@@ -26,6 +25,8 @@ import {
   Eye,
   ShoppingBag,
   Package,
+  Bitcoin,
+  ArrowRightLeft,
 } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -105,7 +106,7 @@ export default function CajaPage() {
   // Cierre de turno y arqueo
   const [mostrarCierre, setMostrarCierre] = useState(false);
   const [turnoParaCierre, setTurnoParaCierre] = useState(null);
-  const [formCierre, setFormCierre] = useState({ efectivo: '0.00', tarjeta: '0.00', digital: '0.00' });
+  const [formCierre, setFormCierre] = useState({ efectivo: '0.00', tarjeta: '0.00', digital: '0.00', bitcoin: '0.00' });
   const [guardandoCierre, setGuardandoCierre] = useState(false);
 
   const handleCargarMontosEsperados = () => {
@@ -114,11 +115,13 @@ export default function CajaPage() {
     const ef = target.esperado_efectivo ?? target.efectivo?.esperado ?? '0.00';
     const tj = target.ventas_tarjeta ?? target.tarjeta?.esperado ?? target.ventas?.tarjeta ?? '0.00';
     const dg = target.ventas_digital ?? target.digital?.esperado ?? target.ventas?.digital ?? '0.00';
+    const bt = target.ventas_bitcoin ?? target.bitcoin?.esperado ?? target.ventas?.bitcoin ?? '0.00';
 
     setFormCierre({
       efectivo: String(Number(ef || 0).toFixed(2)),
       tarjeta: String(Number(tj || 0).toFixed(2)),
       digital: String(Number(dg || 0).toFixed(2)),
+      bitcoin: String(Number(bt || 0).toFixed(2)),
     });
   };
 
@@ -332,7 +335,7 @@ export default function CajaPage() {
       : null;
     setTurnoParaCierre(objetivoValido);
     // Pre-llenamos con 0.00
-    setFormCierre({ efectivo: '0.00', tarjeta: '0.00', digital: '0.00' });
+    setFormCierre({ efectivo: '0.00', tarjeta: '0.00', digital: '0.00', bitcoin: '0.00' });
     setMostrarCierre(true);
   };
 
@@ -345,6 +348,7 @@ export default function CajaPage() {
     const efectivoLimpio = formCierre.efectivo.trim();
     const tarjetaLimpia = formCierre.tarjeta.trim();
     const digitalLimpio = formCierre.digital.trim();
+    const bitcoinLimpio = formCierre.bitcoin.trim();
 
     if (!PATRON_MONTO.test(efectivoLimpio)) {
       notificar.advertencia('Conteo inválido', { mensaje: 'El conteo de efectivo debe ser un monto válido (ej: 0.00).' });
@@ -355,7 +359,11 @@ export default function CajaPage() {
       return;
     }
     if (!PATRON_MONTO.test(digitalLimpio)) {
-      notificar.advertencia('Conteo inválido', { mensaje: 'El conteo de pagos digitales debe ser un monto válido (ej: 0.00).' });
+      notificar.advertencia('Conteo inválido', { mensaje: 'El conteo de transferencias debe ser un monto válido (ej: 0.00).' });
+      return;
+    }
+    if (!PATRON_MONTO.test(bitcoinLimpio)) {
+      notificar.advertencia('Conteo inválido', { mensaje: 'El conteo de Bitcoin / Chivo Wallet debe ser un monto válido (ej: 0.00).' });
       return;
     }
 
@@ -377,6 +385,7 @@ export default function CajaPage() {
         efectivo: efectivoLimpio,
         tarjeta: tarjetaLimpia,
         digital: digitalLimpio,
+        bitcoin: bitcoinLimpio,
       });
 
       notificar.exito('Turno cerrado y cuadre calculado exitosamente');
@@ -740,7 +749,8 @@ export default function CajaPage() {
     const medios = [
       { clave: 'efectivo', medio: 'Efectivo en gaveta', icono: Banknote, ayuda: 'Billetes y monedas contados.', esperado: t.esperado_efectivo ?? t.efectivo?.esperado },
       { clave: 'tarjeta', medio: 'Vouchers de tarjeta', icono: CreditCard, ayuda: 'Comprobantes de las terminales POS.', esperado: t.ventas_tarjeta ?? t.tarjeta?.esperado ?? t.ventas?.tarjeta },
-      { clave: 'digital', medio: 'Pagos digitales', icono: Smartphone, ayuda: 'Chivo Wallet / transferencias.', esperado: t.ventas_digital ?? t.digital?.esperado ?? t.ventas?.digital },
+      { clave: 'digital', medio: 'Transferencias', icono: ArrowRightLeft, ayuda: 'Transferencias acreditadas en el banco.', esperado: t.ventas_digital ?? t.digital?.esperado ?? t.ventas?.digital },
+      { clave: 'bitcoin', medio: 'Bitcoin / Chivo Wallet', icono: Bitcoin, ayuda: 'Cobros recibidos en la billetera Chivo (historial de la app).', esperado: t.ventas_bitcoin ?? t.bitcoin?.esperado ?? t.ventas?.bitcoin },
     ];
     return medios.map((m) => {
       const esperado = aCentavos(m.esperado ?? '0') ?? 0n;
@@ -859,7 +869,7 @@ export default function CajaPage() {
             <Metrica
               icono={Receipt}
               etiqueta="Ventas otros medios"
-              valor={formatoCentavos((aCentavos(turno.ventas_tarjeta ?? '0') ?? 0n) + (aCentavos(turno.ventas_digital ?? '0') ?? 0n))}
+              valor={formatoCentavos((aCentavos(turno.ventas_tarjeta ?? '0') ?? 0n) + (aCentavos(turno.ventas_digital ?? '0') ?? 0n) + (aCentavos(turno.ventas_bitcoin ?? '0') ?? 0n))}
             />
           </div>
 
@@ -907,11 +917,12 @@ export default function CajaPage() {
           {/* PESTAÑA: VENTAS Y MEDIOS DE PAGO */}
           {pestanaActiva === 'ventas' && (
             <Card sinPadding icono={Receipt} titulo="Medios de pago del turno" descripcion="Cobros acumulados por medio de pago">
-              <dl className="grid divide-y divide-line md:grid-cols-3 md:divide-x md:divide-y-0">
+              <dl className="grid divide-y divide-line md:grid-cols-2 md:divide-x md:divide-y-0 xl:grid-cols-4">
                 {[
                   { titulo: 'Efectivo en mostrador', icono: Banknote, valor: turno.ventas_efectivo, ayuda: 'Billetes y monedas que deben estar físicamente en caja.' },
                   { titulo: 'Tarjetas de débito / crédito', icono: CreditCard, valor: turno.ventas_tarjeta, ayuda: 'Cobros por terminal POS. Conserva los vouchers para el cuadre.' },
-                  { titulo: 'Pagos digitales y transferencias', icono: Smartphone, valor: turno.ventas_digital, ayuda: 'Cobros por Bitcoin (Chivo Wallet) y transferencias acreditadas.' },
+                  { titulo: 'Transferencias', icono: ArrowRightLeft, valor: turno.ventas_digital, ayuda: 'Transferencias bancarias acreditadas.' },
+                  { titulo: 'Bitcoin / Chivo Wallet', icono: Bitcoin, valor: turno.ventas_bitcoin, ayuda: 'Cobros en Bitcoin recibidos en la billetera Chivo.' },
                 ].map((m) => (
                   <div key={m.titulo} className="p-5">
                     <dt className="flex items-center gap-2 text-label-sm text-fg-muted">
@@ -1445,12 +1456,21 @@ export default function CajaPage() {
                     },
                     {
                       id: 'digital',
-                      medio: 'Digital / Transferencias',
+                      medio: 'Transferencias',
                       esperado: cuadreDetalle.digital?.esperado,
                       contado: cuadreDetalle.digital?.contado,
                       diferencia: cuadreDetalle.digital?.diferencia,
                       resultado: cuadreDetalle.digital?.resultado || 'En curso',
                     },
+                    // Turnos cerrados antes de separar Bitcoin no tienen esta fila (iba dentro de digital).
+                    ...(cuadreDetalle.bitcoin?.esperado != null ? [{
+                      id: 'bitcoin',
+                      medio: 'Bitcoin / Chivo Wallet',
+                      esperado: cuadreDetalle.bitcoin?.esperado,
+                      contado: cuadreDetalle.bitcoin?.contado,
+                      diferencia: cuadreDetalle.bitcoin?.diferencia,
+                      resultado: cuadreDetalle.bitcoin?.resultado || 'En curso',
+                    }] : []),
                   ]}
                   idFila="id"
                   paginacion={false}

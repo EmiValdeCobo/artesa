@@ -25,7 +25,7 @@ export const listar = async (req, res) => {
   const hasta = req.query.hasta;
   const fechaValida = (v) => v === undefined || /^\d{4}-\d{2}$/.test(v);
   if (!fechaValida(desde) || !fechaValida(hasta) || (desde && hasta && desde > hasta)) throw new AppError('Use filtros de período AAAA-MM válidos', 400);
-  return res.json(await service.listar({ idSucursal, desde: desde ? `${desde}-01` : undefined, hasta: hasta ? `${hasta}-01` : undefined }));
+  return res.json(await service.listar({ idSucursal, desde: desde ? `${desde}-01` : undefined, hasta: hasta ? `${hasta}-28` : undefined }));
 };
 export const obtener = async (req, res) => res.json(await service.obtener(id(req.params.id)));
 export const pdfPlanilla = async (req, res) => pdf(res, await service.pdfPlanilla(id(req.params.id)), `planilla-${req.params.id}.pdf`);

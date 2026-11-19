@@ -12,6 +12,13 @@ const itemVentaSchema = z.object({
   nota:        z.string().max(200).nullable().optional(),
 });
 
+// ── Comprobante por método (se guarda en pos.pagos.referencia) ────────────────
+export const REFERENCIA_POR_METODO = {
+  TARJETA:       { nombre: 'el número de autorización del voucher', patron: /^\d{6,12}$/, mensaje: 'La autorización de tarjeta debe tener de 6 a 12 dígitos' },
+  TRANSFERENCIA: { nombre: 'la referencia bancaria', patron: /^[A-Z0-9-]{6,30}$/, mensaje: 'La referencia bancaria debe tener de 6 a 30 letras mayúsculas, números o guiones' },
+  BITCOIN_CHIVO: { nombre: 'el ID de transacción de Chivo/Lightning', patron: /^[A-Za-z0-9]{8,100}$/, mensaje: 'El ID de transacción Bitcoin/Chivo debe tener de 8 a 100 letras o números' },
+};
+
 // ── Pago individual ───────────────────────────────────────────────────────────
 const pagoSchema = z.object({
   metodo:         z.enum(['EFECTIVO', 'TARJETA', 'BITCOIN_CHIVO', 'TRANSFERENCIA'], {
@@ -19,7 +26,17 @@ const pagoSchema = z.object({
   }),
   monto:          montoStr,
   monto_recibido: montoStr.nullable().optional(), // solo para EFECTIVO (vuelto)
-  referencia:     z.string().max(100).nullable().optional(),
+  referencia:     z.string().trim().max(100).nullable().optional(),
+}).superRefine((pago, ctx) => {
+  // Comprobante obligatorio en pagos no en efectivo; el formato depende del método.
+  // Debe coincidir con REFERENCIAS_PAGO de frontend/src/utils/mascaras.js.
+  const regla = REFERENCIA_POR_METODO[pago.metodo];
+  if (!regla) return;
+  if (!pago.referencia) {
+    ctx.addIssue({ code: 'custom', path: ['referencia'], message: `El pago con ${pago.metodo} requiere ${regla.nombre}` });
+  } else if (!regla.patron.test(pago.referencia)) {
+    ctx.addIssue({ code: 'custom', path: ['referencia'], message: regla.mensaje });
+  }
 });
 
 // ── POST /api/pos/ventas ──────────────────────────────────────────────────────

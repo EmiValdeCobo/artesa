@@ -34,9 +34,9 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (li
 | auth / seguridad | listo | login, CRUD RBAC, usuarios y API /bitacora con métricas y severidad | Bitácora con filtros (severidad), analítica, roles (ADMIN solo lectura) y captura 409 |
 | inventario | listo | CRUD unidades/insumos/productos, stock, mermas, alertas y Kárdex; alerta única `stock_actual < stock_minimo` con mínimo positivo desde `vw_alertas_stock`; cantidades físicas validadas como enteros positivos | Existencias/kárdex por sucursal; Alertas, contador, dashboard y reportes comparten el umbral SQL; al volver a la pestaña se actualiza stock |
 | pos | listo | cola de preparación, órdenes (T02), ventas (T17), anulación (`fn_anular_venta`) y clientes CCF (T18) | catálogo, carrito, clientes CCF, historial de ventas, cobro mixto (T19), ticket (T46) y KDS con drag-and-drop optimista (Pointer Events) |
-| caja | listo | turnos, movimientos, cierre y cuadre (T05/T06/T22) con tolerancia configurable | pantalla de caja integrada desde develop |
+| caja | listo | turnos, movimientos, cierre y cuadre (T05/T06/T22) con tolerancia configurable; Bitcoin/Chivo se cuadra aparte de transferencias (mig. 019) | pantalla de caja integrada desde develop |
 | compras | listo | T30 proveedores con formatos salvadoreños; T31 valida cantidades enteras, fechas en rango y total positivo, CONTADO registra pago EFECTIVO en la misma transacción; T32 pagos/CxP; T33 registro backend GASTO | Menú Compras en Gestión; gastos filtran GASTO en SQL y recorren páginas, permiten abonos directos; CxP recorre todas las facturas visibles; fecha futura explica el rechazo |
-| rrhh | listo | CRUD de puestos/empleados y planillas mensuales, cálculo SQL, PDFs y permisos; pendiente extensión fiscal anual | pantallas de puestos/empleados pendientes |
+| rrhh | listo | CRUD de puestos/empleados y planillas quincenales (1-15 / 16-fin) y mensuales, cálculo SQL, PDFs y permisos; pendiente extensión fiscal anual | pantallas de puestos/empleados pendientes |
 | reportes | vistas listas + consultas de método de pago, cuadre y CxP | ventas diarias, top productos, métodos de pago, alertas, margen, cuadre y CxP; alcance por `id_sucursal` | panel con tendencias, comparativos, tablas paginadas y exportación CSV/PDF |
 | empresa | listo | CRUD sucursales (alta asigna a todos los ADMIN activos) y apertura `/sucursales/:id/apertura` (stock mínimo + carga INVENTARIO_INICIAL); edición parámetros | sucursales con diálogo de apertura confirmado y parámetros con máscara por tipo |
 
@@ -44,6 +44,6 @@ Pantallas de gestión pendientes: puestos/empleados y planillas en frontend. Com
 
 ## Pendientes críticos
 - Verificar periódicamente tramos/versiones legales de renta, ISSS, AFP e INSAFORP con Hacienda/ISSS/SSF.
-- Planillas: sincronizados init 08-12; el DE 10 requiere deducción adicional del tramo II y recálculos en junio/diciembre aún no modelados.
+- Planillas: quincenal habilitada (mig. 019, tramos quincenales DE 10); sincronizados init 08-12; el DE 10 requiere deducción adicional del tramo II y recálculos en junio/diciembre aún no modelados.
 - Asignar responsables por módulo (ver README).
 - Cambiar contraseñas semilla (`Cambiar123*`) antes de desplegar.
