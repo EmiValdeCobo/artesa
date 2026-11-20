@@ -82,7 +82,7 @@ function agruparVentas(ventas, desde, hasta) {
     const fecha = new Date(`${String(fila.fecha).slice(0, 10)}T12:00:00`);
     if (Number.isNaN(fecha.getTime())) return;
     let clave = String(fila.fecha).slice(0, 10);
-    let etiqueta = FORMATO_FECHA.format(fecha);
+    let etiqueta = formatoFecha(fecha);
 
     if (granularidad === 'mes') {
       clave = clave.slice(0, 7);
