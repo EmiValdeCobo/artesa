@@ -146,3 +146,18 @@ test('frontend auth: AuthContext expone recargarSesion y lo reutiliza en montaje
   assert.match(authContext, /value=\{\{\s*usuario,\s*tipoSesion,\s*cargando,\s*login:\s*iniciarSesion,\s*logout,\s*tiene,\s*recargarSesion\s*\}\}/);
   assert.match(authContext, /export\s+function\s+useAuth\(\)/);
 });
+
+test('accesibilidad WCAG: AppLayout contiene href="#contenido" e id="contenido", y EncabezadoPagina asigna document.title', async () => {
+  const [layout, encabezado, login] = await Promise.all([
+    leer('frontend/src/layout/AppLayout.jsx'),
+    leer('frontend/src/components/display/EncabezadoPagina.jsx'),
+    leer('frontend/src/pages/LoginPage.jsx'),
+  ]);
+
+  assert.match(layout, /href="#contenido"/, 'AppLayout debe tener skip-link con href="#contenido"');
+  assert.match(layout, /id="contenido"/, 'AppLayout debe tener main con id="contenido"');
+  assert.match(layout, /MutationObserver/, 'AppLayout debe esperar al h1 con MutationObserver');
+  assert.match(layout, /window\.scrollTo\(0,\s*0\)/, 'AppLayout debe resetear el scroll');
+  assert.match(encabezado, /document\.title\s*=/, 'EncabezadoPagina debe asignar document.title');
+  assert.match(login, /document\.title\s*=\s*['"]Iniciar sesión · artesa['"]/, 'LoginPage debe asignar document.title');
+});
