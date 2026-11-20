@@ -12,6 +12,7 @@ import PagoDialogo from './PagoDialogo.jsx';
 import DetalleFacturaDialogo, { EstadoFactura as EstadoPago, useEliminarFactura } from './DetalleFacturaDialogo.jsx';
 import FiltroPeriodo, { ResumenPeriodo } from './FiltroPeriodo.jsx';
 import { mesActual, rangoDePeriodo, totalesPeriodo } from './periodo.js';
+import { formatoFecha } from '../../utils/formato.js';
 
 const dinero = (valor) => `$${String(valor ?? '0.00')}`;
 const ESTADOS = [
@@ -68,8 +69,8 @@ export default function CuentasPorPagarPage() {
       valorOrden: (factura) => factura.fecha_vencimiento,
       render: (factura) => (
         <div>
-          {factura.fecha_vencimiento || '—'}
-          <p className="text-body-sm text-fg-muted">Emisión {factura.fecha_emision}</p>
+          {formatoFecha(factura.fecha_vencimiento)}
+          <p className="text-body-sm text-fg-muted">Emisión {formatoFecha(factura.fecha_emision)}</p>
         </div>
       ),
     },

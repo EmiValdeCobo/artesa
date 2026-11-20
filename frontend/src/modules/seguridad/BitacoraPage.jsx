@@ -11,12 +11,12 @@ import { ICONOS } from '../../config/iconos.js';
 import BitacoraMetricas from './BitacoraMetricas.jsx';
 import JsonDiffViewer from './JsonDiffViewer.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
+import { formatoFechaHora } from '../../utils/formato.js';
 
 const hoyLocal = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 const diasAntes = (cantidad) => { const d = new Date(); d.setDate(d.getDate()-cantidad); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 const NIVEL = { INFO: ['info','Informativo'], WARNING: ['alerta','Advertencia'], ERROR: ['error','Error'], CRITICAL: ['error','Crítico'] };
 const ACCION = { CREATE: 'Creación', UPDATE: 'Actualización', DELETE: 'Eliminación', LOGIN: 'Acceso' };
-const fechaLegible = (fecha) => new Intl.DateTimeFormat('es-SV', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/El_Salvador' }).format(new Date(fecha));
 
 function ErrorEnLinea({ texto, reintentar }) {
   if (!texto) return null;
@@ -25,7 +25,7 @@ function ErrorEnLinea({ texto, reintentar }) {
 
 function DetalleRegistro({ registro, onCerrar }) {
   return <Dialogo onCerrar={onCerrar} tamano="lg" labelledBy="bitacora-detalle-titulo" describedBy="bitacora-detalle-desc">
-    <header className="sticky top-0 z-10 border-b border-line bg-surface px-5 py-4 sm:px-6"><div className="flex items-start justify-between gap-4"><div><p className="rotulo">Detalle de auditoría</p><h2 id="bitacora-detalle-titulo" className="mt-1 text-h3">{ACCION[registro.accion] ?? registro.accion} · {registro.modulo}</h2><p id="bitacora-detalle-desc" className="mt-1 text-body text-fg-muted">{fechaLegible(registro.creado_en)} · {registro.usuario}</p></div><EstadoBadge tipo={NIVEL[registro.severidad]?.[0] ?? 'info'}>{NIVEL[registro.severidad]?.[1] ?? registro.severidad}</EstadoBadge></div></header>
+    <header className="sticky top-0 z-10 border-b border-line bg-surface px-5 py-4 sm:px-6"><div className="flex items-start justify-between gap-4"><div><p className="rotulo">Detalle de auditoría</p><h2 id="bitacora-detalle-titulo" className="mt-1 text-h3">{ACCION[registro.accion] ?? registro.accion} · {registro.modulo}</h2><p id="bitacora-detalle-desc" className="mt-1 text-body text-fg-muted">{formatoFechaHora(registro.creado_en)} · {registro.usuario}</p></div><EstadoBadge tipo={NIVEL[registro.severidad]?.[0] ?? 'info'}>{NIVEL[registro.severidad]?.[1] ?? registro.severidad}</EstadoBadge></div></header>
     <div className="space-y-5 p-5 sm:p-6"><dl className="grid gap-3 rounded-md bg-muted p-4 text-body sm:grid-cols-2"><div><dt className="text-label-sm text-fg-muted">Entidad</dt><dd className="mt-0.5 font-medium">{registro.entidad}</dd></div><div><dt className="text-label-sm text-fg-muted">IP</dt><dd className="mt-0.5 font-mono font-medium">{registro.ip_cliente || 'No registrada'}</dd></div><div className="sm:col-span-2"><dt className="text-label-sm text-fg-muted">Dispositivo / navegador</dt><dd className="mt-0.5 break-words font-medium">{registro.agente_cliente || 'No registrado'}</dd></div></dl><div><h3 className="mb-3 text-label text-fg">Cambios detectados</h3><JsonDiffViewer antes={registro.datos_antes} despues={registro.datos_despues}/></div><details className="rounded-md border border-line"><summary className="cursor-pointer px-4 py-3 text-label">Ver JSON completo</summary><div className="grid gap-px border-t border-line bg-line sm:grid-cols-2"><div className="bg-surface p-3"><p className="mb-2 font-mono text-label-sm text-fg-muted">DATOS_ANTES</p><pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words font-mono text-body-sm">{JSON.stringify(registro.datos_antes, null, 2) ?? '—'}</pre></div><div className="bg-surface p-3"><p className="mb-2 font-mono text-label-sm text-fg-muted">DATOS_DESPUÉS</p><pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words font-mono text-body-sm">{JSON.stringify(registro.datos_despues, null, 2) ?? '—'}</pre></div></div></details></div><div className="flex flex-col-reverse gap-2 border-t border-line px-6 py-4 sm:flex-row sm:justify-end"><Button variante="ghost" onClick={onCerrar}>Cerrar</Button></div>
   </Dialogo>;
 }
@@ -116,7 +116,7 @@ export default function BitacoraPage() {
       titulo: 'Fecha y hora',
       tipo: 'fecha',
       valorOrden: (f) => f.creado_en,
-      render: (f) => <span className="whitespace-nowrap">{fechaLegible(f.creado_en)}</span>,
+      render: (f) => <span className="whitespace-nowrap">{formatoFechaHora(f.creado_en)}</span>,
     },
     {
       clave: 'usuario',

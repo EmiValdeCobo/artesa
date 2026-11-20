@@ -19,7 +19,7 @@ import Metrica from '../../components/display/Metrica.jsx';
 import Dialogo from '../../components/Dialogo.jsx';
 import { BotonIcono, Button, Card, Select, Spinner, Table } from '../../components/ui/index.js';
 import { ICONOS } from '../../config/iconos.js';
-import { formatoDinero } from '../../utils/formato.js';
+import { formatoDinero, formatoFecha } from '../../utils/formato.js';
 import {
   mascaraDui,
   mascaraNit,
@@ -351,7 +351,7 @@ export default function EmpleadosPage() {
         valorOrden: (e) => e.fecha_ingreso,
         render: (e) => (
           <span className="text-xs text-fg-muted">
-            {e.fecha_ingreso ? e.fecha_ingreso.slice(0, 10) : '—'}
+            {formatoFecha(e.fecha_ingreso)}
           </span>
         ),
       },

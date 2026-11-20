@@ -10,6 +10,9 @@ import {
   fechaLocal,
   fechaISODelNegocio,
   haceCuanto,
+  formatoFecha,
+  formatoFechaHora,
+  formatoMes,
 } from '../frontend/src/utils/formato.js';
 import { traducirError } from '../frontend/src/errors/traducirError.js';
 import { ErrorApi } from '../frontend/src/errors/ErrorApi.js';
@@ -90,6 +93,25 @@ test('formato: haceCuanto retorna etiquetas relativas legibles', () => {
 
   // 2 días atrás
   assert.equal(haceCuanto('2026-11-07T12:00:00Z', ahora), 'hace más de un día');
+});
+
+test('formato: formatoFecha formatea fechas YYYY-MM-DD sin desfase, null a raya y conserva inválidos', () => {
+  assert.equal(formatoFecha('2026-08-05'), '5 ago 2026');
+  assert.equal(formatoFecha(null), '—');
+  assert.equal(formatoFecha(undefined), '—');
+  assert.equal(formatoFecha(''), '—');
+  assert.equal(formatoFecha('texto inválido'), 'texto inválido');
+});
+
+test('formato: formatoFechaHora en zona El Salvador (UTC-6) formatea instante a fecha y hora 24h', () => {
+  assert.equal(formatoFechaHora('2026-08-05T03:30:00Z'), '4 ago 2026, 21:30');
+  assert.equal(formatoFechaHora(null), '—');
+  assert.equal(formatoFechaHora('texto inválido'), 'texto inválido');
+});
+
+test('formato: formatoMes formatea YYYY-MM a mes abreviado sin punto y año', () => {
+  assert.equal(formatoMes('2026-11'), 'nov 2026');
+  assert.equal(formatoMes(null), '—');
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -10,8 +10,7 @@ import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
 import { BotonIcono, Button, Card, Select, Table } from '../../components/ui/index.js';
 import { ICONOS } from '../../config/iconos.js';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
-import { ZONA_NEGOCIO } from '../../config/negocio.js';
-import { formatoDinero, formatearUnidades } from '../../utils/formato.js';
+import { formatoDinero, formatearUnidades, formatoFechaHora } from '../../utils/formato.js';
 import { traducirError } from '../../errors/traducirError.js';
 import { ordenarFilas } from '../../utils/tabla.js';
 import { escaparCeldaCsv } from '../../utils/csv.js';
@@ -38,11 +37,6 @@ const ATAJOS_FECHA = [
   { clave: '30d', texto: '30 días' },
   { clave: 'mes', texto: 'Este mes' },
 ];
-
-const FORMATO_FECHA_HORA = new Intl.DateTimeFormat('es-SV', {
-  day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  hour12: false, timeZone: ZONA_NEGOCIO,
-});
 
 const hoyISO = () => {
   const ahora = new Date();
@@ -221,12 +215,11 @@ export default function KardexPage() {
       titulo: 'Fecha',
       tipo: 'fecha',
       valorOrden: (f) => f.creado_en,
-      render: (f) => {
-        const fecha = new Date(f.creado_en);
-        return Number.isNaN(fecha.getTime())
-          ? f.creado_en
-          : <span className="whitespace-nowrap tabular-nums text-fg-muted" title={f.creado_en}>{FORMATO_FECHA_HORA.format(fecha).replaceAll('.', '')}</span>;
-      },
+      render: (f) => (
+        <span className="whitespace-nowrap tabular-nums text-fg-muted" title={f.creado_en}>
+          {formatoFechaHora(f.creado_en)}
+        </span>
+      ),
     },
     { clave: 'sucursal', titulo: 'Sucursal', tipo: 'texto', clase: 'hidden xl:table-cell' },
     {

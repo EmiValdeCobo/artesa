@@ -21,7 +21,7 @@ import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import Metrica from '../../components/display/Metrica.jsx';
 import Dialogo from '../../components/Dialogo.jsx';
 import { Button, Card, Select, Spinner, Table } from '../../components/ui/index.js';
-import { formatoDinero } from '../../utils/formato.js';
+import { formatoDinero, formatoFecha, formatoMes } from '../../utils/formato.js';
 import { estadoPlanilla, abrirPdfPlanilla } from './planillaUtils.js';
 
 export default function PlanillasPage() {
@@ -167,7 +167,7 @@ export default function PlanillasPage() {
         render: (p) => (
           <div>
             <p className="font-semibold text-fg">
-              {p.periodo_inicio ? p.periodo_inicio.slice(0, 7) : '—'}
+              {p.periodo_inicio ? formatoMes(p.periodo_inicio.slice(0, 7)) : '—'}
               <span className="ml-2 text-xs font-normal text-fg-muted">
                 {p.tipo_periodo === 'QUINCENAL'
                   ? `Quincena ${Number(p.periodo_inicio?.slice(8, 10)) <= 15 ? 1 : 2}`
@@ -175,7 +175,7 @@ export default function PlanillasPage() {
               </span>
             </p>
             <p className="text-xs text-fg-muted">
-              {p.periodo_inicio?.slice(0, 10)} al {p.periodo_fin?.slice(0, 10)}
+              {formatoFecha(p.periodo_inicio)} al {formatoFecha(p.periodo_fin)}
             </p>
           </div>
         ),
@@ -238,7 +238,7 @@ export default function PlanillasPage() {
               to={`/rrhh/planillas/${p.id_planilla}`}
               state={estadoDetalle}
               className="btn-ghost btn-sm"
-              aria-label={`Ver detalle de la planilla ${p.periodo_inicio?.slice(0, 7) ?? ''} de ${p.sucursal}`}
+              aria-label={`Ver detalle de la planilla ${p.periodo_inicio ? formatoMes(p.periodo_inicio.slice(0, 7)) : ''} de ${p.sucursal}`}
             >
               <Eye size={14} strokeWidth={1.75} aria-hidden="true" />
               Ver detalle

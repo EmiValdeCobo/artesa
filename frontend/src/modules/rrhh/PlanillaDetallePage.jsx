@@ -28,7 +28,7 @@ import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import Metrica from '../../components/display/Metrica.jsx';
 import Dialogo from '../../components/Dialogo.jsx';
 import { Button, Card, Table } from '../../components/ui/index.js';
-import { formatoDinero } from '../../utils/formato.js';
+import { formatoDinero, formatoFecha, formatoMes } from '../../utils/formato.js';
 import { estadoPlanilla, abrirPdfPlanilla, abrirBoletaEmpleado } from './planillaUtils.js';
 
 const normalizar = (texto) =>
@@ -415,11 +415,11 @@ export default function PlanillaDetallePage() {
             seccion="Gestión · RR. HH."
             titulo={
               <>
-                Planilla {periodo} · {planilla.sucursal}{' '}
+                Planilla {periodo ? formatoMes(periodo) : ''} · {planilla.sucursal}{' '}
                 <span className="inline-block align-middle"><EstadoBadge tipo={estado.tipo}>{estado.texto}</EstadoBadge></span>
               </>
             }
-            descripcion={`Del ${planilla.periodo_inicio?.slice(0, 10)} al ${planilla.periodo_fin?.slice(0, 10)}`}
+            descripcion={`Del ${formatoFecha(planilla.periodo_inicio)} al ${formatoFecha(planilla.periodo_fin)}`}
             acciones={
               <div className="flex w-full flex-wrap items-center gap-2 md:w-auto">
                 {enlaceVolver}
