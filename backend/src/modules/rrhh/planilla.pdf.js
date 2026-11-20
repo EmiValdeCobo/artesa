@@ -89,7 +89,7 @@ function boletaPage(textos) {
   comandos.push(line(46, 635, 549, 635, COLORS.line));
   const campos = textos.slice(2).map((texto) => { const index = texto.indexOf(':'); return index > -1 ? [texto.slice(0, index + 1), texto.slice(index + 1).trim()] : [texto, '']; });
   const neto = campos.at(-1); const detalle = campos.slice(0, -1);
-  const left = detalle.filter(([label]) => /^(DUI:|Salario base bruto:|Bonificaciones:)/i.test(label));
+  const left = detalle.filter(([label]) => /^(DUI:|Salario base bruto:|Bonificaciones(?:\s*\([^)]*\))?:)/i.test(label));
   const right = detalle.filter(([label]) => /^(ISSS laboral:|AFP laboral:|Retencion de renta:|Otros descuentos:)/i.test(label));
   const rows = Math.max(left.length, right.length);
   for (let i = 0; i < rows; i += 1) {

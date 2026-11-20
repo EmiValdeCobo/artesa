@@ -6,7 +6,7 @@ import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import { BotonIcono, Button, Select } from '../../components/ui/index.js';
 import { ICONOS } from '../../config/iconos.js';
 import CampoError, { idError } from '../../components/forms/CampoError.jsx';
-import { formatoDinero } from '../../utils/formato.js';
+import { formatoDineroCompleto } from '../../utils/formato.js';
 import { aplicarMascara, completarDecimales, propsMascara } from '../../utils/mascaras.js';
 import { createInsumo, updateInsumo } from './inventarioApi.js';
 const TIPOS_INSUMO = ['INGREDIENTE', 'EMPAQUE', 'REVENTA'];
@@ -212,7 +212,7 @@ export default function InsumoDrawer({ abierto, insumo, unidades = [], valoresIn
                 <span title="Promedio del costo de las compras registradas, ponderado por la cantidad comprada.">Costo promedio</span>
               </span>
               <p className="text-h3 tabular-nums text-fg">
-                {insumo.costo_promedio == null ? <span title="Sin permiso para ver costos">—</span> : formatoDinero(insumo.costo_promedio)}
+                {insumo.costo_promedio == null ? <span title="Sin permiso para ver costos">—</span> : formatoDineroCompleto(insumo.costo_promedio)}
               </p>
               <p className="text-body-sm text-fg-muted">
                 El costo se actualiza automáticamente con cada factura de compra.

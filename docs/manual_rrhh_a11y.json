@@ -1,0 +1,38 @@
+{
+  "file": "docs/Manual_Tecnico_artesa_actualizado.docx",
+  "counts": {
+    "high": 1,
+    "medium": 1,
+    "low": 1
+  },
+  "findings": [
+    {
+      "severity": "medium",
+      "kind": "heading_skip",
+      "message": "Heading level jumped from 2 to 4",
+      "context": {
+        "part": "word/document.xml",
+        "text": "GET /api/turnos/actual — obtiene el turno abierto del usuario"
+      }
+    },
+    {
+      "severity": "high",
+      "kind": "image_missing_alt",
+      "message": "Image missing alt text (descr/title empty)",
+      "context": {
+        "part": "word/document.xml",
+        "id": "1",
+        "name": "image1.png"
+      }
+    },
+    {
+      "severity": "low",
+      "kind": "hyperlink_raw_url",
+      "message": "Hyperlink display text is a raw URL (often less accessible)",
+      "context": {
+        "part": "word/document.xml",
+        "text": "http://localhost:3000/api/turnos/5b1f6c0e-3c1d-4a53-9e43-0a1d7a2f9c11/cuadre"
+      }
+    }
+  ]
+}

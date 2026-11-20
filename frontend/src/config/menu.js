@@ -22,8 +22,8 @@ export const menu = [
     { id: 'compras', texto: 'Compras', icono: Truck, hijos: [
       { ruta: '/compras', texto: 'Resumen', permiso: 'COM_VER_CXP', end: true },
       { ruta: '/compras/registrar', texto: 'Nueva factura', permiso: 'COM_REGISTRAR_COMPRA' },
-      { ruta: '/compras/gastos', texto: 'Gastos', permiso: 'COM_REGISTRAR_COMPRA' },
-      { ruta: '/compras/cuentas-por-pagar', texto: 'Cuentas por pagar', permiso: 'COM_VER_CXP' },
+      { ruta: '/compras/gastos', texto: 'Gastos operativos', permiso: 'COM_REGISTRAR_COMPRA' },
+      { ruta: '/compras/cuentas-por-pagar', texto: 'Pagados', permiso: 'COM_VER_CXP' },
       { ruta: '/compras/proveedores', texto: 'Proveedores', permiso: 'COM_GESTIONAR_PROVEEDORES' },
     ]},
     { id: 'rrhh', texto: 'RR. HH.', icono: Users, hijos: [

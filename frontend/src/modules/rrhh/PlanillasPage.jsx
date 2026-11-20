@@ -120,6 +120,19 @@ export default function PlanillasPage() {
       });
       return;
     }
+    const [anio, mes] = formCrear.periodo.split('-').map(Number);
+    const ultimoDia = formCrear.tipoPeriodo === 'QUINCENAL' && Number(formCrear.quincena) === 1
+      ? 15
+      : new Date(anio, mes, 0).getDate();
+    const finPeriodo = `${formCrear.periodo}-${String(ultimoDia).padStart(2, '0')}`;
+    const hoy = new Date();
+    const hoyISO = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+    if (finPeriodo > hoyISO) {
+      notificar.advertencia('Período no finalizado', {
+        mensaje: 'Solo puedes generar planillas de períodos que ya finalizaron. No se permiten meses futuros.',
+      });
+      return;
+    }
 
     setGuardandoCrear(true);
     try {
