@@ -453,8 +453,9 @@ export default function PreparacionPage() {
         <EstadoVacio
           icono={AlertCircle}
           titulo="Acceso restringido"
-          descripcion="Necesitas el permiso POS_VER_COLA_PREPARACION para ver esta pantalla."
-        />
+        >
+          Necesitas el permiso POS_VER_COLA_PREPARACION para ver esta pantalla.
+        </EstadoVacio>
       </div>
     );
   }
@@ -546,8 +547,9 @@ export default function PreparacionPage() {
         <EstadoVacio
           icono={ChefHat}
           titulo="Sin órdenes activas"
-          descripcion="No hay órdenes en preparación en este momento. Se actualizará automáticamente."
-        />
+        >
+          No hay órdenes en preparación en este momento. Se actualizará automáticamente.
+        </EstadoVacio>
       )}
 
       {/* Zona de soltado para marcar como ENTREGADA (solo visible y activa al arrastrar una orden LISTA) */}

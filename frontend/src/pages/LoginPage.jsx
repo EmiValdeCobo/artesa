@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { CircleAlert, UserRound } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -65,6 +65,10 @@ export default function LoginPage() {
   const [enviando, setEnviando] = useState(false);
   const refUsuario = useRef(null);
   const refPassword = useRef(null);
+
+  useEffect(() => {
+    document.title = 'Iniciar sesión · artesa';
+  }, []);
 
   if (usuario) return <Navigate to="/" replace />;
 

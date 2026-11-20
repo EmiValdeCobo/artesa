@@ -347,6 +347,7 @@ export default function Carrito({
                   value={terminoCliente}
                   onChange={(e) => setTerminoCliente(e.target.value)}
                   placeholder={esCCF ? 'Buscar por nombre, NIT o NRC...' : 'Buscar cliente por nombre, DUI o NIT...'}
+                  aria-label="Buscar cliente"
                   className="input h-control-sm w-full pl-8 pr-2 text-body-sm"
                 />
               </div>

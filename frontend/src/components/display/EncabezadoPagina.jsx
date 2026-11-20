@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+
 // Encabezado estándar de las pantallas: sección (overline) → título (Fraunces) → descripción,
 // con un espacio opcional a la derecha para acciones (botón principal, estado, selector).
 //
@@ -7,6 +9,12 @@
 //   <EncabezadoPagina seccion="Operación · Inventario" titulo="Kárdex" descripcion="Auditoría de movimientos."
 //     acciones={<Button>Nuevo</Button>} />
 export default function EncabezadoPagina({ seccion, titulo, descripcion, acciones = null, className = '' }) {
+  useEffect(() => {
+    if (typeof titulo === 'string' && titulo.trim()) {
+      document.title = `${titulo} · artesa`;
+    }
+  }, [titulo]);
+
   return (
     <header className={`flex flex-wrap items-end justify-between gap-4 ${className}`.trim()}>
       <div className="min-w-0">

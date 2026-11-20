@@ -533,13 +533,12 @@ export default function EmpleadosPage() {
           vacio={
             <EstadoVacio
               icono={Users}
-              mensaje="No se encontraron empleados"
-              descripcion={
-                filtroTexto || filtroSucursal || filtroPuesto || filtroEstado !== 'TODOS'
-                  ? 'Intenta ajustar los filtros de búsqueda.'
-                  : 'Registra el primer empleado en el botón superior.'
-              }
-            />
+              titulo="No se encontraron empleados"
+            >
+              {filtroTexto || filtroSucursal || filtroPuesto || filtroEstado !== 'TODOS'
+                ? 'Intenta ajustar los filtros de búsqueda.'
+                : 'Registra el primer empleado en el botón superior.'}
+            </EstadoVacio>
           }
         />
       </Card>

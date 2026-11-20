@@ -361,9 +361,10 @@ export default function PlanillasPage() {
           vacio={
             <EstadoVacio
               icono={FileText}
-              mensaje="No hay planillas registradas"
-              descripcion="Crea una nueva planilla para liquidar el sueldo de tu personal en el período correspondiente."
-            />
+              titulo="No hay planillas registradas"
+            >
+              Crea una nueva planilla para liquidar el sueldo de tu personal en el período correspondiente.
+            </EstadoVacio>
           }
         />
       </Card>

@@ -6,9 +6,9 @@ export const menu = [
   { seccion: 'Operación', items: [
     { ruta: '/caja', texto: 'Caja y turnos', permiso: 'CAJA_ABRIR_TURNO', icono: Wallet },
     { ruta: '/pos', texto: 'Punto de venta', permiso: 'POS_COBRAR', icono: ShoppingBag, end: true },
+    { ruta: '/preparacion', texto: 'Preparación', permiso: 'POS_VER_COLA_PREPARACION', icono: ChefHat },
     { ruta: '/pos/ventas', texto: 'Historial ventas', permiso: 'POS_COBRAR', icono: Receipt },
     { ruta: '/pos/clientes', texto: 'Clientes (CCF)', permiso: 'POS_GESTIONAR_CLIENTES', icono: UserCheck },
-    { ruta: '/preparacion', texto: 'Preparación', permiso: 'POS_VER_COLA_PREPARACION', icono: ChefHat },
     { id: 'inventario', texto: 'Inventario', icono: Boxes, hijos: [
       { ruta: '/inventario', texto: 'Existencias', permiso: 'INV_VER_STOCK', end: true },
       { ruta: '/inventario/kardex', texto: 'Kárdex', permiso: 'INV_VER_KARDEX' },
@@ -35,12 +35,12 @@ export const menu = [
   ]},
   { seccion: 'Administración', items: [
     { ruta: '/empresa/sucursales', texto: 'Sucursales', permiso: 'EMP_GESTIONAR_SUCURSALES', icono: Store },
-    { ruta: '/empresa/parametros', texto: 'Parámetros', permiso: 'EMP_EDITAR_PARAMETROS', icono: Settings },
-    { ruta: '/seguridad/bitacora', texto: 'Bitácora', permiso: 'SEG_VER_BITACORA', icono: ScrollText },
     { id: 'seguridad', texto: 'Usuarios y roles', icono: ShieldCheck, hijos: [
       { ruta: '/seguridad', texto: 'Roles', permiso: 'SEG_GESTIONAR_ROLES', end: true },
       { ruta: '/seguridad/usuarios', texto: 'Usuarios', permiso: 'SEG_GESTIONAR_USUARIOS' },
     ]},
+    { ruta: '/seguridad/bitacora', texto: 'Bitácora', permiso: 'SEG_VER_BITACORA', icono: ScrollText },
+    { ruta: '/empresa/parametros', texto: 'Parámetros', permiso: 'EMP_EDITAR_PARAMETROS', icono: Settings },
   ]},
 ];
 
