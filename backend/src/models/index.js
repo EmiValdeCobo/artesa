@@ -2,7 +2,7 @@
 import { Permiso, Rol, RolPermiso, TokenRevocado, Usuario, UsuarioSucursal } from './seguridad.js';
 import { Sucursal } from './empresa.js';
 import { Caja, Cliente, MovimientoCaja, TurnoCaja } from './pos.js';
-import { CategoriaProducto, Insumo, Producto, Receta, UnidadMedida } from './inventario.js';
+import { CategoriaProducto, Insumo, Producto, ProductoExtra, Receta, UnidadMedida } from './inventario.js';
 import { Empleado, Puesto } from './rrhh.js';
 
 Usuario.belongsTo(Rol, { foreignKey: 'id_rol', as: 'rol' });
@@ -16,4 +16,4 @@ Empleado.belongsTo(Puesto, { foreignKey: 'id_puesto', as: 'puesto' });
 Empleado.belongsTo(Sucursal, { foreignKey: 'id_sucursal', as: 'sucursal' });
 Empleado.belongsTo(Usuario, { foreignKey: 'id_usuario', as: 'usuario' });
 
-export { Permiso, Rol, RolPermiso, TokenRevocado, Usuario, UsuarioSucursal, Sucursal, Cliente, Caja, TurnoCaja, MovimientoCaja, UnidadMedida, Insumo, CategoriaProducto, Producto, Receta, Puesto, Empleado };
+export { Permiso, Rol, RolPermiso, TokenRevocado, Usuario, UsuarioSucursal, Sucursal, Cliente, Caja, TurnoCaja, MovimientoCaja, UnidadMedida, Insumo, CategoriaProducto, Producto, ProductoExtra, Receta, Puesto, Empleado };
