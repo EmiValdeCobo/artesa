@@ -1,5 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, CircleAlert, Edit3, Info, KeyRound, Layers, Lock, Plus, Save, Search, Trash2, Undo2, Users } from 'lucide-react';
+import { ChevronDown, CircleAlert, Info, KeyRound, Layers, Lock, Save, Search, Undo2, Users } from 'lucide-react';
+import { BotonIcono, Button, Select, Table } from '../../components/ui/index.js';
+import { SkeletonTexto } from '../../components/feedback/Skeleton.jsx';
+import { ICONOS } from '../../config/iconos.js';
 import { api } from '../../api/client.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
@@ -23,14 +26,11 @@ const porModuloYCodigo = (a, b) => a.modulo.localeCompare(b.modulo, 'es') || a.c
 const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
 const porcentaje = (parte, total) => (total ? Math.round((parte / total) * 100) : 0);
 
-// Error generado en el propio frontend (validaciones previas) con el formato que espera BannerError.
-const errorLocal = (titulo, mensaje, accion) => ({ esErrorUsuario: true, categoria: 'usuario', titulo, mensaje, accion, reintentable: false });
-
 // Barra fina de cobertura (permisos del rol / permisos totales). Decorativa: el dato también va en texto.
 function Cobertura({ valor, total, className = '' }) {
   return (
     <div className={`h-1.5 overflow-hidden rounded-full bg-muted ${className}`} aria-hidden="true">
-      <div className="h-full rounded-full bg-primary transition-[width] duration-300" style={{ width: `${porcentaje(valor, total)}%` }} />
+      <div className="h-full rounded-full bg-chart-neutral transition-[width] duration-200" style={{ width: `${porcentaje(valor, total)}%` }} />
     </div>
   );
 }
@@ -44,16 +44,16 @@ function GrupoPermisos({ grupo, seleccion, bloqueos, soloLectura, abierto, onAbr
   return (
     <section className="card overflow-hidden !p-0" aria-labelledby={titulo}>
       <div className="flex items-center gap-2 px-4 py-3 sm:px-5">
-        <button type="button" className="-ml-1 flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-lg px-1 text-left hover:bg-muted/60" aria-expanded={abierto} aria-controls={`${titulo}-lista`} onClick={onAbrirCerrar}>
+        <button type="button" className="-ml-1 flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-md px-1 text-left hover:bg-muted" aria-expanded={abierto} aria-controls={`${titulo}-lista`} onClick={onAbrirCerrar}>
           <ChevronDown size={18} aria-hidden="true" className={`shrink-0 text-fg-muted transition-transform ${abierto ? '' : '-rotate-90'}`} />
           <span className="min-w-0">
-            <span id={titulo} className="block font-semibold">{grupo.etiqueta}</span>
-            <span className="block truncate text-xs text-fg-muted">{grupo.descripcion}</span>
+            <span id={titulo} className="rotulo block">{grupo.etiqueta}</span>
+            <span className="mt-0.5 block truncate text-body-sm text-fg-muted">{grupo.descripcion}</span>
           </span>
         </button>
         <Insignia variante={marcados ? 'primario' : 'neutro'}>{marcados}/{ids.length}</Insignia>
         {!soloLectura && (
-          <label className="flex min-h-11 cursor-pointer items-center gap-2 pl-2 text-xs font-semibold text-primary-text">
+          <label className="flex min-h-11 cursor-pointer items-center gap-2 pl-2 text-label-sm text-fg-muted">
             <input type="checkbox" className="h-4 w-4 accent-primary" checked={todos} ref={(el) => { if (el) el.indeterminate = marcados > 0 && !todos; }}
               onChange={() => onAlternarGrupo(ids, todos)} aria-label={`Seleccionar todos los permisos de ${grupo.etiqueta}`} />
             <span className="hidden sm:inline">Todo</span>
@@ -67,12 +67,12 @@ function GrupoPermisos({ grupo, seleccion, bloqueos, soloLectura, abierto, onAbr
           const inactivo = soloLectura || Boolean(bloqueo);
           return (
             <label key={permiso.id_permiso} title={bloqueo || undefined}
-              className={`flex items-start gap-3 rounded-lg border px-3 py-3 transition-colors ${marcado ? 'border-primary/30 bg-primary-soft/50' : 'border-transparent'} ${inactivo ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-muted'}`}>
+              className={`flex items-start gap-3 rounded-md border px-3 py-2.5 transition-colors ${marcado ? 'border-primary/30 bg-primary-soft' : 'border-transparent'} ${inactivo ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-muted'}`}>
               <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-primary" checked={marcado} disabled={inactivo} onChange={() => onAlternar(permiso.id_permiso)} aria-label={permiso.descripcion || permiso.codigo} />
               <span className="min-w-0">
-                <span className="block text-sm font-medium">{permiso.descripcion || permiso.codigo}</span>
-                <span className="mt-1 block truncate font-mono text-xs text-fg-muted">{permiso.codigo}</span>
-                {bloqueo && <span className="mt-1 flex items-start gap-1 text-xs text-fg-muted"><Lock size={12} aria-hidden="true" className="mt-0.5 shrink-0" /> {bloqueo}</span>}
+                <span className="block text-label text-fg">{permiso.descripcion || permiso.codigo}</span>
+                <span className="mt-0.5 block truncate font-mono text-body-sm text-fg-muted">{permiso.codigo}</span>
+                {bloqueo && <span className="mt-1 flex items-start gap-1 text-body-sm text-fg-muted"><Lock size={12} aria-hidden="true" className="mt-0.5 shrink-0" /> {bloqueo}</span>}
               </span>
             </label>
           );
@@ -97,7 +97,6 @@ export default function RolesPermisosPage() {
   const [borrador, setBorrador] = useState(null); // ids marcados sin guardar; null = igual a lo guardado
   const [actualizandoRol, setActualizandoRol] = useState(false);
   const [guardando, setGuardando] = useState(false);
-  const [errorAsignacion, setErrorAsignacion] = useState(null);
   const [filtro, setFiltro] = useState('');
   const [colapsados, setColapsados] = useState(() => new Set());
 
@@ -108,7 +107,6 @@ export default function RolesPermisosPage() {
   const [modalPermiso, setModalPermiso] = useState(null); // { permiso: null | permiso }
   const [asignando, setAsignando] = useState(null);       // permiso abierto en "Asignar a roles"
   const [guardandoModal, setGuardandoModal] = useState(false);
-  const [errorModal, setErrorModal] = useState(null);
   const panelRef = useRef(null);
   const ultimaPeticion = useRef(0); // evita que una respuesta tardía apague el indicador de otra más nueva
 
@@ -145,7 +143,8 @@ export default function RolesPermisosPage() {
   const baseIds = useMemo(() => (rolActivo ? rolActivo.permisos.map((permiso) => permiso.id_permiso) : []), [rolActivo]);
   const seleccion = borrador ?? baseIds;
   const hayCambios = borrador !== null && !mismosIds(borrador, baseIds);
-  const soloLectura = Boolean(rolActivo) && !rolActivo.activo;
+  const esAdmin = rolActivo?.nombre === 'ADMIN';
+  const soloLectura = Boolean(rolActivo) && (!rolActivo.activo || esAdmin);
   const esRolDeSesion = Boolean(rolActivo) && rolActivo.nombre === usuarioSesion?.rol;
   const usuariosDelRol = (rol) => (usuariosPorRol ? usuariosPorRol[rol.id_rol] ?? 0 : null);
 
@@ -238,26 +237,36 @@ export default function RolesPermisosPage() {
     if (!(await confirmarDescartar())) return;
     setRolId(idRol);
     setBorrador(null);
-    setErrorAsignacion(null);
     refrescarPermisosRol(idRol); // trae los permisos vigentes por si otra sesión los cambió
   };
 
   const alternarPermiso = (idPermiso) => {
-    setErrorAsignacion(null);
     setBorrador(seleccion.includes(idPermiso) ? seleccion.filter((id) => id !== idPermiso) : [...seleccion, idPermiso]);
   };
 
   const alternarGrupo = (ids, todos) => {
-    setErrorAsignacion(null);
     if (!todos) { setBorrador([...new Set([...seleccion, ...ids])]); return; }
     setBorrador(seleccion.filter((id) => !ids.includes(id) || bloqueos.get(id))); // los bloqueados se quedan marcados
   };
 
-  const descartarCambios = () => { setBorrador(null); setErrorAsignacion(null); };
+  const descartarCambios = () => { setBorrador(null); };
 
   const guardarAsignacion = async () => {
+    if (rolActivo?.nombre === 'ADMIN') {
+      notificar.advertencia('Rol protegido', {
+        mensaje: 'El rol ADMIN es un rol protegido del sistema y su configuración es de solo lectura.',
+        accion: 'Selecciona otro rol si deseas editar permisos.',
+      });
+      return;
+    }
     const motivo = validarAsignacion(rolActivo, seleccion, permisos, usuarioSesion);
-    if (motivo) { setErrorAsignacion(errorLocal('No se puede guardar', motivo, 'Corrige la selección e inténtalo de nuevo.')); return; }
+    if (motivo) {
+      notificar.advertencia('No se puede guardar la asignación', {
+        mensaje: motivo,
+        accion: 'Corrige la selección e inténtalo de nuevo.',
+      });
+      return;
+    }
 
     const { quitados } = diferencias(baseIds, seleccion);
     const afectados = usuariosDelRol(rolActivo);
@@ -272,7 +281,6 @@ export default function RolesPermisosPage() {
     }
 
     setGuardando(true);
-    setErrorAsignacion(null);
     try {
       const lista = await api.put(`/seguridad/roles/${rolActivo.id_rol}/permisos`, { idPermisos: seleccion });
       reemplazarPermisosDeRol(rolActivo.id_rol, lista);
@@ -280,10 +288,8 @@ export default function RolesPermisosPage() {
       notificar.exito('Permisos guardados', { mensaje: `${rolActivo.nombre} ahora tiene ${plural(lista.length, 'permiso activo', 'permisos activos')}.` });
       sincronizarSesion(rolActivo.nombre);
     } catch (err) {
+      notificarError(err, { reintentar: guardarAsignacion });
       const u = traducirError(err);
-      if (u.id === 'SESION_EXPIRADA') return;
-      if (u.canal === 'modal') { notificarError(u); cargarDatos({ silencioso: true }); return; } // no sabemos si se guardó
-      setErrorAsignacion(u);
       if (['ROL_NO_ENCONTRADO', 'PERMISOS_NO_DISPONIBLES'].includes(u.id)) cargarDatos({ silencioso: true });
     } finally {
       setGuardando(false);
@@ -294,15 +300,13 @@ export default function RolesPermisosPage() {
   const abrirModalRol = async (rol = null) => {
     if (!(await confirmarDescartar())) return;
     setBorrador(null);
-    setErrorModal(null);
     setModalRol({ rol });
   };
-  const cerrarModalRol = () => { setModalRol(null); setErrorModal(null); };
+  const cerrarModalRol = () => { setModalRol(null); };
 
   const guardarRol = async (datos) => {
     const editando = modalRol.rol;
     setGuardandoModal(true);
-    setErrorModal(null);
     try {
       const guardado = editando ? await api.put(`/seguridad/roles/${editando.id_rol}`, datos) : await api.post('/seguridad/roles', datos);
       setRoles((actuales) => (editando
@@ -319,9 +323,9 @@ export default function RolesPermisosPage() {
       }
       cerrarModalRol();
     } catch (err) {
+      notificarError(err, { reintentar: () => guardarRol(datos) });
       const u = traducirError(err);
-      if (u.id === 'SESION_EXPIRADA') return;
-      if (u.canal === 'modal') { notificarError(u); cerrarModalRol(); cargarDatos({ silencioso: true }); } else setErrorModal(u);
+      if (['ROL_NO_ENCONTRADO'].includes(u.id)) cargarDatos({ silencioso: true });
     } finally {
       setGuardandoModal(false);
     }
@@ -332,7 +336,7 @@ export default function RolesPermisosPage() {
       await api.delete(`/seguridad/roles/${rol.id_rol}`);
       const restantes = roles.filter((item) => item.id_rol !== rol.id_rol);
       setRoles(restantes);
-      if (rol.id_rol === rolId) { setRolId(restantes[0]?.id_rol ?? null); setBorrador(null); setErrorAsignacion(null); }
+      if (rol.id_rol === rolId) { setRolId(restantes[0]?.id_rol ?? null); setBorrador(null); }
       notificar.exito('Rol eliminado', { mensaje: `${rol.nombre} ya no aparece en el sistema.` });
     } catch (err) {
       alFallarAccion(err, () => ejecutarEliminarRol(rol));
@@ -351,8 +355,8 @@ export default function RolesPermisosPage() {
   };
 
   // ── Permisos: crear / editar / eliminar / asignar ────────────────────────────
-  const abrirModalPermiso = (permiso = null) => { setErrorModal(null); setModalPermiso({ permiso }); };
-  const cerrarModalPermiso = () => { setModalPermiso(null); setErrorModal(null); };
+  const abrirModalPermiso = (permiso = null) => { setModalPermiso({ permiso }); };
+  const cerrarModalPermiso = () => { setModalPermiso(null); };
 
   const guardarPermiso = async (datos) => {
     const editando = modalPermiso.permiso;
@@ -365,7 +369,6 @@ export default function RolesPermisosPage() {
       if (!seguir) return;
     }
     setGuardandoModal(true);
-    setErrorModal(null);
     try {
       const guardado = editando ? await api.put(`/seguridad/permisos/${editando.id_permiso}`, datos) : await api.post('/seguridad/permisos', datos);
       setPermisos((actuales) => (editando
@@ -378,9 +381,9 @@ export default function RolesPermisosPage() {
       notificar.exito(editando ? 'Permiso actualizado' : 'Permiso creado', { mensaje: editando ? `Se guardaron los cambios de ${guardado.codigo}.` : `${guardado.codigo} ya está disponible para asignarlo a los roles.` });
       cerrarModalPermiso();
     } catch (err) {
+      notificarError(err, { reintentar: () => guardarPermiso(datos) });
       const u = traducirError(err);
-      if (u.id === 'SESION_EXPIRADA') return;
-      if (u.canal === 'modal') { notificarError(u); cerrarModalPermiso(); cargarDatos({ silencioso: true }); } else setErrorModal(u);
+      if (['PERMISO_NO_ENCONTRADO'].includes(u.id)) cargarDatos({ silencioso: true });
     } finally {
       setGuardandoModal(false);
     }
@@ -427,41 +430,118 @@ export default function RolesPermisosPage() {
   const listo = !cargando && !errorCarga;
   const bloqueoEliminar = rolActivo ? motivoBloqueoEliminarRol(rolActivo, { usuariosAsignados: usuariosDelRol(rolActivo), usuarioSesion }) : null;
 
+  const columnasPermisos = [
+    {
+      clave: 'codigo',
+      titulo: 'Código',
+      tipo: 'texto',
+      clase: 'w-44 lg:w-56',
+      render: (permiso) => (
+        <span className="break-words font-mono text-body-sm font-medium [overflow-wrap:anywhere]">
+          {permiso.codigo}
+        </span>
+      ),
+    },
+    {
+      clave: 'modulo',
+      titulo: 'Módulo',
+      tipo: 'texto',
+      clase: 'hidden sm:table-cell w-36',
+      valorOrden: (permiso) => infoModulo(permiso.modulo).etiqueta,
+      render: (permiso) => (
+        <Insignia>{infoModulo(permiso.modulo).etiqueta}</Insignia>
+      ),
+    },
+    {
+      clave: 'descripcion',
+      titulo: 'Descripción',
+      tipo: 'texto',
+      clase: 'break-words text-fg-muted',
+      render: (permiso) => permiso.descripcion || '—',
+    },
+    {
+      clave: 'roles',
+      titulo: 'Roles',
+      tipo: 'texto',
+      clase: 'hidden md:table-cell w-48 break-words text-body-sm',
+      valorOrden: (permiso) => rolesConPermiso(permiso).map((rol) => rol.nombre).join(', '),
+      render: (permiso) => {
+        const conPermiso = rolesConPermiso(permiso);
+        if (!conPermiso.length) return <Insignia variante="aviso">Sin asignar</Insignia>;
+        return (
+          <span className="group relative inline-block">
+            <button
+              type="button"
+              className="cursor-help text-left text-fg-muted underline decoration-dotted underline-offset-2"
+              aria-label={`Roles con este permiso: ${conPermiso.map((rol) => rol.nombre).join(', ')}`}
+            >
+              {conPermiso.slice(0, 2).map((rol) => rol.nombre).join(', ')}
+              {conPermiso.length > 2 && ` +${conPermiso.length - 2}`}
+            </button>
+            {conPermiso.length > 2 && (
+              <span
+                role="tooltip"
+                className="pointer-events-none absolute left-0 z-20 hidden bottom-full mb-1 w-max max-w-64 rounded-md bg-fg px-3 py-2 text-body-sm font-normal text-background shadow-md group-hover:block group-focus-within:block"
+              >
+                {conPermiso.map((rol) => rol.nombre).join(', ')}
+              </span>
+            )}
+          </span>
+        );
+      },
+    },
+    {
+      clave: 'acciones',
+      titulo: 'Acciones',
+      alinear: 'right',
+      ordenable: false,
+      clase: 'w-40',
+      render: (permiso) => {
+        const bloqueo = motivoBloqueoPermiso(permiso);
+        return (
+          <div className="flex justify-end gap-2">
+            <BotonIcono icono={ICONOS.rol} etiqueta={`Asignar ${permiso.codigo} a roles`} titulo="Asignar a roles" onClick={() => abrirAsignacion(permiso)} />
+            <BotonIcono icono={ICONOS.editar} etiqueta={`Editar ${permiso.codigo}`} titulo="Editar" onClick={() => abrirModalPermiso(permiso)} />
+            <BotonIcono icono={bloqueo ? ICONOS.bloqueado : ICONOS.eliminar} tono="peligro" etiqueta={`Eliminar ${permiso.codigo}`} titulo={bloqueo || 'Eliminar'} onClick={() => eliminarPermiso(permiso)} />
+          </div>
+        );
+      },
+    },
+  ];
+
   return (
-    <div className="mx-auto max-w-7xl">
-      <EncabezadoPagina seccion="Seguridad" titulo="Roles y permisos" descripcion="Define qué acciones puede realizar cada rol dentro de artesa." acciones={<button type="button" className="btn-primary" disabled={!listo} onClick={() => (pestana === 'roles' ? abrirModalRol() : abrirModalPermiso())}>
-          <Plus size={17} aria-hidden="true" /> {pestana === 'roles' ? 'Nuevo rol' : 'Nuevo permiso'}
-        </button>} />
+    <div className="mx-auto max-w-7xl space-y-6">
+      <EncabezadoPagina seccion="Administración · Usuarios y roles" titulo="Roles y permisos" descripcion="Define qué acciones puede realizar cada rol dentro de artesa." acciones={<Button icono={ICONOS.crear} disabled={!listo} onClick={() => (pestana === 'roles' ? abrirModalRol() : abrirModalPermiso())}>
+          {pestana === 'roles' ? 'Nuevo rol' : 'Nuevo permiso'}
+        </Button>} />
 
       {listo && (
-        <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Metrica icono={Users} valor={roles.length} etiqueta="Roles" tono="primario" />
-          <Metrica icono={KeyRound} valor={permisos.length} etiqueta="Permisos" tono="info" />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Metrica icono={ICONOS.rol} valor={roles.length} etiqueta="Roles" tono="primario" />
+          <Metrica icono={KeyRound} valor={permisos.length} etiqueta="Permisos" tono="neutro" />
           <Metrica icono={Layers} valor={modulos.length} etiqueta="Módulos" tono="neutro" />
-          <Metrica icono={CircleAlert} valor={sinAsignar} etiqueta="Permisos sin asignar" tono={sinAsignar ? 'aviso' : 'exito'} />
+          <Metrica icono={CircleAlert} valor={sinAsignar} etiqueta="Permisos sin asignar" tono={sinAsignar ? 'aviso' : 'neutro'} />
         </div>
       )}
 
-      <Pestanas className="mt-6" etiqueta="Secciones" activa={pestana} onCambiar={setPestana}
+      <Pestanas etiqueta="Secciones" activa={pestana} onCambiar={setPestana}
         pestanas={[{ clave: 'roles', texto: 'Roles', icono: Users, total: listo ? roles.length : undefined }, { clave: 'permisos', texto: 'Permisos', icono: KeyRound, total: listo ? permisos.length : undefined }]} />
 
       {errorCarga ? (
-        <BannerError className="mt-7" error={errorCarga} onReintentar={() => cargarDatos()} />
+        <BannerError error={errorCarga} onReintentar={() => cargarDatos()} />
       ) : cargando ? (
-        <p role="status" className="card mt-7 p-8 text-center text-sm text-fg-muted">Cargando roles y permisos…</p>
+        <div className="card"><SkeletonTexto lineas={6} texto="Cargando roles y permisos…" /></div>
       ) : pestana === 'roles' ? (
-        <div ref={panelRef} role="tabpanel" id="panel-roles" aria-labelledby="tab-roles" className="mt-7 grid gap-6 lg:grid-cols-[300px_1fr] lg:grid-rows-[minmax(0,1fr)]">
+        <div ref={panelRef} role="tabpanel" id="panel-roles" aria-labelledby="tab-roles" className="grid gap-6 lg:grid-cols-[18.75rem_1fr] lg:grid-rows-[minmax(0,1fr)]">
           <aside className="h-fit lg:-mx-1 lg:h-full lg:min-h-0 scroll-fino lg:overflow-y-auto lg:px-1 lg:py-1 lg:[scrollbar-gutter:stable]">
             {/* Móvil: selector compacto en lugar de una lista larga */}
             <div className="card lg:hidden">
-              <label htmlFor="selector-rol" className="block text-sm font-medium">Rol</label>
-              <select id="selector-rol" className="input mt-1.5" value={rolId ?? ''} onChange={(evento) => seleccionarRol(Number(evento.target.value))}>
-                {roles.map((rol) => <option key={rol.id_rol} value={rol.id_rol}>{rol.nombre}{rol.activo ? '' : ' (inactivo)'}</option>)}
-              </select>
+              <Select id="selector-rol" etiqueta="Rol" placeholder="" value={rolId ?? ''} onChange={(evento) => seleccionarRol(Number(evento.target.value))}
+                vacio="No hay roles registrados" opciones={roles.map((rol) => ({ valor: rol.id_rol, texto: `${rol.nombre}${rol.activo ? '' : ' (inactivo)'}` }))} />
             </div>
 
             <nav className="card hidden p-3 lg:block" aria-label="Roles disponibles">
-              <h2 className="px-2 pb-3 text-sm font-semibold">{plural(roles.length, 'rol', 'roles')}</h2>
+              <h2 className="rotulo px-2 pb-3">{plural(roles.length, 'rol', 'roles')}</h2>
               <ul className="space-y-1">
                 {roles.map((rol) => {
                   const n = usuariosDelRol(rol);
@@ -469,21 +549,21 @@ export default function RolesPermisosPage() {
                   return (
                     <li key={rol.id_rol}>
                       <button type="button" aria-current={actual ? 'true' : undefined} onClick={() => seleccionarRol(rol.id_rol)}
-                        className={`w-full rounded-lg border px-3 py-3 text-left transition-colors ${actual ? 'border-primary/40 bg-primary-soft' : 'border-transparent hover:bg-muted'}`}>
+                        className={`w-full rounded-md border px-3 py-3 text-left transition-colors ${actual ? 'border-primary/40 bg-primary-soft' : 'border-transparent hover:bg-muted'}`}>
                         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <span className={`break-all text-sm font-semibold ${actual ? 'text-primary-text' : ''}`}>{rol.nombre}</span>
+                          <span className={`break-all text-label ${actual ? 'text-primary-text' : ''}`}>{rol.nombre}</span>
                           {rol.es_sistema && <Insignia>Sistema</Insignia>}
                           {!rol.activo && <Insignia variante="aviso">Inactivo</Insignia>}
                         </span>
-                        {rol.descripcion && <span className="mt-1 line-clamp-2 block text-xs text-fg-muted">{rol.descripcion}</span>}
+                        {rol.descripcion && <span className="mt-1 line-clamp-2 block text-body-sm text-fg-muted">{rol.descripcion}</span>}
                         <Cobertura className="mt-3" valor={rol.permisos.length} total={permisos.length} />
-                        <span className="mt-1.5 block text-xs text-fg-muted">{rol.permisos.length}/{permisos.length} permisos{n !== null && ` · ${plural(n, 'usuario', 'usuarios')}`}</span>
+                        <span className="mt-1.5 block text-body-sm tabular-nums text-fg-muted">{rol.permisos.length}/{permisos.length} permisos{n !== null && ` · ${plural(n, 'usuario', 'usuarios')}`}</span>
                       </button>
                     </li>
                   );
                 })}
               </ul>
-              {!roles.length && <p className="px-3 py-6 text-center text-sm text-fg-muted">Aún no hay roles. Crea el primero con «Nuevo rol».</p>}
+              {!roles.length && <p className="px-3 py-6 text-body text-fg-muted">Aún no hay roles. Crea el primero con «Nuevo rol».</p>}
             </nav>
           </aside>
 
@@ -493,40 +573,43 @@ export default function RolesPermisosPage() {
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="break-all text-xl font-bold tracking-tight">{rolActivo.nombre}</h2>
+                      <h2 className="break-all text-h2">{rolActivo.nombre}</h2>
                       {rolActivo.es_sistema && <Insignia>Sistema</Insignia>}
                       {esRolDeSesion && <Insignia variante="info">Tu rol</Insignia>}
-                      {soloLectura && <Insignia variante="aviso">Inactivo</Insignia>}
+                      {!rolActivo.activo && <Insignia variante="aviso">Inactivo</Insignia>}
+                      {esAdmin && <Insignia variante="primario">Protegido</Insignia>}
                     </div>
-                    <p className="mt-1 text-sm text-fg-muted">{rolActivo.descripcion || 'Sin descripción.'}</p>
+                    <p className="mt-1 text-body text-fg-muted">{rolActivo.descripcion || 'Sin descripción.'}</p>
                   </div>
                   <div className="flex gap-2">
-                    <button type="button" className="btn-ghost min-h-10" disabled={soloLectura} title={soloLectura ? 'Un rol inactivo no se puede modificar' : undefined} onClick={() => abrirModalRol(rolActivo)}><Edit3 size={15} aria-hidden="true" /> Editar</button>
-                    <button type="button" className="btn-danger min-h-10" onClick={() => eliminarRol(rolActivo)} title={bloqueoEliminar || undefined}><Trash2 size={15} aria-hidden="true" /> Eliminar</button>
+                    <Button variante="ghost" icono={ICONOS.editar} className="min-h-10" disabled={soloLectura} title={soloLectura ? (esAdmin ? 'El rol ADMIN es un rol protegido del sistema en solo lectura' : 'Un rol inactivo no se puede modificar') : undefined} onClick={() => abrirModalRol(rolActivo)}>Editar</Button>
+                    <Button variante="danger" icono={ICONOS.eliminar} className="min-h-10" onClick={() => eliminarRol(rolActivo)} title={bloqueoEliminar || undefined}>Eliminar</Button>
                   </div>
                 </div>
                 <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-line pt-4">
                   <div className="min-w-48 flex-1">
-                    <p className="flex items-baseline justify-between text-sm"><span className="font-medium">Permisos activos</span><span className="text-fg-muted"><strong className="text-fg">{seleccion.length}</strong> de {permisos.length}</span></p>
+                    <p className="flex items-baseline justify-between text-body"><span className="text-label">Permisos activos</span><span className="tabular-nums text-fg-muted"><strong className="text-fg">{seleccion.length}</strong> de {permisos.length}</span></p>
                     <Cobertura className="mt-2" valor={seleccion.length} total={permisos.length} />
                   </div>
-                  <p className="text-sm text-fg-muted">
+                  <p className="text-body text-fg-muted">
                     {usuariosDelRol(rolActivo) === null ? 'Usuarios: sin acceso para consultarlos' : <><strong className="text-fg">{usuariosDelRol(rolActivo)}</strong> {usuariosDelRol(rolActivo) === 1 ? 'usuario asignado' : 'usuarios asignados'}</>}
                   </p>
                 </div>
               </div>
 
               {soloLectura && (
-                <div className="mb-5 flex items-start gap-2 rounded-lg border border-warning/30 bg-warning-soft px-4 py-3 text-sm" role="status">
-                  <Info size={17} aria-hidden="true" className="mt-0.5 shrink-0 text-warning" /> Este rol está inactivo: puedes ver sus permisos, pero no modificarlos.
+                <div className="mb-5 flex items-start gap-2 rounded-md border border-warning/30 bg-warning-soft px-4 py-3 text-body text-warning-text" role="status">
+                  <Info size={16} strokeWidth={1.75} aria-hidden="true" className="mt-0.5 shrink-0" />
+                  {esAdmin
+                    ? 'El rol ADMIN es un rol protegido del sistema con todos los permisos: su configuración es de solo lectura.'
+                    : 'Este rol está inactivo: puedes ver sus permisos, pero no modificarlos.'}
                 </div>
               )}
-              <BannerError className="mb-5" error={errorAsignacion} onCerrar={() => setErrorAsignacion(null)} onReintentar={guardarAsignacion} />
 
               <div className="relative mb-5">
-                <Search size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" aria-hidden="true" />
-                <input className="input pl-10" value={filtro} onChange={(event) => setFiltro(event.target.value)} placeholder="Buscar permiso o módulo…" aria-label="Buscar permiso" />
-                {actualizandoRol && <span role="status" className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-fg-muted">Actualizando…</span>}
+                <Search size={16} strokeWidth={1.75} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden="true" />
+                <input className="input pl-9" value={filtro} onChange={(event) => setFiltro(event.target.value)} placeholder="Buscar permiso o módulo…" aria-label="Buscar permiso" />
+                {actualizandoRol && <span role="status" className="absolute right-3 top-1/2 -translate-y-1/2 text-body-sm text-fg-muted">Actualizando…</span>}
               </div>
 
               <div className="space-y-4">
@@ -544,80 +627,53 @@ export default function RolesPermisosPage() {
               </div>
 
               {hayCambios && (
-                <div className="sticky bottom-4 z-10 mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/40 bg-surface p-4 shadow-lg" role="region" aria-label="Cambios sin guardar">
-                  <p className="text-sm"><span className="font-semibold">Cambios sin guardar</span> · <span className="text-success">{agregados.length} por agregar</span> · <span className="text-danger">{quitados.length} por quitar</span></p>
+                <div className="sticky bottom-4 z-10 mt-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface p-4 shadow-md" role="region" aria-label="Cambios sin guardar">
+                  <p className="text-body tabular-nums"><span className="font-semibold">Cambios sin guardar</span> · <span className="text-success-text">{agregados.length} por agregar</span> · <span className="text-danger-text">{quitados.length} por quitar</span></p>
                   <div className="flex gap-2">
-                    <button type="button" className="btn-ghost" onClick={descartarCambios} disabled={guardando}><Undo2 size={16} aria-hidden="true" /> Descartar</button>
-                    <button type="button" className="btn-primary" onClick={guardarAsignacion} disabled={guardando}><Save size={16} aria-hidden="true" /> {guardando ? 'Guardando…' : 'Guardar cambios'}</button>
+                    <Button variante="ghost" icono={Undo2} onClick={descartarCambios} disabled={guardando}>Descartar</Button>
+                    <Button icono={Save} onClick={guardarAsignacion} cargando={guardando}>{guardando ? 'Guardando…' : 'Guardar cambios'}</Button>
                   </div>
                 </div>
               )}
             </div>
           ) : (
-            <div className="card"><EstadoVacio icono={Users} titulo="Sin roles">Crea un rol para empezar a asignarle permisos.</EstadoVacio></div>
+            <div className="card"><EstadoVacio icono={ICONOS.rol} titulo="Sin roles">Crea un rol para empezar a asignarle permisos.</EstadoVacio></div>
           )}
         </div>
       ) : (
-        <div role="tabpanel" id="panel-permisos" aria-labelledby="tab-permisos" className="card mt-7 overflow-hidden !p-0">
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line p-4 sm:p-5">
+        <div role="tabpanel" id="panel-permisos" aria-labelledby="tab-permisos" className="card min-w-0 overflow-hidden !p-0">
+          <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3">
             <div>
-              <h2 className="font-semibold">Catálogo de permisos</h2>
-              <p className="mt-1 text-xs text-fg-muted">{plural(permisosFiltrados.length, 'permiso', 'permisos')}{permisosFiltrados.length !== permisos.length && ` de ${permisos.length}`}</p>
+              <h2 className="text-h3">Catálogo de permisos</h2>
+              <p className="mt-0.5 text-body-sm tabular-nums text-fg-muted">{plural(permisosFiltrados.length, 'permiso', 'permisos')}{permisosFiltrados.length !== permisos.length && ` de ${permisos.length}`}</p>
             </div>
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-              <select className="input sm:w-48" value={filtroModulo} onChange={(event) => setFiltroModulo(event.target.value)} aria-label="Filtrar por módulo">
-                <option value="">Todos los módulos</option>
-                {modulos.map((modulo) => <option key={modulo} value={modulo}>{infoModulo(modulo).etiqueta}</option>)}
-              </select>
+            <div className="flex w-full flex-col gap-2 sm:ml-auto sm:w-auto sm:flex-row">
+              <div className="sm:w-48">
+                <Select aria-label="Filtrar por módulo" placeholder="Todos los módulos" value={filtroModulo} onChange={(event) => setFiltroModulo(event.target.value)}
+                  opciones={modulos.map((modulo) => ({ valor: modulo, texto: infoModulo(modulo).etiqueta }))} />
+              </div>
               <div className="relative sm:w-72">
-                <Search size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" aria-hidden="true" />
+                <Search size={16} strokeWidth={1.75} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden="true" />
                 <input className="input pl-9" value={filtroPermisos} onChange={(event) => setFiltroPermisos(event.target.value)} placeholder="Buscar código o descripción…" aria-label="Buscar permiso" />
               </div>
             </div>
           </div>
-          <div className="max-h-[560px] overflow-x-auto overflow-y-auto scroll-fino">
-            <table className="w-full min-w-3xl text-left text-sm">
-              <caption className="sr-only">Catálogo de permisos con sus módulos y roles asignados</caption>
-              <thead className="sticky top-0 z-10 border-b border-line bg-muted text-xs uppercase tracking-wide text-fg-muted shadow-xs">
-                <tr><th scope="col" className="bg-muted px-5 py-3 font-semibold">Código</th><th scope="col" className="bg-muted px-5 py-3 font-semibold">Módulo</th><th scope="col" className="bg-muted px-5 py-3 font-semibold">Descripción</th><th scope="col" className="bg-muted px-5 py-3 font-semibold">Roles</th><th scope="col" className="bg-muted px-5 py-3 text-right font-semibold">Acciones</th></tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {permisosFiltrados.map((permiso) => {
-                  const conPermiso = rolesConPermiso(permiso);
-                  const bloqueo = motivoBloqueoPermiso(permiso);
-                  return (
-                    <tr key={permiso.id_permiso} className="hover:bg-muted/60">
-                      <td className="px-5 py-4 font-mono text-xs font-medium">{permiso.codigo}</td>
-                      <td className="px-5 py-4"><Insignia variante="primario">{infoModulo(permiso.modulo).etiqueta}</Insignia></td>
-                      <td className="max-w-xs px-5 py-4 text-fg-muted">{permiso.descripcion || '—'}</td>
-                      <td className="max-w-56 px-5 py-4 text-xs">
-                        {conPermiso.length
-                          ? <span className="text-fg-muted" title={conPermiso.map((rol) => rol.nombre).join(', ')}>{conPermiso.slice(0, 2).map((rol) => rol.nombre).join(', ')}{conPermiso.length > 2 && ` +${conPermiso.length - 2}`}</span>
-                          : <Insignia variante="aviso">Sin asignar</Insignia>}
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex justify-end gap-2">
-                          <button type="button" className="btn-ghost !p-2" onClick={() => abrirAsignacion(permiso)} aria-label={`Asignar ${permiso.codigo} a roles`} title="Asignar a roles"><Users size={16} /></button>
-                          <button type="button" className="btn-ghost !p-2" onClick={() => abrirModalPermiso(permiso)} aria-label={`Editar ${permiso.codigo}`} title="Editar"><Edit3 size={16} /></button>
-                          <button type="button" className="btn-danger !p-2" onClick={() => eliminarPermiso(permiso)} aria-label={`Eliminar ${permiso.codigo}`} title={bloqueo || 'Eliminar'}>{bloqueo ? <Lock size={16} /> : <Trash2 size={16} />}</button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            {!permisosFiltrados.length && (
-              <EstadoVacio icono={permisos.length ? Search : KeyRound} titulo={permisos.length ? 'Sin coincidencias' : 'Aún no hay permisos'}>
-                {permisos.length ? 'Ningún permiso coincide con tu búsqueda. Prueba con otro término o módulo.' : 'Crea el primero con «Nuevo permiso».'}
-              </EstadoVacio>
-            )}
-          </div>
+          <Table
+            filas={permisosFiltrados}
+            idFila="id_permiso"
+            idTabla="seguridad-permisos"
+            ordenInicial={{ clave: 'codigo', direccion: 'asc' }}
+            scrollVertical={false}
+            horizontal={true}
+            minAncho="min-w-[36rem]"
+            vacio={permisos.length ? 'Ningún permiso coincide con tu búsqueda. Prueba con otro término o módulo.' : 'Crea el primero con «Nuevo permiso».'}
+            columnas={columnasPermisos}
+          />
         </div>
       )}
 
-      {modalRol && <RolModal rol={modalRol.rol} roles={roles} guardando={guardandoModal} error={errorModal} onDescartarError={() => setErrorModal(null)} onClose={cerrarModalRol} onSubmit={guardarRol} />}
-      {modalPermiso && <PermisoModal permiso={modalPermiso.permiso} permisos={permisos} modulos={modulos} guardando={guardandoModal} error={errorModal} onDescartarError={() => setErrorModal(null)} onClose={cerrarModalPermiso} onSubmit={guardarPermiso} />}
+      {modalRol && <RolModal rol={modalRol.rol} roles={roles} guardando={guardandoModal} onClose={cerrarModalRol} onSubmit={guardarRol} />}
+      {modalPermiso && <PermisoModal permiso={modalPermiso.permiso} permisos={permisos} modulos={modulos} guardando={guardandoModal} onClose={cerrarModalPermiso} onSubmit={guardarPermiso} />}
       {permisoEnAsignacion && <AsignarPermisoDialogo permiso={permisoEnAsignacion} roles={roles} usuarioSesion={usuarioSesion} onCambio={alCambiarAsignacion} onRolDesactualizado={() => cargarDatos({ silencioso: true })} onClose={() => setAsignando(null)} />}
     </div>
   );

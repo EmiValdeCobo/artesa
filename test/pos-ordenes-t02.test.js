@@ -139,9 +139,10 @@ test('T02 service: FSM correcta — ABIERTA permite EN_PREPARACION y ANULADA', a
   assert.match(service, /ABIERTA:\s*\['EN_PREPARACION', 'ANULADA'\]/);
 });
 
-test('T02 service: FSM correcta — EN_PREPARACION permite LISTA y ANULADA', async () => {
+test('T02 service: FSM correcta — EN_PREPARACION solo permite LISTA (cancelar únicamente en Nueva)', async () => {
   const service = await pos('ordenes.service.js');
-  assert.match(service, /EN_PREPARACION:\s*\['LISTA', 'ANULADA'\]/);
+  assert.match(service, /EN_PREPARACION:\s*\['LISTA'\]/);
+  assert.match(service, /tieneVentaEmitida/);
 });
 
 test('T02 service: edición bloqueada si orden no está ABIERTA → lanza 409', async () => {

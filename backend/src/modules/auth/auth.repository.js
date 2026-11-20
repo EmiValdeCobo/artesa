@@ -1,6 +1,6 @@
-import { Op, QueryTypes } from 'sequelize';
+import { QueryTypes } from 'sequelize';
 import { query, sequelize, withTransaction } from '../../config/db.js';
-import { Cliente, Rol, Sucursal, Usuario } from '../../models/index.js';
+import { Rol, Sucursal, Usuario } from '../../models/index.js';
 
 export async function buscarUsuarioPorUsername(username) {
   const usuario = await Usuario.findOne({
@@ -10,22 +10,6 @@ export async function buscarUsuarioPorUsername(username) {
   });
   if (!usuario) return null;
   return { ...usuario.get({ plain: true }), rol: usuario.rol.nombre };
-}
-
-export async function buscarClientePorUsername(username) {
-  return Cliente.findOne({
-    attributes: ['id_cliente', 'username', 'password_hash', 'activo', 'nombre_razon_social', 'email'],
-    where: { username, activo: true, password_hash: { [Op.not]: null } },
-    raw: true,
-  });
-}
-
-export async function buscarClientePorId(idCliente) {
-  return Cliente.findOne({
-    attributes: ['id_cliente', 'username', 'activo', 'nombre_razon_social', 'email'],
-    where: { id_cliente: idCliente, activo: true },
-    raw: true,
-  });
 }
 
 export async function buscarUsuarioPorId(idUsuario) {
@@ -74,3 +58,28 @@ export const registrarIntentoLogin = (username) => withTransaction((transaction)
    RETURNING id_bitacora`,
   { bind: [username], transaction, type: QueryTypes.SELECT },
 ));
+
+export async function revocarToken(jti, expiracion, idUsuario = null) {
+  return sequelize.query(
+    `INSERT INTO seguridad.tokens_revocados (jti, id_usuario, expiracion)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (jti) DO NOTHING`,
+    {
+      bind: [jti, idUsuario ? String(idUsuario) : null, expiracion],
+      type: QueryTypes.INSERT,
+    },
+  );
+}
+
+export async function esTokenRevocado(jti) {
+  const filas = await sequelize.query(
+    `SELECT 1 FROM seguridad.tokens_revocados
+     WHERE jti = $1 AND expiracion > CURRENT_TIMESTAMP
+     LIMIT 1`,
+    {
+      bind: [jti],
+      type: QueryTypes.SELECT,
+    },
+  );
+  return filas.length > 0;
+}

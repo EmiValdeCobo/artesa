@@ -10,7 +10,7 @@ const dias = (max, porDefecto) => z.coerce
   .max(max, `Máximo ${max} días`)
   .default(porDefecto);
 
-export const ventasDiariasQuery = z.strictObject({ dias: dias(90, 14), sucursal });
+export const ventasDiariasQuery = z.strictObject({ dias: z.coerce.number().int().refine((v) => [7, 14, 30].includes(v), 'Selecciona 7, 14 o 30 días').default(14), sucursal });
 
 export const topProductosQuery = z.strictObject({
   dias: dias(90, 7),
@@ -19,3 +19,8 @@ export const topProductosQuery = z.strictObject({
 });
 
 export const alertasQuery = z.strictObject({ sucursal });
+
+export const ordenesRecientesQuery = z.strictObject({
+  limite: z.coerce.number({ error: 'El límite no es válido' }).int().min(1).max(10, 'Máximo 10 órdenes').default(8),
+  sucursal,
+});

@@ -5,6 +5,45 @@ import { AppError } from '../../utils/AppError.js';
 import * as repo from './auth.repository.js';
 import crypto from 'node:crypto';
 
+// Hash bcrypt precalculado (costo 10) para mitigar timing attacks si el usuario no existe
+const DUMMY_HASH = '$2b$10$y4Pkw8PGAmBC6q/6aehq3eTg0b9qvWp4EeuB.Wznv6Mkt1tfdDpbq';
+
+// Blacklist en memoria para revocación instantánea (O(1)) entre peticiones
+const tokensRevocadosMemoria = new Map();
+
+export async function revocarToken(jti, exp, idUsuario = null) {
+  if (!jti) return;
+  const expiracionMs = exp ? (exp * 1000) : (Date.now() + 8 * 60 * 60 * 1000);
+  tokensRevocadosMemoria.set(jti, expiracionMs);
+
+  try {
+    await repo.revocarToken(jti, new Date(expiracionMs), idUsuario);
+  } catch {
+    // Si la BD no está disponible en ejecución/test, la memoria preserva la revocación
+  }
+}
+
+export async function esTokenRevocado(jti) {
+  if (!jti) return false;
+  const ahora = Date.now();
+  const expiracionMs = tokensRevocadosMemoria.get(jti);
+  if (expiracionMs) {
+    if (expiracionMs > ahora) return true;
+    tokensRevocadosMemoria.delete(jti);
+  }
+
+  try {
+    const enBd = await repo.esTokenRevocado(jti);
+    if (enBd) {
+      tokensRevocadosMemoria.set(jti, ahora + 60 * 60 * 1000);
+      return true;
+    }
+  } catch {
+    // Si la BD está offline, confiamos en memoria
+  }
+  return false;
+}
+
 export const opcionesCookie = () => ({
   httpOnly: true,
   sameSite: env.cookieSameSite,
@@ -21,50 +60,24 @@ async function armarSesion(usuario) {
   };
 }
 
-function armarSesionCliente(cliente) {
-  return {
-    usuario: {
-      id: cliente.id_cliente,
-      username: cliente.username,
-      nombre: cliente.nombre_razon_social,
-      email: cliente.email,
-      tipo: 'cliente',
-    },
-    permisos: [],
-  };
-}
-
 export async function login(username, password) {
   const usuario = await repo.buscarUsuarioPorUsername(username);
-  // Mismo mensaje si no existe o la clave es incorrecta (no revelar cuál falló)
-  const valido = usuario && usuario.activo && (await bcrypt.compare(password, usuario.password_hash));
+  // Mitigación de timing attack: si no existe el usuario, compara contra DUMMY_HASH para no delatar tiempo de cómputo
+  const hashComparar = usuario?.password_hash || DUMMY_HASH;
+  const passwordValido = await bcrypt.compare(password, hashComparar);
+  const valido = Boolean(usuario && usuario.activo && passwordValido);
   if (!valido) {
     await repo.registrarIntentoLogin(username);
     throw new AppError('Usuario o contraseña incorrectos', 401);
   }
 
   await repo.registrarLogin(usuario.id_usuario);
-  const token = jwt.sign({ id: usuario.id_usuario, rol: usuario.rol, tipo: 'admin', iat: Math.floor(Date.now() / 1000) }, env.jwtSecret, { expiresIn: env.jwtExpiresIn, jwtid: crypto.randomUUID() });
+  const token = jwt.sign({ id: usuario.id_usuario, rol: usuario.rol, tipo: 'admin', iat: Math.floor(Date.now() / 1000) }, env.jwtSecret, { algorithm: 'HS256', expiresIn: env.jwtExpiresIn, jwtid: crypto.randomUUID() });
   return { token, ...(await armarSesion(usuario)) };
-}
-
-export async function loginCliente(username, password) {
-  const cliente = await repo.buscarClientePorUsername(username);
-  const valido = cliente && (await bcrypt.compare(password, cliente.password_hash));
-  if (!valido) throw new AppError('Usuario o contraseña incorrectos', 401);
-
-  const token = jwt.sign({ id: cliente.id_cliente, tipo: 'cliente', iat: Math.floor(Date.now() / 1000) }, env.jwtSecret, { expiresIn: env.jwtExpiresIn, jwtid: crypto.randomUUID() });
-  return { token, ...(armarSesionCliente(cliente)) };
 }
 
 export async function perfil(idUsuario) {
   const usuario = await repo.buscarUsuarioPorId(idUsuario);
   if (!usuario) throw new AppError('Usuario no encontrado o inactivo', 401);
   return armarSesion(usuario);
-}
-
-export async function perfilCliente(idCliente) {
-  const cliente = await repo.buscarClientePorId(idCliente);
-  if (!cliente) throw new AppError('Cliente no encontrado o inactivo', 401);
-  return armarSesionCliente(cliente);
 }

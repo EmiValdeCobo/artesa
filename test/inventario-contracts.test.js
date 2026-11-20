@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { actualizarInsumoSchema } from '../backend/src/modules/inventario/inventario.schemas.js';
+import { actualizarInsumoSchema, mermaSchema, minimoSchema, recetaSchema, stockSchema } from '../backend/src/modules/inventario/inventario.schemas.js';
 
 const leer = (archivo) => readFile(new URL(`../${archivo}`, import.meta.url), 'utf8');
 
@@ -9,8 +9,105 @@ test('inventario: el kardex conserva autenticación admin y usa INV_VER_KARDEX',
   const routes = await leer('backend/src/modules/inventario/inventario.routes.js');
   assert.match(routes, /router\.use\(authenticate, requireTipo\('admin'\)\)/);
   assert.match(routes, /router\.get\('\/movimientos', requirePermiso\('INV_VER_KARDEX'\)/);
-  assert.match(routes, /router\.get\('\/stock', requirePermiso\('INV_VER_STOCK'\)/);
+  assert.match(routes, /router\.get\('\/stock', requirePermiso\('INV_VER_STOCK', 'INV_GESTIONAR_INSUMOS'\)/);
   assert.match(routes, /router\.get\('\/alertas', requirePermiso\('INV_VER_STOCK'\)/);
+});
+
+test('inventario: recetas, movimientos, mermas y stock mínimo aceptan enteros positivos y rechazan decimales', () => {
+  assert.equal(stockSchema.parse({ idSucursal: 1, idInsumo: 2, cantidad: '25', tipo: 'AJUSTE', motivo: 'Conteo' }).cantidad, '25');
+  assert.equal(mermaSchema.parse({ idSucursal: 1, cantidad: 5, motivo: 'Dañado' }).cantidad, '5');
+  assert.equal(minimoSchema.parse({ idSucursal: 1, stockMinimo: '10' }).stockMinimo, '10');
+  assert.equal(recetaSchema.parse({ componentes: [{ idInsumo: 2, cantidadRequerida: '3' }] }).componentes[0].cantidadRequerida, '3');
+  for (const cantidad of ['0', '-1', '0.0008', '1.5', '2.25', '10.0001', '']) {
+    assert.throws(() => stockSchema.parse({ idSucursal: 1, idInsumo: 2, cantidad, tipo: 'AJUSTE', motivo: 'Conteo' }));
+    assert.throws(() => mermaSchema.parse({ idSucursal: 1, cantidad, motivo: 'Dañado' }));
+    assert.throws(() => minimoSchema.parse({ idSucursal: 1, stockMinimo: cantidad }));
+    assert.throws(() => recetaSchema.parse({ componentes: [{ idInsumo: 2, cantidadRequerida: cantidad }] }));
+  }
+});
+
+test('inventario: desactivar insumo y unidad devuelve 409 con dependencias activas', async () => {
+  const [servicio, repositorio, errores, insumosUi, productosUi] = await Promise.all([
+    leer('backend/src/modules/inventario/inventario.service.js'),
+    leer('backend/src/modules/inventario/inventario.repository.js'),
+    leer('frontend/src/errors/catalogo.js'),
+    leer('frontend/src/modules/inventario/CatalogoInsumosPage.jsx'),
+    leer('frontend/src/modules/inventario/CatalogoProductosPage.jsx'),
+  ]);
+  assert.match(servicio, /No se puede desactivar\. Lo usan: \$\{nombres\.join\(', '\)\}\$\{resto\}/);
+  assert.match(servicio, /No se puede desactivar: la usan \$\{nombres\.join\(', '\)\}/);
+  assert.match(repositorio, /r\.id_insumo = \$1 OR p\.id_insumo_reventa = \$1/);
+  assert.match(repositorio, /FROM inventario\.insumos[\s\S]*activo = true AND id_unidad_base = \$1/);
+  assert.match(errores, /No se puede desactivar\\\. Lo usan:/);
+  assert.match(insumosUi, /Mostrar inactivos/);
+  assert.match(productosUi, /Mostrar inactivos/);
+  assert.match(insumosUi, /Reactivar insumo/);
+  assert.match(productosUi, /producto\.activo === false \? 'Reactivar' : 'Desactivar'/);
+});
+
+test('inventario: drawer limita reventa a insumos disponibles y muestra su vínculo', async () => {
+  const pagina = await leer('frontend/src/modules/inventario/CatalogoProductosPage.jsx');
+  assert.match(pagina, /i\.tipo_insumo\)\.toUpperCase\(\) === 'REVENTA'/);
+  assert.match(pagina, /!insumosVinculados\.has\(String\(i\.id_insumo\)\)/);
+  assert.match(pagina, /Cada venta descontará 1/);
+  assert.match(pagina, /p\.insumo_reventa/);
+  assert.ok(pagina.indexOf('<SelectorTipoProducto form={form}') < pagina.indexOf('id="producto-nombre"'));
+  assert.ok(pagina.indexOf('id="producto-nombre"') < pagina.indexOf('etiqueta="Categoría del producto"'));
+  assert.ok(pagina.indexOf('id="producto-precio-venta"') < pagina.indexOf('etiqueta="Insumo de reventa"'));
+});
+
+test('inventario: margen usa precio neto de IVA y costo en aritmética entera', async () => {
+  const { calcularMargen, calcularMargenDolares, calcularCostoReceta, calcularSubtotalLinea } = await import('../frontend/src/modules/inventario/costeo.js');
+  assert.equal(calcularMargen('3.50', '2.0000'), 35.4);
+  assert.equal(calcularMargenDolares('3.50', '4.0000'), '-0.9027');
+  assert.equal(calcularCostoReceta([{ cantidad_requerida: '1', costo_promedio: '2.1234' }]), '2.1234');
+  // calcularSubtotalLinea usa BigInt (anti-float) y devuelve string con 4 decimales
+  assert.equal(typeof calcularSubtotalLinea('1', '2.1234'), 'string');
+  assert.equal(calcularSubtotalLinea('1', '2.1234'), '2.1234');
+  // Soporta campos NUMERIC(12,6) devueltos por PostgreSQL sin colapsar a 0n
+  assert.equal(calcularSubtotalLinea('10', '0.033000'), '0.3300');
+  assert.equal(calcularCostoReceta([
+    { cantidad_requerida: '10', costo_promedio: '0.033000' },
+    { cantidad_requerida: '200', costo_promedio: '0.000300' },
+    { cantidad_requerida: '1', costo_promedio: '0.050000' }
+  ]), '0.4400');
+});
+
+test('inventario: drawer reutilizable permite alta en producto y receta con permiso', async () => {
+  const [drawer, productos, recetas] = await Promise.all([
+    leer('frontend/src/modules/inventario/InsumoDrawer.jsx'),
+    leer('frontend/src/modules/inventario/CatalogoProductosPage.jsx'),
+    leer('frontend/src/modules/inventario/EditorRecetasPage.jsx'),
+  ]);
+  assert.match(drawer, /valoresIniciales/);
+  assert.match(drawer, /import \{[^}]*\bSelect\b[^}]*\} from/);
+  assert.match(drawer, /onGuardado\(guardado\)/);
+  assert.match(productos, /getUnidades\(\)/);
+  assert.match(productos, /tiene\('INV_GESTIONAR_INSUMOS'\)[\s\S]*?Crear insumo de reventa/);
+  assert.match(drawer, /z-\[70\]/);
+  assert.match(recetas, /Pide a quien administra insumos que cree/);
+  assert.match(recetas, /handleSeleccionarInsumo\(nuevo, ''\)/);
+  assert.match(recetas, /cantidad-receta-\$\{nuevo\.id_insumo\}/);
+});
+
+test('inventario: diálogo de existencias usa contratos Zod y sucursales asignadas', async () => {
+  const [dialogo, api, routes, controller, inventarioPage, insumosPage] = await Promise.all([
+    leer('frontend/src/modules/inventario/DialogoExistenciasInsumo.jsx'),
+    leer('frontend/src/modules/inventario/inventarioApi.js'),
+    leer('backend/src/modules/inventario/inventario.routes.js'),
+    leer('backend/src/modules/inventario/inventario.controller.js'),
+    leer('frontend/src/modules/inventario/InventarioPage.jsx'),
+    leer('frontend/src/modules/inventario/CatalogoInsumosPage.jsx'),
+  ]);
+  assert.match(dialogo, /idSucursal: Number\(sucursal\)/);
+  assert.match(dialogo, /cantidad: cantidad\.trim\(\), tipo, motivo: motivo\.trim\(\)/);
+  assert.match(dialogo, /stockMinimo: minimo\.trim\(\)/);
+  assert.match(api, /api\.post\(`\/inventario\/insumos\/\$\{idInsumo\}\/movimientos`/);
+  assert.match(api, /api\.patch\(`\/inventario\/insumos\/\$\{idInsumo\}\/stock-minimo`/);
+  assert.match(routes, /router\.get\('\/stock', requirePermiso\('INV_VER_STOCK', 'INV_GESTIONAR_INSUMOS'\)/);
+  assert.match(controller, /configurarMinimo[\s\S]*req\.params\.id\)/);
+  assert.match(inventarioPage, /usuario\?\.sucursales/);
+  assert.match(insumosPage, /tiene\('INV_GESTIONAR_INSUMOS'\).*Existencias/);
 });
 
 test('inventario: el seeder asigna el kardex solo a roles autorizados y restringe costos de BODEGUERO', async () => {
@@ -44,18 +141,24 @@ test('inventario: el costo unitario requiere acceso al kardex y permiso INV_VER_
   assert.doesNotMatch(repository, /SELECT\s+m\.\*/i);
 });
 
-test('inventario: sucursal e insumo se filtran en SQL antes del límite de movimientos', async () => {
+test('inventario: sucursal, insumo y filtros del Kárdex se aplican en SQL antes de paginar', async () => {
   const repository = await leer('backend/src/modules/inventario/inventario.repository.js');
   const sql = repository.match(/const SQL_MOVIMIENTOS_SIN_COSTO = `([\s\S]*?)`;/)?.[1];
   assert.ok(sql);
-  const asignacion = sql.indexOf('seguridad.usuario_sucursal');
-  const filtroSucursal = sql.indexOf('$2::int');
-  const filtroInsumo = sql.indexOf('$3::int');
+  assert.match(repository, /const FILTROS_MOVIMIENTOS = `([\s\S]*?)`;/);
+  const filtros = repository.match(/const FILTROS_MOVIMIENTOS = `([\s\S]*?)`;/)[1];
+  const asignacion = filtros.indexOf('seguridad.usuario_sucursal');
+  const filtroSucursal = filtros.indexOf('$2::int');
+  const filtroInsumo = filtros.indexOf('$3::int');
+  const filtroFecha = filtros.indexOf('$4::date');
+  const filtroTipos = filtros.indexOf('ANY($6::text[])');
   const orden = sql.indexOf('ORDER BY m.creado_en DESC, m.id_movimiento DESC');
-  const limite = sql.indexOf('LIMIT 500');
+  const limite = sql.indexOf('LIMIT $9::int OFFSET $10::int');
   assert.ok(asignacion >= 0 && asignacion < filtroSucursal);
-  assert.ok(filtroSucursal < filtroInsumo && filtroInsumo < orden && orden < limite);
-  assert.match(repository, /\[idUsuario, idSucursal, idInsumo\]/);
+  assert.ok(filtroSucursal < filtroInsumo && filtroInsumo < filtroFecha && filtroFecha < filtroTipos);
+  assert.ok(orden >= 0 && orden < limite);
+  assert.match(repository, /\[\.\.\.binds, limit, \(page - 1\) \* limit\]/);
+  assert.doesNotMatch(repository, /LIMIT 500/);
   assert.match(repository, /sequelize\.query\(sql, \{ bind, transaction, type: QueryTypes\.SELECT \}\)/);
 });
 
@@ -84,7 +187,7 @@ test('inventario: editar insumo conserva costo y el listado de productos cuenta 
   assert.equal(payload.costoPromedio, undefined);
   const repository = await leer('backend/src/modules/inventario/inventario.repository.js');
   assert.match(repository, /if \(data\.costoPromedio !== undefined\) values\.costo_promedio = data\.costoPromedio/);
-  assert.match(repository, /COUNT\(\*\)::int FROM inventario\.recetas r WHERE r\.id_producto = p\.id_producto/);
+  assert.match(repository, /COUNT\(\*\)::int FROM inventario\.recetas r JOIN inventario\.insumos ri USING \(id_insumo\) WHERE r\.id_producto = p\.id_producto AND ri\.deleted_at IS NULL/);
 });
 
 test('inventario: el controller de merma lee el parámetro :id declarado por la ruta', async () => {
@@ -117,14 +220,14 @@ test('inventario UI: CatalogoInsumosPage, CatalogoProductosPage y EditorRecetasP
   ]);
 
   // 1. Rutas protegidas en App.jsx
-  assert.match(app, /path="inventario\/insumos" element={<ProtectedRoute permiso="INV_GESTIONAR_INSUMOS"><CatalogoInsumosPage \/><\/ProtectedRoute>}/);
-  assert.match(app, /path="inventario\/productos" element={<ProtectedRoute permiso="INV_VER_STOCK"><CatalogoProductosPage \/><\/ProtectedRoute>}/);
-  assert.match(app, /path="inventario\/recetas" element={<ProtectedRoute permiso="INV_GESTIONAR_RECETAS"><EditorRecetasPage \/><\/ProtectedRoute>}/);
+  assert.match(app, /path="catalogo\/insumos" element={<ProtectedRoute permiso="INV_GESTIONAR_INSUMOS"><CatalogoInsumosPage \/><\/ProtectedRoute>}/);
+  assert.match(app, /path="catalogo\/productos" element={<ProtectedRoute permiso="INV_VER_STOCK"><CatalogoProductosPage \/><\/ProtectedRoute>}/);
+  assert.match(app, /path="catalogo\/productos\/:idProducto\/receta" element={<ProtectedRoute permiso="INV_GESTIONAR_RECETAS"><EditorRecetasPage \/><\/ProtectedRoute>}/);
 
   // 2. Menú lateral en menu.js
-  assert.match(menu, /ruta: '\/inventario\/insumos', texto: 'Catálogo de Insumos', permiso: 'INV_GESTIONAR_INSUMOS'/);
-  assert.match(menu, /ruta: '\/inventario\/productos', texto: 'Catálogo de Productos', permiso: 'INV_VER_STOCK'/);
-  assert.match(menu, /ruta: '\/inventario\/recetas', texto: 'Editor de Recetas', permiso: 'INV_GESTIONAR_RECETAS'/);
+  assert.match(menu, /ruta: '\/catalogo\/insumos', texto: 'Insumos y unidades', permiso: 'INV_GESTIONAR_INSUMOS'/);
+  assert.match(menu, /ruta: '\/catalogo\/productos', texto: 'Productos', permiso: 'INV_VER_STOCK'/);
+  assert.doesNotMatch(menu, /ruta: '\/inventario\/recetas'/);
 
   // 3. CatalogoInsumosPage: pestañas y unidades; stock se consulta por sucursal en Existencias
   assert.match(insumosPage, /PestanaInsumos/);
@@ -136,12 +239,13 @@ test('inventario UI: CatalogoInsumosPage, CatalogoProductosPage y EditorRecetasP
   assert.doesNotMatch(insumosPage, /codigo_sku|stock_minimo/);
   assert.match(insumosPage, /factor_conversion/);
 
-  // 4. CatalogoProductosPage: alternancia de vistas, precio con formato sin pérdida, filtro y botón receta BOM
+  // 4. CatalogoProductosPage: alternancia de vistas, precio con formato sin pérdida, filtro y botón de receta
   assert.match(productosPage, /vista === 'tabla'/);
   assert.match(productosPage, /vista === 'cuadricula'/);
   assert.match(productosPage, /formatoDinero\(p\.precio_venta\)/);
-  assert.match(productosPage, /\/inventario\/recetas\?producto=/);
-  assert.match(productosPage, /Elaborado \(BOM\)/);
+  assert.match(productosPage, /\/catalogo\/productos\/\$\{producto\.id_producto\}\/receta/);
+  assert.match(productosPage, /function AccionesProducto/);
+  assert.match(productosPage, /Elaborado \(Receta\)/);
   assert.match(productosPage, /Reventa/);
 
   // 5. EditorRecetasPage: dos paneles, simulador financiero, simulador de disponibilidad con cuello de botella
@@ -149,7 +253,11 @@ test('inventario UI: CatalogoInsumosPage, CatalogoProductosPage y EditorRecetasP
   assert.match(recetasPage, /Simulador Financiero/);
   assert.match(recetasPage, /Disponibilidad Operativa/);
   assert.match(recetasPage, /cuelloDeBotella/);
-  assert.match(recetasPage, /Math\.round\(cant \* costoUnit \* 10000\) \/ 10000/);
+  // El subtotal por línea se calcula con BigInt vía calcularSubtotalLinea (anti-float)
+  assert.match(recetasPage, /calcularSubtotalLinea/);
+  assert.match(recetasPage, /Sin costo base/);
+  // Costos de receta con 4 decimales: los insumos cuestan fracciones de centavo por gramo/ml.
+  assert.match(recetasPage, /formatoDineroPreciso\(costoTotal\)/);
 
   // 6. Ninguna pantalla de catálogo debe importar datos ficticios.
   for (const pagina of [insumosPage, productosPage, recetasPage]) assert.doesNotMatch(pagina, /mockData/);

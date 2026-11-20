@@ -8,4 +8,5 @@ description: Crear una pantalla/página React con Tailwind, router, permisos y c
 4. Ruta: añádela en `src/App.jsx` envuelta en `<ProtectedRoute permiso="CODIGO">`.
 5. Menú: añade el ítem en `src/config/menu.js` con su `permiso` (el menú se filtra solo).
 6. Botones sensibles: `const { tiene } = useAuth(); {tiene('POS_ANULAR_VENTA') && <button…/>}` (el backend igual valida).
-7. Responsive y accesible (labels, contraste). Luego skill `registrar-cambio`.
+7. Responsive y accesible (labels, contraste).
+8. Feedback y notificaciones: usa `useAlert()`. En acciones (crear, editar, eliminar, cobrar), reporta éxito con `notificar.exito(...)` y fallos en `catch` con `notificarError(err, { reintentar })`; validaciones previas que bloquean envíos con `notificar.advertencia(...)`; acciones destructivas con `confirm(...)`. Prohibido usar `useState` para divs de alerta de acción o alertas nativas. Conserva en línea únicamente `BannerError` para fallos de carga inicial/tabla, `EstadoVacio` y errores bajo inputs. Luego skill `registrar-cambio`.

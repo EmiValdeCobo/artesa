@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { IVA, PRECIOS_INCLUYEN_IVA, calcularTotales, formatoMoneda } from '../frontend/src/modules/pos/impuestos.js';
 import { carritoInicial, carritoReducer } from '../frontend/src/modules/pos/carritoReducer.js';
+import { etiquetaCobro } from '../frontend/src/modules/pos/etiquetaCobro.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. IMPUESTOS Y CÁLCULO DE TOTALES (POS)
@@ -47,6 +48,18 @@ test('pos impuestos: formatoMoneda da formato USD con símbolo de dólar', () =>
   assert.match(formatted, /15\.50/);
 });
 
+test('pos etiquetaCobro: no sugiere cobrar una venta vacía', () => {
+  assert.equal(etiquetaCobro([], 0), 'Cobrar');
+});
+
+test('pos etiquetaCobro: muestra el total para una venta con productos', () => {
+  assert.equal(etiquetaCobro([{ id_producto: 1 }], 4.5), `Cobrar ${formatoMoneda(4.5)}`);
+});
+
+test('pos etiquetaCobro: conserva dos decimales en importes fraccionarios', () => {
+  assert.equal(etiquetaCobro([{ id_producto: 1 }], 1.05), `Cobrar ${formatoMoneda(1.05)}`);
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 2. REDUCER DEL CARRITO DE COMPRAS (POS)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -79,29 +92,30 @@ test('carritoReducer: agregar producto existente incrementa cantidad hasta el to
 });
 
 test('carritoReducer: cambiarCantidad ajusta dentro del límite y elimina si es 0', () => {
-  const inicial = [{ id_producto: 1, nombre: 'Café', precio: 1.5, cantidad: 2, stock: 10 }];
+  // Las líneas se identifican por clave (mig. 023: el mismo producto puede ir con notas/extras distintos).
+  const inicial = [{ clave: 'a', id_producto: 1, nombre: 'Café', precio: 1.5, cantidad: 2, stock: 10 }];
 
   // Modificar a 4
-  const modificado = carritoReducer(inicial, { tipo: 'cambiarCantidad', id: 1, cantidad: 4 });
+  const modificado = carritoReducer(inicial, { tipo: 'cambiarCantidad', id: 'a', cantidad: 4 });
   assert.equal(modificado[0].cantidad, 4);
 
   // Si se cambia a 0, se elimina del carrito
-  const vaciado = carritoReducer(inicial, { tipo: 'cambiarCantidad', id: 1, cantidad: 0 });
+  const vaciado = carritoReducer(inicial, { tipo: 'cambiarCantidad', id: 'a', cantidad: 0 });
   assert.equal(vaciado.length, 0);
 
   // Si se pide más que el stock, se limita al stock
-  const tope = carritoReducer(inicial, { tipo: 'cambiarCantidad', id: 1, cantidad: 99 });
+  const tope = carritoReducer(inicial, { tipo: 'cambiarCantidad', id: 'a', cantidad: 99 });
   assert.equal(tope[0].cantidad, 10);
 });
 
 test('carritoReducer: quitar y vaciar limpian los ítems correspondientes', () => {
   const items = [
-    { id_producto: 1, nombre: 'Café', precio: 1.5, cantidad: 1, stock: 5 },
-    { id_producto: 2, nombre: 'Pan dulce', precio: 0.75, cantidad: 2, stock: 10 },
+    { clave: 'a', id_producto: 1, nombre: 'Café', precio: 1.5, cantidad: 1, stock: 5 },
+    { clave: 'b', id_producto: 2, nombre: 'Pan dulce', precio: 0.75, cantidad: 2, stock: 10 },
   ];
 
   // Quitar solo el producto 1
-  const filtrado = carritoReducer(items, { tipo: 'quitar', id: 1 });
+  const filtrado = carritoReducer(items, { tipo: 'quitar', id: 'a' });
   assert.equal(filtrado.length, 1);
   assert.equal(filtrado[0].id_producto, 2);
 

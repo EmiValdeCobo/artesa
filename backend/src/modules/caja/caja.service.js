@@ -101,24 +101,82 @@ function formatearCuadre(fila) {
     abierto_en: fila.abierto_en,
     cerrado_en: fila.cerrado_en,
     monto_apertura: fila.monto_apertura,
-    ventas: { efectivo: fila.ventas_efectivo, tarjeta: fila.ventas_tarjeta, digital: fila.ventas_digital },
+    ventas: { efectivo: fila.ventas_efectivo, tarjeta: fila.ventas_tarjeta, digital: fila.ventas_digital, bitcoin: fila.ventas_bitcoin },
     ingresos_caja: fila.ingresos_caja,
     egresos_caja: fila.egresos_caja,
     efectivo: porMetodo(fila, 'efectivo'),
     tarjeta: porMetodo(fila, 'tarjeta'),
     digital: porMetodo(fila, 'digital'),
+    bitcoin: porMetodo(fila, 'bitcoin'),
   };
 }
 
-// RN: solo el cajero dueño cierra su turno, una sola vez. La función SQL calcula lo esperado, guarda
+// RN: no se puede cerrar la caja si en algún método (efectivo, tarjeta, transferencia o Bitcoin/Chivo) la diferencia absoluta
+// supera la tolerancia configurada en el parámetro `tolerancia_cuadre`. El turno sigue ABIERTO para que el
+// cajero recuente o registre el movimiento que falta. Se evalúa dentro de la misma transacción que bloquea el turno.
+const METODOS = ['efectivo', 'tarjeta', 'digital', 'bitcoin'];
+async function validarToleranciaDescuadre(transaction, idTurno, contado) {
+  const tolerancia = await repo.obtenerToleranciaCuadre(transaction);
+  if (!/^\d+(\.\d{1,2})?$/.test(tolerancia)) {
+    throw new AppError('El parámetro tolerancia_cuadre no es un monto válido; avisa a un administrador', 500);
+  }
+  const d = await repo.calcularDescuadre(transaction, { idTurno, ...contado, tolerancia });
+  const excedidos = METODOS.filter((m) => d?.[`excede_${m}`]);
+  if (excedidos.length > 0) {
+    const detalle = excedidos.map((m) => `${m} (${d[`dif_${m}`]})`).join(', ');
+    throw new AppError(
+      `El descuadre supera la tolerancia permitida de $${tolerancia} en: ${detalle}. Recuenta o registra el movimiento faltante antes de cerrar.`,
+      422,
+    );
+  }
+}
+
+// RN: cierra el turno su cajero dueño; o un supervisor (permiso CAJA_CERRAR_CUALQUIER_TURNO: ADMIN y gerente)
+// de una sucursal que tenga asignada, para cerrar turnos que quedaron abiertos (p. ej. de días anteriores).
+async function validarQuienCierra(turno, userId, transaction) {
+  if (turno.id_usuario === userId) return;
+  const esSupervisor = (await repo.usuarioTienePermiso(userId, 'CAJA_CERRAR_CUALQUIER_TURNO'))
+    && (await repo.usuarioTieneSucursal(userId, turno.id_sucursal, transaction));
+  if (!esSupervisor) throw new AppError('Solo el cajero del turno o un supervisor de su sucursal puede cerrarlo', 403);
+}
+
+// RN: no se cierra un turno con pedidos en la cola de preparación (ni el supervisor puede forzarlo):
+// así no quedan pedidos huérfanos de turnos cerrados. Hay que entregarlos o cancelarlos primero.
+const textoPedidos = (n) => (n === 1
+  ? 'Hay 1 pedido pendiente en preparación. Entrégalo o cancélalo antes de cerrar la caja.'
+  : `Hay ${n} pedidos pendientes en preparación. Entrégalos o cancélalos antes de cerrar la caja.`);
+export async function validarSinPedidosPendientes(transaction, idTurno) {
+  const pendientes = await repo.listarPedidosPendientes(idTurno, transaction);
+  if (pendientes.length > 0) {
+    throw new AppError(
+      textoPedidos(pendientes.length),
+      409,
+      'PEDIDOS_PENDIENTES',
+    );
+  }
+}
+
+// El cajero (o quien puede ver el cuadre) consulta qué pedidos impiden cerrar el turno.
+export async function listarPedidosPendientes(idTurno, userId) {
+  const turno = await repo.buscarTurno(idTurno);
+  if (!turno) throw new AppError('El turno no existe', 404);
+  if (turno.id_usuario !== userId && !(await repo.usuarioTieneSucursal(userId, turno.id_sucursal))) {
+    throw new AppError('El turno pertenece a una sucursal que no tienes asignada', 403);
+  }
+  return repo.listarPedidosPendientes(idTurno);
+}
+
+// RN: el turno se cierra una sola vez. La función SQL calcula lo esperado, guarda
 // lo contado y las diferencias (contado - esperado; negativo = faltante) y marca el turno CERRADO.
 export async function cerrarTurno(idTurno, contado, userId) {
   try {
     return await withTransaction(async (transaction) => {
       const turno = await repo.bloquearTurno(transaction, idTurno);
       if (!turno) throw new AppError('El turno no existe', 404);
-      if (turno.id_usuario !== userId) throw new AppError('Solo el cajero del turno puede cerrarlo', 403);
+      await validarQuienCierra(turno, userId, transaction);
       if (turno.estado !== 'ABIERTO') throw new AppError('El turno ya está cerrado', 409);
+      await validarSinPedidosPendientes(transaction, idTurno);
+      await validarToleranciaDescuadre(transaction, idTurno, contado);
       await repo.cerrarTurno(transaction, { idTurno, ...contado });
       return formatearCuadre(await repo.buscarCuadre(idTurno, transaction));
     }, userId);

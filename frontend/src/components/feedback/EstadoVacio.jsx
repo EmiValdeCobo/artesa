@@ -1,11 +1,19 @@
-// Mensaje centrado para listas vacías o sin resultados: qué pasa + qué hacer.
+// Mensaje para listas vacías o sin resultados: qué pasa + qué hacer. Sobrio, sin ilustraciones.
 //   <EstadoVacio icono={Search} titulo="Sin resultados">Prueba con otro término.</EstadoVacio>
-export default function EstadoVacio({ icono: Icono, titulo, tono = 'text-fg-muted', className = '', children }) {
+export default function EstadoVacio({ icono: Icono, titulo, tono = 'text-fg-muted', className = '', accion = null, children }) {
+  if (import.meta.env.DEV && !titulo) {
+    console.warn('EstadoVacio: falta la prop "titulo"');
+  }
   return (
     <div className={`flex flex-col items-center px-6 py-12 text-center ${className}`}>
-      {Icono && <Icono size={28} className={tono} aria-hidden="true" />}
-      <h3 className="mt-3 font-semibold">{titulo}</h3>
-      {children && <p className="mt-1 max-w-sm text-sm text-fg-muted">{children}</p>}
+      {Icono && (
+        <span className={`grid size-control-lg place-items-center rounded-lg bg-muted ${tono}`}>
+          <Icono size={24} strokeWidth={1.5} aria-hidden="true" />
+        </span>
+      )}
+      <h3 className="mt-4 text-h3">{titulo}</h3>
+      {children && <p className="mt-1 max-w-sm text-body text-fg-muted">{children}</p>}
+      {accion && <div className="mt-5">{accion}</div>}
     </div>
   );
 }

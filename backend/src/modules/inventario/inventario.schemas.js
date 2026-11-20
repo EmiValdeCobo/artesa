@@ -1,6 +1,10 @@
 import { z } from 'zod';
+import { camposPaginacion } from '../../utils/paginacion.js';
 
 const id = z.coerce.number().int().positive();
+const enteroPositivo = (max) => z.union([z.number(), z.string()]).transform((v) => String(v).trim())
+  .pipe(z.string().regex(new RegExp(`^\\d{1,${max}}$`), 'La cantidad debe ser un entero positivo'))
+  .refine((v) => /[1-9]/.test(v), 'La cantidad debe ser mayor a cero');
 const decimal = (max, decimals, min = 0) => z.union([z.number(), z.string()]).transform((v) => String(v).trim())
   .pipe(z.string().regex(new RegExp(`^\\d{1,${max}}(\\.\\d{1,${decimals}})?$`), 'Formato numérico no válido'))
   .refine((v) => Number(v) >= min, `El valor debe ser mayor o igual a ${min}`);
@@ -8,8 +12,8 @@ export const idSchema = id;
 export const unidadSchema = z.object({
   codigo: z.string().trim().min(1).max(10).transform((v) => v.toUpperCase()),
   nombre: z.string().trim().min(2).max(50),
-  factorConversion: decimal(6, 4).optional(),
-  factor_conversion: decimal(6, 4).optional(),
+  factorConversion: decimal(6, 4).refine((v) => Number(v) > 0, 'El factor de conversión debe ser mayor a cero').optional(),
+  factor_conversion: decimal(6, 4).refine((v) => Number(v) > 0, 'El factor de conversión debe ser mayor a cero').optional(),
   activo: z.boolean().optional(),
 }).transform((data) => ({
   codigo: data.codigo,
@@ -21,8 +25,8 @@ export const unidadSchema = z.object({
 export const actualizarUnidadSchema = z.object({
   codigo: z.string().trim().min(1).max(10).transform((v) => v.toUpperCase()).optional(),
   nombre: z.string().trim().min(2).max(50).optional(),
-  factorConversion: decimal(6, 4).optional(),
-  factor_conversion: decimal(6, 4).optional(),
+  factorConversion: decimal(6, 4).refine((v) => Number(v) > 0, 'El factor de conversión debe ser mayor a cero').optional(),
+  factor_conversion: decimal(6, 4).refine((v) => Number(v) > 0, 'El factor de conversión debe ser mayor a cero').optional(),
   activo: z.boolean().optional(),
 }).transform((data) => {
   const res = {};
@@ -76,6 +80,8 @@ export const productoSchema = z.object({
   idInsumoReventa: id.nullish(),
   id_insumo_reventa: id.nullish(),
   activo: z.boolean().default(true),
+  esExtra: z.boolean().optional(),
+  es_extra: z.boolean().optional(),
 }).transform((data) => ({
   idCategoria: data.idCategoria ?? data.id_categoria ?? null,
   nombre: data.nombre,
@@ -83,13 +89,31 @@ export const productoSchema = z.object({
   precioVenta: data.precioVenta ?? data.precio_venta,
   esElaborado: data.esElaborado ?? data.es_elaborado ?? true,
   idInsumoReventa: data.idInsumoReventa ?? data.id_insumo_reventa ?? null,
+  esExtra: data.esExtra ?? data.es_extra ?? false,
   activo: data.activo,
 })).refine((v) => v.precioVenta !== undefined, { message: 'El precio de venta es obligatorio', path: ['precioVenta'] })
   .refine((v) => (v.esElaborado && !v.idInsumoReventa) || (!v.esElaborado && !!v.idInsumoReventa), {
     message: 'Los productos de reventa requieren insumo asociado y los elaborados no',
     path: ['idInsumoReventa'],
   });
-export const recetaSchema = z.object({ componentes: z.array(z.object({ idInsumo: id, cantidadRequerida: decimal(6, 4).refine((v) => Number(v) > 0, 'La cantidad debe ser mayor a cero') })).min(1).max(100) });
-export const stockSchema = z.object({ idSucursal: id, idInsumo: id, cantidad: decimal(10, 4, 0.0001), tipo: z.enum(['INVENTARIO_INICIAL', 'AJUSTE', 'TRASLADO_ENTRADA']), motivo: z.string().trim().min(3).max(500) });
-export const minimoSchema = z.object({ idSucursal: id, stockMinimo: decimal(10, 4) });
-export const mermaSchema = z.object({ idSucursal: id, cantidad: decimal(10, 4, 0.0001), motivo: z.string().trim().min(3).max(500) });
+// PUT /productos/:id/extras: reemplaza la lista completa de extras permitidos (vacía = sin extras).
+export const extrasSchema = z.object({ extras: z.array(id).max(30).refine((xs) => new Set(xs.map(Number)).size === xs.length, 'No repitas extras') });
+export const recetaSchema = z.object({ componentes: z.array(z.object({ idInsumo: id, cantidadRequerida: enteroPositivo(6) })).min(1).max(100).refine((c) => new Set(c.map((x) => Number(x.idInsumo))).size === c.length, 'No repitas insumos en la receta') });
+export const stockSchema = z.object({ idSucursal: id, idInsumo: id, cantidad: enteroPositivo(10), tipo: z.enum(['INVENTARIO_INICIAL', 'AJUSTE', 'TRASLADO_ENTRADA']), motivo: z.string().trim().min(3).max(500) });
+export const minimoSchema = z.object({ idSucursal: id, stockMinimo: enteroPositivo(10) });
+export const mermaSchema = z.object({ idSucursal: id, cantidad: enteroPositivo(10), motivo: z.string().trim().min(3).max(500) });
+export const cambiarEstadoSchema = z.object({ activo: z.boolean().optional() });
+const tiposMovimiento = z.enum(['VENTA', 'ANULACION_VENTA', 'COMPRA', 'MERMA', 'AJUSTE', 'INVENTARIO_INICIAL', 'TRASLADO_ENTRADA', 'TRASLADO_SALIDA']);
+export const filtrosMovimientosSchema = z.object({
+  idSucursal: id.optional(),
+  idInsumo: id.optional(),
+  desde: z.iso.date().optional(),
+  hasta: z.iso.date().optional(),
+  tipos: z.string().transform((value) => value.split(',')).pipe(z.array(tiposMovimiento).max(8)).default([]),
+  direccion: z.enum(['todos', 'entradas', 'salidas']).default('todos'),
+  q: z.string().trim().max(120).optional(),
+  ...camposPaginacion,
+}).refine(({ desde, hasta }) => !desde || !hasta || desde <= hasta, {
+  message: 'La fecha desde debe ser anterior o igual a hasta',
+  path: ['desde'],
+});

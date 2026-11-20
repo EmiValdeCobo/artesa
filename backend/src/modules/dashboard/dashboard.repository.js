@@ -93,6 +93,78 @@ export async function resumenVentas(filtro) {
   return fila;
 }
 
+/** Resumen del panel: límites locales convertidos a UTC y agregaciones monetarias en PostgreSQL. */
+export async function resumenVentasPanel({ zona, dias, sucursalIds, idUsuario }) {
+  const filtroUsuario = filtroDeUsuario(idUsuario);
+  const [fila] = await query(
+    `WITH reloj AS (
+       SELECT ${LOCAL('$1')} AS local
+     ), limites AS (
+       SELECT r.local, r.local::date AS fecha,
+              ${INICIO_UTC('r.local::date', '$1')} AS hoy_ini,
+              (r.local AT TIME ZONE $1::text AT TIME ZONE 'UTC') AS corte,
+              ${INICIO_UTC('r.local::date - 1', '$1')} AS ayer_ini,
+              ${INICIO_UTC('r.local::date + 1', '$1')} AS manana_ini,
+              ${INICIO_UTC('r.local::date - 7', '$1')} AS semana_ini,
+              ((r.local - INTERVAL '7 days') AT TIME ZONE $1::text AT TIME ZONE 'UTC') AS semana_corte,
+              ${INICIO_UTC(`r.local::date - ($2::int - 1)`, '$1')} AS periodo_ini,
+              ${INICIO_UTC(`r.local::date - ($2::int - 1) - $2::int`, '$1')} AS anterior_ini
+       FROM reloj r
+     ), ventas AS (
+       SELECT v.fecha_emision, ((v.fecha_emision AT TIME ZONE 'UTC') AT TIME ZONE $1::text) AS local,
+              v.total
+       FROM pos.ventas v CROSS JOIN limites l
+       WHERE v.estado = 'EMITIDA' AND v.id_sucursal = ANY($3::int[])
+         AND v.fecha_emision >= l.anterior_ini AND v.fecha_emision < l.manana_ini
+         ${filtroUsuario}
+     ), horas AS (
+       SELECT EXTRACT(HOUR FROM v.local)::int AS hora,
+              COUNT(*) FILTER (WHERE v.fecha_emision >= l.hoy_ini AND v.fecha_emision < l.corte)::int AS tickets,
+              ROUND(COALESCE(SUM(v.total) FILTER (WHERE v.fecha_emision >= l.hoy_ini AND v.fecha_emision < l.corte), 0) * 100)::bigint::text AS total,
+              COUNT(*) FILTER (WHERE v.fecha_emision >= l.semana_ini AND v.fecha_emision < l.semana_corte)::int AS tickets_semana,
+              ROUND(COALESCE(SUM(v.total) FILTER (WHERE v.fecha_emision >= l.semana_ini AND v.fecha_emision < l.semana_corte), 0) * 100)::bigint::text AS total_semana
+       FROM ventas v CROSS JOIN limites l
+       WHERE (v.fecha_emision >= l.hoy_ini AND v.fecha_emision < l.corte)
+          OR (v.fecha_emision >= l.semana_ini AND v.fecha_emision < l.semana_corte)
+       GROUP BY 1
+     ), por_dia AS (
+       SELECT v.local::date AS fecha, COUNT(*)::int AS tickets,
+              ROUND(SUM(v.total) * 100)::bigint::text AS total,
+              ROUND(AVG(v.total) * 100)::bigint::text AS avg_ticket
+       FROM ventas v CROSS JOIN limites l
+       WHERE v.fecha_emision >= l.periodo_ini AND v.fecha_emision < l.corte
+       GROUP BY 1
+     ), totales AS (
+       SELECT l.*,
+         ROUND(COALESCE(SUM(v.total) FILTER (WHERE v.fecha_emision >= l.hoy_ini AND v.fecha_emision < l.corte),0)*100)::bigint::text AS hoy_total,
+         COUNT(*) FILTER (WHERE v.fecha_emision >= l.hoy_ini AND v.fecha_emision < l.corte)::int AS hoy_tickets,
+         ROUND(COALESCE(SUM(v.total) FILTER (WHERE v.fecha_emision >= l.ayer_ini AND v.fecha_emision < l.corte - INTERVAL '1 day'),0)*100)::bigint::text AS ayer_misma_hora,
+         ROUND(COALESCE(SUM(v.total) FILTER (WHERE v.fecha_emision >= l.ayer_ini AND v.fecha_emision < l.manana_ini),0)*100)::bigint::text AS ayer_completo,
+         ROUND(COALESCE(SUM(v.total) FILTER (WHERE v.fecha_emision >= l.semana_ini AND v.fecha_emision < l.semana_corte),0)*100)::bigint::text AS semana_misma_hora,
+         COUNT(*) FILTER (WHERE v.fecha_emision >= l.semana_ini AND v.fecha_emision < l.semana_corte)::int AS semana_tickets,
+         ROUND(COALESCE(SUM(v.total) FILTER (WHERE v.fecha_emision >= l.periodo_ini AND v.fecha_emision < l.corte),0)*100)::bigint::text AS periodo_total,
+         COUNT(*) FILTER (WHERE v.fecha_emision >= l.periodo_ini AND v.fecha_emision < l.corte)::int AS periodo_tickets,
+         ROUND(COALESCE(SUM(v.total) FILTER (WHERE v.fecha_emision >= l.anterior_ini AND v.fecha_emision < l.periodo_ini),0)*100)::bigint::text AS anterior_total,
+         COUNT(*) FILTER (WHERE v.fecha_emision >= l.anterior_ini AND v.fecha_emision < l.periodo_ini)::int AS anterior_tickets
+       FROM limites l LEFT JOIN ventas v ON TRUE GROUP BY l.local,l.fecha,l.hoy_ini,l.corte,l.ayer_ini,l.manana_ini,l.semana_ini,l.semana_corte,l.periodo_ini,l.anterior_ini
+     )
+     SELECT to_char(t.local, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_local,
+       jsonb_build_object('fecha', t.fecha::text, 'total',t.hoy_total,'tickets',t.hoy_tickets,
+         'avgTicket', CASE WHEN t.hoy_tickets > 0 THEN ROUND(t.hoy_total::numeric / t.hoy_tickets)::bigint::text END,
+         'byHour', COALESCE((SELECT jsonb_agg(jsonb_build_object('hour',g.hora,'total',COALESCE(h.total,'0'),'tickets',COALESCE(h.tickets,0),'sameWeekdayTotal',COALESCE(h.total_semana,'0'),'sameWeekdayTickets',COALESCE(h.tickets_semana,0)) ORDER BY g.hora)
+           FROM generate_series(0,23) g(hora) LEFT JOIN horas h ON h.hora=g.hora), '[]'::jsonb)) AS today,
+       jsonb_build_object('yesterdayToSameHour',t.ayer_misma_hora,'sameWeekdayLastWeekToSameHour',t.semana_misma_hora,
+         'sameWeekdayLastWeekTickets',t.semana_tickets,'yesterdayFullDay',t.ayer_completo) AS comparison,
+       COALESCE((SELECT jsonb_agg(jsonb_build_object('date',(t.fecha - ($2::int - 1) + g.k)::text,'total',COALESCE(d.total,'0'),'tickets',COALESCE(d.tickets,0),'avgTicket',d.avg_ticket) ORDER BY g.k)
+         FROM generate_series(0,$2::int - 1) g(k) LEFT JOIN por_dia d ON d.fecha=t.fecha - ($2::int - 1) + g.k), '[]'::jsonb) AS series,
+       jsonb_build_object('total',t.periodo_total,'tickets',t.periodo_tickets,'previousTotal',t.anterior_total,'previousTickets',t.anterior_tickets,
+         'deltaPct',CASE WHEN t.anterior_total::numeric > 0 THEN ROUND((t.periodo_total::numeric-t.anterior_total::numeric)/t.anterior_total::numeric*100,1)::text END) AS period
+     FROM totales t`,
+    [zona, dias, sucursalIds, ...(idUsuario ? [idUsuario] : [])],
+  );
+  return fila;
+}
+
 // ---------- Top de productos ----------
 export const topProductos = ({ zona, dias, sucursalIds, limite }) => query(
   `WITH ${CTE_RANGO('$2::int')},
@@ -114,20 +186,15 @@ export const topProductos = ({ zona, dias, sucursalIds, limite }) => query(
 );
 
 // ---------- Alertas (una consulta agregada por tipo) ----------
-// Stock: igual que reportes.vw_alertas_stock, pero con alcance por sucursal y agrupado en la BD.
-// Un insumo sin mínimo definido (0) no genera alerta mientras no tenga stock negativo.
+// Agrega la vista compartida para mantener idéntico el criterio de alertas en dashboard e inventario.
 export const alertasStock = (sucursalIds) => query(
-  `SELECT s.id_sucursal, s.nombre AS sucursal,
-          CASE WHEN ss.stock_actual <= 0 THEN 'AGOTADO' ELSE 'BAJO_MINIMO' END AS nivel,
+  `SELECT a.id_sucursal, a.sucursal, a.nivel,
           COUNT(*)::int AS total,
-          (array_agg(i.nombre ORDER BY ss.stock_minimo - ss.stock_actual DESC, i.nombre))[1:3] AS ejemplos
-   FROM inventario.stock_sucursal ss
-   JOIN inventario.insumos i ON i.id_insumo = ss.id_insumo
-   JOIN empresa.sucursales s ON s.id_sucursal = ss.id_sucursal
-   WHERE i.activo AND ss.id_sucursal = ANY($1::int[])
-     AND ss.stock_actual <= ss.stock_minimo AND (ss.stock_minimo > 0 OR ss.stock_actual < 0)
-   GROUP BY 1, 2, 3
-   ORDER BY 3, 2`,
+          (array_agg(a.insumo ORDER BY a.faltante DESC, a.insumo))[1:3] AS ejemplos
+   FROM reportes.vw_alertas_stock a
+   WHERE a.id_sucursal = ANY($1::int[])
+   GROUP BY a.id_sucursal, a.sucursal, a.nivel
+   ORDER BY a.id_sucursal, a.nivel`,
   [sucursalIds],
 );
 
@@ -165,13 +232,13 @@ export const alertasCaidaVentas = ({ zona, sucursalIds, caidaVentasPct, caidaVen
 
 export const alertasCuadres = ({ zona, sucursalIds }) => query(
   `SELECT s.id_sucursal, s.nombre AS sucursal, COUNT(*)::int AS turnos,
-          SUM(ABS(COALESCE(t.dif_efectivo, 0)) + ABS(COALESCE(t.dif_tarjeta, 0)) + ABS(COALESCE(t.dif_digital, 0)))::numeric(12,2) AS diferencia_total
+          SUM(ABS(COALESCE(t.dif_efectivo, 0)) + ABS(COALESCE(t.dif_tarjeta, 0)) + ABS(COALESCE(t.dif_digital, 0)) + ABS(COALESCE(t.dif_bitcoin, 0)))::numeric(12,2) AS diferencia_total
    FROM pos.turnos_caja t
    JOIN pos.cajas c ON c.id_caja = t.id_caja
    JOIN empresa.sucursales s ON s.id_sucursal = c.id_sucursal
    WHERE t.estado = 'CERRADO' AND c.id_sucursal = ANY($2::int[])
      AND t.cerrado_en >= ${INICIO_UTC(`${LOCAL('$1')}::date - 6`, '$1')}
-     AND (COALESCE(t.dif_efectivo, 0) <> 0 OR COALESCE(t.dif_tarjeta, 0) <> 0 OR COALESCE(t.dif_digital, 0) <> 0)
+     AND (COALESCE(t.dif_efectivo, 0) <> 0 OR COALESCE(t.dif_tarjeta, 0) <> 0 OR COALESCE(t.dif_digital, 0) <> 0 OR COALESCE(t.dif_bitcoin, 0) <> 0)
    GROUP BY 1, 2
    ORDER BY 2`,
   [zona, sucursalIds],
@@ -202,11 +269,11 @@ export const alertasCuentasPorPagar = ({ zona, sucursalIds, cxpDiasAviso }) => q
           COUNT(*) FILTER (WHERE f.fecha_vencimiento >= h.d)::int AS por_vencer,
           COALESCE(SUM(x.saldo) FILTER (WHERE f.fecha_vencimiento >= h.d), 0)::numeric(12,2) AS saldo_por_vencer
    FROM (SELECT ${LOCAL('$1')}::date AS d) h
-   JOIN compras.facturas_compra f ON f.estado_pago <> 'PAGADO' AND f.fecha_vencimiento <= h.d + $3::int
+   JOIN compras.facturas_compra f ON f.deleted_at IS NULL AND f.estado_pago <> 'PAGADO' AND f.fecha_vencimiento <= h.d + $3::int
                                  AND f.id_sucursal = ANY($2::int[])
    JOIN empresa.sucursales s ON s.id_sucursal = f.id_sucursal
    CROSS JOIN LATERAL (SELECT f.total - COALESCE(SUM(p.monto), 0) AS saldo
-                       FROM compras.pagos_proveedor p WHERE p.id_compra = f.id_compra) x
+                       FROM compras.pagos_proveedor p WHERE p.id_compra = f.id_compra AND p.deleted_at IS NULL) x
    WHERE x.saldo > 0
    GROUP BY 1, 2
    ORDER BY 2`,
@@ -247,4 +314,27 @@ export const alertasPlanillas = ({ zona, sucursalIds }) => query(
    GROUP BY 1, 2
    ORDER BY 2`,
   [zona, sucursalIds],
+);
+
+// ---------- Órdenes recientes ----------
+// Últimas ventas del alcance (EMITIDA y ANULADA). Ítems y método de pago se agregan en subconsultas;
+// si hubo pago mixto se devuelve 'MIXTO'. La fecha se entrega en la zona del negocio (texto) y en ISO UTC.
+export const ordenesRecientes = ({ zona, sucursalIds, idUsuario, limite }) => query(
+  `SELECT v.id_venta AS id, v.tipo_comprobante, v.correlativo, v.estado, v.total,
+          to_char(v.fecha_emision, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS fecha_utc,
+          to_char((v.fecha_emision AT TIME ZONE 'UTC') AT TIME ZONE $1::text, 'YYYY-MM-DD HH24:MI') AS fecha_local,
+          s.nombre AS sucursal,
+          COALESCE(NULLIF(o.etiqueta, ''), c.nombre_razon_social) AS cliente,
+          o.canal,
+          (SELECT COALESCE(SUM(d.cantidad), 0)::int FROM pos.venta_detalles d WHERE d.id_venta = v.id_venta) AS items,
+          (SELECT CASE WHEN COUNT(DISTINCT p.metodo) > 1 THEN 'MIXTO' ELSE MIN(p.metodo) END
+             FROM pos.pagos p WHERE p.id_venta = v.id_venta) AS metodo_pago
+   FROM pos.ventas v
+   JOIN empresa.sucursales s ON s.id_sucursal = v.id_sucursal
+   LEFT JOIN pos.ordenes o ON o.id_orden = v.id_orden
+   LEFT JOIN pos.clientes c ON c.id_cliente = v.id_cliente
+   WHERE v.id_sucursal = ANY($2::int[]) ${idUsuario ? 'AND v.id_usuario = $4::uuid' : ''}
+   ORDER BY v.fecha_emision DESC
+   LIMIT $3::int`,
+  [zona, sucursalIds, limite, ...(idUsuario ? [idUsuario] : [])],
 );

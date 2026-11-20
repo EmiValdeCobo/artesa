@@ -1,10 +1,20 @@
+import pg from 'pg';
 import { QueryTypes, Sequelize } from 'sequelize';
 import { env } from './env.js';
 import { obtenerContextoSolicitud } from '../utils/requestContext.js';
 
+// Las columnas TIMESTAMP (sin zona) guardan hora UTC: la sesión de PostgreSQL corre en UTC y
+// CURRENT_TIMESTAMP/now() escriben UTC. node-postgres, por defecto, las interpreta en la zona del
+// proceso Node: dentro de Docker (TZ=UTC) cuadraba, pero en un equipo con America/El_Salvador
+// desplazaba 6 h todas las horas (aperturas "en el futuro", "hace un momento", minutos inconsistentes).
+// Se fija la interpretación en UTC para que el resultado no dependa de dónde corre el backend.
+const OID_TIMESTAMP = 1114;
+pg.types.setTypeParser(OID_TIMESTAMP, (valor) => (valor === null ? null : new Date(`${valor.replace(' ', 'T')}Z`)));
+
 const opciones = {
   dialect: 'postgres',
   logging: false,
+  timezone: '+00:00',
 };
 
 export const sequelize = env.database

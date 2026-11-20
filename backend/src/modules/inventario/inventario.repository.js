@@ -1,6 +1,6 @@
 import { QueryTypes } from 'sequelize';
 import { sequelize } from '../../config/db.js';
-import { CategoriaProducto, Insumo, Producto, Receta, UnidadMedida } from '../../models/index.js';
+import { CategoriaProducto, Insumo, Producto, ProductoExtra, Receta, UnidadMedida } from '../../models/index.js';
 
 const select = (sql, bind = [], transaction = null) => sequelize.query(sql, { bind, transaction, type: QueryTypes.SELECT });
 const plain = (model) => model?.get({ plain: true }) ?? null;
@@ -10,67 +10,176 @@ export const crearUnidad = (data, transaction) => UnidadMedida.create({ codigo: 
 export const actualizarUnidad = async (id, data, transaction) => { const row = await UnidadMedida.findByPk(id, { transaction }); if (!row) return null; const values = {}; if (data.codigo !== undefined) values.codigo = data.codigo; if (data.nombre !== undefined) values.nombre = data.nombre; if (data.factor_conversion !== undefined || data.factorConversion !== undefined) values.factor_conversion = data.factor_conversion ?? data.factorConversion; if (data.activo !== undefined) values.activo = data.activo; await row.update(values, { transaction }); return plain(row); };
 export const desactivarUnidad = async (id, transaction) => { const row = await UnidadMedida.findByPk(id, { transaction }); if (!row) return false; await row.update({ activo: false }, { transaction }); return true; };
 export const eliminarUnidad = async (id, transaction) => { const row = await UnidadMedida.findByPk(id, { transaction }); if (!row) return false; await row.update({ activo: false, deleted_at: new Date() }, { transaction }); return true; };
-export const listarInsumos = (verCostos = false) => select(`SELECT i.id_insumo, i.nombre, i.tipo_insumo, i.id_unidad_base, ${verCostos ? 'i.costo_promedio' : 'NULL::numeric AS costo_promedio'}, i.activo, u.codigo AS unidad_codigo, u.codigo AS codigo_unidad, u.nombre AS unidad FROM inventario.insumos i JOIN inventario.unidades_medida u ON u.id_unidad = i.id_unidad_base ORDER BY i.nombre`);
-export const buscarInsumo = (id, transaction) => Insumo.findByPk(id, { transaction }).then(plain);
+export const listarInsumos = (verCostos = false, soloActivos = false) => select(`SELECT i.id_insumo, i.nombre, i.tipo_insumo, i.id_unidad_base, ${verCostos ? 'i.costo_promedio' : 'NULL::numeric AS costo_promedio'}, i.activo, u.codigo AS unidad_codigo, u.codigo AS codigo_unidad, u.nombre AS unidad FROM inventario.insumos i JOIN inventario.unidades_medida u ON u.id_unidad = i.id_unidad_base WHERE i.deleted_at IS NULL AND ($1::boolean = false OR i.activo = true) ORDER BY i.nombre`, [soloActivos]);
+export const buscarInsumo = (id, transaction) => Insumo.findOne({ where: { id_insumo: id, deleted_at: null }, transaction }).then(plain);
 export const crearInsumo = (data, transaction) => Insumo.create({ nombre: data.nombre, tipo_insumo: data.tipoInsumo, id_unidad_base: data.idUnidadBase, costo_promedio: data.costoPromedio, activo: data.activo }, { transaction }).then(plain);
-export const actualizarInsumo = async (id, data, transaction) => { const row = await Insumo.findByPk(id, { transaction }); if (!row) return null; const values = { nombre: data.nombre, tipo_insumo: data.tipoInsumo, id_unidad_base: data.idUnidadBase, activo: data.activo }; if (data.costoPromedio !== undefined) values.costo_promedio = data.costoPromedio; await row.update(values, { transaction }); return plain(row); };
-export const desactivarInsumo = async (id, transaction) => { const row = await Insumo.findByPk(id, { transaction }); if (!row) return false; await row.update({ activo: false }, { transaction }); return true; };
+export const actualizarInsumo = async (id, data, transaction) => { const row = await Insumo.findOne({ where: { id_insumo: id, deleted_at: null }, transaction }); if (!row) return null; const values = { nombre: data.nombre, tipo_insumo: data.tipoInsumo, id_unidad_base: data.idUnidadBase, activo: data.activo }; if (data.costoPromedio !== undefined) values.costo_promedio = data.costoPromedio; await row.update(values, { transaction }); return plain(row); };
+export const cambiarEstadoInsumo = async (id, activo, transaction) => { const row = await Insumo.findOne({ where: { id_insumo: id, deleted_at: null }, transaction }); if (!row) return null; await row.update({ activo }, { transaction }); return plain(row); };
+export const desactivarInsumo = async (id, transaction) => { const row = await Insumo.findOne({ where: { id_insumo: id, deleted_at: null }, transaction }); if (!row) return false; await row.update({ activo: false }, { transaction }); return true; };
+export const eliminarInsumo = async (id, transaction) => { const row = await Insumo.findOne({ where: { id_insumo: id, deleted_at: null }, transaction }); if (!row) return false; await row.update({ deleted_at: new Date() }, { transaction }); return true; };
+export const insumoTieneRecetas = async (id, transaction) => {
+  const rows = await select(
+    `SELECT 1 FROM inventario.productos p
+     LEFT JOIN inventario.recetas r ON r.id_producto = p.id_producto
+     WHERE p.deleted_at IS NULL AND p.activo = true AND (r.id_insumo = $1 OR p.id_insumo_reventa = $1)
+     LIMIT 1`,
+    [id],
+    transaction
+  );
+  return rows.length > 0;
+};
+export const insumoTieneStock = async (id, transaction) => {
+  const rows = await select(
+    `SELECT 1 FROM inventario.stock_sucursal
+     WHERE id_insumo = $1 AND stock_actual <> 0
+     LIMIT 1`,
+    [id],
+    transaction
+  );
+  return rows.length > 0;
+};
+export const insumoTieneMovimientos = async (id, transaction) => {
+  const rows = await select(
+    `SELECT 1 FROM inventario.movimientos_inventario
+     WHERE id_insumo = $1
+     LIMIT 1`,
+    [id],
+    transaction
+  );
+  return rows.length > 0;
+};
+export const productosQueUsanInsumo = (id, transaction) => select(`
+  SELECT DISTINCT p.nombre
+  FROM inventario.productos p
+  LEFT JOIN inventario.recetas r ON r.id_producto = p.id_producto
+  WHERE p.deleted_at IS NULL AND p.activo = true AND (r.id_insumo = $1 OR p.id_insumo_reventa = $1)
+  ORDER BY p.nombre
+  LIMIT 6`, [id], transaction);
+export const insumosQueUsanUnidad = (id, transaction) => select(`
+  SELECT nombre FROM inventario.insumos
+  WHERE deleted_at IS NULL AND activo = true AND id_unidad_base = $1
+  ORDER BY nombre LIMIT 6`, [id], transaction);
 export const listarCategorias = () => CategoriaProducto.findAll({ order: [['nombre', 'ASC']] }).then((xs) => xs.map(plain));
-export const listarProductos = () => select(`SELECT p.*, c.nombre AS categoria, i.nombre AS insumo_reventa, CASE WHEN p.es_elaborado THEN (SELECT COUNT(*)::int FROM inventario.recetas r WHERE r.id_producto = p.id_producto) ELSE 0::int END AS n_ingredientes FROM inventario.productos p LEFT JOIN inventario.categorias_producto c USING (id_categoria) LEFT JOIN inventario.insumos i ON i.id_insumo = p.id_insumo_reventa ORDER BY p.nombre`);
-export const buscarProducto = (id, transaction) => Producto.findByPk(id, { transaction }).then(plain);
+export const listarProductos = (verCostos = false, soloActivos = false) => select(`SELECT p.*, c.nombre AS categoria, i.nombre AS insumo_reventa, CASE WHEN $1::boolean THEN CASE WHEN p.es_elaborado THEN (SELECT COALESCE(SUM(r.cantidad_requerida * ri.costo_promedio), 0)::numeric(12,4) FROM inventario.recetas r JOIN inventario.insumos ri USING (id_insumo) WHERE r.id_producto = p.id_producto AND ri.deleted_at IS NULL) ELSE i.costo_promedio END ELSE NULL::numeric END AS costo_teorico, CASE WHEN p.es_elaborado THEN (SELECT COUNT(*)::int FROM inventario.recetas r JOIN inventario.insumos ri USING (id_insumo) WHERE r.id_producto = p.id_producto AND ri.deleted_at IS NULL) ELSE 0::int END AS n_ingredientes, COALESCE((SELECT array_agg(e.id_extra ORDER BY e.id_extra) FROM inventario.producto_extras e WHERE e.id_producto = p.id_producto), '{}'::int[]) AS extras FROM inventario.productos p LEFT JOIN inventario.categorias_producto c USING (id_categoria) LEFT JOIN inventario.insumos i ON i.id_insumo = p.id_insumo_reventa WHERE p.deleted_at IS NULL AND ($2::boolean = false OR p.activo = true) ORDER BY p.nombre`, [verCostos, soloActivos]);
+export const buscarProducto = (id, transaction) => Producto.findOne({ where: { id_producto: id, deleted_at: null }, transaction }).then(plain);
+export const buscarProductoPorInsumoReventa = (idInsumoReventa, transaction) => {
+  if (!idInsumoReventa) return Promise.resolve(null);
+  return Producto.findOne({ where: { id_insumo_reventa: idInsumoReventa, deleted_at: null }, transaction }).then(plain);
+};
 export const escribirProducto = async (data, transaction, id = null) => {
-  const values = { id_categoria: data.idCategoria ?? null, nombre: data.nombre, codigo_barra: data.codigoBarra ?? null, precio_venta: data.precioVenta, es_elaborado: data.esElaborado, id_insumo_reventa: data.esElaborado ? null : data.idInsumoReventa, activo: data.activo };
-  if (id) { const row = await Producto.findByPk(id, { transaction }); if (!row) return null; await row.update(values, { transaction }); return plain(row); }
+  const values = { id_categoria: data.idCategoria ?? null, nombre: data.nombre, codigo_barra: data.codigoBarra ?? null, precio_venta: data.precioVenta, es_elaborado: data.esElaborado, es_extra: data.esExtra ?? false, id_insumo_reventa: data.esElaborado ? null : data.idInsumoReventa, activo: data.activo };
+  if (id) { const row = await Producto.findOne({ where: { id_producto: id, deleted_at: null }, transaction }); if (!row) return null; await row.update(values, { transaction }); return plain(row); }
   return Producto.create(values, { transaction }).then(plain);
 };
-export const desactivarProducto = async (id, transaction) => { const row = await Producto.findByPk(id, { transaction }); if (!row) return false; await row.update({ activo: false }, { transaction }); return true; };
-export const recetaActual = (id, transaction) => select(`SELECT r.id_producto, r.id_insumo, i.nombre AS insumo, i.nombre AS nombre_insumo, r.cantidad_requerida, u.codigo AS unidad, u.codigo AS codigo_unidad, i.costo_promedio FROM inventario.recetas r JOIN inventario.insumos i USING (id_insumo) JOIN inventario.unidades_medida u ON u.id_unidad = i.id_unidad_base WHERE r.id_producto = $1 ORDER BY i.nombre`, [id], transaction);
-export const guardarReceta = async (id, componentes, transaction) => {
-  await Receta.destroy({ where: { id_producto: id }, transaction });
-  await Receta.bulkCreate(componentes.map((x) => ({ id_producto: id, id_insumo: x.idInsumo, cantidad_requerida: x.cantidadRequerida })), { transaction });
+export const cambiarEstadoProducto = async (id, activo, transaction) => { const row = await Producto.findOne({ where: { id_producto: id, deleted_at: null }, transaction }); if (!row) return null; await row.update({ activo }, { transaction }); return plain(row); };
+export const desactivarProducto = async (id, transaction) => { const row = await Producto.findOne({ where: { id_producto: id, deleted_at: null }, transaction }); if (!row) return false; await row.update({ activo: false }, { transaction }); return true; };
+export const eliminarProducto = async (id, transaction) => { const row = await Producto.findOne({ where: { id_producto: id, deleted_at: null }, transaction }); if (!row) return false; await row.update({ deleted_at: new Date() }, { transaction }); return true; };
+// Extras: la lista se reemplaza completa dentro de la transacción del servicio.
+export const listarExtras = (idProducto, transaction) => ProductoExtra.findAll({ where: { id_producto: idProducto }, transaction }).then((xs) => xs.map((x) => x.id_extra));
+export const reemplazarExtras = async (idProducto, extras, transaction) => {
+  await ProductoExtra.destroy({ where: { id_producto: idProducto }, transaction });
+  if (extras.length) await ProductoExtra.bulkCreate(extras.map((idExtra) => ({ id_producto: idProducto, id_extra: idExtra })), { transaction });
 };
-export const stockSucursal = (idSucursal = null) => select(`SELECT ss.id_sucursal, s.nombre AS sucursal, ss.id_insumo, i.nombre AS insumo, u.codigo AS unidad, ss.stock_actual, ss.stock_minimo FROM inventario.stock_sucursal ss JOIN empresa.sucursales s USING (id_sucursal) JOIN inventario.insumos i USING (id_insumo) JOIN inventario.unidades_medida u ON u.id_unidad = i.id_unidad_base WHERE ($1::int IS NULL OR ss.id_sucursal = $1) ORDER BY s.nombre, i.nombre`, [idSucursal]);
-export const alertas = (idSucursal = null) => select(`SELECT ss.id_sucursal, a.* FROM reportes.vw_alertas_stock a JOIN empresa.sucursales s ON s.nombre = a.sucursal JOIN inventario.insumos i ON i.nombre = a.insumo JOIN inventario.stock_sucursal ss ON ss.id_sucursal = s.id_sucursal AND ss.id_insumo = i.id_insumo WHERE ($1::int IS NULL OR ss.id_sucursal = $1) ORDER BY a.sucursal, a.insumo`, [idSucursal]);
-const SQL_MOVIMIENTOS_SIN_COSTO = `
-  SELECT m.id_movimiento, m.id_sucursal, m.id_insumo, i.nombre AS insumo,
-         s.nombre AS sucursal, m.tipo, m.cantidad, m.stock_resultante,
-         m.referencia_tipo, m.referencia_id, m.motivo, m.id_usuario,
-         u.username AS usuario, m.creado_en
-  FROM inventario.movimientos_inventario m
+export const productosPorIds = (ids, transaction) => Producto.findAll({ where: { id_producto: ids, deleted_at: null }, transaction }).then((xs) => xs.map(plain));
+export const listarTodasLasRecetas = () => select(`
+  SELECT r.id_producto, r.id_insumo, r.cantidad_requerida, i.nombre AS insumo, i.tipo_insumo
+  FROM inventario.recetas r
   JOIN inventario.insumos i USING (id_insumo)
-  JOIN empresa.sucursales s USING (id_sucursal)
-  LEFT JOIN seguridad.usuarios u USING (id_usuario)
+  WHERE i.deleted_at IS NULL AND i.activo = true
+  ORDER BY r.id_producto, r.id_insumo
+`);
+export const recetaActual = (id, verCostos = false, transaction = null) => select(`SELECT r.id_producto, r.id_insumo, i.nombre AS insumo, i.nombre AS nombre_insumo, r.cantidad_requerida, u.codigo AS unidad, u.codigo AS codigo_unidad, i.activo AS insumo_activo, CASE WHEN $2::boolean THEN i.costo_promedio ELSE NULL::numeric END AS costo_promedio FROM inventario.recetas r JOIN inventario.insumos i USING (id_insumo) JOIN inventario.unidades_medida u ON u.id_unidad = i.id_unidad_base WHERE r.id_producto = $1 AND i.deleted_at IS NULL ORDER BY i.nombre`, [id, verCostos], transaction);
+export const guardarReceta = async (id, componentes, transaction) => {
+  const existentes = await Receta.findAll({ where: { id_producto: id }, transaction });
+  const mapaExistentes = new Map(existentes.map((r) => [Number(r.id_insumo), r]));
+  const nuevosIds = new Set(componentes.map((c) => Number(c.idInsumo)));
+
+  // 1. Eliminar los componentes que ya no están en la nueva receta
+  const paraEliminar = existentes.filter((r) => !nuevosIds.has(Number(r.id_insumo)));
+  if (paraEliminar.length > 0) {
+    const idsEliminar = paraEliminar.map((r) => r.id_insumo);
+    await Receta.destroy({ where: { id_producto: id, id_insumo: idsEliminar }, transaction });
+  }
+
+  // 2. Insertar nuevos o actualizar existentes con cantidades modificadas
+  for (const comp of componentes) {
+    const idInsumoNum = Number(comp.idInsumo);
+    const existente = mapaExistentes.get(idInsumoNum);
+    if (!existente) {
+      await Receta.create({
+        id_producto: id,
+        id_insumo: comp.idInsumo,
+        cantidad_requerida: comp.cantidadRequerida,
+      }, { transaction });
+    } else if (String(existente.cantidad_requerida) !== String(comp.cantidadRequerida)) {
+      await existente.update({ cantidad_requerida: comp.cantidadRequerida }, { transaction });
+    }
+  }
+};
+export const stockSucursal = (idSucursal = null) => select(`SELECT ss.id_sucursal, s.nombre AS sucursal, ss.id_insumo, i.nombre AS insumo, u.codigo AS unidad, ss.stock_actual, ss.stock_minimo, i.activo FROM inventario.stock_sucursal ss JOIN empresa.sucursales s USING (id_sucursal) JOIN inventario.insumos i USING (id_insumo) JOIN inventario.unidades_medida u ON u.id_unidad = i.id_unidad_base WHERE ($1::int IS NULL OR ss.id_sucursal = $1) AND i.deleted_at IS NULL ORDER BY s.nombre, i.nombre`, [idSucursal]);
+export const alertas = (idSucursal = null) => select(`SELECT * FROM reportes.vw_alertas_stock WHERE ($1::int IS NULL OR id_sucursal = $1) ORDER BY sucursal, insumo`, [idSucursal]);
+const FILTROS_MOVIMIENTOS = `
   WHERE EXISTS (
     SELECT 1 FROM seguridad.usuario_sucursal us
     WHERE us.id_usuario = $1::uuid AND us.id_sucursal = m.id_sucursal
   )
     AND ($2::int IS NULL OR m.id_sucursal = $2::int)
     AND ($3::int IS NULL OR m.id_insumo = $3::int)
+    AND ($4::date IS NULL OR m.creado_en >= $4::date)
+    AND ($5::date IS NULL OR m.creado_en < $5::date + INTERVAL '1 day')
+    AND (cardinality($6::text[]) = 0 OR m.tipo = ANY($6::text[]))
+    AND ($7::text = 'todos'
+      OR ($7::text = 'entradas' AND m.cantidad >= 0)
+      OR ($7::text = 'salidas' AND m.cantidad < 0))
+    AND ($8::text IS NULL OR strpos(
+      lower(concat_ws(' ', m.motivo, m.referencia_tipo, m.referencia_id::text)), lower($8::text)
+    ) > 0)`;
+
+const SQL_MOVIMIENTOS_SIN_COSTO = `
+  SELECT m.id_movimiento, m.id_sucursal, m.id_insumo, i.nombre AS insumo,
+         s.nombre AS sucursal, m.tipo, m.cantidad, m.stock_resultante,
+         m.referencia_tipo, m.referencia_id, m.motivo, m.id_usuario,
+         u.username AS usuario, m.creado_en, COUNT(*) OVER()::text AS __total
+  FROM inventario.movimientos_inventario m
+  JOIN inventario.insumos i USING (id_insumo)
+  JOIN empresa.sucursales s USING (id_sucursal)
+  LEFT JOIN seguridad.usuarios u USING (id_usuario)
+  ${FILTROS_MOVIMIENTOS}
   ORDER BY m.creado_en DESC, m.id_movimiento DESC
-  LIMIT 500`;
+  LIMIT $9::int OFFSET $10::int`;
 
 const SQL_MOVIMIENTOS_CON_COSTO = `
   SELECT m.id_movimiento, m.id_sucursal, m.id_insumo, i.nombre AS insumo,
          s.nombre AS sucursal, m.tipo, m.cantidad, m.costo_unitario,
          m.stock_resultante, m.referencia_tipo, m.referencia_id, m.motivo,
-         m.id_usuario, u.username AS usuario, m.creado_en
+         m.id_usuario, u.username AS usuario, m.creado_en, COUNT(*) OVER()::text AS __total
   FROM inventario.movimientos_inventario m
   JOIN inventario.insumos i USING (id_insumo)
   JOIN empresa.sucursales s USING (id_sucursal)
   LEFT JOIN seguridad.usuarios u USING (id_usuario)
-  WHERE EXISTS (
-    SELECT 1 FROM seguridad.usuario_sucursal us
-    WHERE us.id_usuario = $1::uuid AND us.id_sucursal = m.id_sucursal
-  )
-    AND ($2::int IS NULL OR m.id_sucursal = $2::int)
-    AND ($3::int IS NULL OR m.id_insumo = $3::int)
+  ${FILTROS_MOVIMIENTOS}
   ORDER BY m.creado_en DESC, m.id_movimiento DESC
-  LIMIT 500`;
+  LIMIT $9::int OFFSET $10::int`;
 
-export const movimientos = (idUsuario, idSucursal = null, idInsumo = null, verCostos = false) => select(
-  verCostos ? SQL_MOVIMIENTOS_CON_COSTO : SQL_MOVIMIENTOS_SIN_COSTO,
-  [idUsuario, idSucursal, idInsumo],
-);
+const CONTAR_MOVIMIENTOS = `SELECT COUNT(*)::text AS total
+  FROM inventario.movimientos_inventario m
+  ${FILTROS_MOVIMIENTOS}`;
+
+export const movimientos = async (idUsuario, filtros, verCostos) => {
+  const { idSucursal = null, idInsumo = null, desde = null, hasta = null, tipos = [], direccion = 'todos', q = null, page, limit } = filtros;
+  const binds = [idUsuario, idSucursal, idInsumo, desde, hasta, tipos, direccion, q];
+  const rows = await select(
+    verCostos ? SQL_MOVIMIENTOS_CON_COSTO : SQL_MOVIMIENTOS_SIN_COSTO,
+    [...binds, limit, (page - 1) * limit],
+  );
+  const total = rows.length
+    ? Number(rows[0].__total)
+    : Number((await select(CONTAR_MOVIMIENTOS, binds))[0].total);
+  return {
+    data: rows.map(({ __total: _total, ...movimiento }) => movimiento),
+    pagination: { page, limit, total },
+  };
+};
 export const sucursalAsignada = async (idUsuario, idSucursal, transaction = null) => (await select('SELECT 1 FROM seguridad.usuario_sucursal WHERE id_usuario = $1::uuid AND id_sucursal = $2', [idUsuario, idSucursal], transaction)).length > 0;
 export const sucursalesAsignadas = (idUsuario) => select('SELECT id_sucursal FROM seguridad.usuario_sucursal WHERE id_usuario = $1::uuid', [idUsuario]);
 export const usuarioTienePermiso = async (idUsuario, codigo) => (await select('SELECT seguridad.fn_tiene_permiso($1::uuid,$2) AS tiene', [idUsuario, codigo]))[0]?.tiene === true;

@@ -1,22 +1,68 @@
 /* ============================================================================
    artesa · Sistema de diseño (Tailwind CSS v4, configuración CSS-first)
    Marca: Espresso #321F19 · Terracota #B15C3D · Ocre #E1A651 · Alabastro #F7F5F0
-   Dos capas:  1) paleta cruda (@theme)   2) tokens semánticos (light/dark)
-   En componentes usa SIEMPRE tokens semánticos (bg-background, text-fg, ...),
-   así el modo oscuro funciona sin escribir `dark:` en cada elemento.
+   Tres capas:
+     1) paleta cruda y escalas (@theme): colores de marca, radios, sombras, tipografía, tamaños
+     2) tokens semánticos (:root / .dark): lo que usan los componentes
+     3) alias Tailwind (@theme inline): bg-surface, text-fg, border-line, text-success-text...
+   Reglas: en componentes usa SIEMPRE tokens semánticos (nunca hex). Terracota es el ÚNICO
+   color de acción principal; Ocre solo resalta. Contrastes comprobados (WCAG AA) en ambos temas.
    ============================================================================ */
 @import "@fontsource-variable/montserrat";
 @import "@fontsource-variable/fraunces/wght.css";
 @import "@fontsource-variable/fraunces/wght-italic.css";
+@import "@fontsource-variable/geist-mono";
 @import "tailwindcss";
 
 /* Modo oscuro por clase: <html class="dark"> */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* ---- 1. Paleta cruda (genera bg-terracota-500, text-ocre-300, etc.) -------- */
+/* ---- 1. Paleta cruda y escalas -------------------------------------------- */
 @theme {
+  /* Tipografía: Montserrat para la UI, Fraunces solo para títulos de página, Geist Mono para IDs/JSON */
   --font-sans: "Montserrat Variable", Montserrat, ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Fraunces Variable", Georgia, "Times New Roman", serif; /* titulares con carácter (login) */
+  --font-display: "Fraunces Variable", Georgia, "Times New Roman", serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SFMono-Regular", Consolas, monospace;
+
+  /* Escala tipográfica (tamaño / interlineado / peso). Uso: text-h1, text-body-sm, text-kpi... */
+  --text-display:    2.5rem;   --text-display--line-height: 3rem;     --text-display--font-weight: 600;
+  --text-display-sm: 2rem;     --text-display-sm--line-height: 2.5rem; --text-display-sm--font-weight: 600;
+  --text-h1:   1.75rem;  --text-h1--line-height: 2.25rem;  --text-h1--font-weight: 700;
+  --text-h2:   1.375rem; --text-h2--line-height: 1.875rem; --text-h2--font-weight: 600;
+  --text-h3:   1.125rem; --text-h3--line-height: 1.625rem; --text-h3--font-weight: 600;
+  --text-body-lg: 1rem;      --text-body-lg--line-height: 1.5rem;
+  --text-body:    0.875rem;  --text-body--line-height: 1.375rem;
+  --text-body-sm: 0.8125rem; --text-body-sm--line-height: 1.25rem;
+  --text-label:    0.875rem; --text-label--line-height: 1.25rem; --text-label--font-weight: 500;
+  --text-label-sm: 0.75rem;  --text-label-sm--line-height: 1rem; --text-label-sm--font-weight: 500;
+  --text-overline: 0.75rem; --text-overline--line-height: 1rem; --text-overline--letter-spacing: 0.06em; --text-overline--font-weight: 600;
+  --text-kpi:  1.875rem; --text-kpi--line-height: 2.375rem; --text-kpi--font-weight: 700;
+
+  /* Radios: xs 4 · sm 6 · md 8 (controles) · lg 12 (tarjetas) · xl 16 (diálogos) */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+
+  /* Sombras sutiles teñidas de Espresso */
+  --shadow-xs: 0 1px 2px rgb(50 31 25 / 0.06);
+  --shadow-sm: 0 1px 2px rgb(50 31 25 / 0.06), 0 1px 3px rgb(50 31 25 / 0.08);
+  --shadow-md: 0 2px 4px rgb(50 31 25 / 0.06), 0 6px 16px -4px rgb(50 31 25 / 0.12);
+  --shadow-lg: 0 4px 8px rgb(50 31 25 / 0.08), 0 16px 32px -8px rgb(50 31 25 / 0.18);
+
+  /* Tamaños fijos de layout y controles (h-control-md, w-sidebar, h-header...).
+     El espaciado general es la escala base de 4 px de Tailwind (1 = 4 px). */
+  --spacing-control-sm: 2rem;     /* 32 */
+  --spacing-control-md: 2.5rem;   /* 40 */
+  --spacing-control-lg: 3rem;     /* 48 */
+  --spacing-sidebar: 15.5rem;     /* 248 */
+  --spacing-sidebar-colapsada: 4.5rem; /* 72 */
+  --spacing-header: 4rem;         /* 64 */
+  --spacing-nav-item: 2.375rem;   /* 38 */
+  --spacing-nav-subitem: 2.25rem; /* 36 */
+  --spacing-panel-pedido: clamp(23.75rem, 28vw, 27.5rem); /* 380–440: panel del pedido en POS */
+  --spacing-tarjeta-producto: 11.25rem; /* 180: ancho mínimo de tarjeta en la grilla POS */
 
   --color-terracota-50:  #fbf1ec;  --color-terracota-100: #f5ddd2;
   --color-terracota-200: #ebbca7;  --color-terracota-300: #de9776;
@@ -35,44 +81,68 @@
   --color-espresso-100: #efebe4;  --color-espresso-200: #ddd6cb;
   --color-espresso-300: #bfb5a7;  --color-espresso-400: #9a8e7f;
   --color-espresso-500: #756a5d;  --color-espresso-600: #5a4f45;
-  --color-espresso-700: #44362d;  --color-espresso-800: #36231b;
+  --color-espresso-700: #44362d;  --color-espresso-750: #4a352b;
+  --color-espresso-800: #36231b;  --color-espresso-850: #2a1a14;
   --color-espresso-900: #321f19; /* Espresso (marca) */
-  --color-espresso-950: #1f120e;
+  --color-espresso-950: #1f120e;  --color-espresso-975: #170d0a;
 }
 
 /* ---- 2. Tokens semánticos -------------------------------------------------- */
+/* Contrastes (texto 4,5:1 · UI/foco 3:1), medidos sobre la superficie donde se usan:
+   fg-muted/page 7,3 · success-text/soft 6,3 · warning-text/soft 6,4 · danger-text/soft 7,0 ·
+   info-text/soft 7,3 · blanco/terracota 4,7 · foco terracota/alabastro 4,3 · borde fuerte/blanco 4,0 */
 :root {
   color-scheme: light;
   --bg-primary:   #f7f5f0;  /* fondo de página (Alabastro) */
   --bg-surface:   #ffffff;  /* tarjetas, modales, tablas */
   --bg-muted:     #efebe4;  /* zonas secundarias, hover de filas */
   --bg-sidebar:   #321f19;  /* navegación lateral (Espresso) */
+  --bg-overlay:   rgb(31 18 14 / 0.6); /* fondo de diálogos */
   --text-primary:   #321f19;
   --text-secondary: #5a4f45;
+  --text-subtle:    #6f6457;  /* placeholders y metadatos: 5,8:1 sobre blanco, 4,9:1 sobre --bg-muted (AA) */
   --text-on-sidebar:#f7f5f0;
+  --text-on-sidebar-muted: #bfb5a7;
   --text-on-accent: #ffffff;
-  --border-color:   #ddd6cb;
+  --border-color:   #ddd6cb;  /* divisores decorativos (hairline) */
+  --border-strong:  #8a7d6e;  /* borde de controles: 3:1 o más */
 
-  --accent:         #b15c3d;  /* acción principal (Terracota) */
+  --accent:         #b15c3d;  /* acción principal (Terracota): blanco 4,7:1 */
   --accent-hover:   #984a2f;
   --accent-soft:    #fbf1ec;  /* fondo de chips/selección */
   --accent-text:    #984a2f;  /* enlaces y texto de acento sobre fondo claro */
-  --secondary:      #e1a651;  /* acento secundario (Ocre): destacados, badges */
+  --secondary:      #e1a651;  /* Ocre: SOLO destacados, nunca botón principal */
   --secondary-soft: #fdf7ea;
   --secondary-text: #7a5224;
-  --ring:           #e1a651;
+  --ring:           #b15c3d;  /* foco: Terracota en claro (Ocre sobre blanco no llega a 3:1) */
+  --ring-sidebar:   #e8b866;  /* foco sobre Espresso */
 
-  --success: #3f7d4e; --success-soft: #e8f3ec;
-  --warning: #9f6c2b; --warning-soft: #fdf7ea;
-  --danger:  #b3261e; --danger-soft:  #fbeae9;
-  --info:    #2f5f94; --info-soft:    #e9f0f8;
+  --success: #3f7d4e; --success-soft: #e8f3ec; --success-text: #2e6239;
+  --warning: #9f6c2b; --warning-soft: #fdf7ea; --warning-text: #7a5224;
+  --danger:  #b3261e; --danger-soft:  #fbeae9; --danger-text:  #9a1f18;
+  --info:    #2f5f94; --info-soft:    #e9f0f8; --info-text:    #264f7c;
 
-    /* Gráficos: el contexto va en neutro y solo lo importante en acento (jerarquía sin saturar).
-     Contraste de no-texto contra --bg-surface (WCAG 1.4.11 pide >= 3:1): neutro 3,2:1 · foco 4,7:1.
-     Lo vigila test/dashboard-graficos.test.js. */
-  --chart-neutral:      #9a8e7f;  /* barras de contexto (días cerrados, resto del ranking) */
-  --chart-focus:        #b15c3d;  /* dato importante: hoy, líder del ranking, elemento bajo el cursor */
-  --chart-focus-strong: #984a2f;  /* foco + cursor encima */
+  /* Gráficos: el contexto en neutro y solo lo importante en acento (>= 3:1 sobre --bg-surface). */
+  --chart-neutral:      #9a8e7f;
+  --chart-focus:        #b15c3d;
+  --chart-focus-strong: #984a2f;
+  --chart-grid:         #efebe4;
+
+  /* Series compartidas por todas las gráficas (todas >= 4,5:1 sobre blanco). */
+  --serie-1: #b15c3d; --serie-1-texto: #984a2f; /* Terracota */
+  --serie-2: #9f6c2b; --serie-2-texto: #7a5224; /* Ocre (tono legible) */
+  --serie-3: #756a5d; --serie-3-texto: #5a4f45; /* Espresso 500 */
+  --serie-4: #4f7d5a; --serie-4-texto: #3d6447; /* verde apagado */
+  --serie-5: #4f6f91; --serie-5-texto: #3e5a78; /* azul apagado */
+  --serie-6: #c58a38; --serie-6-texto: #7a5224; /* compatibilidad: Ocre medio */
+  --serie-hoy-fondo: #fbf1ec;
+
+  /* Mapa de calor: Alabastro → Ocre → Terracota */
+  --heat-0: #f7f5f0; --heat-1: #f4d79c; --heat-2: #e1a651; --heat-3: #c97752; --heat-4: #984a2f;
+
+  /* Esqueletos de carga */
+  --skeleton-base:  #efebe4;
+  --skeleton-shine: #f7f5f0;
 }
 
 .dark {
@@ -81,54 +151,65 @@
   --bg-surface:   #2a1a14;
   --bg-muted:     #36231b;
   --bg-sidebar:   #170d0a;
+  --bg-overlay:   rgb(10 6 4 / 0.7);
   --text-primary:   #f7f5f0;
   --text-secondary: #bfb5a7;
+  --text-subtle:    #9a8e7f;
   --text-on-sidebar:#f7f5f0;
+  --text-on-sidebar-muted: #bfb5a7;
   --text-on-accent: #ffffff;
   --border-color:   #4a352b;
+  --border-strong:  #806f62;
 
-  --accent:         #b15c3d;  /* mismo botón: blanco sobre #b15c3d = 4.7:1 (AA) */
-  --accent-hover:   #c97752;
+  --accent:         #b15c3d;  /* mismo botón: blanco sobre #b15c3d = 4,7:1 (AA) */
+  --accent-hover:   #984a2f;
   --accent-soft:    #44211a;
-  --accent-text:    #de9776;  /* texto de acento legible sobre fondo oscuro */
+  --accent-text:    #de9776;
   --secondary:      #e1a651;
   --secondary-soft: #3a2b18;
   --secondary-text: #edc173;
-  --ring:           #e8b866;
+  --ring:           #e8b866;  /* Ocre 400: 9,1:1 sobre la superficie */
+  --ring-sidebar:   #e8b866;
 
-  --success: #6bbf86; --success-soft: #1b2e22;
-  --warning: #edc173; --warning-soft: #3a2b18;
-  --danger:  #f2877f; --danger-soft:  #3b1d1a;
-  --info:    #8db6e0; --info-soft:    #1b2836;
+  --success: #6bbf86; --success-soft: #1b2e22; --success-text: #6bbf86;
+  --warning: #edc173; --warning-soft: #3a2b18; --warning-text: #edc173;
+  --danger:  #f2877f; --danger-soft:  #3b1d1a; --danger-text:  #f2877f;
+  --info:    #8db6e0; --info-soft:    #1b2836; --info-text:    #8db6e0;
 
-  --chart-neutral:      #8a7d6e;  /* 4,2:1 sobre --bg-surface */
-  --chart-focus:        #de9776;  /* 7,0:1: en oscuro el foco tiene que ser MÁS luminoso que el contexto */
+  --chart-neutral:      #8a7d6e;
+  --chart-focus:        #de9776;  /* en oscuro el foco tiene que ser MÁS luminoso que el contexto */
   --chart-focus-strong: #ebbca7;
+  --chart-grid:         #36231b;
+
+  --serie-1: #de9776; --serie-1-texto: #de9776;
+  --serie-2: #e8b866; --serie-2-texto: #edc173;
+  --serie-3: #bfb5a7; --serie-3-texto: #ddd6cb;
+  --serie-4: #8fbf9a; --serie-4-texto: #8fbf9a;
+  --serie-5: #9db6d1; --serie-5-texto: #9db6d1;
+  --serie-6: #edc173; --serie-6-texto: #f4d79c;
+  --serie-hoy-fondo: #44211a;
+
+  --heat-0: #36231b; --heat-1: #583b1d; --heat-2: #9f6c2b; --heat-3: #c97752; --heat-4: #de9776;
+
+  --skeleton-base:  #36231b;
+  --skeleton-shine: #4a352b;
 }
 
-/* ---- Variante de acento del portal de clientes -------------------------------
-   Mismo sistema, otro acento: Ocre en lugar de Terracota. Se activa con la clase
-   .tema-cliente en un contenedor; todo lo que use bg-primary / text-primary-text /
-   ring-primary dentro de él cambia solo. Texto sobre ocre = Espresso (contraste AA). */
-.tema-cliente {
-  --accent: #e1a651; --accent-hover: #c58a38; --accent-soft: #fdf7ea;
-  --accent-text: #7a5224; --text-on-accent: #321f19; --ring: #c58a38;
-}
-.dark .tema-cliente {
-  --accent-soft: #3a2b18; --accent-text: #edc173; --ring: #e8b866;
-}
-
-/* Expone los tokens como utilidades: bg-background, text-fg, border-line, ... */
+/* ---- 3. Alias Tailwind: bg-background, text-fg, border-line, ... ------------ */
 @theme inline {
   --color-background: var(--bg-primary);
   --color-surface:    var(--bg-surface);
   --color-muted:      var(--bg-muted);
   --color-sidebar:    var(--bg-sidebar);
+  --color-overlay:    var(--bg-overlay);
   --color-fg:         var(--text-primary);
   --color-fg-muted:   var(--text-secondary);
+  --color-fg-subtle:  var(--text-subtle);
   --color-on-sidebar: var(--text-on-sidebar);
+  --color-on-sidebar-muted: var(--text-on-sidebar-muted);
   --color-on-accent:  var(--text-on-accent);
   --color-line:       var(--border-color);
+  --color-line-strong: var(--border-strong);
   --color-primary:        var(--accent);
   --color-primary-hover:  var(--accent-hover);
   --color-primary-soft:   var(--accent-soft);
@@ -136,76 +217,151 @@
   --color-secondary:      var(--secondary);
   --color-secondary-soft: var(--secondary-soft);
   --color-secondary-text: var(--secondary-text);
-  --color-success: var(--success); --color-success-soft: var(--success-soft);
-  --color-warning: var(--warning); --color-warning-soft: var(--warning-soft);
-  --color-danger:  var(--danger);  --color-danger-soft:  var(--danger-soft);
-  --color-info:    var(--info);    --color-info-soft:    var(--info-soft);
+  --color-success: var(--success); --color-success-soft: var(--success-soft); --color-success-text: var(--success-text);
+  --color-warning: var(--warning); --color-warning-soft: var(--warning-soft); --color-warning-text: var(--warning-text);
+  --color-danger:  var(--danger);  --color-danger-soft:  var(--danger-soft);  --color-danger-text:  var(--danger-text);
+  --color-info:    var(--info);    --color-info-soft:    var(--info-soft);    --color-info-text:    var(--info-text);
   --color-ring:    var(--ring);
+  --color-ring-sidebar: var(--ring-sidebar);
+  --color-chart-neutral: var(--chart-neutral);
+  --color-chart-focus:   var(--chart-focus);
+  --color-chart-focus-strong: var(--chart-focus-strong);
+  --color-chart-grid:    var(--chart-grid);
+  --color-serie-1: var(--serie-1); --color-serie-2: var(--serie-2); --color-serie-3: var(--serie-3);
+  --color-serie-4: var(--serie-4); --color-serie-5: var(--serie-5);
+  --color-heat-0: var(--heat-0); --color-heat-1: var(--heat-1); --color-heat-2: var(--heat-2);
+  --color-heat-3: var(--heat-3); --color-heat-4: var(--heat-4);
+  --color-skeleton: var(--skeleton-base);
+  --color-skeleton-shine: var(--skeleton-shine);
 }
 
-/* ---- 3. Base global (único lugar con estilos globales) --------------------- */
+/* ---- 4. Base global (único lugar con estilos globales) --------------------- */
 @layer base {
   html { font-family: var(--font-sans); }
   body {
     background-color: var(--bg-primary);
     color: var(--text-primary);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
     -webkit-font-smoothing: antialiased;
   }
+  /* Foco de teclado: contorno de 2 px con separación de 2 px, siempre visible. */
   :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
-  ::selection { background: var(--secondary); color: #321f19; }
+  /* Cifras alineadas en tablas, KPIs y dinero. */
+  table, .num, .kpi { font-variant-numeric: tabular-nums; }
+  code, kbd, samp, pre { font-family: var(--font-mono); }
+
+  .accion-tooltip {
+    position: fixed; z-index: 100; max-width: min(18rem, calc(100vw - 1rem));
+    transform: translate(-50%, calc(-100% - .625rem)); border-radius: var(--radius-sm);
+    background: var(--text-primary); color: var(--bg-surface); padding: .375rem .625rem;
+    font-size: var(--text-label-sm); line-height: var(--text-label-sm--line-height); font-weight: 500;
+    text-align: center; pointer-events: none;
+    box-shadow: var(--shadow-md); animation: tooltip-aparecer .15s ease-out both;
+  }
+  @keyframes tooltip-aparecer { from { opacity: 0; translate: 0 3px; } to { opacity: 1; translate: 0 0; } }
+  ::selection { background: var(--secondary); color: var(--color-espresso-900); }
+
+  /* Movimiento reducido: sin animaciones ni transiciones largas en toda la app. */
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
-/* ---- 4. Componentes reutilizables (opcionales, evitan repetir clases) ------- */
+/* ---- 5. Componentes reutilizables ------------------------------------------ */
 /* IMPORTANTE: dentro de @layer components. Fuera de una capa, estas clases le ganan a TODAS las
    utilidades de Tailwind (pl-10, p-8, w-full...) y las anulan. Dentro de la capa, las utilidades
    sí pueden sobreescribirlas. */
 @layer components {
-  .card { @apply rounded-xl border border-line bg-surface p-5 shadow-sm; }
+  .card { @apply rounded-lg border border-line bg-surface p-5 shadow-xs; }
+
+  /* Etiqueta de sección en mayúsculas (sidebar, cabeceras de grupo) */
+  .rotulo { @apply text-overline uppercase text-fg-muted; }
+
+  /* Controles: 40 px de alto con texto 14/22 + 8 px arriba/abajo + borde de 1 px. */
   .input {
-    @apply w-full rounded-md border border-line bg-surface px-3 py-2 text-fg
-           placeholder:text-fg-muted/70 focus:border-primary focus:outline-none;
+    @apply w-full rounded-md border border-line-strong bg-surface px-3 py-2 text-body text-fg
+           transition-colors placeholder:text-fg-subtle hover:border-fg-muted
+           focus:border-primary focus:outline-2 focus:outline-offset-2 focus:outline-ring
+           disabled:cursor-not-allowed disabled:bg-muted disabled:text-fg-muted
+           aria-invalid:border-danger;
   }
-  .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium
-           transition-colors disabled:opacity-60 disabled:pointer-events-none;
+
+  /* Botones. Todos llevan borde de 1 px (transparente si no se ve) para medir 40 px exactos. */
+  .btn, .btn-primary, .btn-secondary, .btn-ghost, .btn-danger, .btn-danger-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-md border border-transparent px-4 py-2
+           text-label font-semibold leading-[1.375rem] whitespace-nowrap transition-colors
+           disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-progress;
   }
-  .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium
-           transition-colors disabled:opacity-60 disabled:pointer-events-none
-           bg-primary text-on-accent hover:bg-primary-hover;
-  }
-  .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium
-           transition-colors disabled:opacity-60 disabled:pointer-events-none
-           bg-secondary text-espresso-900 hover:bg-ocre-400;
-  }
-  .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium
-           transition-colors disabled:opacity-60 disabled:pointer-events-none
-           border border-line text-fg hover:bg-muted;
-  }
-  .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium
-           transition-colors disabled:opacity-60 disabled:pointer-events-none
-           bg-danger text-white hover:opacity-90;
-  }
-  /* En modo oscuro --danger es un rojo claro (pensado para texto): el texto del botón debe ser oscuro para cumplir AA. */
+  /* Acción principal: Terracota (único color de acción). */
+  .btn-primary { @apply bg-primary text-on-accent shadow-xs hover:bg-primary-hover; }
+  /* Secundaria tonal (mismo tono, menos peso). Ocre nunca se usa como botón. */
+  .btn-secondary { @apply bg-primary-soft text-primary-text hover:border-primary/40; }
+  /* Terciaria con borde neutro */
+  .btn-ghost { @apply border-line bg-surface text-fg hover:border-line-strong hover:bg-muted; }
+  .btn-danger { @apply bg-danger text-white shadow-xs hover:bg-danger-text; }
+  .btn-danger-outline { @apply border-danger/50 bg-surface text-danger-text hover:bg-danger-soft; }
+  /* En modo oscuro --danger es un rojo claro: el texto del botón debe ser oscuro para cumplir AA. */
   .dark .btn-danger { color: var(--color-espresso-950); }
+  .dark .btn-danger:hover { background-color: color-mix(in srgb, var(--danger) 85%, white); }
+  /* Tamaños: sm 32 · md 40 (por defecto) · lg 48 */
+  .btn-sm { @apply px-3 py-1 text-label-sm leading-[1.375rem]; }
+  .btn-lg { @apply px-5 py-3 text-body-lg leading-[1.375rem]; }
 
-  /* Campo de formulario de las pantallas de acceso (más alto, esquinas amplias, foco con halo) */
-  .input-auth {
-    @apply h-12 rounded-xl bg-surface px-3.5 text-[15px] transition-[border-color,box-shadow] duration-200
-           focus:border-primary focus:ring-4 focus:ring-primary/15
-           aria-invalid:border-danger aria-invalid:ring-4 aria-invalid:ring-danger/15;
+  /* Campo grande de las pantallas de acceso (48 px) */
+  .input-auth { @apply h-control-lg px-3.5 text-body-lg; }
+
+  /* Login administrativo: campos con etiqueta arriba, radio estándar y sin sombra dura. */
+  .auth-admin .input-auth { @apply rounded-md; }
+  /* .btn-duro retirado: el login usa .btn-primary .btn-lg. */
+
+  /* Esqueleto de carga (en lugar de spinners). Brillo que recorre el bloque. */
+  .skeleton {
+    @apply rounded-sm bg-skeleton;
+    background-image: linear-gradient(90deg, transparent 0, var(--skeleton-shine) 50%, transparent 100%);
+    background-size: 200% 100%; background-repeat: no-repeat;
+    animation: skeleton-brillo 1.4s ease-in-out infinite;
+  }
+  /* Tres puntos que laten (carga dentro de botones y estados breves). */
+  .puntos-carga { @apply inline-flex items-center gap-1; }
+  .puntos-carga > span {
+    @apply size-1.5 rounded-full bg-current;
+    animation: punto-latido 1s ease-in-out infinite;
+  }
+  .puntos-carga > span:nth-child(2) { animation-delay: .15s; }
+  .puntos-carga > span:nth-child(3) { animation-delay: .3s; }
+
+  /* Tablas bajo 768 px: cada fila es una tarjeta y cada celda muestra el título de su columna
+     (data-label). El encabezado queda solo para lectores de pantalla. */
+  @media (width < 48rem) {
+    .tabla-apilable table { display: block; width: 100%; min-width: 0 !important; }
+    .tabla-apilable thead {
+      position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+    }
+    .tabla-apilable tbody { display: flex; flex-direction: column; gap: calc(var(--spacing) * 2); padding: calc(var(--spacing) * 3); }
+    .tabla-apilable tbody > tr {
+      display: block; border: 1px solid var(--border-color) !important; border-radius: var(--radius-lg);
+      background: var(--bg-surface); padding: calc(var(--spacing) * 1) calc(var(--spacing) * 4);
+    }
+    .tabla-apilable tbody > tr > td {
+      display: flex; align-items: center; justify-content: space-between; gap: calc(var(--spacing) * 4);
+      padding: calc(var(--spacing) * 2) 0; text-align: right;
+    }
+    .tabla-apilable tbody > tr > td + td { border-top: 1px solid var(--border-color); }
+    .tabla-apilable tbody > tr > td[data-label]::before {
+      content: attr(data-label); flex-shrink: 0; text-align: left;
+      font-size: var(--text-label-sm); line-height: var(--text-label-sm--line-height); font-weight: 500;
+      color: var(--text-secondary);
+    }
+    .tabla-apilable tbody > tr > td[data-col="acciones"] { justify-content: flex-end; }
+    .tabla-apilable tbody > tr > td[data-col="acciones"]::before { display: none; }
   }
 
-  /* Login administrativo: esquinas rectas, regla gruesa y sombra dura (solo bajo .auth-admin) */
-  .auth-admin .input-auth { @apply rounded-none border-fg/40 focus:ring-0 focus:border-fg focus:shadow-[3px_3px_0_0_var(--accent)]; }
-  .auth-admin .input-auth[aria-invalid='true'] { @apply border-danger shadow-[3px_3px_0_0_var(--danger)]; }
-  .btn-duro { @apply rounded-none shadow-[4px_4px_0_0_var(--text-primary)] transition-[transform,box-shadow] hover:-translate-x-px hover:-translate-y-px hover:shadow-[5px_5px_0_0_var(--text-primary)] active:translate-x-1 active:translate-y-1 active:shadow-none; }
-  .dark .btn-duro { box-shadow: 4px 4px 0 0 var(--secondary); }
-  .dark .btn-duro:hover { box-shadow: 5px 5px 0 0 #e1a651; }
-  .dark .btn-duro:active { box-shadow: none; }
   .scroll-fino {
     scrollbar-width: thin;
     scrollbar-color: color-mix(in srgb, var(--text-secondary) 25%, transparent) transparent;
@@ -219,8 +375,8 @@
   .scroll-fino:hover::-webkit-scrollbar-thumb, .scroll-fino:focus-within::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text-secondary) 45%, transparent); }
   .scroll-fino::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
 
-  /* Microinteracciones del login */
-  .anim-subir { animation: subir .7s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--retardo, 0ms); }
+  /* Microinteracciones */
+  .anim-subir { animation: subir .5s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--retardo, 0ms); }
   .anim-sacudir { animation: sacudir .45s ease-in-out; }
   /* Diálogos y avisos: entrada breve (hoja desde abajo en móvil, escala en escritorio) */
   .anim-scrim { animation: scrim .18s ease-out both; }
@@ -230,13 +386,17 @@
   .hilo-trazo { stroke-dasharray: 1; animation: hilo 3.4s cubic-bezier(.4,0,.2,1) both; }
   @media (prefers-reduced-motion: reduce) {
     .anim-subir, .anim-sacudir, .hilo-trazo, .anim-scrim, .anim-dialogo, .anim-toast { animation: none; }
+    .skeleton { animation: none; background-image: none; }
+    .puntos-carga > span { animation: none; opacity: .7; }
   }
 }
 
-@keyframes subir { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes subir { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes sacudir { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
 @keyframes hilo { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 @keyframes scrim { from { opacity: 0; } to { opacity: 1; } }
-@keyframes dialogo { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes dialogo { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
 @keyframes dialogo-movil { from { opacity: .6; transform: translateY(24px); } to { opacity: 1; transform: none; } }
 @keyframes toast { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes skeleton-brillo { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+@keyframes punto-latido { 0%, 80%, 100% { opacity: .3; transform: scale(.8); } 40% { opacity: 1; transform: none; } }

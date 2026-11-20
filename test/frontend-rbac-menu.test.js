@@ -144,3 +144,40 @@ test('menu: Kárdex requiere INV_VER_KARDEX de forma independiente del stock', (
   assert.ok(rutasSinKardex.includes('/inventario'));
   assert.ok(!rutasSinKardex.includes('/inventario/kardex'));
 });
+
+test('menu: Catálogo separa insumos y productos de Inventario operativo', () => {
+  const catalogo = menu.flatMap((s) => s.items ?? []).find((i) => i.id === 'catalogo');
+  const inventario = menu.flatMap((s) => s.items ?? []).find((i) => i.id === 'inventario');
+  assert.deepEqual(catalogo.hijos.map((h) => h.ruta), ['/catalogo/insumos', '/catalogo/productos']);
+  assert.deepEqual(inventario.hijos.map((h) => h.ruta), ['/inventario', '/inventario/kardex']);
+});
+
+test('menu: Compras conserva el orden, las etiquetas y evita duplicar el nombre del grupo', () => {
+  const grupos = menu.flatMap((entrada) => entrada.items ?? [entrada]).filter((entrada) => entrada.hijos);
+  const compras = grupos.find((grupo) => grupo.id === 'compras');
+
+  assert.deepEqual(compras.hijos.map(({ texto, ruta, permiso, end }) => ({ texto, ruta, permiso, end })), [
+    { texto: 'Resumen', ruta: '/compras', permiso: 'COM_VER_CXP', end: true },
+    { texto: 'Nueva factura', ruta: '/compras/registrar', permiso: 'COM_REGISTRAR_COMPRA', end: undefined },
+    { texto: 'Gastos', ruta: '/compras/gastos', permiso: 'COM_REGISTRAR_COMPRA', end: undefined },
+    { texto: 'Cuentas por pagar', ruta: '/compras/cuentas-por-pagar', permiso: 'COM_VER_CXP', end: undefined },
+    { texto: 'Proveedores', ruta: '/compras/proveedores', permiso: 'COM_GESTIONAR_PROVEEDORES', end: undefined },
+  ]);
+  assert.ok(grupos.every((grupo) => grupo.hijos.every((hijo) => hijo.texto !== grupo.texto)));
+});
+
+test('menu: COM_REGISTRAR_COMPRA solo muestra Nueva factura y Gastos dentro de Compras', () => {
+  const gestion = filtrarMenu(menu, (permiso) => permiso === 'COM_REGISTRAR_COMPRA')
+    .find((entrada) => entrada.seccion === 'Gestión');
+  const compras = gestion.items.find((entrada) => entrada.id === 'compras');
+
+  assert.deepEqual(compras.hijos.map((hijo) => hijo.texto), ['Nueva factura', 'Gastos']);
+});
+
+test('menu: COM_GESTIONAR_PROVEEDORES solo muestra Proveedores dentro de Compras', () => {
+  const gestion = filtrarMenu(menu, (permiso) => permiso === 'COM_GESTIONAR_PROVEEDORES')
+    .find((entrada) => entrada.seccion === 'Gestión');
+  const compras = gestion.items.find((entrada) => entrada.id === 'compras');
+
+  assert.deepEqual(compras.hijos.map((hijo) => hijo.texto), ['Proveedores']);
+});

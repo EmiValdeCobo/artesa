@@ -10,7 +10,9 @@ export function errorHandler(err, _req, res, _next) {
       detalles: err.issues.map((i) => ({ campo: i.path.join('.'), mensaje: i.message })),
     });
   }
-  if (err.esAppError) return res.status(err.status).json({ error: err.message });
+  if (err.esAppError) {
+    return res.status(err.status).json(err.codigo ? { error: err.message, codigo: err.codigo } : { error: err.message });
+  }
 
   // Errores de PostgreSQL
   if (err.code === 'P0001') return res.status(400).json({ error: err.message });            // RAISE EXCEPTION (reglas de negocio)

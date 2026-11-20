@@ -100,8 +100,8 @@ SELECT proveedor, num_factura, fecha_vencimiento, total, pagado, saldo, estado_p
 INSERT INTO compras.pagos_proveedor(id_compra, monto, metodo, referencia) VALUES (:'c_id_compra', 100.00, 'TRANSFERENCIA', 'TRF-9981');
 SELECT proveedor, total, pagado, saldo, estado_pago FROM reportes.vw_cuentas_por_pagar;
 
-\echo '=== 14. PLANILLA quincenal sucursal 1 (ISSS 3% tope, AFP 7.25%, Renta por tramos) ==='
-INSERT INTO rrhh.planillas(id_sucursal, periodo_inicio, periodo_fin, tipo_periodo) VALUES (1,'2026-11-01','2026-11-15','QUINCENAL');
+\echo '=== 14. PLANILLA mensual sucursal 1 (ISSS 3% tope, AFP 7.25%, Renta por tramos) ==='
+INSERT INTO rrhh.planillas(id_sucursal, periodo_inicio, periodo_fin, tipo_periodo) VALUES (1,'2026-11-01','2026-11-30','MENSUAL');
 SELECT rrhh.fn_calcular_planilla(1) AS empleados_calculados;
 SELECT e.nombres, d.salario_bruto, d.isss_laboral, d.afp_laboral, d.renta_retenida, d.total_descuentos, d.salario_neto, d.isss_patronal+d.afp_patronal+d.insaforp_patronal AS aporte_patronal
 FROM rrhh.planilla_detalles d JOIN rrhh.empleados e USING(id_empleado) ORDER BY d.salario_bruto DESC;

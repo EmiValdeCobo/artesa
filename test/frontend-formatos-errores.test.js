@@ -5,9 +5,14 @@ import {
   formatoDinero,
   formatoDineroCorto,
   formatoEntero,
+  formatearUnidades,
+  enteroParaInput,
   fechaLocal,
   fechaISODelNegocio,
   haceCuanto,
+  formatoFecha,
+  formatoFechaHora,
+  formatoMes,
 } from '../frontend/src/utils/formato.js';
 import { traducirError } from '../frontend/src/errors/traducirError.js';
 import { ErrorApi } from '../frontend/src/errors/ErrorApi.js';
@@ -25,6 +30,7 @@ test('formato: formatoDinero maneja números y strings numéricos sin perder dec
   // Debe incluir el símbolo de dólar y 2 decimales
   assert.match(formatoDinero(12.5), /\$12\.50/);
   assert.match(formatoDinero('100.99'), /\$100\.99/);
+  assert.equal(formatoDinero('1735.41'), '$1,735.41');
   assert.match(formatoDinero(null), /\$0\.00/);
   assert.match(formatoDinero(undefined), /\$0\.00/);
 });
@@ -37,6 +43,27 @@ test('formato: formatoDineroCorto redondea a 0 decimales para tarjetas de resume
 test('formato: formatoEntero da formato a números enteros', () => {
   assert.equal(formatoEntero(1500), '1,500');
   assert.equal(formatoEntero(0), '0');
+});
+
+test('formato: formatearUnidades renderiza unidades enteras eliminando decimales de PostgreSQL', () => {
+  assert.equal(formatearUnidades('1.0000'), '1');
+  assert.equal(formatearUnidades('18.00'), '18');
+  assert.equal(formatearUnidades(250), '250');
+  assert.equal(formatearUnidades('50.0000'), '50');
+  assert.equal(formatearUnidades(null), '0');
+  assert.equal(formatearUnidades(undefined), '0');
+  assert.equal(formatearUnidades(''), '0');
+  assert.equal(formatearUnidades(1500), '1,500');
+});
+
+test('formato: enteroParaInput limpia valores para campos numéricos enteros', () => {
+  assert.equal(enteroParaInput('1.0000'), '1');
+  assert.equal(enteroParaInput('18.00'), '18');
+  assert.equal(enteroParaInput('50.0000'), '50');
+  assert.equal(enteroParaInput(250), '250');
+  assert.equal(enteroParaInput(null), '');
+  assert.equal(enteroParaInput(undefined), '');
+  assert.equal(enteroParaInput(''), '');
 });
 
 test('formato: fechaLocal genera un objeto Date sin desfase de zona horaria', () => {
@@ -66,6 +93,25 @@ test('formato: haceCuanto retorna etiquetas relativas legibles', () => {
 
   // 2 días atrás
   assert.equal(haceCuanto('2026-11-07T12:00:00Z', ahora), 'hace más de un día');
+});
+
+test('formato: formatoFecha formatea fechas YYYY-MM-DD sin desfase, null a raya y conserva inválidos', () => {
+  assert.equal(formatoFecha('2026-08-05'), '5 ago 2026');
+  assert.equal(formatoFecha(null), '—');
+  assert.equal(formatoFecha(undefined), '—');
+  assert.equal(formatoFecha(''), '—');
+  assert.equal(formatoFecha('texto inválido'), 'texto inválido');
+});
+
+test('formato: formatoFechaHora en zona El Salvador (UTC-6) formatea instante a fecha y hora 24h', () => {
+  assert.equal(formatoFechaHora('2026-08-05T03:30:00Z'), '4 ago 2026, 21:30');
+  assert.equal(formatoFechaHora(null), '—');
+  assert.equal(formatoFechaHora('texto inválido'), 'texto inválido');
+});
+
+test('formato: formatoMes formatea YYYY-MM a mes abreviado sin punto y año', () => {
+  assert.equal(formatoMes('2026-11'), 'nov 2026');
+  assert.equal(formatoMes(null), '—');
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -115,4 +161,13 @@ test('traducirError: un nombre duplicado de inventario se marca como duplicado',
   assert.equal(traducido.id, 'DUPLICADO');
   assert.match(traducido.accion, /Cambia el nombre o el código/i);
   assert.ok(traducido.campos.nombre);
+});
+
+test('traducirError: en errores 409 con mensajeServidor asigna el mensaje real del backend', () => {
+  const mensajeReal = 'No se puede eliminar el rol: tiene 3 usuarios asignados.';
+  const error = new ErrorApi({ status: 409, mensajeServidor: mensajeReal });
+  const traducido = traducirError(error);
+  assert.equal(traducido.status, 409);
+  assert.equal(traducido.mensaje, mensajeReal);
+  assert.ok(traducido.mensajeCompleto.includes(mensajeReal));
 });

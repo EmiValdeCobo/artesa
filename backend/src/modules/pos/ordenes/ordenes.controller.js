@@ -9,13 +9,13 @@ export async function crear(req, res) {
 // GET /api/pos/ordenes
 export async function listar(req, res) {
   const { id_turno, estado } = req.query;
-  const ordenes = await service.listarOrdenes({ idTurno: id_turno, estado: estado ?? null });
+  const ordenes = await service.listarOrdenes({ idTurno: id_turno, estado: estado ?? null }, req.user.id);
   return res.json({ status: 'success', data: { ordenes } });
 }
 
 // GET /api/pos/ordenes/:id
 export async function detalle(req, res) {
-  const orden = await service.obtenerOrden(Number(req.params.id));
+  const orden = await service.obtenerOrden(Number(req.params.id), req.user.id);
   return res.json({ status: 'success', data: orden });
 }
 

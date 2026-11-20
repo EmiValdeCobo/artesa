@@ -1,5 +1,6 @@
 import { QueryTypes } from 'sequelize';
 import { sequelize } from '../../config/db.js';
+import { listarCuentasPorPagar } from '../compras/cuentas-por-pagar.repository.js';
 
 const consultar = (sql, bind) => sequelize.query(sql, { bind, type: QueryTypes.SELECT });
 
@@ -49,20 +50,16 @@ export const topProductos = (idUsuario, { desde, hasta, idSucursal, limite }) =>
   [idUsuario, desde ?? null, hasta ?? null, idSucursal ?? null, limite],
 );
 
-// Replica vw_alertas_stock conservando id_sucursal para evitar cruces por nombres repetidos.
+// Usa la vista como única definición del umbral y limita el resultado a sucursales visibles.
 export const alertasStock = (idUsuario, { idSucursal, nivel }) => consultar(
   `${VISIBLES}
-   SELECT s.id_sucursal, s.nombre AS sucursal, i.nombre AS insumo, u.codigo AS unidad,
-          ss.stock_actual, ss.stock_minimo, ss.stock_minimo - ss.stock_actual AS faltante,
-          CASE WHEN ss.stock_actual <= 0 THEN 'AGOTADO' ELSE 'BAJO_MINIMO' END AS nivel
-   FROM inventario.stock_sucursal ss
-   JOIN visibles s ON s.id_sucursal = ss.id_sucursal
-   JOIN inventario.insumos i ON i.id_insumo = ss.id_insumo
-   JOIN inventario.unidades_medida u ON u.id_unidad = i.id_unidad_base
-   WHERE i.activo AND ss.stock_actual <= ss.stock_minimo
-     AND ($2::int IS NULL OR s.id_sucursal = $2::int)
-     AND ($3::text IS NULL OR CASE WHEN ss.stock_actual <= 0 THEN 'AGOTADO' ELSE 'BAJO_MINIMO' END = $3::text)
-   ORDER BY (ss.stock_actual <= 0) DESC, ss.stock_minimo - ss.stock_actual DESC, s.nombre, s.id_sucursal, i.nombre`,
+   SELECT a.id_sucursal, a.sucursal, a.insumo, a.unidad,
+          a.stock_actual, a.stock_minimo, a.faltante, a.nivel, a.id_insumo
+   FROM reportes.vw_alertas_stock a
+   JOIN visibles s ON s.id_sucursal = a.id_sucursal
+   WHERE ($2::int IS NULL OR a.id_sucursal = $2::int)
+     AND ($3::text IS NULL OR a.nivel = $3::text)
+   ORDER BY (a.nivel = 'AGOTADO') DESC, a.faltante DESC, a.sucursal, a.id_sucursal, a.insumo`,
   [idUsuario, idSucursal ?? null, nivel ?? null],
 );
 
@@ -85,11 +82,11 @@ export const cuadreTurnos = (idUsuario, { desde, hasta, idSucursal }) => consult
   `${VISIBLES}
    SELECT q.id_turno, s.nombre AS sucursal, c.nombre_identificador AS caja, u.username AS usuario,
           q.estado, t.abierto_en, t.cerrado_en,
-          q.monto_apertura, q.ventas_efectivo, q.ventas_tarjeta, q.ventas_digital,
+          q.monto_apertura, q.ventas_efectivo, q.ventas_tarjeta, q.ventas_digital, q.ventas_bitcoin,
           q.ingresos_caja, q.egresos_caja,
-          q.esperado_efectivo, q.esperado_tarjeta, q.esperado_digital,
-          q.monto_cierre_efectivo, q.monto_cierre_pos_tarjeta, q.monto_cierre_digital,
-          q.dif_efectivo, q.dif_tarjeta, q.dif_digital
+          q.esperado_efectivo, q.esperado_tarjeta, q.esperado_digital, q.esperado_bitcoin,
+          q.monto_cierre_efectivo, q.monto_cierre_pos_tarjeta, q.monto_cierre_digital, q.monto_cierre_bitcoin,
+          q.dif_efectivo, q.dif_tarjeta, q.dif_digital, q.dif_bitcoin
    FROM reportes.vw_cuadre_turno q
    JOIN pos.turnos_caja t ON t.id_turno = q.id_turno
    JOIN pos.cajas c ON c.id_caja = q.id_caja
@@ -105,26 +102,8 @@ export const cuadreTurnos = (idUsuario, { desde, hasta, idSucursal }) => consult
 
 // La vista vw_cuentas_por_pagar no expone id_sucursal. Se replica su agregación sobre
 // tablas base para poder aplicar el alcance de usuario_sucursal sin filtrar por nombres.
-export const cuentasPorPagar = (idUsuario, { desde, hasta, idSucursal }) => consultar(
-  `${VISIBLES}
-   SELECT f.id_compra, s.nombre AS sucursal, pr.razon_social AS proveedor,
-          f.num_factura, f.tipo_costo, f.fecha_emision, f.fecha_vencimiento,
-          f.total, COALESCE(SUM(pp.monto), 0) AS pagado,
-          f.total - COALESCE(SUM(pp.monto), 0) AS saldo,
-          GREATEST(CURRENT_DATE - f.fecha_vencimiento, 0) AS dias_vencida,
-          f.estado_pago
-   FROM compras.facturas_compra f
-   JOIN visibles s ON s.id_sucursal = f.id_sucursal
-   JOIN compras.proveedores pr ON pr.id_proveedor = f.id_proveedor
-   LEFT JOIN compras.pagos_proveedor pp ON pp.id_compra = f.id_compra
-   WHERE f.estado_pago <> 'PAGADO'
-     AND f.fecha_emision BETWEEN COALESCE($2::date, CURRENT_DATE - 29) AND COALESCE($3::date, CURRENT_DATE)
-     AND ($4::int IS NULL OR f.id_sucursal = $4::int)
-   GROUP BY f.id_compra, s.nombre, pr.razon_social
-   ORDER BY f.fecha_vencimiento ASC, pr.razon_social, f.num_factura
-   LIMIT 500`,
-  [idUsuario, desde ?? null, hasta ?? null, idSucursal ?? null],
-);
+export const cuentasPorPagar = (idUsuario, filtros) =>
+  listarCuentasPorPagar(idUsuario, { ...filtros, estado: 'pendientes', periodoRecientePorDefecto: true });
 
 // Distribución del ingreso emitido por método de pago; cada ticket puede aparecer en
 // más de un método cuando se registró un cobro mixto.
@@ -140,4 +119,15 @@ export const ventasPorMetodoPago = (idUsuario, { desde, hasta, idSucursal }) => 
    GROUP BY p.metodo
    ORDER BY SUM(p.monto) DESC, p.metodo`,
   [idUsuario, desde ?? null, hasta ?? null, idSucursal ?? null],
+);
+
+// Vista reportes.vw_productos_margen_bajo: alerta para revisar precios de venta, que nunca
+// se ajustan solos. NUMERIC se devuelve como texto (camelCase, mismo formato que alertasMargen).
+export const margenBajo = () => consultar(
+  `SELECT id_producto AS "idProducto", nombre,
+          precio_sin_iva::text AS "precioSinIva", costo_receta::text AS "costoReceta",
+          margen_pct::text AS "margenPct", margen_minimo_pct::text AS "margenMinimoPct"
+   FROM reportes.vw_productos_margen_bajo
+   ORDER BY margen_pct ASC, nombre`,
+  [],
 );

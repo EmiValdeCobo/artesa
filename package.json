@@ -13,6 +13,7 @@
     "build": "pnpm -r build",
     "db:migrate": "node scripts/db.js migrate",
     "db:seed": "node scripts/db.js seed",
+    "seed:reset": "pnpm --filter artesa-backend seed:reset",
     "lint": "eslint .",
     "format:check": "prettier --check .",
     "test": "node --test",

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { api, EVENTO_SESION_EXPIRADA } from '../api/client.js';
 
 const AuthContext = createContext(null);
@@ -8,27 +8,42 @@ export function AuthProvider({ children }) {
   const [permisos, setPermisos] = useState([]);
   const [tipoSesion, setTipoSesion] = useState(null);
   const [cargando, setCargando] = useState(true);
+  const versionRef = useRef(0);
+
+  const recargarSesion = useCallback(async (tipoParam) => {
+    const versionInicio = versionRef.current;
+    const tipo = tipoParam || localStorage.getItem('tipoSesion') || 'admin';
+    try {
+      const data = await api.get('/auth/me');
+      if (versionRef.current !== versionInicio) {
+        return;
+      }
+      setUsuario(data.usuario);
+      setPermisos(data.permisos || []);
+      setTipoSesion(tipo);
+      return data;
+    } catch (err) {
+      if (versionRef.current !== versionInicio) {
+        return;
+      }
+      setUsuario(null);
+      setPermisos([]);
+      setTipoSesion(null);
+      throw err;
+    }
+  }, []);
 
   useEffect(() => {
-    const tipo = localStorage.getItem('tipoSesion') || 'admin';
-    api.get(tipo === 'cliente' ? '/auth/cliente/me' : '/auth/me')
-      .then((data) => {
-        setUsuario(data.usuario);
-        setPermisos(data.permisos || []);
-        setTipoSesion(tipo);
-      })
-      .catch(() => {
-        setUsuario(null);
-        setPermisos([]);
-        setTipoSesion(null);
-      })
+    recargarSesion()
+      .catch(() => {})
       .finally(() => setCargando(false));
-  }, []);
+  }, [recargarSesion]);
 
   // La sesión venció a mitad de uso: se limpia el estado y ProtectedRoute lleva al login.
   // El aviso al usuario lo muestra AlertProvider (un solo toast, aunque fallen varias peticiones).
   useEffect(() => {
     const alVencer = () => {
+      versionRef.current += 1;
       localStorage.removeItem('tipoSesion');
       setUsuario(null);
       setPermisos([]);
@@ -39,16 +54,18 @@ export function AuthProvider({ children }) {
   }, []);
 
   const iniciarSesion = async (username, password, tipo = 'admin') => {
-    const endpoint = tipo === 'cliente' ? '/auth/cliente/login' : '/auth/login';
-    const data = await api.post(endpoint, { username, password });
+    versionRef.current += 1;
+    const data = await api.post('/auth/login', { username, password });
     localStorage.setItem('tipoSesion', tipo);
     setUsuario(data.usuario);
     setPermisos(data.permisos || []);
     setTipoSesion(tipo);
+    setCargando(false);
     return data;
   };
 
   const logout = () => {
+    versionRef.current += 1;
     api.post('/auth/logout').catch(() => {});
     localStorage.removeItem('tipoSesion');
     setUsuario(null);
@@ -59,7 +76,7 @@ export function AuthProvider({ children }) {
   const tiene = (permiso) => permisos.includes(permiso);
 
   return (
-    <AuthContext.Provider value={{ usuario, tipoSesion, cargando, login: iniciarSesion, logout, tiene }}>
+    <AuthContext.Provider value={{ usuario, tipoSesion, cargando, login: iniciarSesion, logout, tiene, recargarSesion }}>
       {children}
     </AuthContext.Provider>
   );

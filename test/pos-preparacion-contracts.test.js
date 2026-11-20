@@ -52,5 +52,5 @@ test('preparación service: FSM estricta y bloqueo de concurrencia con transacci
 test('preparación repository: usa FOR UPDATE OF o para prevenir condiciones de carrera', async () => {
   const repo = await prep('preparacion.repository.js');
   assert.match(repo, /FOR UPDATE OF o/);
-  assert.match(repo, /JOIN empresa\.sucursales s ON s\.id_sucursal = c\.id_sucursal/);
+  assert.match(repo, /JOIN empresa\.sucursales s ON s\.id_sucursal = o\.id_sucursal/);
 });

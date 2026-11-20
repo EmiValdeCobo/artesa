@@ -1,42 +1,53 @@
 # CONTEXT — estado vivo del proyecto (máx. 60 líneas; actualizar al cerrar tareas)
-Actualizado: 2026-11-13
+Actualizado: 2026-11-19
 
 ## Meta y fechas
 Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (listo en docs/Documentacion_IEEE con compilador y visor), manual de usuario, doc técnica, flujo de trabajo.
 
 ## Decisiones tomadas
 - Stack: Express + Sequelize (conductor `pg`) + PostgreSQL 16; React + Vite + Tailwind (sin Next.js); JS puro.
-- Lógica de negocio crítica en funciones PL/pgSQL (ver DB_MAP.md). Backend las invoca.
-- Precios incluyen IVA (13%); se desglosa en la factura. (Confirmar con docente si el CCF suma IVA aparte.)
+- Lógica crítica en funciones PL/pgSQL (ver DB_MAP.md); compras recibe costo unitario con IVA, guarda ambos valores y conserva históricos con la nueva columna en NULL.
+- Precios incluyen IVA (13%); se desglosa en la factura. Compras: `tipo_documento` CCF (separa IVA como crédito fiscal) vs CF/FSE (IVA es costo); alerta de margen bajo con `margen_minimo` (0.60). Ver docs/compras-iva-costeo.md.
 - Facturación electrónica DTE simulada (número de control, código de generación, sello simulado).
 - RBAC dinámico: roles y permisos en BD; middleware `requirePermiso`.
-- El Kárdex requiere `INV_VER_KARDEX`; su `costo_unitario` solo se incluye con `INV_VER_COSTOS` además del permiso de Kárdex. El seeder `003_inventario_kardex.sql` está pendiente de aplicación en la BD local por un error previo en `001_portales_demo.sql`.
-- CRUD: modelos Sequelize; funciones SQL y vistas con consultas parametrizadas. Migraciones/seeders: `psql` mediante scripts del proyecto.
+- El Kárdex requiere `INV_VER_KARDEX`; su `costo_unitario` solo se incluye con `INV_VER_COSTOS` además del permiso de Kárdex.
+- CRUD: modelos Sequelize; funciones SQL y vistas con consultas parametrizadas. Migraciones: `scripts/db.js`. Datos demo: `pnpm seed:reset` (backend/seeders, Sequelize, reemplaza los datos en una transacción, determinista con semilla fija; no toca esquema, permisos, parámetros ni schema_migrations). Los seeders SQL 001/002 se eliminaron; queda 003 (permisos).
 - Conexión BD: el backend usa el rol global restringido `web_user`; `POSTGRES_USER` queda reservado para administración y migraciones.
-- Sesiones: JWT en cookie `httpOnly`, `SameSite` configurable y `secure` configurable; el backend revalida `activo=true` en cada request.
-- Migraciones/seeders: `scripts/db.js` registra nombre, checksum SHA-256, fecha y tipo en `public.schema_migrations`.
+- Sesiones: JWT en cookie `httpOnly`, `SameSite`/`secure` configurables (`secure=true` por defecto en producción), `trust proxy` en Express, login con hash dummy anti-timing attack y logout con revocación `jti` (`seguridad.tokens_revocados`).
+- Migraciones/seeders: `scripts/db.js` registra nombre, checksum SHA-256, fecha y tipo en `public.schema_migrations`. Paridad 1:1 estricta entre `database/init` (Docker bootstrap) y `database/migrations` (db:migrate).
+- Fechas: columnas TIMESTAMP guardan UTC; `config/db.js` fija el parser pg (OID 1114) en UTC para que el backend en host (TZ local) no desplace 6 h. Dinero en formularios: `components/forms/InputMoneda.jsx`.
+- Producción y Docker: `morgan` estructurado (`combined` en prod, silenciado en test), cookies seguras por defecto y puertos aislados en Docker Compose (`db` en `127.0.0.1` y `api` en `expose` interno sin bypass de Nginx).
 - Bitácora analítica: captura IP/User-Agent en `AsyncLocalStorage` y los propaga a variables PostgreSQL mediante `withTransaction`.
-- QA / Pruebas: suite automatizada en Node.js nativo (`node:test`, 132 pruebas activas) cubriendo contratos de API, FSM, anti-float y lógica frontend.
-- UI / Dashboard: diseño unificado con tarjetas redondeadas, paleta de marca (Terracota, Ocre, Espresso) y tipografía Montserrat del sistema (sin fuentes externas).
+- QA / Pruebas: suite automatizada en Node.js nativo (`node:test` + `supertest`, 466 pruebas activas) y lint sin errores (2 warnings previos en Caja/Compras); cubre contratos de API, FSM, anti-float, UI/UX, lógica frontend, seguridad y accesibilidad.
+- UI / Frontend: diseño unificado con selector de sucursal por pantalla (no hay contexto global; por defecto la primera sucursal asignada), paneles reactivos y paleta de marca; Dashboard, Catálogo y Reportes responsivos. Reportes abre en pestaña de tendencia de ancho completo; variación porcentual diaria está en tooltip y SVG responde al contenedor. Dashboard conserva héroe con curva horaria comparada, selector 7/14/30, agregado PostgreSQL por zona y caché 30 s privada; lista de productos pasa a tarjetas bajo 768 px; ver `docs/diseno-widget-ventas-diarias.md`.
+- UX inventario y recetas: Catálogo con badge de ingredientes alineado en sub-línea, costo en 1 línea ($0.00), modal rápido de preview de receta con estética editorial clara (Alabastro/Espresso/Terracota), redirección automática al crear producto elaborado; Editor de Recetas con flujo dual (Ficha Técnica de solo lectura con % de proporción vs Constructor interactivo), skeletons cálidos (sin spinners circulares), disponibilidad operativa con selector de sucursal/cuello de botella/alerta de stock 0 y ajuste rápido de precio con precio sugerido 40% (IVA 13% incluido).
+- UI compartida: encabezados siguen `Grupo del menú · sección` (Operación, Gestión, Administración); KPIs usan `Metrica` con grid responsive común. Iconos por acción en `config/iconos.js` + `BotonIcono`; `Select`/`CustomSelect` en portal; máscaras en `utils/mascaras.js` (incluye NRC y referencia de pago); paleta de series de gráficas definida globalmente en `index.css` para tema claro/oscuro. Rediseño 2026-11-17 (paso 1 aprobado por etapas): tokens nuevos (`text-h1`, `text-kpi`, `rounded-md` 8 px, `size-control-*`, `*-text` semánticos, `line-strong`, `ring-sidebar`) y revisión visual en `/_sistema` (solo dev); Terracota es la única acción principal; carga con `Skeleton`/`PuntosCarga`, nunca spinners.
+- UX 2026-11-16 (2.ª iteración): tendencia de Reportes usa `GraficaTendencia.jsx` (eje USD, hoy rayado, promedio, fines de semana); paleta global de series compartida, etiquetas de extremos en el resumen y ventas equilibradas por pestaña; sidebar fija al viewport y tabla accesible del gráfico fuera del flujo para evitar scroll horizontal; Kárdex conserva filtros en URL y paginación frontend local; alertas de stock prellenan `/compras/registrar` como borrador vía `location.state` (sin proveedor habitual en API: queda por elegir); catálogo de permisos sin scroll interno. `Table.jsx` ganó `encabezado`, `clase`, `horizontal` y `minAncho` (compatibles hacia atrás).
+- API CxP/Kárdex: Compras, Reportes CxP y movimientos de inventario paginan obligatoriamente (50 por defecto, máximo 100), mantienen arreglos JSON y publican metadatos en headers. Kárdex filtra en PostgreSQL; el frontend las recorre con `api/paginacion.js` (`api.getConMeta` expone X-Total/X-Has-Next-Page); Kárdex carga hasta 500 y avisa el total real. Anular venta disponible en el detalle del historial (POS_ANULAR_VENTA). Hardening 2026-11-19: body JSON 100kb, rate limit global 300/min, JWT HS256 fijo; en producción el backend no arranca si un usuario activo conserva la contraseña demo. Frontend en React Router 7 y Vite 6.
+- Feedback y alertas: useAlert() unificado para acciones (notificar.exito en éxito, notificarError en catch, notificar.advertencia en validaciones que bloquean, confirm modal destructivo). Toasts en z-[100] sobre modales y drawers. Errores de carga inicial/tabla y errores por campo se conservan en línea (BannerError / CampoError).
+- Tablas y paginación (2026-11-16): Table.jsx ahora ordena y pagina por defecto (10 filas, selector 10/25/50/100 con Select/CustomSelect, aria-sort y aria-live; paginacion={false} para diálogos). Comparadores en utils/tabla.js ordenan sobre el total de filas: dinero/NUMERIC como strings sin float, texto con Intl.Collator en español y nulos al final. Tablas migradas en toda la app; solo el editor de recetas permanece manual por inputs en línea.
+- Rendimiento (2026-11-17): Table memoriza ordenamiento del cliente; KDS pausa polling en pestañas ocultas y agrupa cada cola en una pasada. Migración 015 / init 16 agrega índices de detalle por orden y cola POS activa; revisar EXPLAIN con datos reales antes de sumar más índices.
+
+
+- POS notas/extras (2026-11-19, mig. 023): observación por línea (nota, no toca inventario) visible en cola, ticket e historial; extras = productos `es_extra` con receta propia ligados por `producto_extras` y `id_detalle_padre`, cobrados y descontados por fn_registrar_venta. Barista ve recetas en solo lectura (catálogo y cola) con INV_VER_STOCK.
+- Pagos simulados (2026-11-19): TARJETA y TRANSFERENCIA usan pasarela simulada (`frontend/src/modules/pos/pagosSimulados/`, `backend/src/modules/pos/pagos/pasarelaSimulada.js`); aprobación decidida en el frontend, al backend solo llegan marca, últimos 4 y autorización (esquema estricto). Transferencia: referencia 6-20 A-Z0-9 y excedente en monto_recibido (no es vuelto). Mig. 024.
 
 ## Estado por módulo
 | Módulo | BD | Backend | Frontend |
 |---|---|---|---|
-| auth / seguridad | listo | login, CRUD RBAC, usuarios y API /bitacora con métricas | Bitácora con filtros, analítica y gestión de usuarios/roles |
-| inventario | listo | CRUD unidades-medida/insumos/productos, stock, mermas, alertas y Kárdex con permiso propio; listar productos incluye n_ingredientes | Existencias y kárdex; catálogo insumos sin campos de stock globales; productos señalan recetas pendientes; editor BOM sin fallback mock |
-| pos | listo | cola de preparación (/api/preparacion), órdenes (T02) y ventas/facturación (T17: FCF/CCF, pagos mixtos) | catálogo y carrito local; cobro/facturación pendiente (frontend T19/T46) |
-| caja | listo | turnos, movimientos, cierre y cuadre (T05/T06/T22) | pendiente |
-| compras | listo | pendiente | pendiente |
-| rrhh | listo | CRUD de puestos y empleados, validaciones, permisos y datos de prueba | pendiente |
-| reportes | vistas listas | ventas diarias, top productos, alertas y margen (T23) | pendiente |
-| compras | listo | pendiente | pantallas pendientes (usan PendienteApiPage) |
-| rrhh | listo | pendiente | pantallas pendientes (usan PendienteApiPage) |
+| auth / seguridad | listo | login, CRUD RBAC, usuarios y API /bitacora con métricas y severidad | Bitácora con filtros (severidad), analítica, roles (ADMIN solo lectura) y captura 409 |
+| inventario | listo | CRUD unidades/insumos/productos, stock, mermas, alertas y Kárdex; alerta única `stock_actual < stock_minimo` con mínimo positivo desde `vw_alertas_stock`; cantidades físicas validadas como enteros positivos | Existencias/kárdex por sucursal; Alertas, contador, dashboard y reportes comparten el umbral SQL; al volver a la pestaña se actualiza stock |
+| pos | listo | ventas (T17) crean la orden de preparación solo con elaborados (mig. 022; reventa no va a cola); cola por sucursales asignadas (ADMIN = todas) con `idSucursal`, cancelar solo Nueva con motivo (si se cobró anula la venta, POS_ANULAR_VENTA); pedidos de turnos cerrados siguen visibles con badge; CAJERO ve la cola | catálogo, carrito, clientes CCF, historial de ventas, cobro mixto (T19), ticket (T46) y KDS con drag-and-drop optimista (Pointer Events) |
+| caja | listo | turnos, movimientos, cierre y cuadre (T05/T06/T22) con tolerancia configurable; Bitcoin/Chivo aparte (mig. 019); cierre bloqueado con pedidos activos (409 PEDIDOS_PENDIENTES, nadie lo fuerza); fondo inicial máx. 10000.00 | pantalla de caja integrada desde develop |
+| compras | listo | T30 proveedores con formatos salvadoreños; T31 valida cantidades enteras, fechas en rango y total positivo, CONTADO registra pago EFECTIVO en la misma transacción; T32 pagos/CxP; T33 registro backend GASTO | Menú Compras en Gestión; gastos filtran GASTO en SQL y recorren páginas, permiten abonos directos; CxP recorre todas las facturas visibles; fecha futura explica el rechazo |
+| rrhh | listo | CRUD de puestos/empleados y planillas quincenales (1-15 / 16-fin) y mensuales, cálculo SQL, PDFs y permisos; pendiente extensión fiscal anual | puestos, empleados y planillas implementados |
 | reportes | vistas listas + consultas de método de pago, cuadre y CxP | ventas diarias, top productos, métodos de pago, alertas, margen, cuadre y CxP; alcance por `id_sucursal` | panel con tendencias, comparativos, tablas paginadas y exportación CSV/PDF |
-| empresa | listo | CRUD sucursales y edición parámetros | sucursales y parámetros |
+| empresa | listo | CRUD sucursales (alta asigna a todos los ADMIN activos) y apertura `/sucursales/:id/apertura` (stock mínimo + carga INVENTARIO_INICIAL); edición parámetros | sucursales con diálogo de apertura confirmado y parámetros con máscara por tipo |
 
-Pantallas de gestión pendientes por falta de endpoints backend: empleados/puestos, proveedores, administración de CxP, compras tipo gasto y planillas. El reporte de CxP de solo lectura ya está disponible dentro de Reportes.
+Compras: proveedores tipo COMPRA (Nueva factura) o SERVICIO (Gastos), validado en backend; detalle por factura (GET /compras/facturas/:id con líneas y abonos); eliminación lógica solo ADMIN (COM_ELIMINAR_FACTURA, revierte stock y abonos; mig. 020-021); CxP y Gastos filtran por período en backend (CxP por vencimiento por defecto, Gastos por emisión) con resumen total/abonado/saldo. El reporte CxP conserva pendientes y período reciente; la ruta operativa permite pendientes/pagadas/todas y exige portal admin más COM_VER_CXP.
 
 ## Pendientes críticos
-- Verificar tablas de renta/ISSS/AFP vigentes con Hacienda (están en `rrhh.tramos_renta` y `empresa.parametros`).
+- Verificar periódicamente tramos/versiones legales de renta, ISSS, AFP e INSAFORP con Hacienda/ISSS/SSF.
+- Planillas: quincenal habilitada (mig. 019, tramos quincenales DE 10); sincronizados init 08-12; el DE 10 requiere deducción adicional del tramo II y recálculos en junio/diciembre aún no modelados.
 - Asignar responsables por módulo (ver README).
 - Cambiar contraseñas semilla (`Cambiar123*`) antes de desplegar.

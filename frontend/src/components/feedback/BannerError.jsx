@@ -13,20 +13,20 @@ export default function BannerError({ error, onReintentar, onCerrar, className =
   const soporte = esSistema ? enlaceSoporte() : null;
 
   return (
-    <div role="alert" className={`flex items-start gap-3 rounded-lg border px-4 py-3 text-sm ${esSistema ? 'border-danger/30 bg-danger-soft' : 'border-warning/30 bg-warning-soft'} ${className}`}>
-      <Icono size={18} aria-hidden="true" className={`mt-0.5 shrink-0 ${esSistema ? 'text-danger' : 'text-warning'}`} />
+    <div role="alert" className={`flex items-start gap-3 rounded-md border px-4 py-3 text-body ${esSistema ? 'border-danger/30 bg-danger-soft' : 'border-warning/30 bg-warning-soft'} ${className}`}>
+      <Icono size={18} aria-hidden="true" strokeWidth={1.75} className={`mt-0.5 shrink-0 ${esSistema ? 'text-danger-text' : 'text-warning-text'}`} />
       <div className="min-w-0 flex-1 text-fg">
         <p className="font-semibold leading-snug">{error.titulo}</p>
         <p className="mt-0.5 leading-snug">{error.mensaje} {error.accion}</p>
         {((error.reintentable && onReintentar) || soporte) && (
           <div className="mt-2.5 flex flex-wrap gap-2">
-            {error.reintentable && onReintentar && <button type="button" className="btn-ghost min-h-9 !bg-surface !px-3 !py-1.5" onClick={onReintentar}><RefreshCw size={14} aria-hidden="true" /> Reintentar</button>}
-            {soporte && <a href={soporte} className="btn-ghost min-h-9 !bg-surface !px-3 !py-1.5">Contactar a soporte</a>}
+            {error.reintentable && onReintentar && <button type="button" className="btn-ghost btn-sm" onClick={onReintentar}><RefreshCw size={14} aria-hidden="true" /> Reintentar</button>}
+            {soporte && <a href={soporte} className="btn-ghost btn-sm">Contactar a soporte</a>}
           </div>
         )}
       </div>
       {onCerrar && (
-        <button type="button" onClick={onCerrar} aria-label="Cerrar mensaje" className="-mr-1 -mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-md text-fg-muted transition-colors hover:bg-surface/70 hover:text-fg">
+        <button type="button" onClick={onCerrar} aria-label="Cerrar mensaje" className="-mr-1 -mt-1 grid size-control-sm shrink-0 place-items-center rounded-md text-fg-muted transition-colors hover:bg-surface/70 hover:text-fg">
           <X size={16} aria-hidden="true" />
         </button>
       )}

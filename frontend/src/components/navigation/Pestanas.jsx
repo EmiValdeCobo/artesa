@@ -3,6 +3,8 @@ import { useRef } from 'react';
 // Pestañas accesibles (patrón WAI-ARIA "tabs"): flechas ←/→, Inicio y Fin cambian de pestaña,
 // y solo la activa entra en el orden de Tab. El contenido lo dibuja quien la usa con
 // role="tabpanel" id={`panel-${clave}`} aria-labelledby={`tab-${clave}`}.
+// `total` es número si los datos cargaron, `null` mientras cargan (esqueleto estable) y
+// `undefined` si no hay un total que mostrar, por ejemplo ante un error.
 //
 //   <Pestanas etiqueta="Secciones" activa={p} onCambiar={setP}
 //     pestanas={[{ clave: 'roles', texto: 'Roles', icono: Users, total: 7 }]} />
@@ -24,10 +26,14 @@ export default function Pestanas({ pestanas, activa, onCambiar, etiqueta, classN
         return (
           <button key={clave} ref={(el) => { refs.current[clave] = el; }} type="button" role="tab" id={`tab-${clave}`} aria-selected={seleccionada} aria-controls={`panel-${clave}`}
             tabIndex={seleccionada ? 0 : -1} onClick={() => onCambiar(clave)} onKeyDown={(evento) => alPresionar(evento, indice)}
-            className={`-mb-px flex min-h-11 items-center gap-2 border-b-2 px-4 text-sm font-semibold transition-colors ${seleccionada ? 'border-primary text-primary-text' : 'border-transparent text-fg-muted hover:text-fg'}`}>
-            {Icono && <Icono size={16} aria-hidden="true" />}
+            className={`-mb-px flex min-h-control-lg items-center gap-2 border-b-2 px-3 text-label font-semibold transition-colors ${seleccionada ? "border-primary text-fg" : "border-transparent text-fg-muted hover:border-line-strong hover:text-fg"}`}>
+            {Icono && <Icono size={16} strokeWidth={1.75} aria-hidden="true" />}
             {texto}
-            {total !== undefined && <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-fg-muted">{total}</span>}
+            {total === null ? (
+              <span className="h-5 w-7 rounded-full bg-muted animate-pulse motion-reduce:animate-none" aria-hidden="true" />
+            ) : total !== undefined ? (
+              <span className="inline-flex h-5 w-7 items-center justify-center rounded-full bg-muted text-label-sm tabular-nums text-fg-muted">{total}</span>
+            ) : null}
           </button>
         );
       })}

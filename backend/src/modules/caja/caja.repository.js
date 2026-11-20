@@ -51,9 +51,13 @@ export async function crearTurno(transaction, { idCaja, idUsuario, montoApertura
 const SELECT_TURNO = `
   SELECT t.id_turno, t.id_caja, c.nombre_identificador AS caja, c.id_sucursal, s.nombre AS sucursal,
          t.id_usuario, t.monto_apertura, t.abierto_en, t.estado,
-         v.ventas_efectivo, v.ventas_tarjeta, v.ventas_digital,
-         v.ingresos_caja, v.egresos_caja, v.esperado_efectivo
+         v.ventas_efectivo, v.ventas_tarjeta, v.ventas_digital, v.ventas_bitcoin,
+         v.ingresos_caja, v.egresos_caja, v.esperado_efectivo,
+         u.username AS cajero,
+         (SELECT COUNT(*)::int FROM pos.ordenes o
+          WHERE o.id_turno = t.id_turno AND o.estado IN ('ABIERTA', 'EN_PREPARACION', 'LISTA')) AS pedidos_pendientes
   FROM pos.turnos_caja t
+  JOIN seguridad.usuarios u ON u.id_usuario = t.id_usuario
   JOIN pos.cajas c ON c.id_caja = t.id_caja
   JOIN empresa.sucursales s ON s.id_sucursal = c.id_sucursal
   JOIN reportes.vw_cuadre_turno v ON v.id_turno = t.id_turno`;
@@ -68,10 +72,23 @@ export async function buscarTurnoActual(idUsuario) {
   return turno ?? null;
 }
 
+// Pedidos del turno que siguen en la cola de preparación (Nueva, En preparación o Lista para entregar).
+// FOR UPDATE: mientras se decide el cierre nadie puede cambiar su estado.
+export const listarPedidosPendientes = (idTurno, transaction = null) => consultar(
+  `SELECT o.id_orden, o.estado, o.etiqueta, o.creado_en
+   FROM pos.ordenes o
+   WHERE o.id_turno = $1::uuid AND o.estado IN ('ABIERTA', 'EN_PREPARACION', 'LISTA')
+   ORDER BY o.creado_en, o.id_orden${transaction ? ' FOR UPDATE OF o' : ''}`,
+  [idTurno],
+  transaction,
+);
+
 // Bloquea la fila del turno hasta terminar la transacción: serializa movimientos concurrentes.
 export async function bloquearTurno(transaction, idTurno) {
   const [turno] = await consultar(
-    'SELECT id_turno, id_usuario, estado FROM pos.turnos_caja WHERE id_turno = $1::uuid FOR UPDATE',
+    `SELECT t.id_turno, t.id_usuario, t.estado, c.id_sucursal
+     FROM pos.turnos_caja t JOIN pos.cajas c ON c.id_caja = t.id_caja
+     WHERE t.id_turno = $1::uuid FOR UPDATE OF t`,
     [idTurno],
     transaction,
   );
@@ -113,23 +130,48 @@ export async function usuarioTienePermiso(idUsuario, codigo) {
 // ---------- Cierre y cuadre ----------
 // Llama la función SQL (no se reimplementa el cuadre en JS). Su jsonb de retorno se ignora a propósito:
 // los montos se leen después de la vista como NUMERIC (string) para no pasar por float.
-export const cerrarTurno = (transaction, { idTurno, efectivo, tarjeta, digital }) => consultar(
-  'SELECT pos.fn_cerrar_turno($1::uuid, $2::numeric, $3::numeric, $4::numeric)',
-  [idTurno, efectivo, tarjeta, digital],
+export const cerrarTurno = (transaction, { idTurno, efectivo, tarjeta, digital, bitcoin = '0.00' }) => consultar(
+  'SELECT pos.fn_cerrar_turno($1::uuid, $2::numeric, $3::numeric, $4::numeric, $5::numeric)',
+  [idTurno, efectivo, tarjeta, digital, bitcoin],
   transaction,
 );
+
+// Tolerancia de descuadre: parámetro `tolerancia_cuadre` (empresa.parametros, en dólares). Si no existe se usa
+// el valor por defecto; si existe pero no es un monto válido se avisa, para no cerrar cajas con un límite roto.
+export const TOLERANCIA_CUADRE_DEFECTO = '1.00';
+export async function obtenerToleranciaCuadre(transaction) {
+  const [fila] = await consultar("SELECT empresa.fn_param('tolerancia_cuadre') AS valor", [], transaction);
+  return fila?.valor ?? TOLERANCIA_CUADRE_DEFECTO;
+}
+
+// Diferencia (contado - esperado) por método usando lo esperado EN VIVO de la vista, y si |dif| supera el límite.
+// Todo en NUMERIC dentro de la BD: nada pasa por float.
+export async function calcularDescuadre(transaction, { idTurno, efectivo, tarjeta, digital, bitcoin = '0.00', tolerancia }) {
+  const [fila] = await consultar(
+    `SELECT ($2::numeric - v.esperado_efectivo)::text AS dif_efectivo, ABS($2::numeric - v.esperado_efectivo) > $5::numeric AS excede_efectivo,
+            ($3::numeric - v.esperado_tarjeta)::text  AS dif_tarjeta,  ABS($3::numeric - v.esperado_tarjeta)  > $5::numeric AS excede_tarjeta,
+            ($4::numeric - v.esperado_digital)::text  AS dif_digital,  ABS($4::numeric - v.esperado_digital)  > $5::numeric AS excede_digital,
+            ($6::numeric - v.esperado_bitcoin)::text  AS dif_bitcoin,  ABS($6::numeric - v.esperado_bitcoin)  > $5::numeric AS excede_bitcoin
+     FROM reportes.vw_cuadre_turno v WHERE v.id_turno = $1::uuid`,
+    [idTurno, efectivo, tarjeta, digital, tolerancia, bitcoin],
+    transaction,
+  );
+  return fila ?? null;
+}
 
 // Turno + lo esperado (frozen al cerrar, en vivo mientras está abierto) + lo contado + diferencias.
 const SELECT_CUADRE = `
   SELECT t.id_turno, t.id_caja, c.nombre_identificador AS caja, c.id_sucursal, s.nombre AS sucursal,
          t.id_usuario, u.username AS cajero, t.estado, t.abierto_en, t.cerrado_en, t.monto_apertura,
-         v.ventas_efectivo, v.ventas_tarjeta, v.ventas_digital, v.ingresos_caja, v.egresos_caja,
+         v.ventas_efectivo, v.ventas_tarjeta, v.ventas_digital, v.ventas_bitcoin, v.ingresos_caja, v.egresos_caja,
          COALESCE(t.esperado_efectivo, v.esperado_efectivo) AS esperado_efectivo,
          COALESCE(t.esperado_tarjeta, v.esperado_tarjeta) AS esperado_tarjeta,
          COALESCE(t.esperado_digital, v.esperado_digital) AS esperado_digital,
+         -- Turnos cerrados antes de la mig. 019 no tienen Bitcoin aparte (iba en digital): se deja NULL.
+         CASE WHEN t.estado = 'CERRADO' THEN t.esperado_bitcoin ELSE v.esperado_bitcoin END AS esperado_bitcoin,
          t.monto_cierre_efectivo AS contado_efectivo, t.monto_cierre_pos_tarjeta AS contado_tarjeta,
-         t.monto_cierre_digital AS contado_digital,
-         t.dif_efectivo, t.dif_tarjeta, t.dif_digital
+         t.monto_cierre_digital AS contado_digital, t.monto_cierre_bitcoin AS contado_bitcoin,
+         t.dif_efectivo, t.dif_tarjeta, t.dif_digital, t.dif_bitcoin
   FROM pos.turnos_caja t
   JOIN pos.cajas c ON c.id_caja = t.id_caja
   JOIN empresa.sucursales s ON s.id_sucursal = c.id_sucursal

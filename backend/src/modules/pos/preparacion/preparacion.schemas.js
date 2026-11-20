@@ -9,6 +9,11 @@ export const cambiarEstadoSchema = z.object({
   }),
 });
 
+// Cancelar un pedido Nueva: el motivo es obligatorio (queda en la orden y, si se cobró, en la venta).
+export const anularOrdenSchema = z.object({
+  motivo: z.string().trim().min(5, 'Indica el motivo (mínimo 5 caracteres)').max(200, 'Máximo 200 caracteres'),
+});
+
 export const filtrosColaSchema = z.object({
   idSucursal: z.coerce.number().int().positive().optional(),
 });

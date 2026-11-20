@@ -104,6 +104,8 @@ export const PATRONES = [
   { regex: /^Sesión no válida para este portal$/i, id: 'PORTAL_INCORRECTO' },
   { regex: /^Usuario o contraseña incorrectos$/i, id: 'CREDENCIALES' },
   { regex: /^No tienes permiso para esta acción$/i, id: 'SIN_PERMISO' },
+  { regex: /^No se puede desactivar\. Lo usan: .+$/i, id: 'EN_USO', plantilla: (m) => ({ mensaje: m[0], detalle: 'Desactiva primero los productos relacionados para poder continuar.' }) },
+  { regex: /^No se puede desactivar: la usan .+$/i, id: 'EN_USO', plantilla: (m) => ({ mensaje: m[0], detalle: 'Cambia la unidad de los insumos activos antes de desactivarla.' }) },
   { regex: /^Demasiados intentos/i, id: 'DEMASIADAS_SOLICITUDES' },
   // Usuarios
   { regex: /^No puedes (desactivar|eliminar) tu propio usuario$/i, id: 'AUTOPROTECCION', plantilla: (m) => ({ mensaje: `No puedes ${m[1].toLowerCase()} tu propia cuenta mientras la estás usando.` }) },

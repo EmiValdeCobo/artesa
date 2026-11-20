@@ -6,22 +6,26 @@ export default function ProductoCard({ producto, enCarrito, onAgregar }) {
   const bajo = !agotado && producto.stock <= producto.stock_minimo;
   const sinMas = !agotado && enCarrito >= producto.stock;
   const estado = agotado ? ', agotado' : bajo ? `, quedan ${producto.stock}` : '';
+  const inicial = producto.nombre?.trim().charAt(0).toUpperCase() || '·';
 
   return (
     <button type="button" onClick={() => onAgregar(producto)} disabled={agotado || sinMas}
       aria-label={`Agregar ${producto.nombre}, ${formatoMoneda(producto.precio)}${estado}${enCarrito ? `, ${enCarrito} en el pedido` : ''}`}
-      className={`relative flex h-full min-h-28 flex-col justify-between rounded-xl border p-3.5 text-left shadow-sm transition-colors disabled:cursor-not-allowed ${
-        enCarrito > 0 ? 'border-primary bg-primary-soft' : agotado ? 'border-line bg-muted' : 'border-line bg-surface hover:border-primary hover:bg-primary-soft'}`}>
-      <div className={enCarrito > 0 ? 'pr-8' : ''}>
-        <p className={`line-clamp-2 text-sm font-semibold leading-snug ${agotado ? 'text-fg-muted' : ''}`}>{producto.nombre}</p>
-        <p className="mt-0.5 text-xs text-fg-muted">{producto.tipo === 'reventa' ? 'Reventa' : 'Elaborado'}</p>
+      className={`relative flex h-full min-h-32 flex-col gap-3 rounded-lg border p-3 text-left shadow-xs transition-colors disabled:cursor-not-allowed ${
+        enCarrito > 0 ? 'border-primary/40 bg-primary-soft' : agotado ? 'border-line bg-muted' : 'border-line bg-surface hover:border-primary/40'}`}>
+      <div className="flex items-start justify-between gap-2">
+        <span className={`grid size-control-md shrink-0 place-items-center rounded-md bg-muted font-display text-h3 ${agotado ? 'text-fg-muted' : 'text-fg-muted'}`} aria-hidden="true">{inicial}</span>
+        {enCarrito > 0 && (
+          <span className="grid h-6 min-w-6 place-items-center rounded-full bg-primary px-1.5 text-label-sm tabular-nums text-on-accent" aria-hidden="true">{enCarrito}</span>
+        )}
       </div>
-      {enCarrito > 0 && (
-        <span className="absolute right-3 top-3 grid h-6 min-w-6 place-items-center rounded-full bg-primary px-1.5 text-xs font-bold text-on-accent" aria-hidden="true">{enCarrito}</span>
-      )}
-      <div className="mt-3 flex flex-wrap items-end justify-between gap-x-2 gap-y-1.5">
-        <span className={`text-lg font-bold tabular-nums ${agotado ? 'text-fg-muted' : 'text-primary-text'}`}>{formatoMoneda(producto.precio)}</span>
-        {agotado && <EstadoBadge tipo="error">Agotado</EstadoBadge>}
+      <div className="min-w-0 flex-1">
+        <p className={`line-clamp-2 text-label ${agotado ? 'text-fg-muted' : 'text-fg'}`}>{producto.nombre}</p>
+        <p className="mt-0.5 text-label-sm text-fg-muted">{producto.tipo === 'reventa' ? 'Reventa' : 'Elaborado'}</p>
+      </div>
+      <div className="flex flex-wrap items-end justify-between gap-x-2 gap-y-1.5">
+        <span className={`text-h3 tabular-nums ${agotado ? 'text-fg-muted' : 'text-fg'}`}>{formatoMoneda(producto.precio)}</span>
+        {agotado && <span title="Sin existencias en esta sucursal"><EstadoBadge tipo="error">Agotado</EstadoBadge></span>}
         {bajo && !sinMas && <EstadoBadge tipo="alerta">Quedan {producto.stock}</EstadoBadge>}
         {sinMas && <EstadoBadge tipo="info">Máximo en pedido</EstadoBadge>}
       </div>

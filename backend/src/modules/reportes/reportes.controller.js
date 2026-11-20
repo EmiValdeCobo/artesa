@@ -1,4 +1,5 @@
 import * as service from './reportes.service.js';
+import { enviarHeadersPaginacion } from '../../utils/paginacion.js';
 import {
   filtrosAlertasSchema,
   filtrosCuentasPorPagarSchema,
@@ -27,9 +28,14 @@ export async function cuadreTurnos(req, res) {
 }
 
 export async function cuentasPorPagar(req, res) {
-  res.json(await service.cuentasPorPagar(filtrosCuentasPorPagarSchema.parse(req.query), req.user.id));
+  const resultado = await service.cuentasPorPagar(filtrosCuentasPorPagarSchema.parse(req.query), req.user.id);
+  enviarHeadersPaginacion(res, resultado.pagination);
+  res.json(resultado.data);
 }
 
 export async function ventasPorMetodoPago(req, res) {
   res.json(await service.ventasPorMetodoPago(filtrosVentasSchema.parse(req.query), req.user.id));
+}
+export async function margenBajo(_req, res) {
+  res.json(await service.margenBajo());
 }

@@ -1,5 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Package, Ruler, Pencil, Trash2, X, Plus } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
+import { Package, Ruler, Pencil, Power, PowerOff, X, Plus, Boxes, Search, Trash2 } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
@@ -8,21 +10,31 @@ import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import Pestanas from '../../components/navigation/Pestanas.jsx';
-import { Button, Card, Select, Spinner, Table } from '../../components/ui/index.js';
-import CampoTexto from '../../components/forms/CampoTexto.jsx';
-import CampoError from '../../components/forms/CampoError.jsx';
+import { BotonIcono, Button, Card, Select, Table } from '../../components/ui/index.js';
+import Insignia from '../../components/branding/Insignia.jsx';
+import { ICONOS } from '../../config/iconos.js';
+import CampoError, { idError } from '../../components/forms/CampoError.jsx';
+import { useTrampaFoco } from '../../hooks/useTrampaFoco.js';
+import { formatoDinero, formatearUnidades, enteroParaInput } from '../../utils/formato.js';
 import { traducirError } from '../../errors/traducirError.js';
+import InsumoDrawer from './InsumoDrawer.jsx';
+import DialogoExistenciasInsumo from './DialogoExistenciasInsumo.jsx';
 import {
-  getInsumos, createInsumo, updateInsumo, deleteInsumo,
+  getInsumos, updateInsumo, deleteInsumo, cambiarEstadoInsumo,
   getUnidades, createUnidad, updateUnidad, deleteUnidad,
 } from './inventarioApi.js';
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
-const TIPOS_INSUMO = ['INGREDIENTE', 'EMPAQUE', 'REVENTA'];
+const avisoLocal = (mensaje, titulo = 'Revisa la información') => ({
+  titulo,
+  mensaje,
+  accion: '',
+  categoria: 'usuario',
+});
 
 const PESTANAS_DEF = [
   { clave: 'insumos', texto: 'Insumos', icono: Package },
-  { clave: 'unidades', texto: 'Unidades de Medida', icono: Ruler },
+  { clave: 'unidades', texto: 'Unidades de medida', icono: Ruler },
 ];
 
 const FILTRO_TIPO_OPTS = [
@@ -33,267 +45,62 @@ const FILTRO_TIPO_OPTS = [
 ];
 
 function TipoBadge({ tipo }) {
-  if (tipo === 'REVENTA') {
-    return (
-      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-secondary-soft text-secondary-text">
-        Reventa
-      </span>
-    );
-  }
+  if (tipo === 'REVENTA') return <Insignia variante="aviso">Reventa</Insignia>;
   const label = tipo === 'INGREDIENTE' ? 'Ingrediente' : 'Empaque';
-  return <EstadoBadge tipo="info">{label}</EstadoBadge>;
-}
-
-// ─── DRAWER: Formulario de Insumo ────────────────────────────────────────────
-function DrawerInsumo({ abierto, insumo, unidades, onCerrar, onGuardado }) {
-  const { notificar } = useAlert();
-  const esEdicion = Boolean(insumo?.id_insumo);
-
-  const [form, setForm] = useState({
-    nombre: '',
-    tipo_insumo: 'INGREDIENTE',
-    id_unidad_base: '',
-    costo_promedio: '',
-    activo: true,
-  });
-  const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    if (abierto) {
-      setError(null);
-      if (esEdicion) {
-        setForm({
-          nombre: insumo.nombre ?? '',
-          tipo_insumo: insumo.tipo_insumo ?? 'INGREDIENTE',
-          id_unidad_base: String(insumo.id_unidad_base ?? ''),
-          costo_promedio: insumo.costo_promedio ?? '',
-          activo: insumo.activo ?? true,
-        });
-      } else {
-        setForm({
-          nombre: '',
-          tipo_insumo: 'INGREDIENTE',
-          id_unidad_base: '',
-          costo_promedio: '0.0000',
-          activo: true,
-        });
-      }
-    }
-  }, [abierto, insumo, esEdicion]);
-
-  const set = (campo) => (val) => setForm((f) => ({ ...f, [campo]: val }));
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError(null);
-
-    if (!form.nombre.trim()) return setError('El nombre es obligatorio.');
-    if (!form.tipo_insumo) return setError('Selecciona un tipo de insumo.');
-    if (!form.id_unidad_base) return setError('Selecciona una unidad de medida base.');
-
-    setCargando(true);
-    try {
-      const payload = {
-        nombre: form.nombre.trim(),
-        tipo_insumo: form.tipo_insumo,
-        id_unidad_base: Number(form.id_unidad_base),
-        activo: form.activo,
-        ...(!esEdicion && { costo_promedio: form.costo_promedio || '0.0000' }),
-      };
-
-      if (esEdicion) {
-        await updateInsumo(insumo.id_insumo, payload);
-      } else {
-        await createInsumo(payload);
-      }
-
-      notificar.exito(esEdicion ? 'Insumo actualizado correctamente.' : 'Insumo creado correctamente.');
-      onGuardado();
-    } catch (err) {
-      const traducido = traducirError(err);
-      if (traducido.id === 'DUPLICADO') traducido.campos = { nombre: traducido.mensaje };
-      setError(traducido);
-    } finally {
-      setCargando(false);
-    }
-  };
-
-  if (!abierto) return null;
-
-  const opcionesUnidades = unidades.map((u) => ({
-    valor: String(u.id_unidad),
-    texto: `${u.codigo} — ${u.nombre}`,
-  }));
-
-  const opcionesTipo = TIPOS_INSUMO.map((t) => ({
-    valor: t,
-    texto: t.charAt(0) + t.slice(1).toLowerCase(),
-  }));
-
-  return (
-    <>
-      <div
-        className="fixed inset-0 bg-espresso-900/60 z-40 transition-opacity"
-        onClick={onCerrar}
-        aria-hidden="true"
-      />
-
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={esEdicion ? 'Editar Insumo' : 'Nuevo Insumo'}
-        className="fixed right-0 top-0 h-full w-full max-w-md bg-surface shadow-2xl z-50 flex flex-col"
-      >
-        <div className="px-5 py-4 border-b border-line flex items-center justify-between">
-          <h2 className="text-base font-semibold text-fg">
-            {esEdicion ? 'Editar Insumo' : 'Nuevo Insumo'}
-          </h2>
-          <button
-            type="button"
-            onClick={onCerrar}
-            className="btn-ghost !p-1.5 min-h-8"
-            aria-label="Cerrar"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        <form id="form-insumo" onSubmit={handleSubmit} className="flex-1 overflow-y-auto scroll-fino px-5 py-4 space-y-4">
-          {error && <BannerError error={error} onCerrar={() => setError(null)} />}
-
-          <div>
-            <label htmlFor="insumo-nombre" className="mb-1 block text-sm font-medium text-fg">
-              Nombre del Insumo <span className="text-danger">*</span>
-            </label>
-            <CampoTexto
-              id="insumo-nombre"
-              placeholder="Ej. Café molido espresso"
-              value={form.nombre}
-              onChange={(e) => set('nombre')(e.target.value)}
-              maxLength={100}
-              required
-            />
-            <CampoError id="insumo-nombre" mensaje={error?.campos?.nombre} />
-          </div>
-
-          <Select
-            etiqueta="Tipo de insumo"
-            opciones={opcionesTipo}
-            placeholder="Selecciona un tipo…"
-            value={form.tipo_insumo}
-            onChange={(e) => set('tipo_insumo')(e.target.value)}
-          />
-
-          <Select
-            etiqueta="Unidad de medida base"
-            opciones={opcionesUnidades}
-            placeholder="Selecciona una unidad…"
-            value={form.id_unidad_base}
-            onChange={(e) => set('id_unidad_base')(e.target.value)}
-          />
-
-          {!esEdicion ? (
-            <div>
-              <label htmlFor="insumo-costo" className="mb-1 block text-sm font-medium text-fg">
-                Costo inicial / referencia
-              </label>
-              <CampoTexto
-                id="insumo-costo"
-                type="number"
-                placeholder="0.0000"
-                value={form.costo_promedio}
-                onChange={(e) => set('costo_promedio')(e.target.value)}
-                min={0}
-                step="0.0001"
-              />
-              <p className="mt-1 text-xs text-fg-muted">Costo por {unidades.find((u) => String(u.id_unidad) === String(form.id_unidad_base))?.codigo ?? 'unidad base'}.</p>
-            </div>
-          ) : (
-            <div className="rounded-lg border border-line bg-muted/40 p-3 space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wider text-fg-muted">
-                Costo promedio ponderado actual
-              </span>
-              <p className="text-sm font-mono font-bold text-fg">
-                {insumo.costo_promedio == null ? <span title="Sin permiso para ver costos">—</span> : `$ ${insumo.costo_promedio}`}
-              </p>
-              <p className="text-xs text-fg-muted italic">
-                El costo se actualiza automáticamente con cada factura de compra.
-              </p>
-            </div>
-          )}
-
-          <div className="flex items-center gap-3 pt-2">
-            <input
-              id="insumo-activo"
-              type="checkbox"
-              checked={form.activo}
-              onChange={(e) => set('activo')(e.target.checked)}
-              className="h-4 w-4 rounded border-line accent-primary"
-            />
-            <label htmlFor="insumo-activo" className="text-sm text-fg select-none">
-              Insumo habilitado para operaciones
-            </label>
-          </div>
-        </form>
-
-        <div className="px-5 py-4 border-t border-line flex gap-3 justify-end">
-          <Button variante="ghost" onClick={onCerrar} disabled={cargando}>
-            Cancelar
-          </Button>
-          <Button
-            variante="primary"
-            type="submit"
-            form="form-insumo"
-            cargando={cargando}
-            disabled={cargando}
-          >
-            {esEdicion ? 'Guardar cambios' : 'Crear insumo'}
-          </Button>
-        </div>
-      </div>
-    </>
-  );
+  return <Insignia variante="neutro">{label}</Insignia>;
 }
 
 // ─── MODAL: Formulario de Unidad de Medida ───────────────────────────────────
 function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
-  const { notificar } = useAlert();
+  const { notificar, notificarError } = useAlert();
   const esEdicion = Boolean(unidad?.id_unidad);
 
-  const [form, setForm] = useState({ codigo: '', nombre: '', factor_conversion: '1.0000' });
+  const [form, setForm] = useState({ codigo: '', nombre: '', factor_conversion: '1', activo: true });
   const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState(null);
+  const [erroresCampos, setErroresCampos] = useState({});
 
   useEffect(() => {
     if (abierto) {
-      setError(null);
+      setErroresCampos({});
       setForm(
         esEdicion
           ? {
               codigo: unidad.codigo ?? '',
               nombre: unidad.nombre ?? '',
-              factor_conversion: unidad.factor_conversion ?? '1.0000',
+              factor_conversion: enteroParaInput(unidad.factor_conversion) || '1',
+              activo: unidad.activo !== false,
             }
-          : { codigo: '', nombre: '', factor_conversion: '1.0000' },
+          : { codigo: '', nombre: '', factor_conversion: '1', activo: true },
       );
     }
   }, [abierto, unidad, esEdicion]);
 
-  const set = (campo) => (e) => setForm((f) => ({ ...f, [campo]: e.target.value }));
+  const set = (campo) => (e) => {
+    setErroresCampos((prev) => ({ ...prev, [campo]: null }));
+    setForm((f) => ({ ...f, [campo]: e.target.value }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
-    if (!form.codigo.trim()) return setError('El código / abreviatura es obligatorio.');
-    if (!form.nombre.trim()) return setError('El nombre es obligatorio.');
+    setErroresCampos({});
+    if (!form.codigo.trim()) {
+      setErroresCampos((prev) => ({ ...prev, codigo: 'El código / abreviatura es obligatorio.' }));
+      notificar.advertencia('Código requerido', { mensaje: 'El código / abreviatura es obligatorio.' });
+      return;
+    }
+    if (!form.nombre.trim()) {
+      setErroresCampos((prev) => ({ ...prev, nombre: 'El nombre es obligatorio.' }));
+      notificar.advertencia('Nombre requerido', { mensaje: 'El nombre es obligatorio.' });
+      return;
+    }
 
     setCargando(true);
     try {
       const payload = {
         codigo: form.codigo.trim(),
         nombre: form.nombre.trim(),
-        factor_conversion: form.factor_conversion?.trim() || '1.0000',
+        factor_conversion: enteroParaInput(form.factor_conversion) || '1',
+        activo: form.activo,
       };
       if (esEdicion) {
         await updateUnidad(unidad.id_unidad, payload);
@@ -303,91 +110,111 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
       notificar.exito(esEdicion ? 'Unidad actualizada correctamente.' : 'Unidad creada correctamente.');
       onGuardado();
     } catch (err) {
-      const traducido = traducirError(err);
-      if (traducido.id === 'DUPLICADO') traducido.campos = { nombre: traducido.mensaje };
-      setError(traducido);
+      const traducido = notificarError(err);
+      if (traducido?.id === 'DUPLICADO') {
+        setErroresCampos({ nombre: traducido.mensaje });
+      }
     } finally {
       setCargando(false);
     }
   };
 
+  useEffect(() => {
+    if (!abierto) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onCerrar();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [abierto, onCerrar]);
+
+  const panelRef = useRef(null);
+  useTrampaFoco(panelRef, abierto);
+
   if (!abierto) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso-900/60 p-4">
+  return createPortal(
+    <div className="anim-scrim fixed inset-0 w-screen h-dvh z-50 flex items-end justify-center bg-overlay sm:items-center sm:p-4">
       <div
+        ref={panelRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        aria-label={esEdicion ? 'Editar Unidad' : 'Nueva Unidad'}
-        className="bg-surface rounded-xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden"
+        aria-label={esEdicion ? 'Editar unidad' : 'Nueva unidad'}
+        className="flex w-full flex-col overflow-hidden rounded-t-xl border border-line bg-surface shadow-lg sm:max-w-md sm:rounded-xl"
       >
-        <div className="px-5 py-4 border-b border-line flex items-center justify-between">
-          <h2 className="text-base font-semibold text-fg">
-            {esEdicion ? 'Editar Unidad' : 'Nueva Unidad de Medida'}
+        <div className="flex items-start justify-between gap-4 px-6 pt-6">
+          <h2 className="text-h3 text-fg">
+            {esEdicion ? 'Editar unidad' : 'Nueva unidad de medida'}
           </h2>
-          <button
-            type="button"
-            onClick={onCerrar}
-            className="btn-ghost !p-1.5 min-h-8"
-            aria-label="Cerrar"
-          >
-            <X size={18} />
-          </button>
+          <BotonIcono icono={ICONOS.cerrar} etiqueta="Cerrar" onClick={onCerrar} />
         </div>
 
-        <form id="form-unidad" onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
-          {error && <BannerError error={error} onCerrar={() => setError(null)} />}
-
+        <form id="form-unidad" onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
           <div>
-            <label htmlFor="unidad-codigo" className="mb-1 block text-sm font-medium text-fg">
-              Abreviatura / Símbolo <span className="text-danger">*</span>
+            <label htmlFor="unidad-codigo" className="mb-1.5 block text-label text-fg">
+              Abreviatura / Símbolo <span className="text-danger-text">*</span>
             </label>
-            <CampoTexto
+            <input
+              className="input"
               id="unidad-codigo"
-              placeholder="Ej. kg, ml, g, oz, unidad"
+              aria-invalid={Boolean(erroresCampos.codigo)} aria-describedby={erroresCampos.codigo ? idError('unidad-codigo') : undefined}
+              placeholder="Ej. KG, ML, G, OZ, UNIDAD"
               value={form.codigo}
               onChange={set('codigo')}
               maxLength={10}
               required
             />
-            <CampoError id="unidad-codigo" mensaje={error?.campos?.codigo} />
+            <CampoError id="unidad-codigo" mensaje={erroresCampos.codigo} />
           </div>
+          {esEdicion && <label className="inline-flex items-center gap-2 text-body"><input type="checkbox" className="h-4 w-4 accent-primary" checked={form.activo} onChange={(e) => setForm((f) => ({ ...f, activo: e.target.checked }))} />Activa</label>}
 
           <div>
-            <label htmlFor="unidad-nombre" className="mb-1 block text-sm font-medium text-fg">
-              Nombre de la Unidad <span className="text-danger">*</span>
+            <label htmlFor="unidad-nombre" className="mb-1.5 block text-label text-fg">
+              Nombre de la unidad <span className="text-danger-text">*</span>
             </label>
-            <CampoTexto
+            <input
+              className="input"
               id="unidad-nombre"
+              aria-invalid={Boolean(erroresCampos.nombre)} aria-describedby={erroresCampos.nombre ? idError('unidad-nombre') : undefined}
               placeholder="Ej. Kilogramo, Mililitro"
               value={form.nombre}
               onChange={set('nombre')}
               maxLength={50}
               required
             />
-            <CampoError id="unidad-nombre" mensaje={error?.campos?.nombre} />
+            <CampoError id="unidad-nombre" mensaje={erroresCampos.nombre} />
           </div>
 
           <div>
-            <label htmlFor="unidad-factor" className="mb-1 block text-sm font-medium text-fg">
+            <label htmlFor="unidad-factor" className="mb-1.5 block text-label text-fg">
               Factor de conversión
             </label>
-            <CampoTexto
+            <input
+              className="input text-right tabular-nums"
               id="unidad-factor"
-              type="number"
-              placeholder="1.0000"
+              inputMode="numeric"
+              placeholder="1"
               value={form.factor_conversion}
-              onChange={set('factor_conversion')}
-              min={0.0001}
-              step="0.0001"
+              onChange={(e) => setForm((f) => ({ ...f, factor_conversion: mascaraEntero(e.target.value) }))}
+              min="1"
+              step="1"
             />
-            <p className="mt-1 text-xs text-fg-muted">
+            <p className="mt-1 text-body-sm text-fg-muted">
               Equivalencia respecto a la unidad base (ej: 1000 para kg si la base es gramo).
             </p>
           </div>
         </form>
 
-        <div className="px-5 py-4 border-t border-line flex gap-3 justify-end">
+        <div className="flex flex-col-reverse gap-2 border-t border-line bg-surface px-6 py-4 sm:flex-row sm:justify-end">
           <Button variante="ghost" onClick={onCerrar} disabled={cargando}>
             Cancelar
           </Button>
@@ -402,14 +229,15 @@ function ModalUnidad({ abierto, unidad, onCerrar, onGuardado }) {
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
 // ─── PESTAÑA 1: Insumos ───────────────────────────────────────────────────────
-function PestanaInsumos({ unidades }) {
-  const { tiene } = useAuth();
-  const { confirm, notificar } = useAlert();
+function PestanaInsumos({ unidades, onTotal, onCargandoTotal, onErrorTotal }) {
+  const { tiene, usuario } = useAuth();
+  const { confirm, notificar, notificarError } = useAlert();
   const puedeGestionar = tiene('INV_GESTIONAR_INSUMOS');
 
   const [insumos, setInsumos] = useState([]);
@@ -418,12 +246,15 @@ function PestanaInsumos({ unidades }) {
 
   const [busqueda, setBusqueda] = useState('');
   const [filtroTipo, setFiltroTipo] = useState('TODOS');
+  const [filtroEstado, setFiltroEstado] = useState('TODOS');
 
   const [drawerAbierto, setDrawerAbierto] = useState(false);
   const [insumoActual, setInsumoActual] = useState(null);
+  const [insumoExistencias, setInsumoExistencias] = useState(null);
 
   const cargar = useCallback(async () => {
     setCargando(true);
+    onCargandoTotal?.();
     try {
       const data = await getInsumos();
       const lista = Array.isArray(data) ? data : (data?.data ?? []);
@@ -432,14 +263,19 @@ function PestanaInsumos({ unidades }) {
     } catch (err) {
       setInsumos([]);
       setErrorBanner(traducirError(err));
+      onErrorTotal?.();
     } finally {
       setCargando(false);
     }
-  }, []);
+  }, [onCargandoTotal, onErrorTotal]);
 
   useEffect(() => {
     cargar();
   }, [cargar]);
+
+  useEffect(() => {
+    if (!cargando && !errorBanner) onTotal?.(insumos.length);
+  }, [cargando, errorBanner, insumos.length, onTotal]);
 
   const insumosFiltrados = useMemo(() => {
     return insumos.filter((ins) => {
@@ -450,9 +286,16 @@ function PestanaInsumos({ unidades }) {
 
       const coincideTipo = filtroTipo === 'TODOS' || ins.tipo_insumo === filtroTipo;
 
-      return coincideBusqueda && coincideTipo;
+      const coincideEstado =
+        filtroEstado === 'TODOS'
+          ? true
+          : filtroEstado === 'ACTIVOS'
+            ? ins.activo !== false
+            : ins.activo === false;
+
+      return coincideBusqueda && coincideTipo && coincideEstado;
     });
-  }, [insumos, busqueda, filtroTipo]);
+  }, [insumos, busqueda, filtroTipo, filtroEstado]);
 
   const abrirCrear = () => {
     setInsumoActual(null);
@@ -467,27 +310,57 @@ function PestanaInsumos({ unidades }) {
     setInsumoActual(null);
   };
 
-  const handleEliminar = async (ins) => {
-    const confirmado = await confirm({
-      titulo: 'Eliminar insumo',
-      mensaje: `¿Deseas dar de baja el insumo "${ins.nombre}"? Si está en uso en recetas o compras, no podrá eliminarse.`,
-      destructivo: true,
-      etiquetaCancelar: 'Cancelar',
-      etiquetaAceptar: 'Eliminar insumo',
-    });
+  const handleToggleEstado = async (ins) => {
+    const nuevoEstado = ins.activo === false;
+    if (!nuevoEstado) {
+      const confirmado = await confirm(
+        `¿Desactivar "${ins.nombre}"? No aparecerá en nuevos selectores ni se podrá usar en recetas. Si un producto activo lo usa, el sistema impedirá la acción y te mostrará cuáles.`,
+        {
+          titulo: 'Desactivar insumo',
+          destructivo: true,
+          etiquetaCancelar: 'Cancelar',
+          etiquetaAceptar: 'Desactivar insumo',
+        },
+      );
+      if (!confirmado) return;
+    }
+
+    try {
+      const res = await cambiarEstadoInsumo(ins.id_insumo, nuevoEstado);
+      const actualizado = res?.data ?? res ?? { ...ins, activo: nuevoEstado };
+      setInsumos((prev) =>
+        prev.map((item) =>
+          item.id_insumo === ins.id_insumo ? { ...item, ...actualizado, activo: nuevoEstado } : item,
+        ),
+      );
+      notificar.exito(nuevoEstado ? 'Insumo habilitado correctamente.' : 'Insumo desactivado correctamente.');
+    } catch (err) {
+      notificarError(err);
+    }
+  };
+
+  // Mantener handleDesactivar y handleReactivar para compatibilidad y tests existentes
+  const handleDesactivar = (ins) => handleToggleEstado(ins);
+  const handleReactivar = (ins) => handleToggleEstado(ins);
+
+  const handleEliminarInsumo = async (ins) => {
+    const confirmado = await confirm(
+      `¿Eliminar definitivamente el insumo "${ins.nombre}"? El registro desaparecerá por completo de todos los catálogos y listados del sistema.`,
+      {
+        titulo: 'Eliminar insumo',
+        destructivo: true,
+        etiquetaCancelar: 'Cancelar',
+        etiquetaAceptar: 'Eliminar insumo',
+      },
+    );
     if (!confirmado) return;
 
     try {
       await deleteInsumo(ins.id_insumo);
-      notificar.exito('Insumo eliminado correctamente.');
-      setInsumos((prev) => prev.filter((i) => i.id_insumo !== ins.id_insumo));
+      setInsumos((prev) => prev.filter((item) => item.id_insumo !== ins.id_insumo));
+      notificar.exito('Insumo eliminado del catálogo.');
     } catch (err) {
-      const status = err?.status;
-      if (status === 409) {
-        setErrorBanner('No se puede eliminar: el insumo está vinculado en recetas, compras o movimientos.');
-      } else {
-        setErrorBanner(traducirError(err));
-      }
+      notificarError(err);
     }
   };
 
@@ -495,13 +368,17 @@ function PestanaInsumos({ unidades }) {
     {
       clave: 'nombre',
       titulo: 'Nombre',
+      tipo: 'texto',
+      valorOrden: (fila) => fila.nombre,
       render: (fila) => <div><span className="font-medium text-fg">{fila.nombre}</span><div className="mt-0.5"><TipoBadge tipo={fila.tipo_insumo} /></div></div>,
     },
     {
       clave: 'codigo_unidad',
       titulo: 'Unidad base',
+      tipo: 'texto',
+      valorOrden: (fila) => fila.codigo_unidad ?? fila.unidad?.codigo ?? '',
       render: (fila) => (
-        <span className="text-sm font-medium text-fg-muted">
+        <span className="font-mono text-body-sm text-fg-muted">
           {fila.codigo_unidad ?? fila.unidad?.codigo ?? '—'}
         </span>
       ),
@@ -509,19 +386,23 @@ function PestanaInsumos({ unidades }) {
     {
       clave: 'costo_promedio',
       titulo: 'Costo prom.',
+      tipo: 'dinero',
       alinear: 'right',
+      valorOrden: (fila) => fila.costo_promedio,
       render: (fila) => (
-        <span className="text-sm font-mono font-medium text-fg">
-          {fila.costo_promedio == null ? <span title="Sin permiso para ver costos">—</span> : `$ ${fila.costo_promedio}`}
+        <span className="whitespace-nowrap tabular-nums text-fg">
+          {fila.costo_promedio == null ? <span title="Sin permiso para ver costos">—</span> : formatoDinero(fila.costo_promedio)}
         </span>
       ),
     },
     {
       clave: 'activo',
       titulo: 'Estado',
+      tipo: 'booleano',
+      valorOrden: (fila) => fila.activo !== false,
       render: (fila) => (
-        <EstadoBadge tipo={fila.activo ? 'exito' : 'error'}>
-          {fila.activo ? 'Activo' : 'Inactivo'}
+        <EstadoBadge tipo={fila.activo !== false ? 'exito' : 'error'}>
+          {fila.activo !== false ? 'Activo' : 'Inactivo'}
         </EstadoBadge>
       ),
     },
@@ -530,25 +411,20 @@ function PestanaInsumos({ unidades }) {
           {
             clave: '_acciones',
             titulo: '',
+            ordenable: false,
             alinear: 'right',
             render: (fila) => (
               <div className="flex items-center gap-1 justify-end">
-                <button
-                  type="button"
-                  className="btn-ghost !p-1.5 min-h-8"
-                  title="Editar insumo"
-                  onClick={() => abrirEditar(fila)}
-                >
-                  <Pencil size={15} />
-                </button>
-                <button
-                  type="button"
-                  className="btn-ghost !p-1.5 min-h-8 text-danger"
-                  title="Eliminar insumo"
-                  onClick={() => handleEliminar(fila)}
-                >
-                  <Trash2 size={15} />
-                </button>
+                {tiene('INV_GESTIONAR_INSUMOS') && <BotonIcono icono={Boxes} etiqueta={`Ver existencias de ${fila.nombre}`} titulo="Existencias" onClick={() => setInsumoExistencias(fila)} />}
+                <BotonIcono icono={ICONOS.editar} etiqueta={`Editar insumo ${fila.nombre}`} titulo="Editar insumo" onClick={() => abrirEditar(fila)} />
+                <BotonIcono
+                  icono={fila.activo === false ? ICONOS.activar : ICONOS.desactivar}
+                  tono={fila.activo === false ? 'exito' : 'aviso'}
+                  etiqueta={`${fila.activo === false ? 'Reactivar' : 'Desactivar'} insumo ${fila.nombre}`}
+                  titulo={fila.activo === false ? 'Reactivar insumo' : 'Desactivar insumo'}
+                  onClick={() => handleToggleEstado(fila)}
+                />
+                <BotonIcono icono={ICONOS.eliminar} tono="peligro" etiqueta={`Eliminar insumo ${fila.nombre}`} titulo="Eliminar insumo" onClick={() => handleEliminarInsumo(fila)} />
               </div>
             ),
           },
@@ -558,20 +434,7 @@ function PestanaInsumos({ unidades }) {
 
   return (
     <div className="space-y-4">
-      <EncabezadoPagina
-        seccion="Inventario"
-        titulo="Catálogo de Insumos"
-        descripcion="Gestión de materias primas, empaques y artículos de reventa"
-        acciones={
-          puedeGestionar && (
-            <Button variante="primary" icono={Plus} onClick={abrirCrear}>
-              Nuevo Insumo
-            </Button>
-          )
-        }
-      />
-
-      <p className="text-sm text-fg-muted">El stock y las alertas por sucursal se consultan en Inventario › {tiene('INV_VER_STOCK') ? <a className="font-medium text-primary-text underline" href="/inventario/existencias">Existencias</a> : 'Existencias'}.</p>
+      <p className="text-body-sm text-fg-muted">El stock y las alertas por sucursal se consultan en Inventario › {tiene('INV_VER_STOCK') ? <Link className="font-medium text-primary-text underline" to="/inventario">Existencias</Link> : 'Existencias'}.</p>
 
       {errorBanner && (
         <BannerError
@@ -581,37 +444,61 @@ function PestanaInsumos({ unidades }) {
         />
       )}
 
-      {/* Controles y barra superior */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <input
-          type="search"
-          placeholder="Buscar por nombre…"
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          className="input flex-1"
-          aria-label="Buscar insumo por nombre"
-        />
-        <div className="sm:w-44">
-          <Select
-            opciones={FILTRO_TIPO_OPTS}
-            value={filtroTipo}
-            onChange={(e) => setFiltroTipo(e.target.value)}
-          />
+      {/* Tabla de Insumos con barra de herramientas */}
+      <Card sinPadding icono={Package} titulo="Insumos registrados" descripcion={<span className="tabular-nums" aria-live="polite">{cargando ? 'Cargando insumos…' : errorBanner ? 'No disponible' : `${insumosFiltrados.length} encontrados`}</span>}
+        acciones={puedeGestionar ? <Button variante="primary" icono={Plus} onClick={abrirCrear}>Nuevo insumo</Button> : null}>
+        <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3">
+          <div className="relative w-full max-w-xs">
+            <label htmlFor="buscar-insumo" className="sr-only">Buscar insumo</label>
+            <ICONOS.buscar size={16} strokeWidth={1.75} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden="true" />
+            <input id="buscar-insumo" type="search" placeholder="Buscar por nombre…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="input pl-9" aria-label="Buscar insumo por nombre" />
+          </div>
+          <div className="w-full sm:w-44">
+            <Select
+              opciones={FILTRO_TIPO_OPTS}
+              value={filtroTipo}
+              onChange={(e) => setFiltroTipo(e.target.value)}
+            />
+          </div>
+          <div className="inline-flex rounded-md border border-line bg-muted p-0.5 text-label-sm" role="group" aria-label="Filtro por estado">
+            <button
+              type="button"
+              className={`h-7 rounded-sm px-3 transition-colors ${filtroEstado === 'TODOS' ? 'bg-surface text-fg shadow-xs' : 'text-fg-muted hover:text-fg'}`}
+              onClick={() => setFiltroEstado('TODOS')}
+            >
+              Todos
+            </button>
+            <button
+              type="button"
+              className={`h-7 rounded-sm px-3 transition-colors ${filtroEstado === 'ACTIVOS' ? 'bg-surface text-fg shadow-xs' : 'text-fg-muted hover:text-fg'}`}
+              onClick={() => setFiltroEstado('ACTIVOS')}
+            >
+              Activos
+            </button>
+            <button
+              type="button"
+              className={`h-7 rounded-sm px-3 transition-colors ${filtroEstado === 'INACTIVOS' ? 'bg-surface text-fg shadow-xs' : 'text-fg-muted hover:text-fg'}`}
+              onClick={() => setFiltroEstado('INACTIVOS')}
+              title="Mostrar inactivos"
+            >
+              Inactivos
+            </button>
+          </div>
+          {(busqueda || filtroTipo !== 'TODOS' || filtroEstado !== 'TODOS') && (
+            <Button variante="ghost" tamano="sm" className="ml-auto" onClick={() => { setBusqueda(''); setFiltroTipo('TODOS'); setFiltroEstado('TODOS'); }}>Limpiar filtros</Button>
+          )}
         </div>
-      </div>
-
-      {/* Tabla de Insumos */}
-      <Card sinPadding>
         <Table
           columnas={columnas}
           filas={insumosFiltrados}
           idFila="id_insumo"
+          idTabla="catalogo-insumos"
           cargando={cargando}
-          vacio={<EstadoVacio icono={Package} titulo="Sin insumos registrados">No hay insumos para los criterios seleccionados.</EstadoVacio>}
+          vacio={errorBanner ? null : <EstadoVacio icono={Package} titulo={insumos.length === 0 ? 'Aún no hay insumos' : 'Sin resultados'} accion={insumos.length === 0 && tiene('INV_GESTIONAR_INSUMOS') ? <Button onClick={abrirCrear}>Crear primer insumo</Button> : null}>{insumos.length === 0 ? 'Registra el primer insumo para abastecer el catálogo.' : 'No hay insumos para los criterios seleccionados.'}</EstadoVacio>}
         />
       </Card>
 
-      <DrawerInsumo
+      <InsumoDrawer
         abierto={drawerAbierto}
         insumo={insumoActual}
         unidades={unidades}
@@ -621,40 +508,20 @@ function PestanaInsumos({ unidades }) {
           cargar();
         }}
       />
+      {insumoExistencias && <DialogoExistenciasInsumo insumo={insumoExistencias} sucursales={usuario?.sucursales ?? []} onCerrar={() => setInsumoExistencias(null)} />}
     </div>
   );
 }
 
 // ─── PESTAÑA 2: Unidades de Medida ───────────────────────────────────────────
-function PestanaUnidades() {
+function PestanaUnidades({ unidades, cargando, errorBanner, recargar, limpiarError }) {
   const { tiene } = useAuth();
-  const { confirm, notificar } = useAlert();
+  const { confirm, notificar, notificarError } = useAlert();
   const puedeGestionar = tiene('INV_GESTIONAR_INSUMOS');
 
-  const [unidades, setUnidades] = useState([]);
-  const [cargando, setCargando] = useState(true);
-  const [errorBanner, setErrorBanner] = useState(null);
-
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [mostrarInactivas, setMostrarInactivas] = useState(false);
   const [unidadActual, setUnidadActual] = useState(null);
-
-  const cargar = useCallback(async () => {
-    setCargando(true);
-    try {
-      const data = await getUnidades();
-      setUnidades(Array.isArray(data) ? data : (data?.data ?? []));
-      setErrorBanner(null);
-    } catch (err) {
-      setUnidades([]);
-      setErrorBanner(traducirError(err));
-    } finally {
-      setCargando(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    cargar();
-  }, [cargar]);
 
   const abrirCrear = () => {
     setUnidadActual(null);
@@ -670,44 +537,54 @@ function PestanaUnidades() {
   };
 
   const handleDesactivar = async (u) => {
-    const confirmado = await confirm({
-      titulo: 'Desactivar unidad de medida',
-      mensaje: `¿Desactivar la unidad "${u.nombre}" (${u.codigo})? Los insumos existentes la mantendrán, pero no se sugerirá para nuevos registros.`,
-      destructivo: true,
-      etiquetaCancelar: 'Cancelar',
-      etiquetaAceptar: 'Desactivar',
-    });
+    const confirmado = await confirm(
+      `¿Desactivar la unidad "${u.nombre}" (${u.codigo})? No aparecerá al crear o editar insumos. Los insumos activos que la usan impedirán la acción.`,
+      {
+        titulo: 'Desactivar unidad de medida',
+        destructivo: true,
+        etiquetaCancelar: 'Cancelar',
+        etiquetaAceptar: 'Desactivar',
+      },
+    );
     if (!confirmado) return;
 
     try {
       await updateUnidad(u.id_unidad, { activo: false });
       notificar.exito('Unidad de medida desactivada.');
-      cargar();
+      await recargar();
     } catch (err) {
-      setErrorBanner(traducirError(err));
+      notificarError(err);
     }
   };
+  const reactivar = async (u) => { try { await updateUnidad(u.id_unidad, { activo: true }); notificar.exito('Unidad de medida reactivada.'); await recargar(); } catch (err) { notificarError(err); } };
+  const unidadesVisibles = unidades.filter((u) => mostrarInactivas || u.activo !== false);
 
   const columnas = [
     {
       clave: 'codigo',
       titulo: 'Abreviatura / Símbolo',
-      render: (fila) => <span className="font-mono font-bold text-fg">{fila.codigo}</span>,
+      tipo: 'texto',
+      valorOrden: (fila) => fila.codigo,
+      render: (fila) => <span className="font-mono font-medium text-fg">{fila.codigo}</span>,
     },
-    { clave: 'nombre', titulo: 'Nombre de la Unidad' },
+    { clave: 'nombre', titulo: 'Nombre de la unidad', tipo: 'texto', valorOrden: (fila) => fila.nombre },
     {
       clave: 'factor_conversion',
       titulo: 'Factor de conversión',
+      tipo: 'numero',
       alinear: 'right',
+      valorOrden: (fila) => fila.factor_conversion ?? 1,
       render: (fila) => (
-        <span className="font-mono text-sm text-fg-muted">
-          {fila.factor_conversion ?? '1.0000'}
+        <span className="tabular-nums text-fg-muted">
+          {formatearUnidades(fila.factor_conversion ?? 1)}
         </span>
       ),
     },
     {
       clave: 'activo',
       titulo: 'Estado',
+      tipo: 'booleano',
+      valorOrden: (fila) => fila.activo !== false,
       render: (fila) => (
         <EstadoBadge tipo={fila.activo !== false ? 'exito' : 'error'}>
           {fila.activo !== false ? 'Activa' : 'Inactiva'}
@@ -719,25 +596,18 @@ function PestanaUnidades() {
           {
             clave: '_acciones',
             titulo: '',
+            ordenable: false,
             alinear: 'right',
             render: (fila) => (
               <div className="flex items-center gap-1 justify-end">
-                <button
-                  type="button"
-                  className="btn-ghost !p-1.5 min-h-8"
-                  title="Editar unidad"
-                  onClick={() => abrirEditar(fila)}
-                >
-                  <Pencil size={15} />
-                </button>
-                <button
-                  type="button"
-                  className="btn-ghost !p-1.5 min-h-8 text-danger"
-                  title="Desactivar unidad"
-                  onClick={() => handleDesactivar(fila)}
-                >
-                  <Trash2 size={15} />
-                </button>
+                <BotonIcono icono={ICONOS.editar} etiqueta={`Editar unidad ${fila.nombre}`} titulo="Editar unidad" onClick={() => abrirEditar(fila)} />
+                <BotonIcono
+                  icono={fila.activo === false ? ICONOS.activar : ICONOS.desactivar}
+                  tono={fila.activo === false ? 'exito' : 'aviso'}
+                  etiqueta={`${fila.activo === false ? 'Reactivar' : 'Desactivar'} unidad ${fila.nombre}`}
+                  titulo={fila.activo === false ? 'Reactivar unidad' : 'Desactivar unidad'}
+                  onClick={() => fila.activo === false ? reactivar(fila) : handleDesactivar(fila)}
+                />
               </div>
             ),
           },
@@ -747,35 +617,31 @@ function PestanaUnidades() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold text-fg">Unidades de Medida Operativas</h2>
-          <p className="text-sm text-fg-muted">
-            Unidades de cafetería y panadería con factor de conversión para costeo y recetas
-          </p>
-        </div>
-        {puedeGestionar && (
-          <Button variante="primary" icono={Plus} onClick={abrirCrear}>
-            Nueva Unidad
-          </Button>
-        )}
-      </div>
 
       {errorBanner && (
         <BannerError
           error={errorBanner}
-          onReintentar={cargar}
-          onCerrar={() => setErrorBanner(null)}
+          onReintentar={recargar}
+          onCerrar={limpiarError}
         />
       )}
 
-      <Card sinPadding>
+      <Card sinPadding icono={Ruler} titulo="Unidades de medida" descripcion="Unidades para costeo y recetas"
+        acciones={puedeGestionar ? (
+          <Button variante="primary" icono={Plus} onClick={abrirCrear}>
+            Nueva unidad
+          </Button>
+        ) : null}>
+        <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3">
+          <label className="inline-flex min-h-10 items-center gap-2 text-body text-fg-muted"><input type="checkbox" className="h-4 w-4 accent-primary" checked={mostrarInactivas} onChange={(e) => setMostrarInactivas(e.target.checked)} />Mostrar inactivas</label>
+        </div>
         <Table
           columnas={columnas}
-          filas={unidades}
+          filas={unidadesVisibles}
           idFila="id_unidad"
+          idTabla="catalogo-unidades"
           cargando={cargando}
-          vacio={<EstadoVacio icono={Ruler} titulo="Sin unidades registradas">No hay unidades de medida disponibles.</EstadoVacio>}
+          vacio={errorBanner ? null : <EstadoVacio icono={Ruler} titulo="Sin unidades registradas">No hay unidades de medida disponibles.</EstadoVacio>}
         />
       </Card>
 
@@ -785,7 +651,7 @@ function PestanaUnidades() {
         onCerrar={cerrarModal}
         onGuardado={() => {
           cerrarModal();
-          cargar();
+          recargar();
         }}
       />
     </div>
@@ -795,36 +661,62 @@ function PestanaUnidades() {
 // ─── PÁGINA PRINCIPAL ─────────────────────────────────────────────────────────
 export default function CatalogoInsumosPage() {
   const [pestanaActiva, setPestanaActiva] = useState('insumos');
+  const [totales, setTotales] = useState({ insumos: null, unidades: null });
 
   const [unidades, setUnidades] = useState([]);
+  const [cargandoUnidades, setCargandoUnidades] = useState(true);
   const [errorUnidades, setErrorUnidades] = useState(null);
   const cargarUnidades = useCallback(async () => {
+    setCargandoUnidades(true);
+    setErrorUnidades(null);
+    setTotales((actual) => ({ ...actual, unidades: null }));
     try {
       const data = await getUnidades();
-      setUnidades(Array.isArray(data) ? data : (data?.data ?? []));
+      const lista = Array.isArray(data) ? data : (data?.data ?? []);
+      setUnidades(lista);
+      setTotales((actual) => ({ ...actual, unidades: lista.filter((unidad) => unidad.activo !== false).length }));
       setErrorUnidades(null);
     } catch (err) {
       setUnidades([]);
       setErrorUnidades(traducirError(err));
+      setTotales((actual) => ({ ...actual, unidades: undefined }));
+    } finally {
+      setCargandoUnidades(false);
     }
   }, []);
   useEffect(() => {
     cargarUnidades();
   }, [cargarUnidades]);
 
+  const handleTotalInsumos = useCallback((total) => {
+    setTotales((actual) => (actual.insumos === total ? actual : { ...actual, insumos: total }));
+  }, []);
+
+  const marcarInsumosCargando = useCallback(() => setTotales((actual) => ({ ...actual, insumos: null })), []);
+  const marcarErrorInsumos = useCallback(() => setTotales((actual) => ({ ...actual, insumos: undefined })), []);
+
   return (
     <div className="space-y-6">
+      <EncabezadoPagina seccion="Operación · Catálogo" titulo="Insumos y unidades" descripcion="Gestiona materias primas, empaques, artículos de reventa y unidades de medida." />
       <Pestanas
-        pestanas={PESTANAS_DEF}
+        pestanas={PESTANAS_DEF.map((pestana) => ({ ...pestana, total: totales[pestana.clave] }))}
         activa={pestanaActiva}
         onCambiar={setPestanaActiva}
         etiqueta="Secciones de catálogo"
+        className="flex-wrap"
       />
 
-      {pestanaActiva === 'unidades' && errorUnidades && <BannerError error={errorUnidades} onReintentar={cargarUnidades} onCerrar={() => setErrorUnidades(null)} />}
-
-      {pestanaActiva === 'insumos' && <PestanaInsumos unidades={unidades} />}
-      {pestanaActiva === 'unidades' && <PestanaUnidades />}
+      {pestanaActiva === 'insumos' && (
+        <section id="panel-insumos" role="tabpanel" aria-labelledby="tab-insumos">
+          <PestanaInsumos unidades={unidades} onTotal={handleTotalInsumos} onCargandoTotal={marcarInsumosCargando} onErrorTotal={marcarErrorInsumos} />
+        </section>
+      )}
+      {pestanaActiva === 'unidades' && (
+        <section id="panel-unidades" role="tabpanel" aria-labelledby="tab-unidades">
+          <PestanaUnidades unidades={unidades} cargando={cargandoUnidades} errorBanner={errorUnidades} recargar={cargarUnidades} limpiarError={() => setErrorUnidades(null)} />
+        </section>
+      )}
     </div>
   );
 }
+

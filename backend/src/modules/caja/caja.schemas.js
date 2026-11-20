@@ -10,9 +10,24 @@ const montoTexto = z
 
 export const idTurnoSchema = z.uuid('El identificador del turno no es válido');
 
+// Tope del fondo inicial: un fondo de caja mayor es casi siempre un error de digitación.
+// Debe coincidir con MONTO_APERTURA_MAXIMO del frontend (CajaPage.jsx).
+export const MONTO_APERTURA_MAXIMO = '10000.00';
+// Zod 4 ejecuta los refine aunque la regex ya haya fallado: un texto no numérico vale 0 aquí
+// (el error que ve el usuario es el de la regex, no una excepción de BigInt).
+const aCentavos = (texto) => {
+  if (!/^\d+(\.\d{1,2})?$/.test(texto)) return 0n;
+  const [entera, decimales = ''] = texto.split('.');
+  return BigInt(entera) * 100n + BigInt(decimales.padEnd(2, '0'));
+};
+
 export const abrirTurnoSchema = z.object({
   idCaja: z.coerce.number().int().positive('Selecciona una caja'),
-  montoApertura: montoTexto, // el fondo inicial puede ser 0
+  // El fondo inicial puede ser 0.00; se compara en centavos (BigInt), nunca con float.
+  montoApertura: montoTexto.refine(
+    (valor) => aCentavos(valor) <= aCentavos(MONTO_APERTURA_MAXIMO),
+    `El fondo inicial no puede superar $${MONTO_APERTURA_MAXIMO}`,
+  ),
 });
 
 export const crearMovimientoSchema = z.object({
@@ -25,7 +40,8 @@ export const crearMovimientoSchema = z.object({
 export const cerrarTurnoSchema = z.object({
   efectivo: montoTexto,
   tarjeta: montoTexto,
-  digital: montoTexto, // Bitcoin/Chivo + transferencias
+  digital: montoTexto, // transferencias bancarias
+  bitcoin: montoTexto.default('0.00'), // Bitcoin / Chivo Wallet (se cuadra aparte)
 });
 
 export const filtrosCuadresSchema = z

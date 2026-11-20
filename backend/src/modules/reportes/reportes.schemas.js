@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { MENSAJE_RANGO, rangoFechasValido } from '../../utils/rangoFechas.js';
+import { camposPaginacion } from '../../utils/paginacion.js';
 
 const idSucursal = z.coerce.number().int().positive().optional();
 
@@ -16,4 +17,4 @@ export const filtrosAlertasSchema = z.object({
   nivel: z.enum(['AGOTADO', 'BAJO_MINIMO']).optional(),
 });
 export const filtrosCuadreSchema = validarRango(z.object(rango));
-export const filtrosCuentasPorPagarSchema = validarRango(z.object(rango));
+export const filtrosCuentasPorPagarSchema = validarRango(z.object({ ...rango, ...camposPaginacion }));

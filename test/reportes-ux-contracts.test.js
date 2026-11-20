@@ -4,6 +4,43 @@ import { readFile } from 'node:fs/promises';
 
 const leer = (archivo) => readFile(new URL(`../${archivo}`, import.meta.url), 'utf8');
 
+test('reportes: usa el formateador compartido sin referencias al nombre retirado', async () => {
+  const page = await leer('frontend/src/modules/reportes/ReportesPage.jsx');
+  assert.doesNotMatch(page, /\bformatearDinero\b/);
+  assert.match(page, /import \{[^}]*formatoDinero[^}]*\} from '..\/..\/utils\/formato.js'/);
+});
+
+test('reportes: reutiliza consultas exitosas, caduca la caché y reintenta fallos', async () => {
+  const page = await leer('frontend/src/modules/reportes/ReportesPage.jsx');
+  const cuerpo = page.slice(page.indexOf('  async function cargar('), page.indexOf('\n  useEffect(', page.indexOf('  async function cargar(')));
+  const cacheReportes = { current: new Map() };
+  const controladorCarga = { current: null };
+  let peticiones = 0;
+  let fallar = false;
+  let datos;
+  let errores;
+  const api = { get: async () => { peticiones++; if (fallar) throw new Error('sin red'); return []; } };
+  const cargar = new Function('api', 'cacheReportes', 'controladorCarga', 'setDatos', 'setErrores', 'setCargando', 'diasEntre', 'puedeVerMargen', 'puedeVerCuadres', 'puedeVerCuentas', `${cuerpo}; return cargar;`)(api, cacheReportes, controladorCarga, (valor) => { datos = valor; }, (valor) => { errores = valor; }, () => {}, () => 1, false, false, false);
+  const filtros = { desde: '2026-11-01', hasta: '2026-11-02', idSucursal: '' };
+  await cargar(filtros);
+  assert.equal(peticiones, 4);
+  await cargar(filtros);
+  assert.equal(peticiones, 4);
+  assert.deepEqual(datos.ventas, []);
+  assert.deepEqual(errores, []);
+  for (const entrada of cacheReportes.current.values()) entrada.hasta = 0;
+  await cargar(filtros);
+  assert.equal(peticiones, 8);
+  fallar = true;
+  await cargar({ ...filtros, idSucursal: '2' });
+  assert.equal(errores.length, 4);
+  fallar = false;
+  await cargar({ ...filtros, idSucursal: '2' });
+  assert.equal(peticiones, 16);
+  await cargar({ ...filtros, desde: '2026-11-03' });
+  assert.equal(peticiones, 16);
+});
+
 test('sucursales: el directorio conserva el CRUD, filtra localmente y reutiliza el diálogo y métricas', async () => {
   const page = await leer('frontend/src/modules/empresa/SucursalesPage.jsx');
   assert.match(page, /api\.get\('\/empresa\/sucursales'/);
@@ -28,14 +65,18 @@ test('reportes: los informes extendidos exigen permisos específicos además del
 
 test('reportes: las consultas nuevas limitan los datos a sucursales visibles y acotan resultados', async () => {
   const repo = await leer('backend/src/modules/reportes/reportes.repository.js');
+  const cxpRepo = await leer('backend/src/modules/compras/cuentas-por-pagar.repository.js');
   assert.match(repo, /FROM reportes\.vw_cuadre_turno q/);
   assert.match(repo, /GROUP BY s\.id_sucursal, s\.nombre, v\.fecha_emision::date/);
-  assert.match(repo, /JOIN visibles s ON s\.id_sucursal = ss\.id_sucursal/);
+  assert.match(repo, /FROM reportes\.vw_alertas_stock a\s+JOIN visibles s ON s\.id_sucursal = a\.id_sucursal/);
   assert.match(repo, /FROM pos\.pagos p/);
   assert.match(repo, /q\.id_sucursal IN \(SELECT id_sucursal FROM visibles/);
-  assert.match(repo, /JOIN visibles s ON s\.id_sucursal = f\.id_sucursal/);
-  assert.match(repo, /f\.estado_pago <> 'PAGADO'/);
-  assert.equal((repo.match(/LIMIT 500/g) || []).length, 2);
+  assert.match(repo, /listarCuentasPorPagar\(idUsuario, \{ \.\.\.filtros, estado: 'pendientes', periodoRecientePorDefecto: true \}\)/);
+  assert.match(cxpRepo, /JOIN visibles s ON s\.id_sucursal = f\.id_sucursal/);
+  assert.match(cxpRepo, /\$6::text = 'pendientes'/);
+  assert.match(cxpRepo, /LIMIT \$9::int OFFSET \$10::int/);
+  assert.doesNotMatch(cxpRepo, /LIMIT 500/);
+  assert.equal((repo.match(/LIMIT 500/g) || []).length, 1);
 });
 
 test('reportes UI: agrega visualizaciones, paginación y condiciona los datos sensibles por permiso', async () => {
@@ -47,7 +88,11 @@ test('reportes UI: agrega visualizaciones, paginación y condiciona los datos se
   assert.match(page, /if \(puedeVerMargen\)/);
   assert.match(page, /if \(puedeVerCuadres\)/);
   assert.match(page, /if \(puedeVerCuentas\)/);
-  assert.match(page, /function GraficoVentas/);
+  assert.match(page, /import GraficaTendencia, \{ LeyendaTendencia \} from '\.\/GraficaTendencia\.jsx'/);
+  const grafica = await leer('frontend/src/modules/reportes/GraficaTendencia.jsx');
+  assert.match(grafica, /calcularEje/);
+  assert.match(grafica, /promedio/i);
+  assert.match(grafica, /Hoy \(en curso\)/);
   assert.match(page, /function TablaPaginada/);
   assert.match(page, /function tieneDiferenciaTurno/);
   assert.match(page, /function desviacionAbsolutaTurno/);

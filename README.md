@@ -31,6 +31,7 @@
   - [Opción 2: entorno completo con Docker Compose](#opción-2-entorno-completo-con-docker-compose)
   - [Resumen de URLs y puertos](#resumen-de-urls-y-puertos)
 - [Base de datos: esquema y migraciones](#base-de-datos-esquema-y-migraciones)
+  - [Datos de demostración (`seed:reset`)](#datos-de-demostración-seedreset)
 - [Pruebas y control de calidad (QA)](#pruebas-y-control-de-calidad-qa)
 - [Flujo de uso y casos de ejemplo](#flujo-de-uso-y-casos-de-ejemplo)
 - [Flujos de negocio y lógica operativa](#flujos-de-negocio-y-lógica-operativa)
@@ -107,12 +108,13 @@ artesa/
 │   │   ├── 03_soft_delete.sql        # Columna `deleted_at` (eliminación lógica)
 │   │   └── 04_timestamps.sql         # Columna `modificado_en` + triggers automáticos
 │   ├── migrations/           # Migraciones para bases de datos ya existentes
-│   ├── seeders/              # Datos iniciales aplicables con `pnpm db:seed`
+│   ├── seeders/              # Seeder SQL de permisos (`pnpm db:seed`)
 │   └── demo/
 │       └── 02_demo.sql       # Datos de ejemplo para demostración
 ├── test/                     # Batería de pruebas automatizadas (node --test)
 ├── scripts/
 │   └── db.js                 # Runner de migraciones y seeders (registra SHA-256)
+├── backend/seeders/          # Datos demo: `pnpm seed:reset` (Sequelize, reemplaza los datos)
 ├── docs/
 │   ├── ai/                   # Contexto para agentes de IA y CHANGELOG_AGENTE.md
 │   └── USO_IA.md             # Declaración del uso de IA en el proyecto
@@ -327,6 +329,42 @@ pnpm db:seed      # aplica los seeders pendientes de database/seeders/
 
 </details>
 
+### Datos de demostración (`seed:reset`)
+
+> [!WARNING]
+> **Este comando REEMPLAZA todos los datos operativos de la base** (ventas, inventario, compras, usuarios, bitácora, etc.). Úsalo solo en desarrollo. No borres ni recrees la base a mano: basta con correr el comando.
+
+```powershell
+docker compose up -d db
+pnpm db:migrate     # opcional: solo si hay migraciones nuevas
+pnpm seed:reset     # también funciona: npm run seed:reset
+```
+
+**Qué hace**
+- Se conecta con el usuario administrador del `.env` (`DATABASE_ADMIN_URL` o `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB`), porque `web_user` no puede vaciar tablas.
+- Todo ocurre en **una sola transacción** de Sequelize: si cualquier paso o verificación falla, se hace *rollback* y la base queda como estaba.
+- Vacía solo las tablas de datos con `TRUNCATE ... RESTART IDENTITY` (sin `CASCADE` y sin desactivar claves foráneas) y vuelve a cargarlas en orden de dependencias, por lotes de 1000 filas.
+- **No toca** el esquema, las migraciones ni `public.schema_migrations`, `seguridad.permisos`, `seguridad.tokens_revocados`, `empresa.parametros`, `rrhh.tramos_renta` ni `rrhh.parametros_legales`.
+- Es **determinista e idempotente**: usa un generador pseudoaleatorio con semilla fija (mulberry32), UUID y hashes bcrypt derivados de la semilla. Correrlo varias veces en la misma hora deja exactamente los mismos datos. Las fechas son relativas a hoy (zona `America/El_Salvador`), así que las ventas de hoy llegan hasta la hora en curso. Para fijar la fecha de referencia, usa `SEED_AHORA=2026-11-16T09:00`.
+- Con `NODE_ENV=production` se niega a correr, salvo que se pase `pnpm seed:reset -- --confirmar-produccion`.
+- Al terminar muestra los registros por tabla, las ventas de los últimos 7 días por sucursal y las alertas de stock.
+
+**Qué datos genera**
+
+| Área | Contenido |
+|------|-----------|
+| Sucursales | **Orígenes Escalón** (alto volumen, 2 cajas, ≈150 tickets/día), **Orígenes Santa Tecla** (medio, 2 cajas, fuerte viernes/sábado por la noche) y **Orígenes Centro Histórico** (pequeña, 1 caja, zona de oficinas: fuerte entre semana y débil el domingo). |
+| Catálogo | 10 unidades con factor de conversión (g, kg, lb, oz, ml, L, gal, oz fl, unidad, docena), 6 categorías, 60 insumos (ingredientes, empaques y reventa) con costo, stock y mínimo por sucursal, 37 productos (29 elaborados con receta completa y 8 de reventa). Hay productos estrella (pupusas, americano, latte), medios y de muy baja rotación (café en bolsa, chocolate artesanal). |
+| Historial | 120 días hasta hoy: ≈33 000 ventas con detalle, pagos (efectivo, tarjeta, Chivo, transferencia, mixtos), FCF/CCF, ≈1 % de anulaciones, turnos con cuadre y movimientos de caja. |
+| Comportamiento | Fines de semana más fuertes, picos de quincena y fin de mes, promociones (jueves de frappé 2x1, Día del Café, Día de la Pupusa), feriados (Fiestas Agostinas, 15 de septiembre, Día de los Difuntos), días de lluvia, una tormenta, una semana floja y una tendencia creciente con ruido. |
+| Inventario | Kárdex completo: inventario inicial, compras según los días de entrega de cada proveedor, descuento por receta en cada venta, reversión por anulación, mermas y ajustes semanales. El stock nunca queda negativo y coincide con el último `stock_resultante`. Algunos insumos quedan bajo el mínimo o agotados en las tres sucursales. |
+| Compras | 11 proveedores, ≈740 facturas de COSTO y GASTO (energía, mantenimiento), pagos de contado y crédito, con cuentas por pagar pendientes, parciales y por vencer. |
+| Operación de hoy | Turnos abiertos, pedidos en la cola de preparación (uno demorado) y un turno olvidado del día anterior para la alerta de caja. |
+| Bitácora | ≈4 500 registros: inicios de sesión (incluye fuera de horario e intentos fallidos o de fuerza bruta), creación del catálogo, cambios de precio y receta, desactivación y eliminación de productos y usuarios, cambios de permisos y recálculo de costos por compras. |
+| RRHH | 11 puestos y 33 empleados con DUI válido, enlazados a sus usuarios. Las planillas quedan vacías para calcularlas desde la app. |
+
+Las credenciales están en [Credenciales de prueba](#credenciales-de-prueba).
+
 ---
 
 ## Pruebas y control de calidad (QA)
@@ -533,6 +571,8 @@ flowchart TD
 #### Aspectos destacados:
 * **Recálculo de costo promedio**: Cada compra actualiza el costo unitario de los insumos ponderando las existencias previas con las nuevas:
   $$\text{Costo Nuevo} = \frac{(\text{Stock Previo} \times \text{Costo Previo}) + (\text{Cantidad Nueva} \times \text{Costo Nuevo})}{\text{Stock Previo} + \text{Cantidad Nueva}}$$
+* **IVA y crédito fiscal**: El precio se captura tal como viene en el documento, **con IVA incluido**. Si el documento es un Comprobante de Crédito Fiscal (`CCF`), el sistema separa el 13 % en `iva_credito` y costea el insumo con el valor neto, porque ese IVA se recupera al declarar. Con Factura de Consumidor Final (`CF`) o de Sujeto Excluido (`FSE`), el IVA no se recupera y forma parte del costo.
+* **Margen protegido**: El precio de venta nunca cambia solo. Si una compra encarece una receta y su margen baja de `margen_minimo` (60 % por defecto), al guardar se muestra una alerta y el producto aparece en `GET /api/reportes/margen-bajo`. Detalle y ejemplo numérico en [docs/compras-iva-costeo.md](docs/compras-iva-costeo.md).
 * **Compras tipo Gasto vs. Costo**: Las facturas de energía eléctrica, internet o alquiler se registran como `GASTO` sin afectar existencias ni recetas.
 * **Automatización de CxP**: El trigger `compras.fn_trg_pago_proveedor` actualiza de forma automática el saldo pendiente de las compras al crédito.
 
@@ -561,18 +601,45 @@ flowchart LR
 
 ---
 
+## Pagos simulados (tarjeta y transferencia)
+
+El cobro del POS **no integra ninguna pasarela real**. Tarjeta y transferencia son simulaciones marcadas con `pos.pagos.simulado = TRUE`.
+Solo se guardan marca, últimos 4 dígitos y la autorización generada; nunca el número completo, el CVV ni el vencimiento.
+
+| Tarjeta de prueba | Marca | Resultado |
+|---|---|---|
+| 4242 4242 4242 4242 | Visa | Aprobada |
+| 5555 5555 5555 4444 | Mastercard | Aprobada |
+| 3782 822463 10005 | American Express (CVV de 4) | Aprobada |
+| 4000 0000 0000 0002 | Visa | Rechazada: "Tarjeta rechazada (simulación)" |
+
+Usa cualquier titular, un vencimiento futuro (MM/AA) y un CVV de 3 dígitos (4 en Amex).
+Transferencia: el QR codifica `ARTESA-SIM|sucursal|monto|referencia`; "Simular escaneo" rellena una referencia de ejemplo (6 a 20 letras o números).
+Si el monto transferido es mayor, el excedente se confirma y se guarda en `monto_recibido` (no se entrega vuelto).
+Para conectar una pasarela real se reemplazan `frontend/src/modules/pos/pagosSimulados/` y `backend/src/modules/pos/pagos/pasarelaSimulada.js`.
+
 ## Credenciales de prueba
 
 > [!NOTE]
-> Estas credenciales son solo para demostración. Los datos de ejemplo se encuentran en `database/demo/02_demo.sql`. **No las uses en producción.**
+> Estas credenciales las crea `pnpm seed:reset` (ver [Datos de demostración](#datos-de-demostración-seedreset)) y son solo para demostración. **No las uses en producción.**
+
+Todos los usuarios administrativos usan la contraseña **`Cambiar123*`** y entran por `/admin/login`. Sucursales: 1 = Escalón, 2 = Santa Tecla, 3 = Centro Histórico.
+
+| Rol | Usuarios | Sucursales |
+|-----|----------|------------|
+| `ADMIN` | `admin` | 1, 2, 3 |
+| `GERENTE_SUCURSAL` | `gerente1` · `gerente2` · `gerente3` | 1 · 2 · 3 |
+| `SUPERVISOR_ZONAL` (rol personalizado) | `supervisor1` | 2, 3 |
+| `CAJERO` | `cajero1`–`cajero4` · `cajero6`–`cajero9` · `cajero11` | 1 · 2 · 3 |
+| `BARISTA` | `barista1`, `barista2` · `barista3` · `barista4` | 1 · 2 · 3 |
+| `BODEGUERO` | `bodega1` · `bodega2` | 1 · 2, 3 |
+| `CONTADOR` | `contador1` | 1, 2, 3 |
+| `RRHH` | `rrhh1` | 1, 2, 3 |
+
+Casos especiales para probar: `cajero10` está **desactivado** y `cajero5` está **eliminado**; ninguno puede iniciar sesión.
 
 | Área | Usuario | Contraseña | Ruta de acceso |
 |------|---------|-----------|----------------|
-| Administrativa | `admin` | `Cambiar123*` | `/admin/login` |
-| Administrativa | `gerente1` | `Cambiar123*` | `/admin/login` |
-| Administrativa | `cajero1` | `Cambiar123*` | `/admin/login` |
-| Administrativa | `barista1` | `Cambiar123*` | `/admin/login` |
-| Administrativa | `bodega1` | `Cambiar123*` | `/admin/login` |
 | Cliente | `cliente.demo` | `Cliente123*` | `/cliente/login` |
 
 ---

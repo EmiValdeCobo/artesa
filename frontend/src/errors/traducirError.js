@@ -11,7 +11,7 @@ import { ErrorApi } from './ErrorApi.js';
 // Es una función pura salvo por el registro en consola de errores inesperados.
 
 const ESCRITURA = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-const RUTA_LOGIN = /\/auth\/(cliente\/)?login$/;
+const RUTA_LOGIN = /\/auth\/login$/;
 
 const sinConexion = () => typeof navigator !== 'undefined' && navigator.onLine === false;
 
@@ -54,6 +54,10 @@ export function traducirError(error) {
   const base = ENTRADAS[id];
   const dinamico = (plantilla || base.plantilla)?.(m) || {};
   const { plantilla: _omitida, ...entrada } = { ...base, ...dinamico };
+
+  if (esApi && error.status === 409 && error.mensajeServidor) {
+    entrada.mensaje = error.mensajeServidor;
+  }
 
   const campos = esApi ? camposDe(id, entrada, error) : {};
   const nCampos = Object.keys(campos).length;

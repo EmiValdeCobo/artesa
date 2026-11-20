@@ -25,10 +25,10 @@ export function TooltipFlotante({ visible, x, y, clave, contenedor, children }) 
       ref={caja}
       aria-hidden="true"
       style={{ left: pos.left, top: pos.top }}
-      className="anim-tip pointer-events-none absolute z-20 w-max max-w-64 bg-fg px-3 py-2.5 text-background shadow-lg"
+      className="anim-tip pointer-events-none absolute z-20 w-max max-w-64 rounded-sm bg-fg px-3 py-2.5 text-background shadow-md"
     >
       {children}
-      <span aria-hidden="true" style={{ left: pos.flecha }} className={`absolute h-2 w-2 -translate-x-1/2 rotate-45 bg-fg ${pos.debajo ? '-top-1' : '-bottom-1'}`} />
+      <span aria-hidden="true" style={{ left: pos.flecha }} className={`absolute size-2 -translate-x-1/2 rotate-45 bg-fg ${pos.debajo ? '-top-1' : '-bottom-1'}`} />
     </div>
   );
 }
@@ -38,10 +38,10 @@ export function TooltipContenido({ etiqueta, categoria, valor, unidad, filas = [
   return (
     <>
       <p className="text-xs font-semibold">{etiqueta}</p>
-      <p className="mt-1.5 text-[11px] uppercase tracking-[0.14em] text-background/70">{categoria}</p>
+      <p className="mt-1.5 text-overline uppercase text-background/75">{categoria}</p>
       <p className="flex items-baseline gap-1.5 leading-tight">
-        <span className="font-display text-2xl font-semibold tabular-nums">{valor}</span>
-        {unidad && <span className="text-[11px] text-background/70">{unidad}</span>}
+        <span className="text-h2 font-bold tabular-nums">{valor}</span>
+        {unidad && <span className="text-label-sm text-background/75">{unidad}</span>}
       </p>
       {filas.length > 0 && (
         <dl className="mt-2 space-y-0.5 border-t border-background/25 pt-2 text-xs">

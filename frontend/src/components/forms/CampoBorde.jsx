@@ -13,20 +13,20 @@ const CampoBorde = forwardRef(function CampoBorde(
     <div className="relative">
       <label
         htmlFor={id}
-        className={`absolute -top-2.5 left-3.5 z-10 bg-surface px-1.5 text-[11px] font-bold tracking-wide ${invalid ? 'text-danger' : 'text-primary-text'}`}
+        className={`absolute -top-2 left-3 z-10 bg-surface px-1 text-label-sm ${invalid ? "text-danger-text" : "text-fg-muted"}`}
       >
         {etiqueta}
       </label>
       <div
-        className={`flex h-14 items-center gap-3 rounded-lg border-[1.5px] bg-surface px-3.5 transition-shadow focus-within:ring-2 focus-within:ring-ring ${invalid ? 'border-danger' : 'border-primary'}`}
+        className={`flex h-control-lg items-center gap-3 rounded-md border bg-surface px-3.5 transition-colors focus-within:border-primary focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring ${invalid ? "border-danger" : "border-line-strong hover:border-fg-muted"}`}
       >
-        {Icono && <Icono size={20} strokeWidth={1.75} aria-hidden="true" className="shrink-0 text-fg" />}
+        {Icono && <Icono size={18} strokeWidth={1.75} aria-hidden="true" className="shrink-0 text-fg-subtle" />}
         <input
           ref={ref}
           id={id}
           type={esClave && visible ? 'text' : type}
           aria-invalid={invalid || undefined}
-          className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-fg outline-none placeholder:text-fg-muted/60"
+          className="h-full min-w-0 flex-1 bg-transparent text-body-lg text-fg outline-none placeholder:text-fg-subtle"
           {...props}
         />
         {esClave && (
@@ -35,7 +35,7 @@ const CampoBorde = forwardRef(function CampoBorde(
             onClick={() => setVisible((v) => !v)}
             aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
             aria-pressed={visible}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-fg-muted outline-none hover:text-fg focus-visible:ring-2 focus-visible:ring-ring"
+            className="grid size-control-sm shrink-0 place-items-center rounded-sm text-fg-muted hover:bg-muted hover:text-fg"
           >
             {visible ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
           </button>
