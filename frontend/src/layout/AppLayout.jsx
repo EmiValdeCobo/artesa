@@ -4,6 +4,7 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar.jsx';
 import Logo from '../components/branding/Logo.jsx';
 import Spinner from '../components/ui/Spinner.jsx';
+import IndicadorTurno from './IndicadorTurno.jsx';
 
 function CargandoModulo() {
   return (
@@ -27,6 +28,8 @@ export default function AppLayout() {
           <span className="text-label text-fg">artesa</span>
         </header>
         <main id="contenido-principal" tabIndex={-1} className="focus:outline-none min-h-[calc(100dvh-var(--spacing-header))] p-4 sm:p-6 lg:min-h-screen lg:p-8">
+          {/* Turno de caja activo: visible en todas las pantallas (sucursal, caja, cajero y hora). */}
+          <div className="mb-4 flex justify-end empty:hidden"><IndicadorTurno /></div>
           <Suspense fallback={<CargandoModulo />}>
             <Outlet />
           </Suspense>
