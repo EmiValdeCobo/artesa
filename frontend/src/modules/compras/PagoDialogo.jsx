@@ -4,6 +4,7 @@ import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import Dialogo from '../../components/Dialogo.jsx';
 import { Button, Select } from '../../components/ui/index.js';
 import { registrarPago } from './comprasApi.js';
+import InputMoneda from '../../components/forms/InputMoneda.jsx';
 
 const dinero = (valor) => `$${String(valor ?? '0.00')}`;
 function aCentavos(valor) {
@@ -52,7 +53,7 @@ export default function PagoDialogo({ factura, cerrar, onPagado }) {
         <div className="space-y-4 px-6 py-5">
           <div className="rounded-md bg-muted p-3 text-body"><div className="flex justify-between"><span className="text-fg-muted">Saldo pendiente</span><strong className="tabular-nums">{dinero(factura.saldo)}</strong></div></div>
           <label className="flex flex-col text-label">Monto del abono
-            <input className="input mt-1.5 h-10 text-right tabular-nums" type="number" min="0.01" step="0.01" max={factura.saldo} value={monto} onChange={(evento) => setMonto(evento.target.value)} required />
+            <InputMoneda className="mt-1.5 h-10" valor={monto} onValor={setMonto} maximo={factura.saldo} required />
             <span className="mt-1 block text-body-sm font-normal text-fg-muted">No puede superar el saldo pendiente.</span>
           </label>
           <Select etiqueta="Método" value={metodo} onChange={(evento) => setMetodo(evento.target.value)} opciones={[

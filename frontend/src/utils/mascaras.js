@@ -153,3 +153,20 @@ export function propsMascara(tipo) {
   const { aplicar: _aplicar, ...atributos } = CONFIG[tipo] ?? {};
   return { type: 'text', ...atributos };
 }
+
+// ── Dinero ──────────────────────────────────────────────────────────────────
+// Convierte un monto ya enmascarado ("12.5") a centavos BigInt (1250n) para comparar sin float.
+export const montoACentavos = (valor) => {
+  const v = mascaraDecimal(valor, 2);
+  if (!v) return 0n;
+  const [ent = '0', dec = ''] = v.split('.');
+  return BigInt(ent || '0') * 100n + BigInt(dec.padEnd(2, '0'));
+};
+
+// Máscara de moneda: solo dígitos y un punto, máximo 2 decimales, sin signo negativo.
+// Si el resultado supera `maximo` (string "10000.00"), devuelve null para que el campo conserve el valor previo.
+export const mascaraMoneda = (valor, maximo = null) => {
+  const v = mascaraDecimal(valor, 2, 8);
+  if (maximo && v && montoACentavos(v) > montoACentavos(maximo)) return null;
+  return v;
+};

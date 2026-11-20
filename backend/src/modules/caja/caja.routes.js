@@ -19,5 +19,6 @@ turnosRoutes.get('/cuadres', requirePermiso('CAJA_VER_CUADRES'), asyncHandler(co
 turnosRoutes.post('/', requirePermiso('CAJA_ABRIR_TURNO'), validate(abrirTurnoSchema), asyncHandler(controller.abrirTurno));
 turnosRoutes.get('/:idTurno/movimientos', requirePermiso('CAJA_MOVIMIENTOS', 'CAJA_VER_CUADRES'), asyncHandler(controller.listarMovimientos));
 turnosRoutes.post('/:idTurno/movimientos', requirePermiso('CAJA_MOVIMIENTOS'), validate(crearMovimientoSchema), asyncHandler(controller.registrarMovimiento));
+turnosRoutes.get('/:idTurno/pedidos-pendientes', requirePermiso('CAJA_CERRAR_TURNO', 'CAJA_VER_CUADRES'), asyncHandler(controller.listarPedidosPendientes));
 turnosRoutes.post('/:idTurno/cierre', requirePermiso('CAJA_CERRAR_TURNO'), validate(cerrarTurnoSchema), asyncHandler(controller.cerrarTurno));
 turnosRoutes.get('/:idTurno/cuadre', requirePermiso('CAJA_CERRAR_TURNO', 'CAJA_VER_CUADRES'), asyncHandler(controller.obtenerCuadre));

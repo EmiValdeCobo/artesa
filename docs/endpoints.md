@@ -34,6 +34,7 @@ Todas las respuestas de error usan `{ "error": "texto" }`, con `detalles` adicio
 | GET | `/api/turnos/:idTurno/movimientos` | Cookie JWT + tipo admin | `CAJA_MOVIMIENTOS` o `CAJA_VER_CUADRES` | — | 200; 400; 401; 403; 404 |
 | POST | `/api/turnos/:idTurno/movimientos` | Cookie JWT + tipo admin | `CAJA_MOVIMIENTOS` | `{tipo:INGRESO\|EGRESO,concepto,monto}` | 201; 400; 401; 403; 404; 409 |
 | GET | `/api/turnos/cuadres` | Cookie JWT + tipo admin | `CAJA_VER_CUADRES` | query: `estado?,desde?,hasta?,idSucursal?` | 200; 400; 401; 403 |
+| GET | `/api/turnos/:idTurno/pedidos-pendientes` | Cookie JWT + tipo admin | `CAJA_CERRAR_TURNO` o `CAJA_VER_CUADRES` | — (pedidos ABIERTA/EN_PREPARACION/LISTA del turno) | 200; 401; 403; 404 |
 | POST | `/api/turnos/:idTurno/cierre` | Cookie JWT + tipo admin | `CAJA_CERRAR_TURNO` | `{efectivo,tarjeta,digital,bitcoin}` (digital = transferencias; bitcoin = Chivo Wallet) | 200; 400; 401; 403; 404; 409 |
 | GET | `/api/turnos/:idTurno/cuadre` | Cookie JWT + tipo admin | `CAJA_CERRAR_TURNO` o `CAJA_VER_CUADRES` | — | 200; 400; 401; 403; 404 |
 | GET | `/api/reportes/ventas-diarias` | Cookie JWT + tipo admin | `REP_VER_DASHBOARD` | query: `desde?,hasta?,idSucursal?` | 200; 400; 401; 403 |
@@ -45,6 +46,7 @@ Todas las respuestas de error usan `{ "error": "texto" }`, con `detalles` adicio
 | GET | `/api/reportes/cuadre-turnos` | Cookie JWT + tipo admin | `REP_VER_DASHBOARD` + `CAJA_VER_CUADRES` | query: `desde?,hasta?,idSucursal?` | 200; 400; 401; 403 |
 | GET | `/api/reportes/cuentas-por-pagar` | Cookie JWT + tipo admin | `REP_VER_DASHBOARD` + `COM_VER_CXP` | query: `desde?,hasta?,idSucursal?,page?,limit?` | 200; 400; 401; 403 |
 | GET | `/api/preparacion/cola` | Cookie JWT + tipo admin | `POS_VER_COLA_PREPARACION` | query: `idSucursal?` | 200; 400; 401; 403 |
+| PATCH | `/api/preparacion/ordenes/:idOrden/anular` | Cookie JWT + tipo admin | `POS_VER_COLA_PREPARACION` (+ `POS_ANULAR_VENTA` si ya se cobró) | `{motivo}` 5-200; solo estado ABIERTA (Nueva); si hay venta EMITIDA la anula | 200; 400; 401; 403; 404; 409 |
 | PATCH | `/api/preparacion/ordenes/:idOrden/estado` | Cookie JWT + tipo admin | `POS_VER_COLA_PREPARACION` | `{estado: EN_PREPARACION\|LISTA\|ENTREGADA}` | 200; 400; 401; 403; 404; 409 |
 | GET/POST | `/api/inventario/unidades` | Cookie JWT + tipo admin | `INV_GESTIONAR_INSUMOS` | `{codigo,nombre}` | 200/201; 400; 401; 403; 409 |
 | PUT/DELETE | `/api/inventario/unidades/:id` | Cookie JWT + tipo admin | `INV_GESTIONAR_INSUMOS` | PUT `{codigo,nombre}` | 200/204; 400; 401; 403; 404; 409 |

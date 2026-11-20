@@ -52,8 +52,12 @@ const SELECT_TURNO = `
   SELECT t.id_turno, t.id_caja, c.nombre_identificador AS caja, c.id_sucursal, s.nombre AS sucursal,
          t.id_usuario, t.monto_apertura, t.abierto_en, t.estado,
          v.ventas_efectivo, v.ventas_tarjeta, v.ventas_digital, v.ventas_bitcoin,
-         v.ingresos_caja, v.egresos_caja, v.esperado_efectivo
+         v.ingresos_caja, v.egresos_caja, v.esperado_efectivo,
+         u.username AS cajero,
+         (SELECT COUNT(*)::int FROM pos.ordenes o
+          WHERE o.id_turno = t.id_turno AND o.estado IN ('ABIERTA', 'EN_PREPARACION', 'LISTA')) AS pedidos_pendientes
   FROM pos.turnos_caja t
+  JOIN seguridad.usuarios u ON u.id_usuario = t.id_usuario
   JOIN pos.cajas c ON c.id_caja = t.id_caja
   JOIN empresa.sucursales s ON s.id_sucursal = c.id_sucursal
   JOIN reportes.vw_cuadre_turno v ON v.id_turno = t.id_turno`;
@@ -67,6 +71,17 @@ export async function buscarTurnoActual(idUsuario) {
   const [turno] = await consultar(`${SELECT_TURNO} WHERE t.id_usuario = $1::uuid AND t.estado = 'ABIERTO'`, [idUsuario]);
   return turno ?? null;
 }
+
+// Pedidos del turno que siguen en la cola de preparación (Nueva, En preparación o Lista para entregar).
+// FOR UPDATE: mientras se decide el cierre nadie puede cambiar su estado.
+export const listarPedidosPendientes = (idTurno, transaction = null) => consultar(
+  `SELECT o.id_orden, o.estado, o.etiqueta, o.creado_en
+   FROM pos.ordenes o
+   WHERE o.id_turno = $1::uuid AND o.estado IN ('ABIERTA', 'EN_PREPARACION', 'LISTA')
+   ORDER BY o.creado_en, o.id_orden${transaction ? ' FOR UPDATE OF o' : ''}`,
+  [idTurno],
+  transaction,
+);
 
 // Bloquea la fila del turno hasta terminar la transacción: serializa movimientos concurrentes.
 export async function bloquearTurno(transaction, idTurno) {

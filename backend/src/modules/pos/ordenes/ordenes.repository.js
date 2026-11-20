@@ -187,3 +187,13 @@ export async function actualizarEstado(tx, idOrden, estado) {
   return row;
 }
 
+
+// ¿La orden ya tiene una venta EMITIDA ligada (pago anticipado)?
+export async function tieneVentaEmitida(tx, idOrden) {
+  const rows = await sel(
+    `SELECT 1 FROM pos.ventas WHERE id_orden = $1::int AND estado = 'EMITIDA' LIMIT 1`,
+    [idOrden],
+    tx,
+  );
+  return rows.length > 0;
+}

@@ -19,4 +19,12 @@ export const preparacionApi = {
    */
   cambiarEstado: (idOrden, estado) =>
     api.patch(`/preparacion/ordenes/${idOrden}/estado`, { estado }),
+
+  /**
+   * Cancela un pedido en estado Nueva (ABIERTA) con motivo. Si ya se cobró, el backend anula su venta.
+   * @param {number} idOrden
+   * @param {string} motivo
+   */
+  anularOrden: (idOrden, motivo) =>
+    api.patch(`/preparacion/ordenes/${idOrden}/anular`, { motivo }),
 };
