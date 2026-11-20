@@ -11,9 +11,9 @@ test('el historial pide GASTO al servidor antes de filtrar por estado y sucursal
   const api = await leer('frontend/src/modules/compras/comprasApi.js');
   const pantalla = await leer('frontend/src/modules/compras/CompraFacturaPage.jsx');
   assert.match(schema, /tipoCosto: z\.enum\(\['COSTO', 'GASTO'\]\)\.optional\(\)/);
-  assert.match(repositorio, /AND \(\$7::text IS NULL OR f\.tipo_costo = \$7::text\)[\s\S]*LIMIT \$8::int OFFSET \$9::int/);
+  assert.match(repositorio, /AND \(\$7::text IS NULL OR f\.tipo_costo = \$7::text\)[\s\S]*LIMIT \$9::int OFFSET \$10::int/);
   assert.match(api, /listarCuentasPorPagar\(\{ \.\.\.filtros, \.\.\.paginacion, tipoCosto: 'GASTO' \}\)/);
-  assert.match(pantalla, /listarGastos\(\{ estado, \.\.\.\(sucursal \?/);
+  assert.match(pantalla, /listarGastos\(\{ estado, campoFecha: 'emision', \.\.\.\(sucursal \?/);
   assert.match(pantalla, /setFilas\(datos\)/);
   assert.doesNotMatch(pantalla, /datos\.filter\(\(fila\) => fila\.tipo_costo === 'GASTO'\)/);
 });
@@ -42,7 +42,7 @@ test('un GASTO CONTADO se confirma pagado y se recarga en el listado de pagadas'
   assert.match(service, /if \(datos\.condicionPago === 'CONTADO'\)[\s\S]*repo\.insertarPagoContado\(idCompra, userId, transaction\)[\s\S]*repo\.obtenerEstadoPago\(idCompra, transaction\) !== 'PAGADO'/);
   assert.match(repository, /INSERT INTO compras\.pagos_proveedor/);
   assert.match(pantalla, /if \(gasto && puedeVerCuentas\) setRecargarClave/);
-  assert.match(pantalla, /listarGastos\(\{ estado, \...\(sucursal \?/);
+  assert.match(pantalla, /listarGastos\(\{ estado, campoFecha: 'emision', \.\.\.\(sucursal \?/);
   assert.match(query, /\$6::text = 'pagadas' AND f\.estado_pago = 'PAGADO'/);
 });
 

@@ -12,6 +12,10 @@ import { BotonIcono, Button, Card, Select, Table } from '../../components/ui/ind
 import { mascaraDecimal, mascaraEntero, mascaraIdentificador } from '../../utils/mascaras.js';
 import { listarGastos, listarInsumosCompra, listarProveedores, registrarCompra } from './comprasApi.js';
 import PagoDialogo from './PagoDialogo.jsx';
+import DetalleFacturaDialogo, { useEliminarFactura } from './DetalleFacturaDialogo.jsx';
+import FiltroPeriodo, { ResumenPeriodo } from './FiltroPeriodo.jsx';
+import { mesActual, rangoDePeriodo, totalesPeriodo } from './periodo.js';
+import { ICONOS } from '../../config/iconos.js';
 import { TIPOS_DOCUMENTO, costoBorradorConIva, resumenCompra } from './ivaCompras.js';
 
 const nuevaLinea = (gasto) => gasto ? { descripcion: '', cantidad: '', costoUnitario: '' } : { idInsumo: '', cantidad: '', costoUnitario: '' };
@@ -48,7 +52,7 @@ function EstadoFactura({ factura }) {
   return <EstadoBadge tipo="alerta">Pendiente</EstadoBadge>;
 }
 
-function HistorialGastos({ sucursales, recargarClave, puedePagar }) {
+function HistorialGastos({ sucursales, recargarClave, puedePagar, puedeEliminar }) {
   const [estado, setEstado] = useState('pagadas');
   const [sucursal, setSucursal] = useState('');
   const [busqueda, setBusqueda] = useState('');
@@ -56,21 +60,26 @@ function HistorialGastos({ sucursales, recargarClave, puedePagar }) {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
   const [modalPago, setModalPago] = useState(null);
+  const [detalle, setDetalle] = useState(null);
+  // Gastos se filtran por fecha de emisión; por defecto, el mes en curso.
+  const [periodo, setPeriodo] = useState(() => mesActual());
+  const { desde, hasta } = rangoDePeriodo(periodo);
 
   const cargar = useCallback(async () => {
     setCargando(true);
     setError(null);
     try {
-      const datos = await listarGastos({ estado, ...(sucursal ? { idSucursal: sucursal } : {}) });
+      const datos = await listarGastos({ estado, campoFecha: 'emision', ...(sucursal ? { idSucursal: sucursal } : {}), ...(desde ? { desde, hasta } : {}) });
       setFilas(datos);
     } catch (err) {
       setError(err.message);
     } finally {
       setCargando(false);
     }
-  }, [estado, sucursal]);
+  }, [estado, sucursal, desde, hasta]);
 
   useEffect(() => { cargar(); }, [cargar, recargarClave]);
+  const eliminar = useEliminarFactura(() => { setDetalle(null); cargar(); });
 
   const visibles = useMemo(() => {
     const termino = busqueda.trim().toLocaleLowerCase('es');
@@ -79,6 +88,7 @@ function HistorialGastos({ sucursales, recargarClave, puedePagar }) {
   }, [filas, busqueda]);
   const pagadas = visibles.filter((fila) => fila.estado_pago === 'PAGADO');
   const totalPagado = visibles.reduce((total, fila) => total + aCentavos(fila.pagado), 0n);
+  const totales = useMemo(() => totalesPeriodo(visibles), [visibles]);
 
   const columnas = [
     {
@@ -149,15 +159,23 @@ function HistorialGastos({ sucursales, recargarClave, puedePagar }) {
           : 'Pendiente',
       render: (fila) => <EstadoFactura factura={fila} />,
     },
-    ...(puedePagar ? [{
+    {
       clave: 'acciones',
       titulo: 'Acciones',
       alinear: 'right',
       ordenable: false,
-      render: (fila) => fila.estado_pago === 'PAGADO' ? '—' : (
-        <BotonIcono icono={CreditCard} etiqueta={`Registrar abono a factura ${fila.num_factura}`} titulo="Registrar abono" onClick={() => setModalPago(fila)} />
+      render: (fila) => (
+        <div className="flex justify-end gap-2">
+          <BotonIcono icono={ICONOS.ver} etiqueta={`Ver detalle de factura ${fila.num_factura}`} titulo="Ver detalle" onClick={() => setDetalle(fila.id_compra)} />
+          {puedePagar && fila.estado_pago !== 'PAGADO' && (
+            <BotonIcono icono={CreditCard} etiqueta={`Registrar abono a factura ${fila.num_factura}`} titulo="Registrar abono" onClick={() => setModalPago(fila)} />
+          )}
+          {puedeEliminar && (
+            <BotonIcono icono={ICONOS.eliminar} tono="peligro" etiqueta={`Eliminar factura ${fila.num_factura}`} titulo="Eliminar" onClick={() => eliminar(fila)} />
+          )}
+        </div>
       ),
-    }] : []),
+    },
   ];
 
   return (
@@ -168,7 +186,9 @@ function HistorialGastos({ sucursales, recargarClave, puedePagar }) {
         <div className="w-full sm:w-44"><Select tamano="sm" aria-label="Estado de pago" value={estado} onChange={(evento) => setEstado(evento.target.value)} opciones={ESTADOS} /></div>
         <div className="w-full sm:w-56"><Select tamano="sm" aria-label="Sucursal" value={sucursal} onChange={(evento) => setSucursal(evento.target.value)} placeholder="Todas mis sucursales" opciones={sucursales.map((item) => ({ valor: String(item.id_sucursal), texto: item.nombre }))} /></div>
         {(busqueda || sucursal) && <Button variante="ghost" tamano="sm" onClick={() => { setBusqueda(''); setSucursal(''); }}>Limpiar filtros</Button>}
+        <FiltroPeriodo idBase="gastos-periodo" periodo={periodo} onCambiar={setPeriodo} />
       </div>
+      <ResumenPeriodo totales={totales} cantidad={visibles.length} periodo={periodo} cargando={cargando} />
       <Table
         cargando={cargando}
         filas={visibles}
@@ -183,7 +203,8 @@ function HistorialGastos({ sucursales, recargarClave, puedePagar }) {
         <p className="font-semibold">Total pagado en la lista: <span className="tabular-nums">{formatoCentavos(totalPagado)}</span></p>
       </div>}
       {!error && <p className="px-5 pb-4 text-body-sm text-fg-muted">{puedePagar ? 'Los gastos a crédito permanecen pendientes hasta registrar sus abonos.' : 'Consulta disponible en modo lectura; no tienes permiso para registrar abonos.'}</p>}
-      {modalPago && <PagoDialogo factura={modalPago} cerrar={() => setModalPago(null)} onPagado={() => { setModalPago(null); cargar(); }} />}
+      {detalle && <DetalleFacturaDialogo idCompra={detalle} cerrar={() => setDetalle(null)} puedePagar={puedePagar} onAbonar={(factura) => setModalPago(factura)} />}
+      {modalPago && <PagoDialogo factura={modalPago} cerrar={() => setModalPago(null)} onPagado={() => { setModalPago(null); setDetalle(null); cargar(); }} />}
     </Card>
   );
 }
@@ -216,7 +237,8 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
       setCargando(true);
       setErrorCarga(null);
       try {
-        const solicitudes = [listarProveedores(true)];
+        // Nueva factura solo lista proveedores de COMPRA; Gastos operativos solo de SERVICIO.
+        const solicitudes = [listarProveedores(true, gasto ? 'SERVICIO' : 'COMPRA')];
         if (!gasto) solicitudes.push(listarInsumosCompra());
         const datos = await Promise.all(solicitudes);
         if (!activo) return;
@@ -435,7 +457,7 @@ export default function CompraFacturaPage({ tipoCosto = 'COSTO' }) {
       </form>
 
       {gasto && (puedeVerCuentas
-        ? <HistorialGastos sucursales={sucursales} recargarClave={recargarClave} puedePagar={puedePagar} />
+        ? <HistorialGastos sucursales={sucursales} recargarClave={recargarClave} puedePagar={puedePagar} puedeEliminar={tiene('COM_ELIMINAR_FACTURA')} />
         : <Card titulo="Consulta de gastos"><p className="text-body text-fg-muted">La consulta de facturas no está habilitada para tu usuario. Puedes guardar gastos y pedir acceso a Cuentas por pagar para revisar sus saldos.</p></Card>)}
     </div>
   );

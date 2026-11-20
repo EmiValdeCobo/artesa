@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Building2, CreditCard, FileText, Search } from 'lucide-react';
+import { ICONOS } from '../../config/iconos.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
-import EstadoBadge from '../../components/feedback/EstadoBadge.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import Metrica from '../../components/display/Metrica.jsx';
 import { BotonIcono, Button, Card, Select, Table } from '../../components/ui/index.js';
 import { listarTodasLasCuentasPorPagar } from './comprasApi.js';
 import PagoDialogo from './PagoDialogo.jsx';
+import DetalleFacturaDialogo, { EstadoFactura as EstadoPago, useEliminarFactura } from './DetalleFacturaDialogo.jsx';
+import FiltroPeriodo, { ResumenPeriodo } from './FiltroPeriodo.jsx';
+import { mesActual, rangoDePeriodo, totalesPeriodo } from './periodo.js';
 
 const dinero = (valor) => `$${String(valor ?? '0.00')}`;
 const ESTADOS = [
@@ -17,16 +20,10 @@ const ESTADOS = [
   { valor: 'todas', texto: 'Todas' },
 ];
 
-function EstadoPago({ factura }) {
-  if (factura.estado_pago === 'PAGADO') return <EstadoBadge tipo="exito">Pagada</EstadoBadge>;
-  if (Number(factura.dias_vencida) > 0) return <EstadoBadge tipo="error">Vencida · {factura.dias_vencida} d</EstadoBadge>;
-  if (factura.estado_pago === 'PARCIAL') return <EstadoBadge tipo="info">Pago parcial</EstadoBadge>;
-  return <EstadoBadge tipo="alerta">Pendiente</EstadoBadge>;
-}
-
 export default function CuentasPorPagarPage() {
   const { tiene, usuario } = useAuth();
   const puedePagar = tiene('COM_PAGAR_PROVEEDOR');
+  const puedeEliminar = tiene('COM_ELIMINAR_FACTURA');
   const [filas, setFilas] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -34,18 +31,23 @@ export default function CuentasPorPagarPage() {
   const [sucursal, setSucursal] = useState('');
   const [estado, setEstado] = useState('pendientes');
   const [modal, setModal] = useState(null);
+  const [detalle, setDetalle] = useState(null);
+  // Período: por defecto el mes en curso, filtrado por fecha de vencimiento (se puede cambiar a emisión).
+  const [periodo, setPeriodo] = useState(() => mesActual());
+  const [campoFecha, setCampoFecha] = useState('vencimiento');
+  const { desde, hasta } = rangoDePeriodo(periodo);
 
   const cargar = useCallback(async () => {
     setCargando(true);
     setError(null);
     try {
-      setFilas(await listarTodasLasCuentasPorPagar({ ...(sucursal ? { idSucursal: sucursal } : {}), estado }));
+      setFilas(await listarTodasLasCuentasPorPagar({ ...(sucursal ? { idSucursal: sucursal } : {}), estado, campoFecha, ...(desde ? { desde, hasta } : {}) }));
     } catch (err) {
       setError(err.message);
     } finally {
       setCargando(false);
     }
-  }, [estado, sucursal]);
+  }, [estado, sucursal, campoFecha, desde, hasta]);
 
   useEffect(() => { cargar(); }, [cargar]);
 
@@ -54,6 +56,8 @@ export default function CuentasPorPagarPage() {
     return filas.filter((factura) => [factura.proveedor, factura.num_factura, factura.sucursal]
       .some((valor) => String(valor ?? '').toLocaleLowerCase('es').includes(termino)));
   }, [filas, busqueda]);
+  const totales = useMemo(() => totalesPeriodo(visibles), [visibles]);
+  const eliminar = useEliminarFactura(() => { setDetalle(null); cargar(); });
   const vencidas = visibles.filter((factura) => factura.estado_pago !== 'PAGADO' && Number(factura.dias_vencida) > 0).length;
 
   const columnas = [
@@ -134,31 +138,28 @@ export default function CuentasPorPagarPage() {
           : 'Pendiente',
       render: (factura) => <EstadoPago factura={factura} />,
     },
-    ...(puedePagar
-      ? [
-          {
-            clave: 'acciones',
-            titulo: 'Acciones',
-            alinear: 'right',
-            ordenable: false,
-            render: (factura) =>
-              factura.estado_pago === 'PAGADO' ? (
-                '—'
-              ) : (
-                <BotonIcono
-                  icono={CreditCard}
-                  etiqueta={`Registrar abono a factura ${factura.num_factura}`}
-                  titulo="Registrar abono"
-                  onClick={() => setModal(factura)}
-                />
-              ),
-          },
-        ]
-      : []),
+    {
+      clave: 'acciones',
+      titulo: 'Acciones',
+      alinear: 'right',
+      ordenable: false,
+      render: (factura) => (
+        <div className="flex justify-end gap-2">
+          <BotonIcono icono={ICONOS.ver} etiqueta={`Ver detalle de factura ${factura.num_factura}`} titulo="Ver detalle" onClick={() => setDetalle(factura.id_compra)} />
+          {puedePagar && factura.estado_pago !== 'PAGADO' && (
+            <BotonIcono icono={CreditCard} etiqueta={`Registrar abono a factura ${factura.num_factura}`} titulo="Registrar abono" onClick={() => setModal(factura)} />
+          )}
+          {puedeEliminar && (
+            <BotonIcono icono={ICONOS.eliminar} tono="peligro" etiqueta={`Eliminar factura ${factura.num_factura}`} titulo="Eliminar" onClick={() => eliminar(factura)} />
+          )}
+        </div>
+      ),
+    },
   ];
 
   function pagoRegistrado() {
     setModal(null);
+    setDetalle(null);
     setError(null);
     cargar();
   }
@@ -181,7 +182,9 @@ export default function CuentasPorPagarPage() {
           <div className="w-full sm:w-44"><Select tamano="sm" aria-label="Estado de pago" value={estado} onChange={(evento) => setEstado(evento.target.value)} opciones={ESTADOS} /></div>
           <div className="w-full sm:w-56"><Select tamano="sm" aria-label="Sucursal" value={sucursal} onChange={(evento) => setSucursal(evento.target.value)} placeholder="Todas mis sucursales" opciones={(usuario?.sucursales ?? []).map((item) => ({ valor: String(item.id_sucursal), texto: item.nombre }))} /></div>
           {(busqueda || sucursal) && <Button variante="ghost" tamano="sm" onClick={() => { setBusqueda(''); setSucursal(''); }}>Limpiar filtros</Button>}
+          <FiltroPeriodo idBase="cxp-periodo" periodo={periodo} onCambiar={setPeriodo} campoFecha={campoFecha} onCampoFecha={setCampoFecha} />
         </div>
+        <ResumenPeriodo totales={totales} cantidad={visibles.length} periodo={periodo} cargando={cargando} />
         <Table
           cargando={cargando}
           filas={visibles}
@@ -192,6 +195,7 @@ export default function CuentasPorPagarPage() {
           ordenInicial={{ clave: 'fecha_vencimiento', direccion: 'asc' }}
         />
       </Card>
+      {detalle && <DetalleFacturaDialogo idCompra={detalle} cerrar={() => setDetalle(null)} puedePagar={puedePagar} onAbonar={(factura) => setModal(factura)} />}
       {modal && <PagoDialogo factura={modal} cerrar={() => setModal(null)} onPagado={pagoRegistrado} />}
     </div>
   );

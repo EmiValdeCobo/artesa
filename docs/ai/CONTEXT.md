@@ -41,7 +41,7 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (li
 | reportes | vistas listas + consultas de método de pago, cuadre y CxP | ventas diarias, top productos, métodos de pago, alertas, margen, cuadre y CxP; alcance por `id_sucursal` | panel con tendencias, comparativos, tablas paginadas y exportación CSV/PDF |
 | empresa | listo | CRUD sucursales (alta asigna a todos los ADMIN activos) y apertura `/sucursales/:id/apertura` (stock mínimo + carga INVENTARIO_INICIAL); edición parámetros | sucursales con diálogo de apertura confirmado y parámetros con máscara por tipo |
 
-Compras permite consultar gastos por factura, estado, sucursal, abonos y saldo; el endpoint de consulta no devuelve las líneas de concepto. El reporte CxP conserva pendientes y período reciente; la ruta operativa permite pendientes/pagadas/todas y exige portal admin más COM_VER_CXP.
+Compras: proveedores tipo COMPRA (Nueva factura) o SERVICIO (Gastos), validado en backend; detalle por factura (GET /compras/facturas/:id con líneas y abonos); eliminación lógica solo ADMIN (COM_ELIMINAR_FACTURA, revierte stock y abonos; mig. 020-021); CxP y Gastos filtran por período en backend (CxP por vencimiento por defecto, Gastos por emisión) con resumen total/abonado/saldo. El reporte CxP conserva pendientes y período reciente; la ruta operativa permite pendientes/pagadas/todas y exige portal admin más COM_VER_CXP.
 
 ## Pendientes críticos
 - Verificar periódicamente tramos/versiones legales de renta, ISSS, AFP e INSAFORP con Hacienda/ISSS/SSF.

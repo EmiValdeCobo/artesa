@@ -8,6 +8,8 @@ const filtros = z.object({
   idSucursal: z.coerce.number().int().positive().optional(),
   tipoCosto: z.enum(['COSTO', 'GASTO']).optional(),
   estado: z.enum(['pendientes', 'pagadas', 'todas']).default('pendientes'),
+  // Fecha sobre la que aplica desde/hasta: emisión (gastos) o vencimiento (CxP).
+  campoFecha: z.enum(['emision', 'vencimiento']).default('emision'),
   ...camposPaginacion,
 });
 

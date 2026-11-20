@@ -19,6 +19,7 @@ test('proveedores: normaliza espacios y transforma datos del body al formato de 
     contacto: null,
     telefono: null,
     dias_credito: 30,
+    tipo: 'COMPRA',
   });
 });
 
@@ -124,7 +125,7 @@ test('proveedores: listado consume el filtro validado y conserva el status 200',
   const controller = await leer('backend/src/modules/compras/proveedores/proveedores.controller.js');
   const routes = await leer('backend/src/modules/compras/proveedores/proveedores.routes.js');
   assert.match(routes, /validateQuery, asyncHandler\(controller\.listarProveedores\)/);
-  assert.match(controller, /service\.listarProveedores\(req\.validatedQuery\.activo\)/);
+  assert.match(controller, /service\.listarProveedores\(req\.validatedQuery\)/);
   assert.match(controller, /res\.json\(/);
 });
 

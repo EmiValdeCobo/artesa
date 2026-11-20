@@ -18,6 +18,7 @@ export const idProveedorSchema = z.object({
 
 export const listarProveedoresSchema = z.object({
   activo: z.enum(['true', 'false']).transform((valor) => valor === 'true').optional(),
+  tipo: z.enum(['COMPRA', 'SERVICIO']).optional(),
 });
 
 export const proveedorSchema = z.object({
@@ -27,11 +28,14 @@ export const proveedorSchema = z.object({
   contacto: textoOpcional(100),
   telefono: telefonoSchema,
   diasCredito: diasCreditoSchema,
-}).transform(({ razonSocial, nrc, nit, contacto, telefono, diasCredito }) => ({
+  // COMPRA: insumos que entran al inventario. SERVICIO: luz, agua, mantenimiento (gastos operativos).
+  tipo: z.enum(['COMPRA', 'SERVICIO']).default('COMPRA'),
+}).transform(({ razonSocial, nrc, nit, contacto, telefono, diasCredito, tipo }) => ({
   razon_social: razonSocial,
   nrc,
   nit,
   contacto: contacto || null,
   telefono: telefono || null,
   dias_credito: diasCredito,
+  tipo,
 }));

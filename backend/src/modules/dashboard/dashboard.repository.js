@@ -269,11 +269,11 @@ export const alertasCuentasPorPagar = ({ zona, sucursalIds, cxpDiasAviso }) => q
           COUNT(*) FILTER (WHERE f.fecha_vencimiento >= h.d)::int AS por_vencer,
           COALESCE(SUM(x.saldo) FILTER (WHERE f.fecha_vencimiento >= h.d), 0)::numeric(12,2) AS saldo_por_vencer
    FROM (SELECT ${LOCAL('$1')}::date AS d) h
-   JOIN compras.facturas_compra f ON f.estado_pago <> 'PAGADO' AND f.fecha_vencimiento <= h.d + $3::int
+   JOIN compras.facturas_compra f ON f.deleted_at IS NULL AND f.estado_pago <> 'PAGADO' AND f.fecha_vencimiento <= h.d + $3::int
                                  AND f.id_sucursal = ANY($2::int[])
    JOIN empresa.sucursales s ON s.id_sucursal = f.id_sucursal
    CROSS JOIN LATERAL (SELECT f.total - COALESCE(SUM(p.monto), 0) AS saldo
-                       FROM compras.pagos_proveedor p WHERE p.id_compra = f.id_compra) x
+                       FROM compras.pagos_proveedor p WHERE p.id_compra = f.id_compra AND p.deleted_at IS NULL) x
    WHERE x.saldo > 0
    GROUP BY 1, 2
    ORDER BY 2`,

@@ -2,7 +2,7 @@ import { api } from '../../api/client.js';
 import { listarTodasLasPaginas } from './paginacionApi.js';
 import { obtenerTodasLasPaginas } from '../../api/paginacion.js';
 
-export const listarProveedores = (activo = true) => api.get(`/compras/proveedores?activo=${activo}`);
+export const listarProveedores = (activo = true, tipo) => api.get(`/compras/proveedores?activo=${activo}${tipo ? `&tipo=${tipo}` : ''}`);
 export const crearProveedor = (datos) => api.post('/compras/proveedores', datos);
 export const actualizarProveedor = (id, datos) => api.put(`/compras/proveedores/${id}`, datos);
 export const desactivarProveedor = (id) => api.delete(`/compras/proveedores/${id}`);
@@ -20,5 +20,7 @@ export const listarGastos = async (filtros = {}) => {
     (paginacion) => listarCuentasPorPagar({ ...filtros, ...paginacion, tipoCosto: 'GASTO' }),
   );
 };
+export const obtenerFactura = (idCompra) => api.get(`/compras/facturas/${idCompra}`);
+export const eliminarFactura = (idCompra) => api.delete(`/compras/facturas/${idCompra}`);
 export const registrarPago = (idCompra, datos) => api.post(`/compras/${idCompra}/pagos`, datos);
 export const listarInsumosCompra = () => api.get('/inventario/insumos');

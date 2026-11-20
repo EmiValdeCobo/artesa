@@ -9,7 +9,7 @@ const select = (sql, bind, transaction) => sequelize.query(sql, {
 
 export const buscarProveedor = async (idProveedor, transaction) => {
   const rows = await select(
-    `SELECT id_proveedor, activo, deleted_at
+    `SELECT id_proveedor, activo, deleted_at, tipo
      FROM compras.proveedores
      WHERE id_proveedor = $1
      FOR UPDATE`,

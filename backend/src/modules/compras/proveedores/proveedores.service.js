@@ -2,7 +2,7 @@ import { withTransaction } from '../../../config/db.js';
 import { AppError } from '../../../utils/AppError.js';
 import * as repo from './proveedores.repository.js';
 
-export const listarProveedores = (activo) => repo.listarProveedores(activo);
+export const listarProveedores = (filtros) => repo.listarProveedores(filtros);
 
 export const crearProveedor = (datos, userId) => withTransaction(
   (transaction) => repo.crearProveedor(datos, transaction),

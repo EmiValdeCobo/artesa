@@ -69,8 +69,8 @@ export const PROVEEDORES = [
   { id: 7, clave: 'PANADERIA', razon: 'Panificadora La Espiga, S.A. de C.V.', nrc: '198765-4', nit: '0614-050900-101-3', contacto: 'Ernesto Calderón', telefono: '2225-6619', credito: 0, dias: [1, 2, 3, 4, 5, 6], prefijo: 'PE' },
   { id: 8, clave: 'HIELO', razon: 'Fábrica de Hielo Cristal, S.A. de C.V.', nrc: '063421-8', nit: '0614-120385-102-9', contacto: 'José Ramírez', telefono: '2270-1205', credito: 0, dias: [1, 2, 3, 4, 5, 6], prefijo: 'HC' },
   { id: 9, clave: 'BEBIDAS', razon: 'Bebidas y Distribución Cuscatlán, S.A. de C.V.', nrc: '220913-5', nit: '0614-270502-103-6', contacto: 'Andrea Flores', telefono: '2213-8840', credito: 30, dias: [4], prefijo: 'BC' },
-  { id: 10, clave: 'ENERGIA', razon: 'Energía y Servicios del Pacífico, S.A. de C.V.', nrc: '010245-7', nit: '0614-011090-101-0', contacto: 'Atención Empresarial', telefono: '2507-1000', credito: 15, dias: [], prefijo: 'EP' },
-  { id: 11, clave: 'MANTENIMIENTO', razon: 'Servicios de Mantenimiento Integral, S.A. de C.V.', nrc: '289104-3', nit: '0614-140615-102-2', contacto: 'Fernando Quintanilla', telefono: '2290-4471', credito: 0, dias: [], prefijo: 'MI' },
+  { id: 10, clave: 'ENERGIA', razon: 'Energía y Servicios del Pacífico, S.A. de C.V.', nrc: '010245-7', nit: '0614-011090-101-0', contacto: 'Atención Empresarial', telefono: '2507-1000', credito: 15, dias: [], prefijo: 'EP', tipo: 'SERVICIO' },
+  { id: 11, clave: 'MANTENIMIENTO', razon: 'Servicios de Mantenimiento Integral, S.A. de C.V.', nrc: '289104-3', nit: '0614-140615-102-2', contacto: 'Fernando Quintanilla', telefono: '2290-4471', credito: 0, dias: [], prefijo: 'MI', tipo: 'SERVICIO' },
 ];
 
 // costo: dólares por unidad base, sin IVA. paquete: múltiplo de compra en unidad base.

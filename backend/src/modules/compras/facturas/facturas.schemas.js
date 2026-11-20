@@ -80,3 +80,9 @@ export const registrarCompraSchema = z.union([compraCostoSchema, compraGastoSche
   (compra) => compra.items.some((item) => /[1-9]/.test(item.costoUnitario.replace('.', ''))),
   { message: 'La compra debe tener un total mayor que cero', path: ['items'] },
 );
+
+export const idFacturaSchema = z.object({ id: z.string().uuid() });
+
+export const eliminarFacturaSchema = z.strictObject({
+  motivo: z.string().trim().max(200).optional().nullable().transform((valor) => valor || null),
+});
