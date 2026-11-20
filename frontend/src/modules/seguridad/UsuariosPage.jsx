@@ -145,6 +145,8 @@ export default function UsuariosPage() {
   const [errorCarga, setErrorCarga] = useState(null);       // la lista no cargó → mensaje en línea con "Reintentar"
   const [filtro, setFiltro] = useState('');
   const [filtroEstado, setFiltroEstado] = useState(''); // '' = todos · 'activos' · 'inactivos'
+  const [filtroSucursal, setFiltroSucursal] = useState(''); // '' = todas · id_sucursal
+  const [filtroRol, setFiltroRol] = useState('');           // '' = todos · id_rol
   const [usuarioEditando, setUsuarioEditando] = useState(null);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -172,9 +174,12 @@ export default function UsuariosPage() {
 
   const usuariosFiltrados = useMemo(() => usuarios.filter((usuario) =>
     `${usuario.username} ${usuario.rol}`.toLowerCase().includes(filtro.trim().toLowerCase())
-    && (!filtroEstado || (filtroEstado === 'activos') === Boolean(usuario.activo))), [usuarios, filtro, filtroEstado]);
-  const hayFiltros = Boolean(filtro.trim() || filtroEstado);
-  const limpiarFiltros = () => { setFiltro(''); setFiltroEstado(''); };
+    && (!filtroEstado || (filtroEstado === 'activos') === Boolean(usuario.activo))
+    && (!filtroRol || String(usuario.id_rol) === filtroRol)
+    && (!filtroSucursal || (usuario.sucursales ?? []).some((sucursal) => String(sucursal.id_sucursal) === filtroSucursal))),
+  [usuarios, filtro, filtroEstado, filtroRol, filtroSucursal]);
+  const hayFiltros = Boolean(filtro.trim() || filtroEstado || filtroRol || filtroSucursal);
+  const limpiarFiltros = () => { setFiltro(''); setFiltroEstado(''); setFiltroRol(''); setFiltroSucursal(''); };
   const abrirNuevo = () => { setUsuarioEditando(null); setModalAbierto(true); };
 
   const cerrarModal = () => { setModalAbierto(false); setUsuarioEditando(null); };
@@ -203,7 +208,7 @@ export default function UsuariosPage() {
 
   const avisarAutoproteccion = (verbo) => notificar.advertencia(`No puedes ${verbo} tu propia cuenta`, {
     mensaje: 'Es la cuenta con la que tienes la sesión iniciada.',
-    accion: 'Pídele a otro administrador que lo haga.',
+    accion: 'Pídele a otra persona administradora que lo haga.',
   });
 
   const cambiarEstado = async (usuario, accion) => {
@@ -218,12 +223,12 @@ export default function UsuariosPage() {
 
   const desactivar = async (usuario) => {
     if (String(usuario.id_usuario) === String(usuarioSesion?.id)) return avisarAutoproteccion('desactivar');
-    if (!await confirm(`¿Desactivar al usuario "${usuario.username}"? Podrá reactivarse después.`, { destructivo: true, titulo: 'Desactivar usuario', etiquetaAceptar: 'Desactivar' })) return;
+    if (!await confirm(`¿Desactivar al usuario «${usuario.username}»? Podrá volver a activarse después.`, { destructivo: true, titulo: 'Desactivar usuario', etiquetaAceptar: 'Desactivar' })) return;
     cambiarEstado(usuario, 'desactivar');
   };
 
   const activar = async (usuario) => {
-    if (!await confirm(`¿Reactivar al usuario "${usuario.username}"?`, { tipo: 'pregunta', titulo: 'Activar usuario', etiquetaAceptar: 'Activar' })) return;
+    if (!await confirm(`¿Activar al usuario «${usuario.username}»?`, { tipo: 'pregunta', titulo: 'Activar usuario', etiquetaAceptar: 'Activar' })) return;
     cambiarEstado(usuario, 'activar');
   };
 
@@ -239,7 +244,7 @@ export default function UsuariosPage() {
 
   const eliminar = async (usuario) => {
     if (String(usuario.id_usuario) === String(usuarioSesion?.id)) return avisarAutoproteccion('eliminar');
-    if (!await confirm(`¿Eliminar permanentemente al usuario "${usuario.username}"? No se mostrará más en el sistema.`, { destructivo: true, titulo: 'Eliminar usuario', etiquetaAceptar: 'Eliminar' })) return;
+    if (!await confirm(`¿Eliminar al usuario «${usuario.username}»? Se quitará de la lista y no podrá iniciar sesión. Esta acción no se puede deshacer desde la aplicación.`, { destructivo: true, titulo: 'Eliminar usuario', etiquetaAceptar: 'Eliminar' })) return;
     ejecutarEliminar(usuario);
   };
 
@@ -257,6 +262,14 @@ export default function UsuariosPage() {
               <Search size={16} strokeWidth={1.75} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" aria-hidden="true" />
               <input type="search" className="input pl-9" value={filtro} onChange={(event) => setFiltro(event.target.value)} placeholder="Buscar usuario o rol…" aria-label="Buscar usuario" />
             </div>
+            <div className="w-full sm:w-48">
+              <Select aria-label="Filtrar por sucursal" placeholder="Todas las sucursales" value={filtroSucursal} onChange={(event) => setFiltroSucursal(event.target.value)}
+                opciones={sucursales.map((sucursal) => ({ valor: String(sucursal.id_sucursal), texto: sucursal.nombre }))} />
+            </div>
+            <div className="w-full sm:w-44">
+              <Select aria-label="Filtrar por rol" placeholder="Todos los roles" value={filtroRol} onChange={(event) => setFiltroRol(event.target.value)}
+                opciones={roles.map((rol) => ({ valor: String(rol.id_rol), texto: rol.nombre }))} />
+            </div>
             <div className="w-full sm:w-44">
               <Select aria-label="Filtrar por estado" placeholder="Todos los estados" value={filtroEstado} onChange={(event) => setFiltroEstado(event.target.value)}
                 opciones={[{ valor: 'activos', texto: 'Activos' }, { valor: 'inactivos', texto: 'Inactivos' }]} />
@@ -272,7 +285,7 @@ export default function UsuariosPage() {
               </EstadoVacio>
             ) : !cargando && !usuariosFiltrados.length ? (
               <EstadoVacio icono={Search} titulo="Sin resultados" accion={<Button variante="ghost" onClick={limpiarFiltros}>Limpiar filtros</Button>}>
-                Ningún usuario coincide con tu búsqueda. Prueba con otro nombre o rol.
+                Ningún usuario coincide con los filtros. Prueba con otra sucursal, rol o nombre.
               </EstadoVacio>
             ) : (
               <Table

@@ -7,10 +7,11 @@ import {
   calcularPaginacion,
   mismosIds,
 } from '../../utils/tabla.js';
+import { formatoFecha } from '../../utils/formato.js';
 
 /* columnas: [{ clave, titulo, encabezado?: nodo (sustituye al título en <th>), render?: (fila) => nodo,
    alinear?: 'right', clase?: string (clases extra en th/td, p. ej. 'hidden md:table-cell'),
-   ordenable?: boolean (por defecto true, excepto 'acciones'), tipo?: 'texto'|'numero'|'dinero'|'fecha'|'booleano',
+   ordenable?: boolean (por defecto true, excepto 'acciones'), tipo?: 'texto'|'numero'|'dinero'|'fecha'|'booleano' (si tipo === 'fecha' y no hay render, formatea con formatoFecha),
    valorOrden?: (fila) => any, descripcion?: string }]
    filas: arreglo de objetos. idFila: nombre del campo único (ej. 'id_usuario').
    idSeleccionado: id de la fila resaltada (opcional). apilarEnMovil: bajo 768 px cada fila se muestra
@@ -230,7 +231,7 @@ export default function Table({
                     data-label={typeof c.titulo === 'string' ? c.titulo : undefined}
                     className={`px-4 py-3 ${c.alinear === 'right' ? 'text-right tabular-nums' : ''} ${c.clase ?? ''}`.trim()}
                   >
-                    {c.render ? c.render(fila) : fila[c.clave]}
+                    {c.render ? c.render(fila) : (c.tipo === 'fecha' ? formatoFecha(fila[c.clave]) : fila[c.clave])}
                   </td>
                 ))}
               </tr>

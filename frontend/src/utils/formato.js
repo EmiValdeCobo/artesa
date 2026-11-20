@@ -77,3 +77,88 @@ export function haceCuanto(isoInstante, ahora) {
   const horas = Math.round(min / 60);
   return horas < 24 ? `hace ${horas} h` : 'hace más de un día';
 }
+
+// --- Formateador unificado de fechas (es-SV, 24 h, zona del negocio) ---
+const fmtFecha = new Intl.DateTimeFormat('es-SV', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: ZONA_NEGOCIO,
+});
+
+const fmtFechaHora = new Intl.DateTimeFormat('es-SV', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  hourCycle: 'h23',
+  timeZone: ZONA_NEGOCIO,
+});
+
+const fmtMes = new Intl.DateTimeFormat('es-SV', {
+  month: 'short',
+  year: 'numeric',
+  timeZone: ZONA_NEGOCIO,
+});
+
+function limpiarPuntoMes(str) {
+  return str.replace(/([a-záéíóúñ]{3,})\./gi, '$1').replace(/\s+/g, ' ').trim();
+}
+
+function parsearEntradaFecha(valor) {
+  if (valor === null || valor === undefined || valor === '') return null;
+  if (valor instanceof Date) {
+    return Number.isNaN(valor.getTime()) ? null : valor;
+  }
+  const str = String(valor).trim();
+  if (!str) return null;
+
+  // 'YYYY-MM-DD' → mediodía local para evitar desfases de zona
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    const d = new Date(str + 'T12:00:00');
+    return Number.isNaN(d.getTime()) ? str : d;
+  }
+
+  if (typeof valor === 'number') {
+    const d = new Date(valor);
+    return Number.isNaN(d.getTime()) ? str : d;
+  }
+
+  const d = new Date(str);
+  if (Number.isNaN(d.getTime())) {
+    return str; // valor inválido: devolver texto original
+  }
+  return d;
+}
+
+export function formatoFecha(valor) {
+  if (valor === null || valor === undefined || valor === '') return '—';
+  const parsed = parsearEntradaFecha(valor);
+  if (parsed === null) return '—';
+  if (typeof parsed === 'string') return parsed;
+  return limpiarPuntoMes(fmtFecha.format(parsed));
+}
+
+export function formatoFechaHora(valor) {
+  if (valor === null || valor === undefined || valor === '') return '—';
+  const parsed = parsearEntradaFecha(valor);
+  if (parsed === null) return '—';
+  if (typeof parsed === 'string') return parsed;
+  return limpiarPuntoMes(fmtFechaHora.format(parsed));
+}
+
+export function formatoMes(valor) {
+  if (valor === null || valor === undefined || valor === '') return '—';
+  const str = String(valor).trim();
+  if (/^\d{4}-\d{2}$/.test(str)) {
+    const d = new Date(str + '-15T12:00:00');
+    if (!Number.isNaN(d.getTime())) {
+      return limpiarPuntoMes(fmtMes.format(d));
+    }
+  }
+  const parsed = parsearEntradaFecha(valor);
+  if (parsed === null) return '—';
+  if (typeof parsed === 'string') return parsed;
+  return limpiarPuntoMes(fmtMes.format(parsed));
+}

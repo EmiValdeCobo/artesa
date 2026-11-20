@@ -25,7 +25,7 @@ import Metrica from '../../components/display/Metrica.jsx';
 import Pestanas from '../../components/navigation/Pestanas.jsx';
 import { Button, Card, Select, Spinner, Table } from '../../components/ui/index.js';
 import { ICONOS } from '../../config/iconos.js';
-import { formatoCentavos as formatearCentavos, formatoDecimal, formatoDinero, formatoEntero } from '../../utils/formato.js';
+import { formatoCentavos as formatearCentavos, formatoDecimal, formatoDinero, formatoEntero, formatoFecha, formatoFechaHora } from '../../utils/formato.js';
 import GraficaTendencia, { LeyendaTendencia } from './GraficaTendencia.jsx';
 
 function fechaLocal(fecha = new Date()) {
@@ -39,8 +39,6 @@ const HOY = fechaLocal();
 const fechaInicio = new Date();
 fechaInicio.setDate(fechaInicio.getDate() - 29);
 const INICIO = fechaLocal(fechaInicio);
-const FORMATO_FECHA = new Intl.DateTimeFormat('es-SV', { day: '2-digit', month: 'short', year: 'numeric' });
-const FORMATO_FECHA_HORA = new Intl.DateTimeFormat('es-SV', { dateStyle: 'short', timeStyle: 'short' });
 const ETIQUETAS_PAGO = { EFECTIVO: 'Efectivo', TARJETA: 'Tarjeta', BITCOIN_CHIVO: 'Bitcoin / Chivo', TRANSFERENCIA: 'Transferencia' };
 const COLORES_SERIES = ['var(--serie-1)', 'var(--serie-2)', 'var(--serie-3)', 'var(--serie-4)', 'var(--serie-5)'];
 
@@ -69,14 +67,6 @@ function porcentajeImporte(monto, total) {
     ancho: Math.min(100, Number(decimas) / 10),
     etiqueta: `${entero}${decimal ? `,${decimal}` : ''}%`,
   };
-}
-
-function formatearFecha(valor, incluirHora = false) {
-  if (!valor) return '—';
-  const texto = String(valor);
-  const fecha = new Date(texto.length === 10 ? `${texto}T12:00:00` : texto);
-  if (Number.isNaN(fecha.getTime())) return texto;
-  return (incluirHora ? FORMATO_FECHA_HORA : FORMATO_FECHA).format(fecha);
 }
 
 function diasEntre(desde, hasta) {
@@ -418,7 +408,7 @@ export default function ReportesPage() {
       titulo: 'Fecha',
       tipo: 'fecha',
       valorOrden: (fila) => String(fila.fecha).slice(0, 10),
-      render: (fila) => formatearFecha(String(fila.fecha).slice(0, 10)),
+      render: (fila) => formatoFecha(String(fila.fecha).slice(0, 10)),
     },
     {
       clave: 'sucursal',
@@ -558,7 +548,7 @@ export default function ReportesPage() {
             <h2 className="text-body-lg font-semibold">Resumen de ventas</h2>
             <p className="text-body-sm text-fg-muted">Importes de ventas emitidas, sin comprobantes anulados.</p>
           </div>
-          <span className="text-body-sm text-fg-muted">{formatearFecha(desde)} – {formatearFecha(hasta)}</span>
+          <span className="text-body-sm text-fg-muted">{formatoFecha(desde)} – {formatoFecha(hasta)}</span>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 min-w-0">
           <Metrica icono={Banknote} cargando={cargando} valor={cargando ? null : formatearCentavos(resumen.total)} etiqueta="Venta total con IVA" tono="neutro" />
@@ -777,7 +767,7 @@ export default function ReportesPage() {
                     titulo: 'Apertura',
                     tipo: 'fecha',
                     valorOrden: (fila) => fila.abierto_en,
-                    render: (fila) => formatearFecha(fila.abierto_en, true),
+                    render: (fila) => formatoFechaHora(fila.abierto_en),
                   },
                   {
                     clave: 'sucursal',
@@ -886,7 +876,7 @@ export default function ReportesPage() {
                     titulo: 'Vencimiento',
                     tipo: 'fecha',
                     valorOrden: (fila) => fila.fecha_vencimiento,
-                    render: (fila) => formatearFecha(String(fila.fecha_vencimiento).slice(0, 10)),
+                    render: (fila) => formatoFecha(String(fila.fecha_vencimiento).slice(0, 10)),
                   },
                   {
                     clave: 'total',
