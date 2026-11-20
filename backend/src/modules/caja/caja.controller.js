@@ -38,3 +38,8 @@ export async function listarCuadres(req, res) {
   const filtros = filtrosCuadresSchema.parse(req.query);
   res.json(await service.listarCuadres(filtros, req.user.id));
 }
+
+export async function listarPedidosPendientes(req, res) {
+  const idTurno = idTurnoSchema.parse(req.params.idTurno);
+  res.json(await service.listarPedidosPendientes(idTurno, req.user.id));
+}

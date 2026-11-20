@@ -140,6 +140,32 @@ async function validarQuienCierra(turno, userId, transaction) {
   if (!esSupervisor) throw new AppError('Solo el cajero del turno o un supervisor de su sucursal puede cerrarlo', 403);
 }
 
+// RN: no se cierra un turno con pedidos en la cola de preparación (ni el supervisor puede forzarlo):
+// así no quedan pedidos huérfanos de turnos cerrados. Hay que entregarlos o cancelarlos primero.
+const textoPedidos = (n) => (n === 1
+  ? 'Hay 1 pedido pendiente en preparación. Entrégalo o cancélalo antes de cerrar la caja.'
+  : `Hay ${n} pedidos pendientes en preparación. Entrégalos o cancélalos antes de cerrar la caja.`);
+export async function validarSinPedidosPendientes(transaction, idTurno) {
+  const pendientes = await repo.listarPedidosPendientes(idTurno, transaction);
+  if (pendientes.length > 0) {
+    throw new AppError(
+      textoPedidos(pendientes.length),
+      409,
+      'PEDIDOS_PENDIENTES',
+    );
+  }
+}
+
+// El cajero (o quien puede ver el cuadre) consulta qué pedidos impiden cerrar el turno.
+export async function listarPedidosPendientes(idTurno, userId) {
+  const turno = await repo.buscarTurno(idTurno);
+  if (!turno) throw new AppError('El turno no existe', 404);
+  if (turno.id_usuario !== userId && !(await repo.usuarioTieneSucursal(userId, turno.id_sucursal))) {
+    throw new AppError('El turno pertenece a una sucursal que no tienes asignada', 403);
+  }
+  return repo.listarPedidosPendientes(idTurno);
+}
+
 // RN: el turno se cierra una sola vez. La función SQL calcula lo esperado, guarda
 // lo contado y las diferencias (contado - esperado; negativo = faltante) y marca el turno CERRADO.
 export async function cerrarTurno(idTurno, contado, userId) {
@@ -149,6 +175,7 @@ export async function cerrarTurno(idTurno, contado, userId) {
       if (!turno) throw new AppError('El turno no existe', 404);
       await validarQuienCierra(turno, userId, transaction);
       if (turno.estado !== 'ABIERTO') throw new AppError('El turno ya está cerrado', 409);
+      await validarSinPedidosPendientes(transaction, idTurno);
       await validarToleranciaDescuadre(transaction, idTurno, contado);
       await repo.cerrarTurno(transaction, { idTurno, ...contado });
       return formatearCuadre(await repo.buscarCuadre(idTurno, transaction));

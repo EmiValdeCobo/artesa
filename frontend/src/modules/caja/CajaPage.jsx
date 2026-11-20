@@ -27,6 +27,7 @@ import {
   Package,
   Bitcoin,
   ArrowRightLeft,
+  ChefHat,
 } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -41,8 +42,14 @@ import Pestanas from '../../components/navigation/Pestanas.jsx';
 import Skeleton from '../../components/feedback/Skeleton.jsx';
 import { BotonIcono, Button, Card, Select, Table } from '../../components/ui/index.js';
 import { formatoDinero, formatoCentavos, horaDe, etiquetaDiaLarga, haceCuanto } from '../../utils/formato.js';
-import { cajaApi } from '../../api/caja.api.js';
+import { cajaApi, avisarCambioTurno } from '../../api/caja.api.js';
 import { listarVentas, obtenerDetalleVenta } from '../pos/posApi.js';
+import InputMoneda from '../../components/forms/InputMoneda.jsx';
+import { montoACentavos } from '../../utils/mascaras.js';
+import { Link } from 'react-router-dom';
+
+// Tope del fondo inicial; debe coincidir con MONTO_APERTURA_MAXIMO de backend/src/modules/caja/caja.schemas.js.
+const MONTO_APERTURA_MAXIMO = '10000.00';
 
 const PATRON_MONTO = /^\d{1,8}(\.\d{1,2})?$/;
 
@@ -66,6 +73,7 @@ const claseDiferencia = (resultado) => {
 
 const ETIQUETA_RESULTADO = { CUADRADO: 'Cuadrado', SOBRANTE: 'Sobrante', FALTANTE: 'Faltante' };
 const TIPO_RESULTADO = { CUADRADO: 'exito', SOBRANTE: 'aviso', FALTANTE: 'peligro' };
+const ETIQUETA_PEDIDO = { ABIERTA: 'Nueva', EN_PREPARACION: 'En preparación', LISTA: 'Lista para entregar' };
 
 export default function CajaPage() {
   const { usuario, tiene } = useAuth();
@@ -108,6 +116,8 @@ export default function CajaPage() {
   const [turnoParaCierre, setTurnoParaCierre] = useState(null);
   const [formCierre, setFormCierre] = useState({ efectivo: '0.00', tarjeta: '0.00', digital: '0.00', bitcoin: '0.00' });
   const [guardandoCierre, setGuardandoCierre] = useState(false);
+  const [pendientesCierre, setPendientesCierre] = useState({ cargando: false, lista: [], error: null });
+  const hayPendientes = pendientesCierre.lista.length > 0;
 
   const handleCargarMontosEsperados = () => {
     const target = (turnoParaCierre && turnoParaCierre.id_turno) ? turnoParaCierre : turno;
@@ -268,6 +278,10 @@ export default function CajaPage() {
       notificar.advertencia('Monto inválido', { mensaje: 'El monto de apertura debe ser un número positivo con hasta 2 decimales (ej: 50.00).' });
       return;
     }
+    if (montoACentavos(montoLimpio) > montoACentavos(MONTO_APERTURA_MAXIMO)) {
+      notificar.advertencia('Monto inválido', { mensaje: `El fondo inicial no puede superar ${formatoDinero(MONTO_APERTURA_MAXIMO)}.` });
+      return;
+    }
 
     setGuardandoApertura(true);
     try {
@@ -276,6 +290,7 @@ export default function CajaPage() {
         montoApertura: montoLimpio,
       });
       notificar.exito('Turno de caja abierto correctamente');
+      avisarCambioTurno();
       setMostrarApertura(false);
       setTurno(nuevoTurno);
       if (nuevoTurno?.id_turno) {
@@ -337,6 +352,19 @@ export default function CajaPage() {
     // Pre-llenamos con 0.00
     setFormCierre({ efectivo: '0.00', tarjeta: '0.00', digital: '0.00', bitcoin: '0.00' });
     setMostrarCierre(true);
+    const idObjetivo = objetivoValido?.id_turno ?? turno?.id_turno;
+    if (idObjetivo) cargarPedidosPendientes(idObjetivo);
+  };
+
+  // RN: no se cierra con pedidos en la cola de preparación (el backend lo vuelve a validar al cerrar).
+  const cargarPedidosPendientes = async (idTurno) => {
+    setPendientesCierre({ cargando: true, lista: [], error: null });
+    try {
+      const lista = await cajaApi.pedidosPendientes(idTurno);
+      setPendientesCierre({ cargando: false, lista: Array.isArray(lista) ? lista : [], error: null });
+    } catch (err) {
+      setPendientesCierre({ cargando: false, lista: [], error: err });
+    }
   };
 
   const handleCerrarTurno = async (e) => {
@@ -389,6 +417,7 @@ export default function CajaPage() {
       });
 
       notificar.exito('Turno cerrado y cuadre calculado exitosamente');
+      avisarCambioTurno();
       setMostrarCierre(false);
       setCuadreDetalle(resultadoCuadre);
       setMostrarCuadre(true);
@@ -403,6 +432,8 @@ export default function CajaPage() {
       }
     } catch (err) {
       notificarError(err);
+      // Llegó un pedido mientras se contaba: se refresca el aviso con el listado actual.
+      if (err?.codigo === 'PEDIDOS_PENDIENTES') cargarPedidosPendientes(turnoActivoACerrar.id_turno);
     } finally {
       setGuardandoCierre(false);
     }
@@ -835,13 +866,37 @@ export default function CajaPage() {
               </div>
             }
           >
-            <dl className="grid gap-4 sm:grid-cols-3">
+            <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <dt className="text-label-sm text-fg-muted">Estado</dt>
                 <dd className="mt-1"><EstadoBadge tipo="info">Turno abierto</EstadoBadge></dd>
               </div>
               <div>
-                <dt className="text-label-sm text-fg-muted">Monto inicial</dt>
+                <dt className="text-label-sm text-fg-muted">Sucursal</dt>
+                <dd className="mt-1 font-medium text-fg">{turno.sucursal}</dd>
+              </div>
+              <div>
+                <dt className="text-label-sm text-fg-muted">Caja</dt>
+                <dd className="mt-1 font-medium text-fg">{turno.caja}</dd>
+              </div>
+              <div>
+                <dt className="text-label-sm text-fg-muted">Cajero</dt>
+                <dd className="mt-1 font-medium text-fg">{turno.cajero || usuario?.username}</dd>
+              </div>
+              <div>
+                <dt className="text-label-sm text-fg-muted">Pedidos en preparación</dt>
+                <dd className="mt-1 text-body-sm text-fg">
+                  {turno.pedidos_pendientes > 0 ? (
+                    <Link to="/preparacion" className="font-semibold tabular-nums text-warning-text underline-offset-2 hover:underline">
+                      {turno.pedidos_pendientes} pendiente{turno.pedidos_pendientes === 1 ? '' : 's'}
+                    </Link>
+                  ) : (
+                    <span className="text-fg-muted">Ninguno</span>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-label-sm text-fg-muted">Fondo inicial</dt>
                 <dd className="mt-1 font-semibold tabular-nums text-fg">{formatoDinero(turno.monto_apertura)}</dd>
               </div>
               <div>
@@ -1130,20 +1185,19 @@ export default function CajaPage() {
                 </label>
                 <div className="relative">
                   <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden="true">$</span>
-                  <input
+                  <InputMoneda
                     id="apertura-monto"
-                    type="text"
-                    inputMode="decimal"
-                    value={formApertura.montoApertura}
-                    onChange={(e) => setFormApertura({ ...formApertura, montoApertura: e.target.value })}
-                    placeholder="0.00"
-                    className="input w-full pl-8 text-right tabular-nums"
+                    valor={formApertura.montoApertura}
+                    onValor={(monto) => setFormApertura((f) => ({ ...f, montoApertura: monto }))}
+                    maximo={MONTO_APERTURA_MAXIMO}
+                    vacioEsCero
+                    className="w-full pl-8"
                     aria-describedby="apertura-monto-ayuda"
                     required
                   />
                 </div>
                 <p id="apertura-monto-ayuda" className="mt-1.5 text-body-sm text-fg-muted">
-                  Efectivo inicial en caja para cambio. Puede ser 0.00 si inicia sin fondo.
+                  Efectivo inicial en caja para cambio. Puede ser 0.00 si inicia sin fondo; máximo {formatoDinero(MONTO_APERTURA_MAXIMO)}.
                 </p>
               </div>
             </div>
@@ -1241,14 +1295,11 @@ export default function CajaPage() {
                 </label>
                 <div className="relative">
                   <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden="true">$</span>
-                  <input
+                  <InputMoneda
                     id="movimiento-monto"
-                    type="text"
-                    inputMode="decimal"
-                    value={formMovimiento.monto}
-                    onChange={(e) => setFormMovimiento({ ...formMovimiento, monto: e.target.value })}
-                    placeholder="0.00"
-                    className="input w-full pl-8 text-right tabular-nums"
+                    valor={formMovimiento.monto}
+                    onValor={(monto) => setFormMovimiento((f) => ({ ...f, monto }))}
+                    className="w-full pl-8"
                     required
                   />
                 </div>
@@ -1307,6 +1358,42 @@ export default function CajaPage() {
 
           <form onSubmit={handleCerrarTurno}>
             <div className="space-y-4 px-6 py-5">
+              {pendientesCierre.cargando && (
+                <p role="status" className="text-body-sm text-fg-muted">Verificando pedidos pendientes de preparación…</p>
+              )}
+              {hayPendientes && (
+                <div role="alert" className="flex gap-3 rounded-md border border-line bg-warning-soft px-4 py-3 text-body-sm text-warning-text">
+                  <ChefHat size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden="true" />
+                  <div className="space-y-1.5">
+                    <p className="font-medium">
+                      {pendientesCierre.lista.length === 1
+                        ? 'Hay 1 pedido pendiente en preparación. Entrégalo o cancélalo antes de cerrar la caja.'
+                        : `Hay ${pendientesCierre.lista.length} pedidos pendientes en preparación. Entrégalos o cancélalos antes de cerrar la caja.`}
+                    </p>
+                    <ul className="flex flex-wrap gap-x-3 gap-y-1">
+                      {pendientesCierre.lista.map((p) => (
+                        <li key={p.id_orden} className="tabular-nums">
+                          #{p.id_orden} · {ETIQUETA_PEDIDO[p.estado] ?? p.estado}
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="flex flex-wrap items-center gap-3">
+                      {tiene('POS_VER_COLA_PREPARACION') && (
+                        <Link to="/preparacion" className="text-label-sm text-primary-text underline-offset-2 hover:underline">
+                          Ir a la cola de preparación
+                        </Link>
+                      )}
+                      <button
+                        type="button"
+                        className="text-label-sm text-primary-text underline-offset-2 hover:underline"
+                        onClick={() => cargarPedidosPendientes(objetivoCierre?.id_turno)}
+                      >
+                        Volver a verificar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="rotulo">Conteo por medio de pago</p>
                 <Button variante="ghost" tamano="sm" icono={Scale} onClick={handleCargarMontosEsperados}>
@@ -1340,14 +1427,12 @@ export default function CajaPage() {
                           <td className="px-4 py-3 text-right tabular-nums text-fg-muted">{formatoCentavos(fila.esperadoCent)}</td>
                           <td className="px-4 py-3">
                             <label htmlFor={`cierre-${fila.clave}`} className="sr-only">{fila.medio} contado ($)</label>
-                            <input
+                            <InputMoneda
                               id={`cierre-${fila.clave}`}
-                              type="text"
-                              inputMode="decimal"
-                              value={formCierre[fila.clave]}
-                              onChange={(e) => setFormCierre({ ...formCierre, [fila.clave]: e.target.value })}
-                              placeholder="0.00"
-                              className="input ml-auto h-control-sm w-32 text-right tabular-nums"
+                              valor={formCierre[fila.clave]}
+                              onValor={(monto) => setFormCierre((f) => ({ ...f, [fila.clave]: monto }))}
+                              vacioEsCero
+                              className="ml-auto h-control-sm w-32"
                               aria-invalid={dif === null ? true : undefined}
                               required
                             />
@@ -1370,7 +1455,13 @@ export default function CajaPage() {
               <Button variante="ghost" onClick={() => setMostrarCierre(false)} disabled={guardandoCierre}>
                 Cancelar
               </Button>
-              <Button type="submit" variante="danger" cargando={guardandoCierre} icono={Lock}>
+              <Button
+                type="submit"
+                variante="danger"
+                cargando={guardandoCierre}
+                disabled={hayPendientes || pendientesCierre.cargando}
+                icono={Lock}
+              >
                 Cerrar turno y cuadrar
               </Button>
             </div>
