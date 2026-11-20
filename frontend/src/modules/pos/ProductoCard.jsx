@@ -14,7 +14,7 @@ export default function ProductoCard({ producto, enCarrito, onAgregar }) {
       className={`relative flex h-full min-h-32 flex-col gap-3 rounded-lg border p-3 text-left shadow-xs transition-colors disabled:cursor-not-allowed ${
         enCarrito > 0 ? 'border-primary/40 bg-primary-soft' : agotado ? 'border-line bg-muted' : 'border-line bg-surface hover:border-primary/40'}`}>
       <div className="flex items-start justify-between gap-2">
-        <span className={`grid size-control-md shrink-0 place-items-center rounded-md bg-muted font-display text-h3 ${agotado ? 'text-fg-subtle' : 'text-fg-muted'}`} aria-hidden="true">{inicial}</span>
+        <span className={`grid size-control-md shrink-0 place-items-center rounded-md bg-muted font-display text-h3 ${agotado ? 'text-fg-muted' : 'text-fg-muted'}`} aria-hidden="true">{inicial}</span>
         {enCarrito > 0 && (
           <span className="grid h-6 min-w-6 place-items-center rounded-full bg-primary px-1.5 text-label-sm tabular-nums text-on-accent" aria-hidden="true">{enCarrito}</span>
         )}

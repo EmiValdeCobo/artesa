@@ -35,7 +35,7 @@
   --text-body-sm: 0.8125rem; --text-body-sm--line-height: 1.25rem;
   --text-label:    0.875rem; --text-label--line-height: 1.25rem; --text-label--font-weight: 500;
   --text-label-sm: 0.75rem;  --text-label-sm--line-height: 1rem; --text-label-sm--font-weight: 500;
-  --text-overline: 0.6875rem; --text-overline--line-height: 1rem; --text-overline--letter-spacing: 0.06em; --text-overline--font-weight: 600;
+  --text-overline: 0.75rem; --text-overline--line-height: 1rem; --text-overline--letter-spacing: 0.06em; --text-overline--font-weight: 600;
   --text-kpi:  1.875rem; --text-kpi--line-height: 2.375rem; --text-kpi--font-weight: 700;
 
   /* Radios: xs 4 · sm 6 · md 8 (controles) · lg 12 (tarjetas) · xl 16 (diálogos) */
@@ -160,7 +160,7 @@
   --border-strong:  #806f62;
 
   --accent:         #b15c3d;  /* mismo botón: blanco sobre #b15c3d = 4,7:1 (AA) */
-  --accent-hover:   #c97752;
+  --accent-hover:   #984a2f;
   --accent-soft:    #44211a;
   --accent-text:    #de9776;
   --secondary:      #e1a651;
