@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Check } from 'lucide-react';
+import { Check, MessageSquarePlus, Plus } from 'lucide-react';
 import Dialogo from '../../components/Dialogo.jsx';
 import { BotonIcono, Button } from '../../components/ui/index.js';
 import { ICONOS } from '../../config/iconos.js';
@@ -45,15 +45,21 @@ export default function PersonalizarLineaDialogo({ linea, ingredientes = [], ext
       <form onSubmit={guardar}>
         <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
           <div className="min-w-0">
-            <h2 id="titulo-personalizar-linea" className="text-h3 text-fg">Personalizar</h2>
+            <h2 id="titulo-personalizar-linea" className="text-h3 text-fg">Nota y extras</h2>
             <p className="truncate text-body-sm text-fg-muted">{linea.nombre} · {linea.cantidad} {linea.cantidad === 1 ? 'unidad' : 'unidades'}</p>
           </div>
           <BotonIcono icono={ICONOS.cerrar} etiqueta="Cerrar" onClick={onCerrar} />
         </div>
 
         <div className="space-y-5 px-5 py-4">
-          <div>
-            <label htmlFor="pos-nota-linea" className="text-label text-fg">Observación para preparación</label>
+          {/* ── Observación de preparación ── */}
+          <section>
+            <div className="mb-2 flex items-center gap-2">
+              <span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary-soft text-primary-text">
+                <MessageSquarePlus size={14} strokeWidth={1.75} aria-hidden="true" />
+              </span>
+              <label htmlFor="pos-nota-linea" className="text-label text-fg">Observación</label>
+            </div>
             <textarea
               id="pos-nota-linea"
               ref={notaRef}
@@ -61,46 +67,55 @@ export default function PersonalizarLineaDialogo({ linea, ingredientes = [], ext
               maxLength={MAX_NOTA}
               rows={2}
               onChange={(e) => setNota(e.target.value)}
-              placeholder="Ej.: sin mayonesa, poco hielo, para llevar"
+              placeholder="Ej.: sin mayonesa, poco hielo, para llevar…"
               aria-describedby="pos-nota-ayuda"
-              className="input mt-1.5 w-full resize-none"
+              className="input w-full resize-none"
             />
             <p id="pos-nota-ayuda" className="mt-1 flex justify-between text-label-sm text-fg-muted">
-              <span>Aparece en la cola de preparación y en el ticket.</span>
+              <span>Aparece en preparación y en el ticket.</span>
               <span className="tabular-nums">{nota.length}/{MAX_NOTA}</span>
             </p>
             {ingredientes.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Quitar ingrediente">
-                {ingredientes.map((ing) => {
-                  const activo = notaMin.includes(`sin ${ing.toLowerCase()}`);
-                  return (
-                    <button key={ing} type="button" aria-pressed={activo}
-                      onClick={() => setNota((n) => alternarSin(n, ing))}
-                      className={`inline-flex h-control-sm items-center rounded-full border px-3 text-label-sm transition-colors ${activo ? 'border-primary/40 bg-primary-soft text-primary-text' : 'border-line text-fg-muted hover:bg-muted hover:text-fg'}`}>
-                      Sin {ing.toLowerCase()}
-                    </button>
-                  );
-                })}
+              <div className="mt-2.5">
+                <p className="mb-1.5 text-label-sm text-fg-muted">Atajos rápidos:</p>
+                <div className="flex flex-wrap gap-1.5" role="group" aria-label="Quitar ingrediente">
+                  {ingredientes.map((ing) => {
+                    const activo = notaMin.includes(`sin ${ing.toLowerCase()}`);
+                    return (
+                      <button key={ing} type="button" aria-pressed={activo}
+                        onClick={() => setNota((n) => alternarSin(n, ing))}
+                        className={`inline-flex h-control-sm items-center rounded-full border px-3 text-label-sm transition-colors ${activo ? 'border-primary/40 bg-primary-soft text-primary-text' : 'border-line text-fg-muted hover:bg-muted hover:text-fg'}`}>
+                        Sin {ing.toLowerCase()}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
-          </div>
+          </section>
 
+          {/* ── Extras ── */}
           {extrasDisponibles.length > 0 && (
             <fieldset>
-              <legend className="text-label text-fg">Extras</legend>
-              <p className="text-label-sm text-fg-muted">Se cobran por cada unidad de la línea.</p>
-              <ul className="mt-2 divide-y divide-line rounded-md border border-line">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="grid size-7 shrink-0 place-items-center rounded-md bg-warning-soft text-warning-text">
+                  <Plus size={14} strokeWidth={1.75} aria-hidden="true" />
+                </span>
+                <legend className="text-label text-fg">Extras</legend>
+              </div>
+              <p className="mb-2 text-label-sm text-fg-muted">Se cobran por cada unidad ({linea.cantidad} {linea.cantidad === 1 ? 'ud.' : 'uds.'}).</p>
+              <ul className="divide-y divide-line rounded-md border border-line">
                 {extrasDisponibles.map((x) => {
                   const marcado = extras.has(x.id_producto);
                   const sinStock = x.stock < linea.cantidad;
                   return (
                     <li key={x.id_producto}>
-                      <label className={`flex items-center gap-3 px-3 py-2.5 ${sinStock && !marcado ? 'opacity-50' : 'cursor-pointer hover:bg-muted'}`}>
+                      <label className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${sinStock && !marcado ? 'opacity-50' : 'cursor-pointer hover:bg-muted'}`}>
                         <input type="checkbox" className="size-4 accent-[var(--color-primary)]" checked={marcado}
                           disabled={sinStock && !marcado} onChange={() => alternarExtra(x.id_producto)} />
                         <span className="flex-1 text-body text-fg">{x.nombre.replace(/^Extra:\s*/i, '')}</span>
-                        {sinStock && <span className="text-label-sm text-warning-text">Sin stock</span>}
-                        <span className="text-body-sm tabular-nums text-fg-muted">+{formatoMoneda(x.precio)}</span>
+                        {sinStock && <span className="shrink-0 rounded-full bg-warning-soft px-2 py-0.5 text-label-sm text-warning-text">Sin stock</span>}
+                        <span className="shrink-0 text-body-sm tabular-nums text-fg-muted">+{formatoMoneda(x.precio)}</span>
                       </label>
                     </li>
                   );
@@ -112,7 +127,7 @@ export default function PersonalizarLineaDialogo({ linea, ingredientes = [], ext
 
         <div className="flex flex-col-reverse gap-2 border-t border-line px-5 py-4 sm:flex-row sm:justify-end">
           <Button type="button" variante="ghost" onClick={onCerrar}>Cancelar</Button>
-          <Button type="submit" icono={Check}>Aplicar</Button>
+          <Button type="submit" icono={Check}>Guardar</Button>
         </div>
       </form>
     </Dialogo>

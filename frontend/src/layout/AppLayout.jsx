@@ -14,9 +14,16 @@ function CargandoModulo() {
   );
 }
 
+// Pantallas de operación: padding lateral reducido. El POS además ocupa exactamente el alto
+// de la ventana para que catálogo y pedido tengan scroll propio.
+const RUTAS_OPERACION = ['/pos', '/preparacion'];
+const RUTAS_ALTO_VENTANA = ['/pos'];
+
 export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { pathname } = useLocation();
+  const anchoCompleto = RUTAS_OPERACION.includes(pathname);
+  const altoVentana = RUTAS_ALTO_VENTANA.includes(pathname);
   const esPrimeraCarga = useRef(true);
   const mainRef = useRef(null);
 
@@ -91,9 +98,9 @@ export default function AppLayout() {
           <Logo variante="isotipo" alto={28} />
           <span className="text-label text-fg">artesa</span>
         </header>
-        <main id="contenido" ref={mainRef} tabIndex={-1} className="focus:outline-none min-h-[calc(100dvh-var(--spacing-header))] p-4 sm:p-6 lg:min-h-screen lg:p-8">
+        <main id="contenido" ref={mainRef} tabIndex={-1} className={`focus:outline-none min-h-[calc(100dvh-var(--spacing-header))] p-4 sm:p-6 ${anchoCompleto ? 'lg:p-6' : 'lg:p-8'} ${altoVentana ? 'lg:flex lg:h-dvh lg:min-h-0 lg:flex-col lg:overflow-hidden' : 'lg:min-h-screen'}`}>
           {/* Turno de caja activo: visible en todas las pantallas (sucursal, caja, cajero y hora). */}
-          <div className="mb-4 flex justify-end empty:hidden"><IndicadorTurno /></div>
+          <div className={`flex justify-end empty:hidden ${altoVentana ? 'mb-3 shrink-0' : 'mb-4'}`}><IndicadorTurno /></div>
           <Suspense fallback={<CargandoModulo />}>
             <Outlet />
           </Suspense>

@@ -25,7 +25,7 @@ export default function ProductoCard({ producto, enCarrito, onAgregar }) {
       </div>
       <div className="flex flex-wrap items-end justify-between gap-x-2 gap-y-1.5">
         <span className={`text-h3 tabular-nums ${agotado ? 'text-fg-muted' : 'text-fg'}`}>{formatoMoneda(producto.precio)}</span>
-        {agotado && <EstadoBadge tipo="error">Agotado</EstadoBadge>}
+        {agotado && <span title="Sin existencias en esta sucursal"><EstadoBadge tipo="error">Agotado</EstadoBadge></span>}
         {bajo && !sinMas && <EstadoBadge tipo="alerta">Quedan {producto.stock}</EstadoBadge>}
         {sinMas && <EstadoBadge tipo="info">Máximo en pedido</EstadoBadge>}
       </div>
