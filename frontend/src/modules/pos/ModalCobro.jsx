@@ -8,6 +8,13 @@ import { calcularTotales, formatoMoneda, IVA } from './impuestos.js';
 import { itemsParaVenta } from './carritoReducer.js';
 import { registrarVenta } from './posApi.js';
 import { REFERENCIAS_PAGO, validarReferenciaPago } from '../../utils/mascaras.js';
+import PagoTransferencia from './pagosSimulados/PagoTransferencia.jsx';
+import PagoTarjeta from './pagosSimulados/PagoTarjeta.jsx';
+import { generarReferenciaCobro } from './pagosSimulados/transferencia.js';
+
+// Tarjeta y transferencia son SIMULADAS (ver pagosSimulados/): cada línea debe confirmarse en su panel.
+const METODOS_SIMULADOS = new Set(['TARJETA', 'TRANSFERENCIA']);
+const camposSimulacionVacios = { confirmado: false, excedenteAceptado: false, tarjeta: null };
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 const METODOS = [
@@ -117,7 +124,10 @@ export default function ModalCobro({
     [pagos],
   );
 
+  const lineasSimuladasConfirmadas = pagos.every((p) => !METODOS_SIMULADOS.has(p.metodo) || p.confirmado);
+
   const puedeConfirmar = items.length > 0
+    && lineasSimuladasConfirmadas
     && erroresReferencia.every((e) => !e)
     && faltanteCentavos === 0
     && sobranteCentavos === 0
@@ -128,13 +138,39 @@ export default function ModalCobro({
   const actualizarPago = useCallback((idx, campo, valor) => {
     setPagos((prev) => prev.map((p, i) => {
       if (i !== idx) return p;
-      if (campo === 'monto' || campo === 'monto_recibido') {
-        return { ...p, [campo]: formatearEntradaDinero(valor) };
+      if (campo === 'monto') {
+        const monto = formatearEntradaDinero(valor);
+        if (!METODOS_SIMULADOS.has(p.metodo)) return { ...p, monto };
+        // Cambiar el monto invalida la autorización simulada; en transferencia el monto pagado
+        // sigue al aplicado mientras el cajero no lo haya editado.
+        const sigue = p.metodo === 'TRANSFERENCIA' && p.monto_recibido === p.monto;
+        return {
+          ...p,
+          ...camposSimulacionVacios,
+          monto,
+          referencia: p.metodo === 'TARJETA' ? '' : p.referencia,
+          monto_recibido: sigue ? monto : p.monto_recibido,
+        };
       }
+      if (campo === 'monto_recibido') return { ...p, monto_recibido: formatearEntradaDinero(valor) };
       // Al cambiar de método el comprobante anterior ya no aplica (cada uno tiene su formato).
-      if (campo === 'metodo' && valor !== p.metodo) return { ...p, metodo: valor, referencia: '' };
+      if (campo === 'metodo' && valor !== p.metodo) {
+        return {
+          ...p,
+          ...camposSimulacionVacios,
+          metodo: valor,
+          referencia: '',
+          monto_recibido: valor === 'TRANSFERENCIA' ? p.monto : (valor === 'EFECTIVO' ? p.monto_recibido : ''),
+          refCobro: valor === 'TRANSFERENCIA' ? generarReferenciaCobro() : undefined,
+        };
+      }
       return { ...p, [campo]: valor };
     }));
+  }, []);
+
+  // Parche directo (paneles simulados): sus valores ya vienen validados/enmascarados.
+  const parchearPago = useCallback((idx, parche) => {
+    setPagos((prev) => prev.map((p, i) => (i === idx ? { ...p, ...parche } : p)));
   }, []);
 
   const agregarPago = () => {
@@ -184,10 +220,14 @@ export default function ModalCobro({
         pagos: pagos.map((p) => ({
           metodo: p.metodo,
           monto: fmtStr(p.monto),
-          monto_recibido: p.metodo === 'EFECTIVO' && p.monto_recibido
+          // Efectivo: lo entregado (vuelto). Transferencia: lo transferido (excedente, no es vuelto).
+          monto_recibido: (p.metodo === 'EFECTIVO' || p.metodo === 'TRANSFERENCIA') && p.monto_recibido
             ? fmtStr(p.monto_recibido)
             : null,
           referencia: p.referencia?.trim() || null,
+          // Solo datos no sensibles: nunca número completo, CVV ni vencimiento.
+          ...(METODOS_SIMULADOS.has(p.metodo) ? { simulado: true } : {}),
+          ...(p.metodo === 'TARJETA' && p.tarjeta ? { tarjeta: { marca: p.tarjeta.marca, ultimos4: p.tarjeta.ultimos4 } } : {}),
         })),
       };
       const venta = await registrarVenta(payload);
@@ -339,8 +379,27 @@ export default function ModalCobro({
                   </div>
                 )}
 
-                {/* Tarjeta/Transferencia/Bitcoin: comprobante con formato propio de cada método */}
-                {REFERENCIAS_PAGO[pago.metodo] && (() => {
+                {pago.metodo === 'TRANSFERENCIA' && (
+                  <PagoTransferencia
+                    pago={pago}
+                    idx={idx}
+                    sucursal={turnoActivo?.sucursal}
+                    onCambiar={(parche) => parchearPago(idx, parche)}
+                  />
+                )}
+                {pago.metodo === 'TARJETA' && (
+                  <PagoTarjeta
+                    pago={pago}
+                    idx={idx}
+                    onAprobado={({ marca, ultimos4, autorizacion }) => parchearPago(idx, {
+                      confirmado: true, referencia: autorizacion, tarjeta: { marca, ultimos4 },
+                    })}
+                    onReiniciar={() => parchearPago(idx, { ...camposSimulacionVacios, referencia: '' })}
+                  />
+                )}
+
+                {/* Bitcoin/Chivo: comprobante con formato propio (tarjeta y transferencia usan sus paneles) */}
+                {REFERENCIAS_PAGO[pago.metodo] && !METODOS_SIMULADOS.has(pago.metodo) && (() => {
                   const cfg = REFERENCIAS_PAGO[pago.metodo];
                   const idCampo = `referencia-pago-${idx}`;
                   const error = pago.referencia ? erroresReferencia[idx] : '';
@@ -382,6 +441,10 @@ export default function ModalCobro({
                 <AlertCircle size={16} strokeWidth={1.75} aria-hidden="true" /> Falta por cubrir
               </span>
               <span className="text-h3 tabular-nums">{formatoMoneda(Number(desCentavos(faltanteCentavos)))}</span>
+            </div>
+          ) : !lineasSimuladasConfirmadas ? (
+            <div className="flex items-center gap-1.5 text-label text-warning-text">
+              <AlertCircle size={16} strokeWidth={1.75} aria-hidden="true" /> Confirma el pago con tarjeta o transferencia
             </div>
           ) : sobranteCentavos > 0 ? (
             <div className="flex items-center justify-between text-danger-text">

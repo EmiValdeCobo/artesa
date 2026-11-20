@@ -51,12 +51,12 @@ export const REFERENCIAS_PAGO = {
   },
   TRANSFERENCIA: {
     etiqueta: 'N.º de referencia de la transferencia',
-    placeholder: 'TRX20261119001',
+    placeholder: 'TRX123456789',
     inputMode: 'text',
-    maxLength: 30,
-    patron: /^[A-Z0-9-]{6,30}$/,
-    mensaje: 'La referencia bancaria debe tener de 6 a 30 letras o números.',
-    aplicar: (v) => String(v ?? '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 30),
+    maxLength: 20,
+    patron: /^[A-Z0-9]{6,20}$/,
+    mensaje: 'La referencia debe tener de 6 a 20 letras o números, sin espacios.',
+    aplicar: (v) => String(v ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20),
   },
   BITCOIN_CHIVO: {
     etiqueta: 'ID de transacción (Chivo Wallet / hash Lightning)',

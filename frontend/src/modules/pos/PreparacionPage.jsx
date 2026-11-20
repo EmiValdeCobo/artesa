@@ -627,7 +627,6 @@ export default function PreparacionPage() {
         </div>
       )}
 
-      {ordenACancelar && (
       {recetaAbierta && (
         <ModalPrevisualizacionReceta
           producto={{ id_producto: recetaAbierta.id_producto, nombre: recetaAbierta.producto, precio_venta: '0.00' }}
@@ -640,6 +639,7 @@ export default function PreparacionPage() {
         />
       )}
 
+      {ordenACancelar && (
         <CancelarPedidoDialogo
           orden={ordenACancelar}
           onCerrar={() => setOrdenACancelar(null)}

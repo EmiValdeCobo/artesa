@@ -30,6 +30,7 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (li
 
 
 - POS notas/extras (2026-11-19, mig. 023): observación por línea (nota, no toca inventario) visible en cola, ticket e historial; extras = productos `es_extra` con receta propia ligados por `producto_extras` y `id_detalle_padre`, cobrados y descontados por fn_registrar_venta. Barista ve recetas en solo lectura (catálogo y cola) con INV_VER_STOCK.
+- Pagos simulados (2026-11-19): TARJETA y TRANSFERENCIA usan pasarela simulada (`frontend/src/modules/pos/pagosSimulados/`, `backend/src/modules/pos/pagos/pasarelaSimulada.js`); aprobación decidida en el frontend, al backend solo llegan marca, últimos 4 y autorización (esquema estricto). Transferencia: referencia 6-20 A-Z0-9 y excedente en monto_recibido (no es vuelto). Mig. 024.
 
 ## Estado por módulo
 | Módulo | BD | Backend | Frontend |
