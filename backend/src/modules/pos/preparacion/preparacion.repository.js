@@ -13,7 +13,8 @@ export const listarCola = (idUsuario, { idSucursal }, transaction = null) => con
           c.nombre_identificador AS caja, (t.estado = 'ABIERTO') AS turno_abierto,
           EXISTS (SELECT 1 FROM pos.ventas v WHERE v.id_orden = o.id_orden AND v.estado = 'EMITIDA') AS pagada,
           GREATEST(0, EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP::timestamp - o.creado_en)) / 60)::int AS minutos_espera,
-          COALESCE(json_agg(json_build_object('id_detalle', d.id_detalle, 'producto', p.nombre,
+          COALESCE(json_agg(json_build_object('id_detalle', d.id_detalle, 'id_producto', d.id_producto, 'producto', p.nombre,
+                                              'es_elaborado', p.es_elaborado, 'id_detalle_padre', d.id_detalle_padre,
                                               'cantidad', d.cantidad, 'nota', d.nota) ORDER BY d.id_detalle)
                    FILTER (WHERE d.id_detalle IS NOT NULL), '[]'::json) AS items
    FROM pos.ordenes o

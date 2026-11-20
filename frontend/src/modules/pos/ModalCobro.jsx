@@ -5,6 +5,7 @@ import { BotonIcono, Button } from '../../components/ui/index.js';
 import { ICONOS } from '../../config/iconos.js';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import { calcularTotales, formatoMoneda, IVA } from './impuestos.js';
+import { itemsParaVenta } from './carritoReducer.js';
 import { registrarVenta } from './posApi.js';
 import { REFERENCIAS_PAGO, validarReferenciaPago } from '../../utils/mascaras.js';
 import PagoTransferencia from './pagosSimulados/PagoTransferencia.jsx';
@@ -215,11 +216,7 @@ export default function ModalCobro({
         tipo_comprobante: tipoDocumento === 'CCF' ? 'CCF' : 'FCF',
         id_cliente: clienteSeleccionado?.id_cliente ?? null,
         descuento: descuentoEfectivoStr,
-        items: items.map((i) => ({
-          id_producto: i.id_producto,
-          cantidad: i.cantidad,
-          nota: null,
-        })),
+        items: itemsParaVenta(items),
         pagos: pagos.map((p) => ({
           metodo: p.metodo,
           monto: fmtStr(p.monto),

@@ -11,7 +11,7 @@ import { construirBitacora } from './lib/bitacora.js';
 import { aUtc, DIA_MS, FALTANTES, fmtMicros, simularHistoria } from './lib/simulacion.js';
 import {
   CATEGORIAS, CAMBIOS_PERMISOS, CLIENTES, CONTRASENA_CLIENTE_DEMO, CONTRASENA_DEMO, EMPLEADOS, INSUMOS, PRODUCTO_DESACTIVADO,
-  PRODUCTO_ELIMINADO, PRODUCTOS, PROVEEDORES, PUESTOS, ROLES, SUCURSALES, UNIDADES, USUARIOS,
+  EXTRAS, PRODUCTO_ELIMINADO, PRODUCTOS, PROVEEDORES, PUESTOS, ROLES, SUCURSALES, UNIDADES, USUARIOS,
 } from './datos/catalogo.js';
 
 const SEMILLA = 'artesa-seed-v1';
@@ -43,7 +43,7 @@ process.env.JWT_SECRET ||= 'seed-sin-uso-de-jwt';
 
 const { sequelize, withTransaction } = await import('../src/config/db.js');
 const {
-  Caja, CategoriaProducto, Empleado, Insumo, Producto, Puesto, Receta, Rol, RolPermiso, UnidadMedida, Usuario, UsuarioSucursal,
+  Caja, CategoriaProducto, Empleado, Insumo, Producto, ProductoExtra, Puesto, Receta, Rol, RolPermiso, UnidadMedida, Usuario, UsuarioSucursal,
 } = await import('../src/models/index.js');
 const { QueryTypes } = await import('sequelize');
 const qi = sequelize.getQueryInterface();
@@ -57,7 +57,7 @@ const TABLAS_DATOS = [
   'compras.pagos_proveedor', 'compras.compra_detalles', 'compras.facturas_compra', 'compras.proveedores',
   'pos.pagos', 'pos.venta_detalles', 'pos.ventas', 'pos.orden_detalles', 'pos.ordenes', 'pos.movimientos_caja', 'pos.turnos_caja',
   'pos.series_documento', 'pos.cajas', 'pos.clientes',
-  'inventario.movimientos_inventario', 'inventario.stock_sucursal', 'inventario.recetas', 'inventario.productos', 'inventario.categorias_producto',
+  'inventario.movimientos_inventario', 'inventario.stock_sucursal', 'inventario.recetas', 'inventario.producto_extras', 'inventario.productos', 'inventario.categorias_producto',
   'inventario.insumos', 'inventario.unidades_medida',
   'seguridad.usuario_sucursal', 'seguridad.usuarios', 'seguridad.roles_permisos', 'seguridad.roles', 'empresa.sucursales',
 ];
@@ -172,6 +172,14 @@ async function main() {
     await Producto.bulkCreate(filasProductos, { transaction });
     const filasRecetas = PRODUCTOS.flatMap((p, k) => Object.entries(p.receta ?? {}).map(([clave, cant]) => ({ id_producto: k + 1, id_insumo: ids.insumos[clave].id, cantidad_requerida: String(cant) })));
     await Receta.bulkCreate(filasRecetas, { transaction });
+    // Extras: ids a continuación del catálogo; su receta descuenta stock como cualquier elaborado.
+    const idExtra = (k) => PRODUCTOS.length + k + 1;
+    await Producto.bulkCreate(EXTRAS.map((e, k) => ({
+      id_producto: idExtra(k), id_categoria: e.cat, nombre: e.nombre, codigo_barra: null, precio_venta: e.precio,
+      es_elaborado: true, es_extra: true, id_insumo_reventa: null, activo: true, deleted_at: null,
+    })), { transaction });
+    await Receta.bulkCreate(EXTRAS.flatMap((e, k) => Object.entries(e.receta).map(([clave, cant]) => ({ id_producto: idExtra(k), id_insumo: ids.insumos[clave].id, cantidad_requerida: String(cant) }))), { transaction });
+    await ProductoExtra.bulkCreate(EXTRAS.flatMap((e, k) => e.para.map((clave) => ({ id_producto: ids.productos[clave], id_extra: idExtra(k) }))), { transaction });
 
     // Roles y matriz de permisos (se omiten códigos que aún no existan por una migración pendiente).
     await Rol.bulkCreate(ROLES.map((r) => ({

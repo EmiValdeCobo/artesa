@@ -132,6 +132,13 @@ async function enRollback(fn) {
 }
 
 async function vender(tx, items) {
+  // El seed deja faltantes planificados por sucursal: se repone stock solo dentro de esta transacción (ROLLBACK).
+  await bd.sel(
+    `UPDATE inventario.stock_sucursal SET stock_actual = stock_actual + 100000
+     WHERE id_sucursal = (SELECT c.id_sucursal FROM pos.turnos_caja t JOIN pos.cajas c USING (id_caja) WHERE t.id_turno = $1::uuid)
+     RETURNING 1`,
+    [bd.id_turno], tx,
+  );
   const precios = await bd.sel(
     'SELECT id_producto, precio_venta::text FROM inventario.productos WHERE id_producto = ANY($1::int[])',
     [items.map((i) => i.id_producto)],

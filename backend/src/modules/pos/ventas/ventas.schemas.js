@@ -10,7 +10,10 @@ const montoStr = z
 const itemVentaSchema = z.object({
   id_producto: z.number().int().positive(),
   cantidad:    z.number().int().min(1),
-  nota:        z.string().max(200).nullable().optional(),
+  nota:        z.string().trim().max(200).nullable().optional(),
+  // Posición (1-based) en items de la línea principal; solo para extras. La BD valida que sea anterior
+  // y que el extra esté permitido para ese producto.
+  extra_de:    z.number().int().positive().nullable().optional(),
 });
 
 // ── Comprobante por método (se guarda en pos.pagos.referencia) ────────────────

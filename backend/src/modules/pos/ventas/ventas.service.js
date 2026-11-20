@@ -31,10 +31,11 @@ function mapearErrorPG(err) {
 
 // ── Registrar venta ───────────────────────────────────────────────────────────
 export async function registrarVenta(body, userId) {
-  const items = body.items.map(({ id_producto, cantidad, nota }) => ({
+  const items = body.items.map(({ id_producto, cantidad, nota, extra_de }) => ({
     id_producto,
     cantidad,
-    nota: nota ?? null,
+    nota: nota || null,
+    extra_de: extra_de ?? null,
   }));
 
   // Solo columnas originales de pos.pagos; los metadatos simulados se guardan después (pasarelaSimulada).

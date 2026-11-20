@@ -80,6 +80,8 @@ export const productoSchema = z.object({
   idInsumoReventa: id.nullish(),
   id_insumo_reventa: id.nullish(),
   activo: z.boolean().default(true),
+  esExtra: z.boolean().optional(),
+  es_extra: z.boolean().optional(),
 }).transform((data) => ({
   idCategoria: data.idCategoria ?? data.id_categoria ?? null,
   nombre: data.nombre,
@@ -87,12 +89,15 @@ export const productoSchema = z.object({
   precioVenta: data.precioVenta ?? data.precio_venta,
   esElaborado: data.esElaborado ?? data.es_elaborado ?? true,
   idInsumoReventa: data.idInsumoReventa ?? data.id_insumo_reventa ?? null,
+  esExtra: data.esExtra ?? data.es_extra ?? false,
   activo: data.activo,
 })).refine((v) => v.precioVenta !== undefined, { message: 'El precio de venta es obligatorio', path: ['precioVenta'] })
   .refine((v) => (v.esElaborado && !v.idInsumoReventa) || (!v.esElaborado && !!v.idInsumoReventa), {
     message: 'Los productos de reventa requieren insumo asociado y los elaborados no',
     path: ['idInsumoReventa'],
   });
+// PUT /productos/:id/extras: reemplaza la lista completa de extras permitidos (vacía = sin extras).
+export const extrasSchema = z.object({ extras: z.array(id).max(30).refine((xs) => new Set(xs.map(Number)).size === xs.length, 'No repitas extras') });
 export const recetaSchema = z.object({ componentes: z.array(z.object({ idInsumo: id, cantidadRequerida: enteroPositivo(6) })).min(1).max(100).refine((c) => new Set(c.map((x) => Number(x.idInsumo))).size === c.length, 'No repitas insumos en la receta') });
 export const stockSchema = z.object({ idSucursal: id, idInsumo: id, cantidad: enteroPositivo(10), tipo: z.enum(['INVENTARIO_INICIAL', 'AJUSTE', 'TRASLADO_ENTRADA']), motivo: z.string().trim().min(3).max(500) });
 export const minimoSchema = z.object({ idSucursal: id, stockMinimo: enteroPositivo(10) });

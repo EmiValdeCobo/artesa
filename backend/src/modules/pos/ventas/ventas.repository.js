@@ -90,7 +90,7 @@ export async function obtenerVenta(idVenta, tx = null) {
 
   const detalles = await sel(
     `SELECT d.id_detalle, d.id_producto, p.nombre AS nombre_producto,
-            d.cantidad, d.precio_unitario::text, d.subtotal_linea::text, d.nota
+            d.cantidad, d.precio_unitario::text, d.subtotal_linea::text, d.nota, d.id_detalle_padre
      FROM pos.venta_detalles d
      JOIN inventario.productos p ON p.id_producto = d.id_producto
      WHERE d.id_venta = $1::uuid

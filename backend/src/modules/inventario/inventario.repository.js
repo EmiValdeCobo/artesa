@@ -1,6 +1,6 @@
 import { QueryTypes } from 'sequelize';
 import { sequelize } from '../../config/db.js';
-import { CategoriaProducto, Insumo, Producto, Receta, UnidadMedida } from '../../models/index.js';
+import { CategoriaProducto, Insumo, Producto, ProductoExtra, Receta, UnidadMedida } from '../../models/index.js';
 
 const select = (sql, bind = [], transaction = null) => sequelize.query(sql, { bind, transaction, type: QueryTypes.SELECT });
 const plain = (model) => model?.get({ plain: true }) ?? null;
@@ -60,22 +60,29 @@ export const insumosQueUsanUnidad = (id, transaction) => select(`
   WHERE deleted_at IS NULL AND activo = true AND id_unidad_base = $1
   ORDER BY nombre LIMIT 6`, [id], transaction);
 export const listarCategorias = () => CategoriaProducto.findAll({ order: [['nombre', 'ASC']] }).then((xs) => xs.map(plain));
-export const listarProductos = (verCostos = false, soloActivos = false) => select(`SELECT p.*, c.nombre AS categoria, i.nombre AS insumo_reventa, CASE WHEN $1::boolean THEN CASE WHEN p.es_elaborado THEN (SELECT COALESCE(SUM(r.cantidad_requerida * ri.costo_promedio), 0)::numeric(12,4) FROM inventario.recetas r JOIN inventario.insumos ri USING (id_insumo) WHERE r.id_producto = p.id_producto AND ri.deleted_at IS NULL) ELSE i.costo_promedio END ELSE NULL::numeric END AS costo_teorico, CASE WHEN p.es_elaborado THEN (SELECT COUNT(*)::int FROM inventario.recetas r JOIN inventario.insumos ri USING (id_insumo) WHERE r.id_producto = p.id_producto AND ri.deleted_at IS NULL) ELSE 0::int END AS n_ingredientes FROM inventario.productos p LEFT JOIN inventario.categorias_producto c USING (id_categoria) LEFT JOIN inventario.insumos i ON i.id_insumo = p.id_insumo_reventa WHERE p.deleted_at IS NULL AND ($2::boolean = false OR p.activo = true) ORDER BY p.nombre`, [verCostos, soloActivos]);
+export const listarProductos = (verCostos = false, soloActivos = false) => select(`SELECT p.*, c.nombre AS categoria, i.nombre AS insumo_reventa, CASE WHEN $1::boolean THEN CASE WHEN p.es_elaborado THEN (SELECT COALESCE(SUM(r.cantidad_requerida * ri.costo_promedio), 0)::numeric(12,4) FROM inventario.recetas r JOIN inventario.insumos ri USING (id_insumo) WHERE r.id_producto = p.id_producto AND ri.deleted_at IS NULL) ELSE i.costo_promedio END ELSE NULL::numeric END AS costo_teorico, CASE WHEN p.es_elaborado THEN (SELECT COUNT(*)::int FROM inventario.recetas r JOIN inventario.insumos ri USING (id_insumo) WHERE r.id_producto = p.id_producto AND ri.deleted_at IS NULL) ELSE 0::int END AS n_ingredientes, COALESCE((SELECT array_agg(e.id_extra ORDER BY e.id_extra) FROM inventario.producto_extras e WHERE e.id_producto = p.id_producto), '{}'::int[]) AS extras FROM inventario.productos p LEFT JOIN inventario.categorias_producto c USING (id_categoria) LEFT JOIN inventario.insumos i ON i.id_insumo = p.id_insumo_reventa WHERE p.deleted_at IS NULL AND ($2::boolean = false OR p.activo = true) ORDER BY p.nombre`, [verCostos, soloActivos]);
 export const buscarProducto = (id, transaction) => Producto.findOne({ where: { id_producto: id, deleted_at: null }, transaction }).then(plain);
 export const buscarProductoPorInsumoReventa = (idInsumoReventa, transaction) => {
   if (!idInsumoReventa) return Promise.resolve(null);
   return Producto.findOne({ where: { id_insumo_reventa: idInsumoReventa, deleted_at: null }, transaction }).then(plain);
 };
 export const escribirProducto = async (data, transaction, id = null) => {
-  const values = { id_categoria: data.idCategoria ?? null, nombre: data.nombre, codigo_barra: data.codigoBarra ?? null, precio_venta: data.precioVenta, es_elaborado: data.esElaborado, id_insumo_reventa: data.esElaborado ? null : data.idInsumoReventa, activo: data.activo };
+  const values = { id_categoria: data.idCategoria ?? null, nombre: data.nombre, codigo_barra: data.codigoBarra ?? null, precio_venta: data.precioVenta, es_elaborado: data.esElaborado, es_extra: data.esExtra ?? false, id_insumo_reventa: data.esElaborado ? null : data.idInsumoReventa, activo: data.activo };
   if (id) { const row = await Producto.findOne({ where: { id_producto: id, deleted_at: null }, transaction }); if (!row) return null; await row.update(values, { transaction }); return plain(row); }
   return Producto.create(values, { transaction }).then(plain);
 };
 export const cambiarEstadoProducto = async (id, activo, transaction) => { const row = await Producto.findOne({ where: { id_producto: id, deleted_at: null }, transaction }); if (!row) return null; await row.update({ activo }, { transaction }); return plain(row); };
 export const desactivarProducto = async (id, transaction) => { const row = await Producto.findOne({ where: { id_producto: id, deleted_at: null }, transaction }); if (!row) return false; await row.update({ activo: false }, { transaction }); return true; };
 export const eliminarProducto = async (id, transaction) => { const row = await Producto.findOne({ where: { id_producto: id, deleted_at: null }, transaction }); if (!row) return false; await row.update({ deleted_at: new Date() }, { transaction }); return true; };
+// Extras: la lista se reemplaza completa dentro de la transacción del servicio.
+export const listarExtras = (idProducto, transaction) => ProductoExtra.findAll({ where: { id_producto: idProducto }, transaction }).then((xs) => xs.map((x) => x.id_extra));
+export const reemplazarExtras = async (idProducto, extras, transaction) => {
+  await ProductoExtra.destroy({ where: { id_producto: idProducto }, transaction });
+  if (extras.length) await ProductoExtra.bulkCreate(extras.map((idExtra) => ({ id_producto: idProducto, id_extra: idExtra })), { transaction });
+};
+export const productosPorIds = (ids, transaction) => Producto.findAll({ where: { id_producto: ids, deleted_at: null }, transaction }).then((xs) => xs.map(plain));
 export const listarTodasLasRecetas = () => select(`
-  SELECT r.id_producto, r.id_insumo, r.cantidad_requerida
+  SELECT r.id_producto, r.id_insumo, r.cantidad_requerida, i.nombre AS insumo, i.tipo_insumo
   FROM inventario.recetas r
   JOIN inventario.insumos i USING (id_insumo)
   WHERE i.deleted_at IS NULL AND i.activo = true

@@ -31,10 +31,15 @@ export const Producto = sequelize.define('Producto', {
   precio_venta: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
   es_elaborado: { type: DataTypes.BOOLEAN, allowNull: false },
   id_insumo_reventa: DataTypes.INTEGER,
+  es_extra: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
   activo: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
   deleted_at: { type: DataTypes.DATE, allowNull: true },
   modificado_en: { type: DataTypes.DATE, allowNull: true },
 }, { tableName: 'productos', schema: 'inventario', timestamps: false });
+// Extras (complementos) que admite cada producto (mig. 023).
+export const ProductoExtra = sequelize.define('ProductoExtra', {
+  id_producto: { type: DataTypes.INTEGER, primaryKey: true }, id_extra: { type: DataTypes.INTEGER, primaryKey: true },
+}, { tableName: 'producto_extras', schema: 'inventario', timestamps: false });
 export const Receta = sequelize.define('Receta', {
   id_producto: { type: DataTypes.INTEGER, primaryKey: true }, id_insumo: { type: DataTypes.INTEGER, primaryKey: true }, cantidad_requerida: { type: DataTypes.DECIMAL(10, 4), allowNull: false },
 }, { tableName: 'recetas', schema: 'inventario', timestamps: false });

@@ -51,8 +51,8 @@ export function abrirVentanaImpresion(venta, { esReimpresion = false } = {}) {
     .map(
       (d) => `
         <tr>
-          <td style="padding:3px 0; vertical-align:top;">
-            ${escaparHtml(d.cantidad)}x ${escaparHtml(d.nombre_producto)}
+          <td style="padding:3px 0; vertical-align:top;${d.id_detalle_padre ? ' padding-left:10px;' : ''}">
+            ${d.id_detalle_padre ? '+ ' : `${escaparHtml(d.cantidad)}x `}${escaparHtml(d.nombre_producto)}
             ${d.nota ? `<div style="font-size:10px;color:#555;">(${escaparHtml(d.nota)})</div>` : ''}
           </td>
           <td style="padding:3px 0; text-align:right; vertical-align:top; white-space:nowrap;">

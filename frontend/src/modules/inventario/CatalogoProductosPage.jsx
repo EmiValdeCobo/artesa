@@ -24,264 +24,12 @@ import { aplicarMascara, completarDecimales, propsMascara } from '../../utils/ma
 import { traducirError } from '../../errors/traducirError.js';
 import { calcularMargen, calcularCostoReceta, calcularSubtotalLinea } from './costeo.js';
 import InsumoDrawer from './InsumoDrawer.jsx';
+import ModalPrevisualizacionReceta from './ModalPrevisualizacionReceta.jsx';
 import {
   getProductos, createProducto, updateProducto, deleteProducto, cambiarEstadoProducto,
-  getCategorias, getInsumos, getUnidades, getReceta,
+  getCategorias, getInsumos, getUnidades, getReceta, saveExtrasProducto,
 } from './inventarioApi.js';
 
-// ─── Modal Previsualización de Receta ─────────────────────────────────────────
-function ModalPrevisualizacionReceta({ producto, categoriaNombre, onCerrar, onEditarReceta, tienePermisoRecetas, tienePermisoCostos }) {
-  const [componentes, setComponentes] = useState([]);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState(null);
-  const modalRef = useRef(null);
-  useTrampaFoco(modalRef);
-
-  useEffect(() => {
-    let cancelado = false;
-    async function cargar() {
-      setCargando(true);
-      setError(null);
-      try {
-        const res = await getReceta(producto.id_producto);
-        const lista = Array.isArray(res)
-          ? res
-          : Array.isArray(res?.componentes)
-          ? res.componentes
-          : (res?.data?.componentes ?? (Array.isArray(res?.data) ? res.data : []));
-        if (!cancelado) {
-          setComponentes(lista);
-        }
-      } catch (err) {
-        if (!cancelado) setError(traducirError(err));
-      } finally {
-        if (!cancelado) setCargando(false);
-      }
-    }
-    cargar();
-    return () => { cancelado = true; };
-  }, [producto.id_producto]);
-
-  // Bloquear scroll del body y gestionar Escape para accesibilidad
-  useEffect(() => {
-    const overflowPrevio = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onCerrar();
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = overflowPrevio;
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [onCerrar]);
-
-  const costoTotal = useMemo(() => calcularCostoReceta(componentes), [componentes]);
-  const margen = useMemo(() => calcularMargen(producto.precio_venta, costoTotal), [producto.precio_venta, costoTotal]);
-
-  const badgeMargenClass = (pct) => {
-    if (pct == null) return 'bg-muted text-fg-muted';
-    if (pct >= 40) return 'bg-success-soft text-success-text';
-    if (pct >= 20) return 'bg-warning-soft text-warning-text';
-    return 'bg-danger-soft text-danger-text';
-  };
-
-  return createPortal(
-    <div
-      className="anim-scrim fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-overlay sm:items-center sm:p-4"
-      role="presentation"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onCerrar();
-      }}
-    >
-      <div
-        ref={modalRef}
-        tabIndex={-1}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-receta-titulo"
-        className="relative my-auto w-full overflow-hidden rounded-t-xl border border-line bg-surface text-fg shadow-lg sm:max-w-3xl sm:rounded-xl"
-      >
-        {/* Cabecera */}
-        <div className="flex items-start justify-between gap-4 px-6 pt-6">
-          <div>
-            <Insignia variante="primario" icono={ChefHat} className="mb-2">Receta de producto elaborado</Insignia>
-            <h2 id="modal-receta-titulo" className="text-h3 text-fg">
-              {producto.nombre}
-            </h2>
-            <p className="mt-1 flex items-center gap-1.5 text-body text-fg-muted">
-              <Tag size={16} strokeWidth={1.75} aria-hidden="true" />
-              Categoría: <span className="font-medium text-fg">{categoriaNombre || 'Sin categoría'}</span>
-            </p>
-          </div>
-          <BotonIcono icono={ICONOS.cerrar} etiqueta="Cerrar modal" onClick={onCerrar} />
-        </div>
-
-        {/* Tarjetas de Métricas Financieras (KPI Strip) */}
-        <div className="px-6 py-5">
-        <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {/* 1. Precio Venta (con IVA) */}
-          <div className="flex flex-col justify-between rounded-md bg-muted p-4">
-            <span className="mb-1 block text-label-sm text-fg-muted">
-              Precio Venta (con IVA)
-            </span>
-            <span className="text-h3 tabular-nums text-fg">
-              {formatoDinero(producto.precio_venta)}
-            </span>
-          </div>
-
-          {/* 2. Costo Teórico Total */}
-          <div className="flex flex-col justify-between rounded-md bg-muted p-4">
-            <span className="mb-1 block text-label-sm text-fg-muted">
-              Costo Teórico Total
-            </span>
-            <span className="text-h3 tabular-nums text-fg">
-              {tienePermisoCostos
-                ? (cargando ? <Skeleton className="mt-1 h-5 w-20" /> : formatoDinero(costoTotal))
-                : '—'}
-            </span>
-          </div>
-
-          {/* 3. Margen s/Neto */}
-          <div className="flex flex-col justify-between rounded-md bg-muted p-4">
-            <span className="mb-1 block text-label-sm text-fg-muted">
-              Margen s/Neto
-            </span>
-            <div className="flex items-center">
-              {tienePermisoCostos ? (
-                cargando ? (
-                  <Skeleton className="h-6 w-16" />
-                ) : margen != null ? (
-                  <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-label tabular-nums ${badgeMargenClass(
-                      margen,
-                    )}`}
-                  >
-                    {margen.toFixed(1)}%
-                  </span>
-                ) : (
-                  <span className="text-body text-fg-muted">—</span>
-                )
-              ) : (
-                <span className="text-label-sm text-fg-muted">Protegido</span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Tabla de Ingredientes Estilizada y Fácil de Leer */}
-        {error ? (
-          <div className="my-2">
-            <BannerError error={error} />
-          </div>
-        ) : cargando ? (
-          <div className="space-y-3 py-4" aria-busy="true">
-            <Skeleton className="h-4 w-44 rounded" />
-            <div className="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
-              {[1, 2, 3].map((n) => (
-                <div key={n} className="flex items-center justify-between p-3.5">
-                  <Skeleton className="h-4 w-36 rounded" />
-                  <Skeleton className="h-4 w-16 rounded" />
-                  <Skeleton className="h-4 w-14 rounded" />
-                  <Skeleton className="h-4 w-16 rounded" />
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : componentes.length === 0 ? (
-          <div className="rounded-md border border-line px-4 py-8 text-center text-body text-fg-muted">
-            Este producto aún no tiene ingredientes registrados en su receta.
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-md border border-line bg-surface">
-            <div className="max-h-72 overflow-y-auto scroll-fino">
-              <table className="w-full border-collapse text-left text-body">
-                <thead className="sticky top-0 z-10 border-b border-line bg-surface text-label-sm text-fg-muted">
-                  <tr>
-                    <th className="py-3 px-4">Ingrediente</th>
-                    <th className="py-3 px-4 text-center">Cantidad</th>
-                    <th className="py-3 px-4 text-right whitespace-nowrap">Costo Unit.</th>
-                    <th className="py-3 px-4 text-right whitespace-nowrap">Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line text-fg">
-                  {componentes.map((c) => {
-                    const subtotal = calcularSubtotalLinea(c.cantidad_requerida, c.costo_promedio);
-                    const costoUnitarioCero = !c.costo_promedio || Number(c.costo_promedio) === 0;
-                    const subtotalCero = !subtotal || Number(subtotal) === 0;
-
-                    return (
-                      <tr key={c.id_insumo} className="transition-colors hover:bg-muted">
-                        <td className="py-3 px-4 font-medium text-fg">
-                          {c.nombre_insumo || c.insumo}
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <span className="inline-flex items-center gap-1 tabular-nums text-fg">
-                            <span>{formatearUnidades(c.cantidad_requerida)}</span>
-                            <span className="text-label-sm uppercase text-fg-muted">
-                              {c.codigo_unidad || c.unidad || 'UND'}
-                            </span>
-                          </span>
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
-                          {tienePermisoCostos ? (
-                            <span className={costoUnitarioCero ? 'text-fg-muted' : 'text-fg'}>
-                              {formatoDinero(c.costo_promedio)}
-                            </span>
-                          ) : (
-                            <span className="text-fg-muted">—</span>
-                          )}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-right font-medium tabular-nums">
-                          {tienePermisoCostos ? (
-                            <span className={subtotalCero ? 'text-fg-muted' : 'text-fg'}>
-                              {formatoDinero(subtotal)}
-                            </span>
-                          ) : (
-                            <span className="text-fg-muted">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 border-line-strong bg-surface">
-                    <td colSpan={3} className="px-4 py-3 text-right text-label text-fg-muted">
-                      COSTO TEÓRICO TOTAL:
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums text-fg">
-                      {tienePermisoCostos ? formatoDinero(costoTotal) : '—'}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-        )}
-
-        </div>
-        {/* Pie de acciones */}
-        <div className="flex flex-col-reverse gap-2 border-t border-line px-6 py-4 sm:flex-row sm:items-center sm:justify-end">
-          <Button variante="ghost" onClick={onCerrar}>
-            Cerrar
-          </Button>
-          {tienePermisoRecetas && (
-            <AccionConTooltip texto="Editar receta completa">
-              <BotonIcono icono={ChefHat} className="!size-10" etiqueta={`Editar receta de ${producto.nombre}`} onClick={() => onEditarReceta(producto.id_producto)} />
-            </AccionConTooltip>
-          )}
-        </div>
-      </div>
-    </div>,
-    document.body,
-  );
-}
 
 // ─── Skeleton Loader Cálido de Catálogo ──────────────────────────────────────
 function CatalogoSkeleton() {
@@ -324,12 +72,15 @@ const BadgeTipo = ({ esElaborado }) =>
     <Insignia variante="aviso" icono={ShoppingBag} className="whitespace-nowrap">Reventa</Insignia>
   );
 
-function AccionesProducto({ producto, tiene, navegar, editar, cambiarEstado, eliminar }) {
+function AccionesProducto({ producto, tiene, navegar, editar, cambiarEstado, eliminar, verReceta }) {
   const { es_elaborado: esElaborado } = producto;
   return (
     <div className="acciones-producto flex min-w-[178px] shrink-0 flex-nowrap items-center justify-end gap-1">
       {esElaborado && tiene('INV_GESTIONAR_RECETAS') ? <AccionConTooltip texto={Number(producto.n_ingredientes) === 0 ? 'Crear receta' : 'Editar receta'}>
         <BotonIcono icono={ChefHat} className="!size-10 shrink-0" etiqueta={`${Number(producto.n_ingredientes) === 0 ? 'Crear receta' : 'Editar receta'} de ${producto.nombre}`} onClick={() => navegar(`/catalogo/productos/${producto.id_producto}/receta`)} />
+      </AccionConTooltip> : esElaborado && Number(producto.n_ingredientes) > 0 && verReceta ? <AccionConTooltip texto="Ver receta">
+        {/* Solo lectura (p. ej. BARISTA con INV_VER_STOCK): consulta la receta sin poder editarla */}
+        <BotonIcono icono={ICONOS.ver} className="!size-10 shrink-0" etiqueta={`Ver receta de ${producto.nombre}`} onClick={() => verReceta(producto)} />
       </AccionConTooltip> : <span className="size-10 shrink-0" aria-hidden="true" />}
       {tiene('INV_GESTIONAR_PRODUCTOS') && <AccionConTooltip texto={`Editar producto ${producto.nombre}`}>
         <BotonIcono icono={ICONOS.editar} className="!size-10 shrink-0" etiqueta={`Editar producto ${producto.nombre}`} onClick={() => editar(producto)} />
@@ -358,6 +109,8 @@ const FORM_VACIO = {
   precio_venta: '',
   es_elaborado: true,
   id_insumo_reventa: '',
+  es_extra: false,
+  extras: [],
   activo: true,
 };
 
@@ -478,6 +231,7 @@ export default function CatalogoProductosPage() {
       return coincideBusqueda && coincideTipo && coincideCategoria && coincideReceta && coincideEstado;
     });
   }, [productos, busqueda, filtroTipo, filtroCategoria, filtroReceta, filtroEstado, mostrarInactivos]);
+  const opcionesExtras = productos.filter((p) => p.es_extra && p.activo !== false && p.id_producto !== productoEditando?.id_producto);
   const pendientesReceta = productos.filter((p) => p.es_elaborado && Number(p.n_ingredientes) === 0);
 
   // ── Drawer Crear / Editar ───────────────────────────────────────────────────
@@ -497,6 +251,8 @@ export default function CatalogoProductosPage() {
       precio_venta: p.precio_venta != null ? (typeof p.precio_venta === 'number' ? p.precio_venta.toFixed(2) : String(p.precio_venta).includes('.') ? Number(p.precio_venta).toFixed(2) : String(p.precio_venta)) : '',
       es_elaborado: p.es_elaborado ?? true,
       id_insumo_reventa: p.id_insumo_reventa != null ? String(p.id_insumo_reventa) : '',
+      es_extra: Boolean(p.es_extra),
+      extras: (p.extras ?? []).map(Number),
       activo: p.activo ?? true,
     });
     setErrorNombre(null);
@@ -553,15 +309,23 @@ export default function CatalogoProductosPage() {
         precio_venta: String(form.precio_venta).trim(),
         es_elaborado: form.es_elaborado,
         id_insumo_reventa: !form.es_elaborado && form.id_insumo_reventa ? Number(form.id_insumo_reventa) : null,
+        es_extra: form.es_extra,
         activo: form.activo,
       };
+      // Un extra no tiene extras propios; si deja de ofrecerse alguno, la lista se guarda completa.
+      const extrasAGuardar = form.es_extra ? [] : form.extras;
+      const cambioExtras = (a, b) => [...a].sort().join(',') !== [...b].sort().join(',');
 
       if (productoEditando) {
         await updateProducto(productoEditando.id_producto, payload);
+        if (cambioExtras(extrasAGuardar, (productoEditando.extras ?? []).map(Number))) {
+          await saveExtrasProducto(productoEditando.id_producto, extrasAGuardar);
+        }
         notificar.exito('Producto actualizado correctamente.');
       } else {
         const creado = await createProducto(payload);
         const idCreado = creado?.id_producto ?? creado?.data?.id_producto;
+        if (idCreado && extrasAGuardar.length) await saveExtrasProducto(idCreado, extrasAGuardar);
         if (form.es_elaborado && tiene('INV_GESTIONAR_RECETAS') && idCreado) {
           notificar.exito('Producto creado. Agrega ahora los ingredientes de su receta.');
           cerrarDrawer();
@@ -796,7 +560,7 @@ export default function CatalogoProductosPage() {
       ordenable: false,
       alinear: 'right',
       ancho: 'acciones',
-      render: (p) => <AccionesProducto producto={p} tiene={tiene} navegar={navigate} editar={abrirEditar} cambiarEstado={handleToggleEstado} eliminar={handleEliminarProducto} />,
+      render: (p) => <AccionesProducto producto={p} tiene={tiene} navegar={navigate} editar={abrirEditar} cambiarEstado={handleToggleEstado} eliminar={handleEliminarProducto} verReceta={setProductoPrevisualizar} />,
     },
   ];
 
@@ -1004,7 +768,7 @@ export default function CatalogoProductosPage() {
                     {p.activo !== false ? 'Activo' : 'Inactivo'}
                   </EstadoBadge>
 
-                  <AccionesProducto producto={p} tiene={tiene} navegar={navigate} editar={abrirEditar} cambiarEstado={handleToggleEstado} eliminar={handleEliminarProducto} />
+                  <AccionesProducto producto={p} tiene={tiene} navegar={navigate} editar={abrirEditar} cambiarEstado={handleToggleEstado} eliminar={handleEliminarProducto} verReceta={setProductoPrevisualizar} />
                 </div>
               </div>
             );
@@ -1129,6 +893,33 @@ export default function CatalogoProductosPage() {
                   {tiene('INV_GESTIONAR_INSUMOS') && <Button type="button" variante="ghost" icono={Plus} onClick={() => { setValoresInsumo({ tipo_insumo: 'REVENTA', id_unidad_base: String(unidades.find((u) => u.codigo === 'UND')?.id_unidad ?? '') }); setDrawerInsumoAbierto(true); }}>Crear insumo de reventa</Button>}
                   {insumoReventaSeleccionado && <p className="text-body-sm text-fg-muted">Unidad: {insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad ?? 'UND'}{String(insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad ?? 'UND').toUpperCase() !== 'UND' && <span className="ml-1 text-warning-text">Cada venta descontará 1 {insumoReventaSeleccionado.unidad ?? insumoReventaSeleccionado.codigo_unidad}</span>}</p>}
                 </div>}
+                {/* Extras (mig. 023): un producto "extra" solo se vende junto a otro; los demás eligen sus extras */}
+                <div className="space-y-3 border-t border-line pt-4">
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <input type="checkbox" checked={form.es_extra} className="mt-1 h-4 w-4 rounded border-line accent-primary"
+                      onChange={(e) => setForm((f) => ({ ...f, es_extra: e.target.checked, extras: e.target.checked ? [] : f.extras }))} />
+                    <span className="text-label text-fg">Es un extra (complemento)
+                      <small className="mt-0.5 block text-body-sm font-normal text-fg-muted">No aparece suelto en el POS; se agrega desde "Nota / extras" del producto. Ej.: shot de espresso, queso.</small>
+                    </span>
+                  </label>
+                  {!form.es_extra && opcionesExtras.length > 0 && (
+                    <fieldset>
+                      <legend className="text-label text-fg">Extras permitidos</legend>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {opcionesExtras.map((x) => {
+                          const marcado = form.extras.includes(x.id_producto);
+                          return (
+                            <button key={x.id_producto} type="button" aria-pressed={marcado}
+                              onClick={() => setForm((f) => ({ ...f, extras: marcado ? f.extras.filter((id) => id !== x.id_producto) : [...f.extras, x.id_producto] }))}
+                              className={`inline-flex h-control-sm items-center rounded-full border px-3 text-label-sm transition-colors ${marcado ? 'border-primary/40 bg-primary-soft text-primary-text' : 'border-line text-fg-muted hover:bg-muted hover:text-fg'}`}>
+                              {x.nombre.replace(/^Extra:\s*/i, '')} · {formatoDinero(x.precio_venta)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </fieldset>
+                  )}
+                </div>
                 <div className="flex items-center gap-3 border-t border-line pt-4">
                   <input
                     id="producto-activo"
