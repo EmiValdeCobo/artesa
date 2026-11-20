@@ -41,7 +41,7 @@ test('T32 schema: parámetro de factura debe ser UUID', () => {
 });
 
 test('T32 schema: filtros CxP permiten consulta sin rango y validan rangos acotados', () => {
-  assert.deepEqual(filtrosCuentasPorPagarSchema.parse({}), { estado: 'pendientes', page: 1, limit: 50 });
+  assert.deepEqual(filtrosCuentasPorPagarSchema.parse({}), { estado: 'pendientes', campoFecha: 'emision', page: 1, limit: 50 });
   assert.equal(filtrosCuentasPorPagarSchema.parse({ idSucursal: '2' }).idSucursal, 2);
   for (const estado of ['pendientes', 'pagadas', 'todas']) {
     assert.equal(filtrosCuentasPorPagarSchema.parse({ estado }).estado, estado);
@@ -151,7 +151,7 @@ test('T32 reportes y Compras reutilizan una consulta CxP común', async () => {
   assert.match(shared, /AS saldo/);
   assert.match(shared, /JOIN visibles s ON s\.id_sucursal = f\.id_sucursal/);
   assert.match(shared, /ORDER BY f\.fecha_vencimiento ASC, pr\.razon_social, f\.num_factura, f\.id_compra/);
-  assert.match(shared, /LIMIT \$8::int OFFSET \$9::int/);
+  assert.match(shared, /LIMIT \$9::int OFFSET \$10::int/);
   assert.match(shared, /COUNT\(\*\) OVER\(\)::text AS __total/);
   assert.doesNotMatch(shared, /LIMIT 500/);
 });
@@ -160,7 +160,7 @@ test('T32 repositorio shared preserva ventana de 30 días de Reportes y deja CxP
   const shared = await leer('backend/src/modules/compras/cuentas-por-pagar.repository.js');
   assert.match(shared, /periodoRecientePorDefecto/);
   assert.match(shared, /CURRENT_DATE - 29/);
-  assert.match(shared, /NOT \$5::boolean AND \(\$2::date IS NULL OR f\.fecha_emision >= \$2::date\)/);
+  assert.match(shared, /NOT \$5::boolean AND \(\$2::date IS NULL OR \$\{FECHA\} >= \$2::date\)/);
 });
 
 test('T32 no agrega bitácora, tablas, triggers ni lógica de T33', async () => {

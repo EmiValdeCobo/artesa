@@ -2,9 +2,16 @@ import { withTransaction } from '../../../config/db.js';
 import { AppError } from '../../../utils/AppError.js';
 import * as repo from './facturas.repository.js';
 
-function validarProveedor(proveedor) {
+function validarProveedor(proveedor, tipoCosto) {
   if (!proveedor || proveedor.deleted_at) throw new AppError('Proveedor no encontrado', 404);
   if (!proveedor.activo) throw new AppError('El proveedor está inactivo', 409);
+  // Compras de inventario solo con proveedores de COMPRA; gastos operativos solo con SERVICIO.
+  const esperado = tipoCosto === 'GASTO' ? 'SERVICIO' : 'COMPRA';
+  if (proveedor.tipo && proveedor.tipo !== esperado) {
+    throw new AppError(tipoCosto === 'GASTO'
+      ? 'Los gastos operativos solo admiten proveedores de servicio'
+      : 'Las compras de inventario solo admiten proveedores de compra', 409);
+  }
 }
 
 function validarSucursal(sucursal) {
@@ -41,7 +48,7 @@ function mapearErrorCompra(error) {
 export async function registrarCompra(datos, userId) {
   try {
     return await withTransaction(async (transaction) => {
-      validarProveedor(await repo.buscarProveedor(datos.idProveedor, transaction));
+      validarProveedor(await repo.buscarProveedor(datos.idProveedor, transaction), datos.tipoCosto);
       validarSucursal(await repo.buscarSucursal(datos.idSucursal, transaction));
       if (datos.tipoCosto === 'COSTO') {
         const idsInsumo = [...new Set(datos.items.map((item) => item.idInsumo))].sort((a, b) => a - b);

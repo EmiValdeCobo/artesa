@@ -1,7 +1,7 @@
 import * as service from './proveedores.service.js';
 
 export const listarProveedores = async (req, res) =>
-  res.json(await service.listarProveedores(req.validatedQuery.activo));
+  res.json(await service.listarProveedores(req.validatedQuery));
 
 export const crearProveedor = async (req, res) =>
   res.status(201).json(await service.crearProveedor(req.body, req.user.id));

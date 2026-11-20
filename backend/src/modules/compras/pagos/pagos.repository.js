@@ -11,7 +11,7 @@ export const buscarFacturaParaPago = async (idCompra, transaction) => {
   const rows = await select(
     `SELECT id_compra, estado_pago
      FROM compras.facturas_compra
-     WHERE id_compra = $1::uuid
+     WHERE id_compra = $1::uuid AND deleted_at IS NULL
      FOR UPDATE`,
     [idCompra],
     transaction,
@@ -36,6 +36,7 @@ export const obtenerPagoRegistrado = async (idPago, transaction) => {
     `WITH totales AS (
        SELECT id_compra, SUM(monto) AS total_pagado
        FROM compras.pagos_proveedor
+       WHERE deleted_at IS NULL
        GROUP BY id_compra
      )
      SELECT p.id_pago, p.id_compra,

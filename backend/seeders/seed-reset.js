@@ -204,7 +204,7 @@ async function main() {
       direccion: c.direccion ?? null, email: c.email, telefono: c.telefono, creado_en: aUtc(setupMs + (k + 60) * 60_000),
       username: c.username ?? null, password_hash: c.username ? hashCliente : null, activo: true,
     })), { transaction });
-    const filasProveedores = PROVEEDORES.map((p) => ({ id_proveedor: p.id, razon_social: p.razon, nrc: p.nrc, nit: p.nit, contacto: p.contacto, telefono: p.telefono, dias_credito: p.credito }));
+    const filasProveedores = PROVEEDORES.map((p) => ({ id_proveedor: p.id, razon_social: p.razon, nrc: p.nrc, nit: p.nit, contacto: p.contacto, telefono: p.telefono, dias_credito: p.credito, tipo: p.tipo ?? 'COMPRA' }));
     await qi.bulkInsert(tabla('compras.proveedores'), filasProveedores.map((p) => ({ ...p, activo: true })), { transaction });
 
     const rRrhh = crearAleatorio(semillaDeTexto(`${SEMILLA}|rrhh`));

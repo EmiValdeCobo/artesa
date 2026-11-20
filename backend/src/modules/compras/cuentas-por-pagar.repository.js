@@ -24,11 +24,14 @@ const FILTROS_CXP = `
   OR $6::text = 'todas'
 `;
 
+// $8 elige la fecha filtrada: 'vencimiento' (CxP) o 'emision' (gastos y reportes, por defecto).
+const FECHA = "(CASE WHEN $8::text = 'vencimiento' THEN f.fecha_vencimiento ELSE f.fecha_emision END)";
 const FILTROS_FECHA = `
-  (($5::boolean AND f.fecha_emision BETWEEN COALESCE($2::date, CURRENT_DATE - 29) AND COALESCE($3::date, CURRENT_DATE))
+  f.deleted_at IS NULL
+  AND (($5::boolean AND ${FECHA} BETWEEN COALESCE($2::date, CURRENT_DATE - 29) AND COALESCE($3::date, CURRENT_DATE))
    OR
-   (NOT $5::boolean AND ($2::date IS NULL OR f.fecha_emision >= $2::date)
-                      AND ($3::date IS NULL OR f.fecha_emision <= $3::date))
+   (NOT $5::boolean AND ($2::date IS NULL OR ${FECHA} >= $2::date)
+                      AND ($3::date IS NULL OR ${FECHA} <= $3::date))
   )
   AND ($4::int IS NULL OR f.id_sucursal = $4::int)
 `;
@@ -43,13 +46,14 @@ const CONTAR_CXP = `${CTE_VISIBLES}
 export const listarCuentasPorPagar = async (idUsuario, opciones) => {
   const {
     desde, hasta, idSucursal, tipoCosto, estado = 'pendientes', page = 1, limit = 50,
-    periodoRecientePorDefecto = false,
+    periodoRecientePorDefecto = false, campoFecha = 'emision',
   } = opciones;
-  const binds = [idUsuario, desde ?? null, hasta ?? null, idSucursal ?? null, periodoRecientePorDefecto, estado, tipoCosto ?? null];
+  const binds = [idUsuario, desde ?? null, hasta ?? null, idSucursal ?? null, periodoRecientePorDefecto, estado, tipoCosto ?? null, campoFecha];
   const rows = await sequelize.query(
     `${CTE_VISIBLES}, totales AS (
        SELECT id_compra, SUM(monto) AS pagado
        FROM compras.pagos_proveedor
+       WHERE deleted_at IS NULL
        GROUP BY id_compra
      )
      SELECT f.id_compra, s.nombre AS sucursal, pr.razon_social AS proveedor,
@@ -66,7 +70,7 @@ export const listarCuentasPorPagar = async (idUsuario, opciones) => {
      WHERE (${FILTROS_CXP}) AND ${FILTROS_FECHA}
        AND ($7::text IS NULL OR f.tipo_costo = $7::text)
      ORDER BY f.fecha_vencimiento ASC, pr.razon_social, f.num_factura, f.id_compra
-     LIMIT $8::int OFFSET $9::int`,
+     LIMIT $9::int OFFSET $10::int`,
     {
       bind: [...binds, limit, (page - 1) * limit],
       type: QueryTypes.SELECT,

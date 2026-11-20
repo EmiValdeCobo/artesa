@@ -7,13 +7,14 @@ const select = (sql, bind = [], transaction) => sequelize.query(sql, {
   type: QueryTypes.SELECT,
 });
 
-const campos = 'id_proveedor, razon_social, nrc, nit, contacto, telefono, dias_credito, activo, modificado_en';
+const campos = 'id_proveedor, razon_social, nrc, nit, contacto, telefono, dias_credito, tipo, activo, modificado_en';
 
-export const listarProveedores = (activo) => select(
+export const listarProveedores = ({ activo, tipo } = {}) => select(
   `SELECT ${campos} FROM compras.proveedores
    WHERE deleted_at IS NULL AND ($1::boolean IS NULL OR activo = $1)
+     AND ($2::varchar IS NULL OR tipo = $2::varchar)
    ORDER BY razon_social ASC, id_proveedor ASC`,
-  [activo ?? null],
+  [activo ?? null, tipo ?? null],
 );
 
 export const buscarProveedor = async (id, transaction) => {
@@ -27,10 +28,10 @@ export const buscarProveedor = async (id, transaction) => {
 
 export const crearProveedor = async (datos, transaction) => {
   const rows = await select(
-    `INSERT INTO compras.proveedores (razon_social, nrc, nit, contacto, telefono, dias_credito)
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO compras.proveedores (razon_social, nrc, nit, contacto, telefono, dias_credito, tipo)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING ${campos}`,
-    [datos.razon_social, datos.nrc, datos.nit, datos.contacto, datos.telefono, datos.dias_credito],
+    [datos.razon_social, datos.nrc, datos.nit, datos.contacto, datos.telefono, datos.dias_credito, datos.tipo],
     transaction,
   );
   return rows[0];
@@ -39,10 +40,10 @@ export const crearProveedor = async (datos, transaction) => {
 export const actualizarProveedor = async (id, datos, transaction) => {
   const rows = await select(
     `UPDATE compras.proveedores
-     SET razon_social = $2, nrc = $3, nit = $4, contacto = $5, telefono = $6, dias_credito = $7
+     SET razon_social = $2, nrc = $3, nit = $4, contacto = $5, telefono = $6, dias_credito = $7, tipo = $8
      WHERE id_proveedor = $1 AND deleted_at IS NULL
      RETURNING ${campos}`,
-    [id, datos.razon_social, datos.nrc, datos.nit, datos.contacto, datos.telefono, datos.dias_credito],
+    [id, datos.razon_social, datos.nrc, datos.nit, datos.contacto, datos.telefono, datos.dias_credito, datos.tipo],
     transaction,
   );
   return rows[0] ?? null;
