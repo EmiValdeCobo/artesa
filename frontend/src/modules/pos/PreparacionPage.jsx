@@ -12,12 +12,15 @@ import {
   CircleCheck,
   ClipboardList,
   GripVertical,
+  Ban,
+  Wallet,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
-import { Button } from '../../components/ui/index.js';
+import { Button, Select } from '../../components/ui/index.js';
+import CancelarPedidoDialogo from './CancelarPedidoDialogo.jsx';
 import Insignia from '../../components/branding/Insignia.jsx';
 import Skeleton, { PuntosCarga } from '../../components/feedback/Skeleton.jsx';
 import Metrica from '../../components/display/Metrica.jsx';
@@ -79,6 +82,7 @@ function TarjetaOrden({
   orden,
   enProgreso,
   onAvanzar,
+  onCancelar,
   onPointerDown,
   estaSiendoArrastrada = false,
   regresando = false,
@@ -134,10 +138,21 @@ function TarjetaOrden({
         </div>
       </div>
 
-      {/* Sucursal */}
-      <div className="flex items-center gap-1.5 text-body-sm text-fg-muted">
-        <Store size={16} strokeWidth={1.75} aria-hidden="true" />
-        <span>{orden.sucursal}</span>
+      {/* Sucursal y caja (cada tarjeta dice de dónde viene el pedido) */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body-sm text-fg-muted">
+        <span className="inline-flex items-center gap-1.5">
+          <Store size={16} strokeWidth={1.75} aria-hidden="true" />
+          {orden.sucursal}
+        </span>
+        {orden.caja && (
+          <span className="inline-flex items-center gap-1.5">
+            <Wallet size={16} strokeWidth={1.75} aria-hidden="true" />
+            {orden.caja}
+          </span>
+        )}
+        {orden.turno_abierto === false && (
+          <Insignia variante="aviso">Turno cerrado</Insignia>
+        )}
       </div>
 
       {/* Ítems */}
@@ -179,6 +194,22 @@ function TarjetaOrden({
           )}
         </button>
       )}
+
+      {/* Cancelar: solo un pedido Nueva, siempre con motivo (diálogo) */}
+      {orden.estado === 'ABIERTA' && onCancelar && !esClonFlotante && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onCancelar(orden);
+          }}
+          disabled={enProgreso || estaSiendoArrastrada}
+          className="btn-ghost btn-sm w-full text-danger-text disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Ban size={16} strokeWidth={1.75} aria-hidden="true" />
+          <span>Cancelar pedido</span>
+        </button>
+      )}
     </article>
   );
 }
@@ -189,6 +220,7 @@ function Columna({
   ordenes,
   enProgreso,
   onAvanzar,
+  onCancelar,
   onPointerDown,
   idArrastrado,
   regresandoId,
@@ -229,6 +261,7 @@ function Columna({
             orden={o}
             enProgreso={enProgreso.has(o.id_orden)}
             onAvanzar={onAvanzar}
+            onCancelar={onCancelar}
             onPointerDown={onPointerDown}
             estaSiendoArrastrada={idArrastrado === o.id_orden}
             regresando={regresandoId === o.id_orden}
@@ -247,7 +280,7 @@ function Columna({
 
 // ----- Página principal -----
 export default function PreparacionPage() {
-  const { tiene } = useAuth();
+  const { tiene, usuario } = useAuth();
   const { notificar, notificarError } = useAlert();
 
   const puedeVer = tiene('POS_VER_COLA_PREPARACION');
@@ -258,6 +291,14 @@ export default function PreparacionPage() {
   const [enProgreso, setEnProgreso] = useState(new Set());
   const [ultimaActualizacion, setUltimaActualizacion] = useState(null);
   const [actualizando, setActualizando] = useState(false);
+  const [ordenACancelar, setOrdenACancelar] = useState(null);
+  // Reloj de la pantalla: hace que "Actualizado hace…" avance aunque no llegue una respuesta nueva.
+  const [ahora, setAhora] = useState(() => Date.now());
+
+  // Filtro por sucursal: solo tiene sentido con más de una sucursal asignada (ADMIN, gerente zonal).
+  // El backend vuelve a limitar a las sucursales del usuario: este filtro solo puede reducir el alcance.
+  const sucursales = useMemo(() => usuario?.sucursales ?? [], [usuario]);
+  const [idSucursalFiltro, setIdSucursalFiltro] = useState('');
 
   const intervalRef = useRef(null);
   const gestorRef = useRef(null);
@@ -271,7 +312,9 @@ export default function PreparacionPage() {
       if (!silencioso) setCargando(true);
       else setActualizando(true);
       try {
-        const data = await preparacionApi.listarCola();
+        const data = await preparacionApi.listarCola(
+          idSucursalFiltro ? { idSucursal: Number(idSucursalFiltro) } : {},
+        );
         const listaServidor = Array.isArray(data) ? data : [];
         const idsPendientes = gestorRef.current
           ? gestorRef.current.obtenerIdsPendientes()
@@ -280,7 +323,8 @@ export default function PreparacionPage() {
         // Si hay órdenes con cambios locales pendientes o en vuelo, se preservan
         setCola((prev) => reconciliarCola(prev, listaServidor, idsPendientes));
         setError(null);
-        setUltimaActualizacion(new Date());
+        setUltimaActualizacion(Date.now());
+        setAhora(Date.now());
       } catch (e) {
         setError(e);
       } finally {
@@ -288,8 +332,14 @@ export default function PreparacionPage() {
         setActualizando(false);
       }
     },
-    [puedeVer],
+    [puedeVer, idSucursalFiltro],
   );
+
+  // El texto relativo se recalcula cada 5 s con el reloj local.
+  useEffect(() => {
+    const reloj = setInterval(() => setAhora(Date.now()), 5_000);
+    return () => clearInterval(reloj);
+  }, []);
 
   // Inicialización del gestor de sincronización diferida (debounce)
   if (!gestorRef.current) {
@@ -436,18 +486,30 @@ export default function PreparacionPage() {
         descripcion="Pantalla de barra y cocina. Arrastra las tarjetas o usa los botones para avanzar el estado."
         icono={ChefHat}
         acciones={
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {sucursales.length > 1 && (
+              <div className="w-52">
+                <Select
+                  aria-label="Filtrar por sucursal"
+                  tamano="sm"
+                  placeholder="Todas las sucursales"
+                  value={idSucursalFiltro}
+                  onChange={(e) => setIdSucursalFiltro(e.target.value)}
+                  opciones={sucursales.map((s) => ({ valor: String(s.id_sucursal), texto: s.nombre }))}
+                />
+              </div>
+            )}
             {ultimaActualizacion && (
-              <p className="text-body-sm text-fg-muted">
+              <p className="text-body-sm text-fg-muted" aria-live="polite">
                 <Clock size={16} strokeWidth={1.75} className="mr-1 inline align-text-bottom" aria-hidden="true" />
-                Actualizado {haceCuanto(ultimaActualizacion)}
+                Actualizado {haceCuanto(ultimaActualizacion, ahora)}
               </p>
             )}
             <Button
               variante="ghost"
               icono={RefreshCw}
               cargando={actualizando}
-              onClick={() => cargar()}
+              onClick={() => cargar(true)}
             >
               Actualizar
             </Button>
@@ -524,6 +586,7 @@ export default function PreparacionPage() {
               ordenes={columnas[estado] || []}
               enProgreso={enProgreso}
               onAvanzar={avanzar}
+              onCancelar={setOrdenACancelar}
               onPointerDown={iniciarArrastre}
               idArrastrado={arrastre.orden?.id_orden}
               regresandoId={arrastre.regresandoId}
@@ -532,6 +595,20 @@ export default function PreparacionPage() {
             />
           ))}
         </div>
+      )}
+
+      {ordenACancelar && (
+        <CancelarPedidoDialogo
+          orden={ordenACancelar}
+          onCerrar={() => setOrdenACancelar(null)}
+          onCancelado={(resultado) => {
+            setOrdenACancelar(null);
+            notificar.exito(resultado?.venta_anulada
+              ? `Pedido #${ordenACancelar.id_orden} cancelado y su venta anulada`
+              : `Pedido #${ordenACancelar.id_orden} cancelado`);
+            cargar(true);
+          }}
+        />
       )}
 
       {/* Clon flotante de la tarjeta que sigue al puntero */}

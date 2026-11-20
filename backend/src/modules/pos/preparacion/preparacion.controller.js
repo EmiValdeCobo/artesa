@@ -9,3 +9,8 @@ export async function cambiarEstado(req, res) {
   const idOrden = idOrdenSchema.parse(req.params.idOrden);
   res.json(await service.cambiarEstado(idOrden, req.body.estado, req.user.id));
 }
+
+export async function anularOrden(req, res) {
+  const idOrden = idOrdenSchema.parse(req.params.idOrden);
+  res.json(await service.anularOrden(idOrden, req.body.motivo, req.user.id));
+}

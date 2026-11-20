@@ -5,7 +5,7 @@ import * as repo from './ordenes.repository.js';
 // Transiciones válidas desde cada estado
 const TRANSICIONES = {
   ABIERTA:        ['EN_PREPARACION', 'ANULADA'],
-  EN_PREPARACION: ['LISTA', 'ANULADA'],
+  EN_PREPARACION: ['LISTA'],   // RN: solo un pedido Nueva (ABIERTA) se puede cancelar
   LISTA:          ['ENTREGADA'],
   ENTREGADA:      [],  // la facturación pone FACTURADA automáticamente
 };
@@ -106,6 +106,10 @@ export async function cambiarEstado(idOrden, nuevoEstado, userId) {
     const permitidos = TRANSICIONES[orden.estado] ?? [];
     if (!permitidos.includes(nuevoEstado)) {
       throw new AppError(`Transición inválida: ${orden.estado} → ${nuevoEstado}`, 409);
+    }
+    // Un pedido ya cobrado no se cancela aquí: la cola de preparación pide motivo y anula la venta.
+    if (nuevoEstado === 'ANULADA' && (await repo.tieneVentaEmitida(tx, idOrden))) {
+      throw new AppError('El pedido ya se cobró: cancélalo desde la cola de preparación indicando el motivo', 409);
     }
 
     const actualizada = await repo.actualizarEstado(tx, idOrden, nuevoEstado);
