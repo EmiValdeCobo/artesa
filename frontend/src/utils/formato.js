@@ -14,6 +14,12 @@ const monedaPrecisa = new Intl.NumberFormat('es-SV', {
   minimumFractionDigits: 4,
   maximumFractionDigits: 4,
 });
+const monedaCompleta = new Intl.NumberFormat('es-SV', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 6,
+  maximumFractionDigits: 6,
+});
 const moneda0 = new Intl.NumberFormat('es-SV', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const entero = new Intl.NumberFormat('es-SV');
 const decimal = new Intl.NumberFormat('es-SV', { maximumFractionDigits: 2 });
@@ -30,6 +36,11 @@ export const formatoDineroPreciso = (valor) => {
   if (valor === null || valor === undefined || valor === '') return monedaPrecisa.format(0);
   const num = typeof valor === 'number' ? valor : Number(valor);
   return monedaPrecisa.format(Number.isNaN(num) ? 0 : num);
+};
+export const formatoDineroCompleto = (valor) => {
+  if (valor === null || valor === undefined || valor === '') return monedaCompleta.format(0);
+  const num = typeof valor === 'number' ? valor : Number(valor);
+  return monedaCompleta.format(Number.isNaN(num) ? 0 : num);
 };
 export const formatoDineroCorto = (valor) => moneda0.format(valor ?? 0);
 export const formatoEntero = (valor) => entero.format(valor ?? 0);

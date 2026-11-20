@@ -15,7 +15,7 @@ import Insignia from '../../components/branding/Insignia.jsx';
 import { ICONOS } from '../../config/iconos.js';
 import CampoError, { idError } from '../../components/forms/CampoError.jsx';
 import { useTrampaFoco } from '../../hooks/useTrampaFoco.js';
-import { formatoDinero, formatearUnidades, enteroParaInput } from '../../utils/formato.js';
+import { formatoDineroCompleto, formatearUnidades, enteroParaInput } from '../../utils/formato.js';
 import { traducirError } from '../../errors/traducirError.js';
 import InsumoDrawer from './InsumoDrawer.jsx';
 import DialogoExistenciasInsumo from './DialogoExistenciasInsumo.jsx';
@@ -391,7 +391,7 @@ function PestanaInsumos({ unidades, onTotal, onCargandoTotal, onErrorTotal }) {
       valorOrden: (fila) => fila.costo_promedio,
       render: (fila) => (
         <span className="whitespace-nowrap tabular-nums text-fg">
-          {fila.costo_promedio == null ? <span title="Sin permiso para ver costos">—</span> : formatoDinero(fila.costo_promedio)}
+          {fila.costo_promedio == null ? <span title="Sin permiso para ver costos">—</span> : formatoDineroCompleto(fila.costo_promedio)}
         </span>
       ),
     },

@@ -21,8 +21,19 @@ export function rangoPeriodo({ periodo, tipoPeriodo = 'MENSUAL', quincena }) {
     ? { inicio: `${periodo}-01`, fin: `${periodo}-15` }
     : { inicio: `${periodo}-16`, fin: ultimo };
 }
+function fechaHoyElSalvador() {
+  const partes = new Intl.DateTimeFormat('en', {
+    timeZone: 'America/El_Salvador', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date());
+  const valores = Object.fromEntries(partes.filter(({ type }) => type !== 'literal').map(({ type, value }) => [type, value]));
+  return `${valores.year}-${valores.month}-${valores.day}`;
+}
+export function periodoFinalizado(datos, hoy = fechaHoyElSalvador()) {
+  return rangoPeriodo(datos).fin <= hoy;
+}
 export async function crear(datos, userId) {
   const { inicio, fin } = rangoPeriodo(datos);
+  if (!periodoFinalizado(datos)) throw new AppError('No se puede generar una planilla de un período que aún no ha finalizado ni de meses futuros', 409);
   try {
     return await withTransaction(async (t) => {
       if (!(await repo.sucursalActiva(datos.idSucursal, t))) throw new AppError('La sucursal no existe o está inactiva', 400);

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { rangoPeriodo } from '../backend/src/modules/rrhh/planilla.service.js';
+import { periodoFinalizado, rangoPeriodo } from '../backend/src/modules/rrhh/planilla.service.js';
 import { periodoSchema } from '../backend/src/modules/rrhh/planilla.schemas.js';
 import { registrarVentaSchema } from '../backend/src/modules/pos/ventas/ventas.schemas.js';
 import { cerrarTurnoSchema } from '../backend/src/modules/caja/caja.schemas.js';
@@ -17,6 +17,14 @@ test('planilla: QUINCENAL exige la quincena y MENSUAL sigue siendo el valor por 
   assert.equal(periodoSchema.safeParse({ idSucursal: 1, periodo: '2026-11', tipoPeriodo: 'QUINCENAL' }).success, false);
   assert.equal(periodoSchema.parse({ idSucursal: 1, periodo: '2026-11' }).tipoPeriodo, 'MENSUAL');
   assert.equal(periodoSchema.parse({ idSucursal: 1, periodo: '2026-11', tipoPeriodo: 'QUINCENAL', quincena: '2' }).quincena, 2);
+});
+
+test('planilla: solo permite períodos cuya fecha final ya pasó', () => {
+  assert.equal(periodoFinalizado({ periodo: '2026-10', tipoPeriodo: 'MENSUAL' }, '2026-11-20'), true);
+  assert.equal(periodoFinalizado({ periodo: '2026-11', tipoPeriodo: 'QUINCENAL', quincena: 1 }, '2026-11-20'), true);
+  assert.equal(periodoFinalizado({ periodo: '2026-11', tipoPeriodo: 'MENSUAL' }, '2026-11-20'), false);
+  assert.equal(periodoFinalizado({ periodo: '2026-11', tipoPeriodo: 'QUINCENAL', quincena: 2 }, '2026-11-20'), false);
+  assert.equal(periodoFinalizado({ periodo: '2026-12', tipoPeriodo: 'MENSUAL' }, '2026-11-20'), false);
 });
 
 const venta = (pago) => ({ id_turno: '7c1a3f0e-1b2c-4d5e-8f90-123456789abc', tipo_comprobante: 'FCF', items: [{ id_producto: 1, cantidad: 1 }], pagos: [pago] });
