@@ -1,3 +1,5 @@
+import { detallePago } from './pagosSimulados/describirPago.js';
+
 function escaparHtml(texto) {
   return String(texto ?? '')
     .replace(/&/g, '&amp;')
@@ -72,12 +74,19 @@ export function abrirVentanaImpresion(venta, { esReimpresion = false } = {}) {
       return `
         <div style="margin-bottom:3px;">
           <div style="display:flex;justify-content:space-between;font-size:11px;">
-            <span>${escaparHtml(NOMBRE_METODO[p.metodo] ?? p.metodo)}</span>
+            <span>${escaparHtml(NOMBRE_METODO[p.metodo] ?? p.metodo)}${p.simulado ? ' (simulado)' : ''}</span>
             <span>$${escaparHtml(p.monto)}</span>
           </div>
           ${
-            p.referencia
+            p.metodo === 'TARJETA' && p.ultimos4
+              ? `<div style="font-size:10px;color:#444;">${escaparHtml(detallePago(p))}</div>`
+              : p.referencia
               ? `<div style="font-size:10px;color:#444;word-break:break-all;">${escaparHtml(ETIQUETA_REFERENCIA[p.metodo] ?? 'Ref.')}: ${escaparHtml(abreviarReferencia(p.referencia))}</div>`
+              : ''
+          }
+          ${
+            p.metodo === 'TRANSFERENCIA' && recibidoNum != null && recibidoNum > montoNum
+              ? `<div style="font-size:10px;color:#444;">Transferido: $${escaparHtml(recibidoNum.toFixed(2))} (excedente, sin vuelto)</div>`
               : ''
           }
           ${

@@ -12,6 +12,7 @@ import { listarVentas, obtenerDetalleVenta } from './posApi.js';
 import { abrirVentanaImpresion } from './imprimirTicket.js';
 import AnularVentaDialogo from './AnularVentaDialogo.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { detallePago } from './pagosSimulados/describirPago.js';
 
 export default function VentasHistorialPage() {
   const { notificar, notificarError } = useAlert();
@@ -387,7 +388,10 @@ export default function VentasHistorialPage() {
                         key={p.id_pago}
                         className="flex items-center justify-between px-4 py-2 text-body-sm text-fg"
                       >
-                        <span className="text-fg-muted">{p.metodo}</span>
+                        <span className="min-w-0 text-fg-muted">
+                          {p.metodo}{p.simulado ? ' (simulado)' : ''}
+                          {detallePago(p) && <span className="block text-label-sm text-fg-subtle">{detallePago(p)}</span>}
+                        </span>
                         <span className="font-medium tabular-nums text-fg">${p.monto}</span>
                       </div>
                     ))}

@@ -29,6 +29,8 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (li
 - Rendimiento (2026-11-17): Table memoriza ordenamiento del cliente; KDS pausa polling en pestañas ocultas y agrupa cada cola en una pasada. Migración 015 / init 16 agrega índices de detalle por orden y cola POS activa; revisar EXPLAIN con datos reales antes de sumar más índices.
 
 
+- Pagos simulados (2026-11-19): TARJETA y TRANSFERENCIA usan pasarela simulada (`frontend/src/modules/pos/pagosSimulados/`, `backend/src/modules/pos/pagos/pasarelaSimulada.js`); aprobación decidida en el frontend, al backend solo llegan marca, últimos 4 y autorización (esquema estricto). Transferencia: referencia 6-20 A-Z0-9 y excedente en monto_recibido (no es vuelto). Mig. 024.
+
 ## Estado por módulo
 | Módulo | BD | Backend | Frontend |
 |---|---|---|---|

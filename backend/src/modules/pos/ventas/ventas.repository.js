@@ -2,6 +2,8 @@ import { QueryTypes } from 'sequelize';
 import { sequelize } from '../../../config/db.js';
 import { UsuarioSucursal } from '../../../models/index.js';
 
+export { sequelize };
+
 const sel = (sql, bind, tx = null) =>
   sequelize.query(sql, { bind, transaction: tx, type: QueryTypes.SELECT });
 
@@ -98,7 +100,8 @@ export async function obtenerVenta(idVenta, tx = null) {
   );
 
   const pagos = await sel(
-    `SELECT id_pago, metodo, monto::text, monto_recibido::text, referencia
+    `SELECT id_pago, metodo, monto::text, monto_recibido::text, referencia,
+            simulado, marca_tarjeta, ultimos4
      FROM pos.pagos
      WHERE id_venta = $1::uuid
      ORDER BY id_pago`,

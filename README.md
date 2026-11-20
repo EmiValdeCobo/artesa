@@ -601,6 +601,23 @@ flowchart LR
 
 ---
 
+## Pagos simulados (tarjeta y transferencia)
+
+El cobro del POS **no integra ninguna pasarela real**. Tarjeta y transferencia son simulaciones marcadas con `pos.pagos.simulado = TRUE`.
+Solo se guardan marca, últimos 4 dígitos y la autorización generada; nunca el número completo, el CVV ni el vencimiento.
+
+| Tarjeta de prueba | Marca | Resultado |
+|---|---|---|
+| 4242 4242 4242 4242 | Visa | Aprobada |
+| 5555 5555 5555 4444 | Mastercard | Aprobada |
+| 3782 822463 10005 | American Express (CVV de 4) | Aprobada |
+| 4000 0000 0000 0002 | Visa | Rechazada: "Tarjeta rechazada (simulación)" |
+
+Usa cualquier titular, un vencimiento futuro (MM/AA) y un CVV de 3 dígitos (4 en Amex).
+Transferencia: el QR codifica `ARTESA-SIM|sucursal|monto|referencia`; "Simular escaneo" rellena una referencia de ejemplo (6 a 20 letras o números).
+Si el monto transferido es mayor, el excedente se confirma y se guarda en `monto_recibido` (no se entrega vuelto).
+Para conectar una pasarela real se reemplazan `frontend/src/modules/pos/pagosSimulados/` y `backend/src/modules/pos/pagos/pasarelaSimulada.js`.
+
 ## Credenciales de prueba
 
 > [!NOTE]
