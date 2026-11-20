@@ -13,7 +13,7 @@ import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
 import Skeleton from '../../components/feedback/Skeleton.jsx';
 import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import { Button, Card, Select } from '../../components/ui/index.js';
-import { formatoDinero, formatearUnidades, enteroParaInput } from '../../utils/formato.js';
+import { formatoDinero, formatoDineroPreciso, formatearUnidades, enteroParaInput } from '../../utils/formato.js';
 import { traducirError } from '../../errors/traducirError.js';
 import {
   calcularCostoReceta,
@@ -649,7 +649,7 @@ export default function EditorRecetasPage() {
                 <dl className="space-y-3">
                   <div className="flex items-center justify-between gap-3 border-b border-line py-1.5 text-body">
                     <dt className="text-fg-muted">Costo teórico de producción</dt>
-                    <dd className="font-medium tabular-nums text-fg">{formatoDinero(costoTotal)}</dd>
+                    <dd className="font-medium tabular-nums text-fg">{formatoDineroPreciso(costoTotal)}</dd>
                   </div>
                   <div className="flex items-center justify-between gap-3 border-b border-line py-1.5 text-body">
                     <dt className="text-fg-muted">Precio de venta al público</dt>
@@ -982,7 +982,7 @@ export default function EditorRecetasPage() {
                                 {formatearUnidades(c.cantidad_requerida)}
                               </td>
                               <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-fg-muted">
-                                {verCostos ? formatoDinero(c.costo_promedio) : '—'}
+                                {verCostos ? formatoDineroPreciso(c.costo_promedio) : '—'}
                               </td>
                               <td className="whitespace-nowrap px-4 py-3 text-right font-medium tabular-nums text-fg">
                                 {verCostos ? (
@@ -995,7 +995,7 @@ export default function EditorRecetasPage() {
                                         Sin costo base
                                       </span>
                                     )}
-                                    <span>{formatoDinero(subtotal)}</span>
+                                    <span>{formatoDineroPreciso(subtotal)}</span>
                                   </div>
                                 ) : '—'}
                               </td>
@@ -1022,7 +1022,7 @@ export default function EditorRecetasPage() {
                             Costo Teórico Total:
                           </td>
                           <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-fg">
-                            {verCostos ? formatoDinero(costoTotal) : '—'}
+                            {verCostos ? formatoDineroPreciso(costoTotal) : '—'}
                           </td>
                           <td className="px-4 py-3 text-right tabular-nums text-fg-muted">100%</td>
                         </tr>
@@ -1094,7 +1094,7 @@ export default function EditorRecetasPage() {
                                 <span className="inline-flex items-center gap-1.5 text-body-sm tabular-nums text-fg-muted">
                                   {verCostos ? (
                                     <>
-                                      <span>{ins.codigo_unidad ?? 'u'} · {formatoDinero(ins.costo_promedio)}</span>
+                                      <span>{ins.codigo_unidad ?? 'u'} · {formatoDineroPreciso(ins.costo_promedio)}</span>
                                       {Number(ins.costo_promedio || 0) === 0 && (
                                         <span className="rounded-full bg-warning-soft px-2 py-0.5 text-label-sm text-warning-text">
                                           Sin costo base
@@ -1190,7 +1190,7 @@ export default function EditorRecetasPage() {
                                           Sin costo base
                                         </span>
                                       )}
-                                      <span>{formatoDinero(subtotal)}</span>
+                                      <span>{formatoDineroPreciso(subtotal)}</span>
                                     </div>
                                   ) : '—'}
                                 </td>
@@ -1217,7 +1217,7 @@ export default function EditorRecetasPage() {
                               Costo Teórico Total:
                             </td>
                             <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-fg">
-                              {verCostos ? formatoDinero(costoTotal) : '—'}
+                              {verCostos ? formatoDineroPreciso(costoTotal) : '—'}
                             </td>
                             {tiene('INV_GESTIONAR_RECETAS') && <td />}
                           </tr>

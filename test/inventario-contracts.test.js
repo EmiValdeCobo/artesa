@@ -256,7 +256,8 @@ test('inventario UI: CatalogoInsumosPage, CatalogoProductosPage y EditorRecetasP
   // El subtotal por línea se calcula con BigInt vía calcularSubtotalLinea (anti-float)
   assert.match(recetasPage, /calcularSubtotalLinea/);
   assert.match(recetasPage, /Sin costo base/);
-  assert.match(recetasPage, /formatoDinero\(costoTotal\)/);
+  // Costos de receta con 4 decimales: los insumos cuestan fracciones de centavo por gramo/ml.
+  assert.match(recetasPage, /formatoDineroPreciso\(costoTotal\)/);
 
   // 6. Ninguna pantalla de catálogo debe importar datos ficticios.
   for (const pagina of [insumosPage, productosPage, recetasPage]) assert.doesNotMatch(pagina, /mockData/);
