@@ -8,7 +8,7 @@ import Insignia from '../../components/branding/Insignia.jsx';
 import AccionConTooltip from '../../components/display/AccionConTooltip.jsx';
 import { BotonIcono, Button } from '../../components/ui/index.js';
 import { ICONOS } from '../../config/iconos.js';
-import { formatoDinero, formatearUnidades } from '../../utils/formato.js';
+import { formatoDinero, formatoDineroPreciso, formatearUnidades } from '../../utils/formato.js';
 import { traducirError } from '../../errors/traducirError.js';
 import { calcularMargen, calcularCostoReceta, calcularSubtotalLinea } from './costeo.js';
 import { getReceta } from './inventarioApi.js';
@@ -128,7 +128,7 @@ export default function ModalPrevisualizacionReceta({ producto, categoriaNombre,
             </span>
             <span className="text-h3 tabular-nums text-fg">
               {tienePermisoCostos
-                ? (cargando ? <Skeleton className="mt-1 h-5 w-20" /> : formatoDinero(costoTotal))
+                ? (cargando ? <Skeleton className="mt-1 h-5 w-20" /> : formatoDineroPreciso(costoTotal))
                 : '—'}
             </span>
           </div>
@@ -217,7 +217,7 @@ export default function ModalPrevisualizacionReceta({ producto, categoriaNombre,
                         <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
                           {tienePermisoCostos ? (
                             <span className={costoUnitarioCero ? 'text-fg-muted' : 'text-fg'}>
-                              {formatoDinero(c.costo_promedio)}
+                              {formatoDineroPreciso(c.costo_promedio)}
                             </span>
                           ) : (
                             <span className="text-fg-muted">—</span>
@@ -226,7 +226,7 @@ export default function ModalPrevisualizacionReceta({ producto, categoriaNombre,
                         <td className="whitespace-nowrap px-4 py-3 text-right font-medium tabular-nums">
                           {tienePermisoCostos ? (
                             <span className={subtotalCero ? 'text-fg-muted' : 'text-fg'}>
-                              {formatoDinero(subtotal)}
+                              {formatoDineroPreciso(subtotal)}
                             </span>
                           ) : (
                             <span className="text-fg-muted">—</span>
@@ -242,7 +242,7 @@ export default function ModalPrevisualizacionReceta({ producto, categoriaNombre,
                       COSTO TEÓRICO TOTAL:
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums text-fg">
-                      {tienePermisoCostos ? formatoDinero(costoTotal) : '—'}
+                      {tienePermisoCostos ? formatoDineroPreciso(costoTotal) : '—'}
                     </td>
                   </tr>
                 </tfoot>

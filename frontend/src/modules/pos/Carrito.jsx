@@ -8,6 +8,7 @@ import {
   X,
   UserPlus,
   MessageSquarePlus,
+  Pencil,
 } from 'lucide-react';
 import Dialogo from '../../components/Dialogo.jsx';
 import { BotonIcono, Button, Select } from '../../components/ui/index.js';
@@ -318,7 +319,7 @@ export default function Carrito({
       <header className="relative shrink-0 space-y-2">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-body font-semibold">Pedido actual · <span aria-live="polite" aria-atomic="true">{unidades} {unidades === 1 ? 'producto' : 'productos'}</span></h2>
-          {items.length > 0 && <Button variante="ghost" tamano="sm" className="h-control-sm shrink-0 !px-2 text-label-sm" onClick={onVaciar}>Vaciar</Button>}
+          {items.length > 0 && <Button variante="ghost" tamano="sm" className="min-h-control-md shrink-0 !px-3 text-label-sm" onClick={onVaciar}>Vaciar pedido</Button>}
         </div>
         {tipos.length < 2 ? <p className="text-label-sm text-fg-muted">Documento: {tipos[0].texto}</p> : (
           <div className="grid grid-cols-2 gap-1 rounded-md bg-muted p-1" role="radiogroup" aria-label="Tipo de documento">
@@ -409,41 +410,53 @@ export default function Carrito({
           {items.length === 0 ? (
             <div className="flex min-h-32 h-full flex-col items-center justify-center gap-2 text-center text-body-sm text-fg-muted">
               <ReceiptText size={26} aria-hidden="true" />
-              <div><p className="font-medium text-fg">Tu pedido está vacío</p><p>Toca un producto del menú para agregarlo.</p></div>
+              <div><p className="font-medium text-fg">Aún no hay productos</p><p>Toca un producto del menú para agregarlo al pedido.</p></div>
             </div>
           ) : (
             <ul className="divide-y divide-line">
               {items.map((i) => (
-                <li ref={(elemento) => elemento ? filasRef.current.set(i.clave, elemento) : filasRef.current.delete(i.clave)} key={i.clave} className="flex items-center justify-between gap-2 py-2.5">
-                  <div className="min-w-0 flex-1 pr-2">
-                    <p className="line-clamp-2 text-label text-fg">{i.nombre}</p>
-                    <p className="text-label-sm tabular-nums text-fg-muted">{formatoMoneda(precioLinea(i))} c/u</p>
-                    {i.extras?.length > 0 && (
-                      <ul className="mt-0.5 text-label-sm text-fg-muted">
-                        {i.extras.map((e) => <li key={e.id_producto} className="tabular-nums">+ {e.nombre.replace(/^Extra:\s*/i, '')} ({formatoMoneda(e.precio)})</li>)}
-                      </ul>
-                    )}
-                    {i.nota && <p className="mt-0.5 line-clamp-2 text-label-sm italic text-primary-text">“{i.nota}”</p>}
-                    {personalizable(i) && (
-                      <button type="button" className="mt-1 inline-flex items-center gap-1 text-label-sm text-fg-muted underline-offset-2 hover:text-fg hover:underline"
-                        onClick={() => setLineaEditando(i)} aria-label={`Personalizar ${i.nombre}: observación y extras`}>
-                        <MessageSquarePlus size={14} strokeWidth={1.75} aria-hidden="true" />
-                        {i.nota || i.extras?.length ? 'Editar nota / extras' : 'Nota / extras'}
-                      </button>
-                    )}
+                <li ref={(elemento) => elemento ? filasRef.current.set(i.clave, elemento) : filasRef.current.delete(i.clave)} key={i.clave} className="py-3">
+                  {/* Fila 1: nombre + subtotal */}
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="line-clamp-2 min-w-0 flex-1 text-label text-fg" title={i.nombre}>{i.nombre}</p>
+                    <p className="shrink-0 text-body font-semibold tabular-nums text-fg">{formatoMoneda(precioLinea(i) * i.cantidad)}</p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <div className="flex items-center gap-1">
-                      <BotonIcono icono={Minus} className="size-control-sm justify-center" etiqueta={`Quitar una unidad de ${i.nombre}`}
+                  {/* Fila 2: precio unitario + stepper + quitar */}
+                  <div className="mt-1.5 flex items-center justify-between gap-2">
+                    <p className="min-w-0 truncate text-label-sm tabular-nums text-fg-muted">{formatoMoneda(precioLinea(i))} c/u</p>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <BotonIcono icono={Minus} className="size-control-md justify-center" etiqueta={`Quitar una unidad de ${i.nombre}`}
                         onClick={() => dispatch({ tipo: 'cambiarCantidad', id: i.clave, cantidad: i.cantidad - 1 })} />
-                      <span className="w-6 text-center text-body-sm font-semibold tabular-nums" aria-live="polite">{i.cantidad}</span>
-                      <BotonIcono icono={Plus} className="size-control-sm justify-center" etiqueta={`Agregar una unidad de ${i.nombre}`} disabled={i.cantidad >= i.stock}
+                      <span className="min-w-8 px-1 text-center text-body font-semibold tabular-nums" aria-live="polite" aria-label={`Cantidad de ${i.nombre}: ${i.cantidad}`}>{i.cantidad}</span>
+                      <BotonIcono icono={Plus} className="size-control-md justify-center" etiqueta={`Agregar una unidad de ${i.nombre}`} disabled={i.cantidad >= i.stock}
                         onClick={() => dispatch({ tipo: 'cambiarCantidad', id: i.clave, cantidad: i.cantidad + 1 })} />
+                      <BotonIcono icono={ICONOS.eliminar} tono="peligro" className="ml-1 size-control-md justify-center" etiqueta={`Quitar ${i.nombre}`}
+                        onClick={() => dispatch({ tipo: 'quitar', id: i.clave })} />
                     </div>
-                    <p className="w-16 text-right text-body-sm font-semibold tabular-nums">{formatoMoneda(precioLinea(i) * i.cantidad)}</p>
-                    <BotonIcono icono={ICONOS.eliminar} tono="peligro" className="size-control-sm justify-center" etiqueta={`Eliminar ${i.nombre}`}
-                      onClick={() => dispatch({ tipo: 'quitar', id: i.clave })} />
                   </div>
+                  {/* Fila 3: nota y extras, a todo el ancho */}
+                  {personalizable(i) && (
+                    <div className="mt-1">
+                      {i.extras?.length > 0 && (
+                        <ul className="flex flex-wrap gap-x-3 gap-y-0.5 text-label-sm tabular-nums text-fg-muted" aria-label={`Extras de ${i.nombre}`}>
+                          {i.extras.map((e) => (
+                            <li key={e.id_producto}>+ {e.nombre.replace(/^Extra:\s*/i, '')} ({formatoMoneda(e.precio)})</li>
+                          ))}
+                        </ul>
+                      )}
+                      {i.nota && <p className="mt-0.5 truncate text-label-sm italic text-fg-muted" title={i.nota}>Nota: {i.nota}</p>}
+                      <button
+                        type="button"
+                        className="-ml-2 inline-flex min-h-control-md items-center gap-1.5 rounded-md px-2 text-label-sm text-primary-text transition-colors hover:bg-primary-soft"
+                        onClick={() => setLineaEditando(i)}
+                        aria-label={`${i.nota || i.extras?.length ? 'Editar nota o extras' : 'Agregar nota o extras'} de ${i.nombre}`}
+                      >
+                        {i.nota || i.extras?.length
+                          ? <><Pencil size={14} strokeWidth={1.75} aria-hidden="true" /> Editar nota o extras</>
+                          : <><MessageSquarePlus size={14} strokeWidth={1.75} aria-hidden="true" /> Agregar nota o extras</>}
+                      </button>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
@@ -452,6 +465,9 @@ export default function Carrito({
       </div>
 
       <footer className="shrink-0 border-t border-line pt-2">
+        <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+          {items.length ? `Total actualizado: ${formatoMoneda(total)}` : ''}
+        </p>
         <dl className="space-y-0.5 text-body-sm tabular-nums">
           <div className="flex justify-between"><dt className="text-fg-muted">Subtotal</dt><dd>{formatoMoneda(subtotal)}</dd></div>
           <div className="flex justify-between"><dt className="text-fg-muted">IVA ({IVA * 100}%)</dt><dd>{formatoMoneda(iva)}</dd></div>

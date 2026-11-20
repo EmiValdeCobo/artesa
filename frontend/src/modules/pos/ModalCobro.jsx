@@ -10,10 +10,11 @@ import { registrarVenta } from './posApi.js';
 import { REFERENCIAS_PAGO, validarReferenciaPago } from '../../utils/mascaras.js';
 import PagoTransferencia from './pagosSimulados/PagoTransferencia.jsx';
 import PagoTarjeta from './pagosSimulados/PagoTarjeta.jsx';
+import PagoBitcoin from './pagosSimulados/PagoBitcoin.jsx';
 import { generarReferenciaCobro } from './pagosSimulados/transferencia.js';
 
 // Tarjeta y transferencia son SIMULADAS (ver pagosSimulados/): cada línea debe confirmarse en su panel.
-const METODOS_SIMULADOS = new Set(['TARJETA', 'TRANSFERENCIA']);
+const METODOS_SIMULADOS = new Set(['TARJETA', 'TRANSFERENCIA', 'BITCOIN_CHIVO']);
 const camposSimulacionVacios = { confirmado: false, excedenteAceptado: false, tarjeta: null };
 
 // ── Constantes ────────────────────────────────────────────────────────────────
@@ -160,7 +161,7 @@ export default function ModalCobro({
           ...camposSimulacionVacios,
           metodo: valor,
           referencia: '',
-          monto_recibido: valor === 'TRANSFERENCIA' ? p.monto : (valor === 'EFECTIVO' ? p.monto_recibido : ''),
+          monto_recibido: (valor === 'TRANSFERENCIA' || valor === 'BITCOIN_CHIVO') ? p.monto : (valor === 'EFECTIVO' ? p.monto_recibido : ''),
           refCobro: valor === 'TRANSFERENCIA' ? generarReferenciaCobro() : undefined,
         };
       }
@@ -221,7 +222,7 @@ export default function ModalCobro({
           metodo: p.metodo,
           monto: fmtStr(p.monto),
           // Efectivo: lo entregado (vuelto). Transferencia: lo transferido (excedente, no es vuelto).
-          monto_recibido: (p.metodo === 'EFECTIVO' || p.metodo === 'TRANSFERENCIA') && p.monto_recibido
+          monto_recibido: (p.metodo === 'EFECTIVO' || p.metodo === 'TRANSFERENCIA' || p.metodo === 'BITCOIN_CHIVO') && p.monto_recibido
             ? fmtStr(p.monto_recibido)
             : null,
           referencia: p.referencia?.trim() || null,
@@ -397,37 +398,13 @@ export default function ModalCobro({
                     onReiniciar={() => parchearPago(idx, { ...camposSimulacionVacios, referencia: '' })}
                   />
                 )}
-
-                {/* Bitcoin/Chivo: comprobante con formato propio (tarjeta y transferencia usan sus paneles) */}
-                {REFERENCIAS_PAGO[pago.metodo] && !METODOS_SIMULADOS.has(pago.metodo) && (() => {
-                  const cfg = REFERENCIAS_PAGO[pago.metodo];
-                  const idCampo = `referencia-pago-${idx}`;
-                  const error = pago.referencia ? erroresReferencia[idx] : '';
-                  return (
-                    <div className="mt-2">
-                      <label htmlFor={idCampo} className="mb-1 block text-label-sm text-fg-muted">
-                        {cfg.etiqueta} <span className="text-danger-text">*</span>
-                      </label>
-                      <input
-                        id={idCampo}
-                        type="text"
-                        inputMode={cfg.inputMode}
-                        maxLength={cfg.maxLength}
-                        autoComplete="off"
-                        spellCheck={false}
-                        className={`input w-full ${pago.metodo === 'BITCOIN_CHIVO' ? 'font-mono' : ''}`}
-                        placeholder={cfg.placeholder}
-                        value={pago.referencia}
-                        onChange={(e) => actualizarPago(idx, 'referencia', cfg.aplicar(e.target.value))}
-                        aria-invalid={error ? 'true' : undefined}
-                        aria-describedby={error ? `${idCampo}-error` : undefined}
-                      />
-                      {error && (
-                        <p id={`${idCampo}-error`} className="mt-1 text-label-sm text-danger-text">{error}</p>
-                      )}
-                    </div>
-                  );
-                })()}
+                {pago.metodo === 'BITCOIN_CHIVO' && (
+                  <PagoBitcoin
+                    pago={pago}
+                    idx={idx}
+                    onCambiar={(parche) => parchearPago(idx, parche)}
+                  />
+                )}
               </div>
             ))}
           </div>
@@ -444,7 +421,7 @@ export default function ModalCobro({
             </div>
           ) : !lineasSimuladasConfirmadas ? (
             <div className="flex items-center gap-1.5 text-label text-warning-text">
-              <AlertCircle size={16} strokeWidth={1.75} aria-hidden="true" /> Confirma el pago con tarjeta o transferencia
+              <AlertCircle size={16} strokeWidth={1.75} aria-hidden="true" /> Confirma el pago con tarjeta, transferencia o Bitcoin
             </div>
           ) : sobranteCentavos > 0 ? (
             <div className="flex items-center justify-between text-danger-text">

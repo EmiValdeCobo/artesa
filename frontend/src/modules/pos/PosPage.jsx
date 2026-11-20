@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { PackageSearch, Search, ShieldAlert, Store, Wallet, X } from 'lucide-react';
+import { PackageSearch, Search, ShieldAlert, Store, X } from 'lucide-react';
 import { Select } from '../../components/ui/index.js';
 import Skeleton from '../../components/feedback/Skeleton.jsx';
 import BannerError from '../../components/feedback/BannerError.jsx';
@@ -22,7 +21,7 @@ import { etiquetaCobro } from './etiquetaCobro.js';
 
 export default function PosPage() {
   const { usuario, tiene } = useAuth();
-  const { notificar } = useAlert();
+  const { notificar, confirm } = useAlert();
   // El menú se arma con productos (INV_VER_STOCK) y existencias (INV_VER_STOCK): sin él la API respondería 403.
   const puedeVerMenu = tiene('INV_VER_STOCK');
   const puedeCCF = tiene('POS_EMITIR_CCF');
@@ -112,8 +111,21 @@ export default function PosPage() {
     cargar();
   };
 
-  const vaciarPedido = () => {
+  // Con un solo producto se vacía al instante (con opción de deshacer); con 2 o más se pide confirmación.
+  const vaciarPedido = async () => {
     if (!items.length) return;
+    if (items.length >= 2) {
+      const seguro = await confirm('Se quitarán todos los productos. Esta acción no se puede deshacer.', {
+        titulo: '¿Vaciar el pedido?',
+        destructivo: true,
+        etiquetaAceptar: 'Vaciar pedido',
+        etiquetaCancelar: 'Mantener pedido',
+      });
+      if (!seguro) return;
+      dispatch({ tipo: 'vaciar' });
+      notificar.exito('Pedido vaciado');
+      return;
+    }
     const instantanea = items.map((item) => ({ ...item }));
     dispatch({ tipo: 'vaciar' });
     notificar.exito('Pedido vaciado', {
@@ -122,56 +134,37 @@ export default function PosPage() {
   };
 
   return (
-    <div className={`mx-auto flex max-w-7xl flex-col lg:h-[calc(100dvh-4rem)] lg:min-h-[34rem] ${unidades > 0 ? 'pb-20 lg:pb-0' : ''}`}>
+    <div className={`flex min-w-0 flex-col lg:min-h-0 lg:flex-1 ${unidades > 0 ? 'pb-20 lg:pb-0' : ''}`}>
       <EncabezadoPagina
         seccion="Operación · Punto de venta"
         titulo="Punto de venta"
         descripcion="Toca un producto del menú para agregarlo al pedido."
         className="shrink-0"
-        acciones={(
-          <div className="flex shrink-0 flex-wrap items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-body-sm shadow-xs">
-        <div className="flex items-center gap-2">
-          <Store size={16} strokeWidth={1.75} className="text-fg-muted" aria-hidden="true" />
-          <span className="text-label-sm text-fg-muted">Sucursal:</span>
-          {turnoActivo ? (
-            <span className="text-label text-fg">{turnoActivo.sucursal}</span>
-          ) : sucursales.length > 1 ? (
-            <div className="w-48">
-              <Select
-                aria-label="Seleccionar sucursal"
-                tamano="sm"
-                placeholder=""
-                value={idSucursal ?? ''}
-                onChange={(e) => setIdSucursal(Number(e.target.value))}
-                opciones={sucursales.map((s) => ({ valor: String(s.id_sucursal), texto: s.nombre }))}
-              />
-            </div>
-          ) : (
-            <span className="text-label text-fg">{sucursales[0]?.nombre || 'Sin sucursal asignada'}</span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 text-body-sm">
-          {turnoActivo ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-success-soft px-2.5 py-1 text-label-sm text-success-text">
-              <Wallet size={16} strokeWidth={1.75} aria-hidden="true" />
-              Turno abierto: {turnoActivo.caja}
-            </span>
-          ) : (
-            <div className="inline-flex items-center gap-2 text-fg-muted">
-              <span>Sin turno de caja abierto</span>
-              <Link to="/caja" className="text-label-sm text-primary-text hover:underline">
-                Abrir turno en Caja
-              </Link>
-            </div>
-          )}
-        </div>
+        acciones={turnoActivo ? null : (
+          // Con turno abierto, la sucursal y la caja ya se ven en el indicador de turno del encabezado.
+          <div className="flex shrink-0 items-center gap-2 text-body-sm">
+            <Store size={16} strokeWidth={1.75} className="text-fg-muted" aria-hidden="true" />
+            <span className="text-label-sm text-fg-muted">Sucursal:</span>
+            {sucursales.length > 1 ? (
+              <div className="w-48">
+                <Select
+                  aria-label="Seleccionar sucursal"
+                  tamano="sm"
+                  placeholder=""
+                  value={idSucursal ?? ''}
+                  onChange={(e) => setIdSucursal(Number(e.target.value))}
+                  opciones={sucursales.map((s) => ({ valor: String(s.id_sucursal), texto: s.nombre }))}
+                />
+              </div>
+            ) : (
+              <span className="text-label text-fg">{sucursales[0]?.nombre || 'Sin sucursal asignada'}</span>
+            )}
           </div>
         )}
       />
 
-      {/* 4rem descuenta el padding vertical lg:p-8 de AppLayout para ocupar el alto útil. */}
-      <div className="mt-4 grid min-w-0 gap-4 sm:mt-5 lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_24rem]">
+      {/* Catálogo flexible + panel del pedido de ancho fijo (token --spacing-panel-pedido); cada columna con scroll propio. */}
+      <div className="mt-4 grid min-w-0 gap-4 lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_var(--spacing-panel-pedido)] lg:gap-5">
         <section aria-label="Menú" className="scroll-fino lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pb-4 lg:pl-1 lg:pr-2 lg:pt-1 lg:[scrollbar-gutter:stable]">
           {!puedeVerMenu ? (
             <div className="card">
@@ -202,7 +195,7 @@ export default function PosPage() {
 
               {error && <BannerError className="mt-4" error={error} onReintentar={cargar} />}
               {cargando ? (
-                <div className="mt-5 grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-3" role="status" aria-label="Cargando menú…">
+                <div className="mt-5 grid grid-cols-[repeat(auto-fill,minmax(var(--spacing-tarjeta-producto),1fr))] gap-3" role="status" aria-label="Cargando menú…">
                   {Array.from({ length: 8 }, (_, n) => <Skeleton key={n} className="h-32 rounded-lg" />)}
                 </div>
               ) : !error && (
@@ -218,7 +211,7 @@ export default function PosPage() {
                           <h2 id={`cat-${g.nombre}`} className="text-label text-fg">{g.nombre}</h2>
                           <span className="text-label-sm tabular-nums text-fg-muted">{g.productos.length}</span>
                         </div>
-                        <div className="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-3">
+                        <div className="grid grid-cols-[repeat(auto-fill,minmax(var(--spacing-tarjeta-producto),1fr))] gap-3">
                           {g.productos.map((p) => (
                             <ProductoCard key={p.id_producto} producto={p} enCarrito={cantidadEnCarrito(p.id_producto)}
                               onAgregar={(prod) => dispatch({ tipo: 'agregar', producto: prod })} />
@@ -244,8 +237,8 @@ export default function PosPage() {
             onCobrar={cobrar}
             onVaciar={vaciarPedido}
             etiquetaCobro={etiquetaCobro(items, total)}
-          />
             catalogo={productos}
+          />
         </div>
       </div>
 

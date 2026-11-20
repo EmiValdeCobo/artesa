@@ -61,6 +61,8 @@
   --spacing-header: 4rem;         /* 64 */
   --spacing-nav-item: 2.375rem;   /* 38 */
   --spacing-nav-subitem: 2.25rem; /* 36 */
+  --spacing-panel-pedido: clamp(23.75rem, 28vw, 27.5rem); /* 380–440: panel del pedido en POS */
+  --spacing-tarjeta-producto: 11.25rem; /* 180: ancho mínimo de tarjeta en la grilla POS */
 
   --color-terracota-50:  #fbf1ec;  --color-terracota-100: #f5ddd2;
   --color-terracota-200: #ebbca7;  --color-terracota-300: #de9776;
