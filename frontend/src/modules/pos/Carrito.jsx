@@ -7,6 +7,7 @@ import {
   Search,
   X,
   UserPlus,
+  MessageSquarePlus,
 } from 'lucide-react';
 import Dialogo from '../../components/Dialogo.jsx';
 import { BotonIcono, Button, Select } from '../../components/ui/index.js';
@@ -16,6 +17,8 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import { calcularTotales, formatoMoneda, IVA } from './impuestos.js';
 import { listarClientes, crearCliente } from './posApi.js';
+import { precioLinea } from './carritoReducer.js';
+import PersonalizarLineaDialogo from './PersonalizarLineaDialogo.jsx';
 
 // El crédito fiscal requiere POS_EMITIR_CCF (permiso distinto de POS_COBRAR).
 const TIPOS_DOC = [
@@ -72,6 +75,7 @@ export default function Carrito({
   onCobrar,
   onVaciar,
   etiquetaCobro: textoCobro,
+  catalogo = [],
 }) {
   const { tiene } = useAuth();
   const { notificar, notificarError } = useAlert();
@@ -80,6 +84,12 @@ export default function Carrito({
   const tipos = TIPOS_DOC.filter((t) => !t.permiso || tiene(t.permiso));
   const { subtotal, iva, total } = calcularTotales(items);
   const unidades = items.reduce((n, i) => n + i.cantidad, 0);
+
+  // Personalizar línea: observación ("sin mayonesa") y extras permitidos para ese producto.
+  const [lineaEditando, setLineaEditando] = useState(null);
+  const productoDe = (id) => catalogo.find((p) => p.id_producto === id);
+  const extrasDe = (id) => (productoDe(id)?.extras ?? []).map(productoDe).filter(Boolean);
+  const personalizable = (i) => productoDe(i.id_producto)?.tipo === 'elaborado' || extrasDe(i.id_producto).length > 0;
 
   // Buscador de clientes
   const [buscandoCliente, setBuscandoCliente] = useState(false);
@@ -94,8 +104,8 @@ export default function Carrito({
 
   useEffect(() => {
     const previos = itemsPreviosRef.current;
-    const cambiado = [...items].reverse().find((item) => previos.find((anterior) => anterior.id_producto === item.id_producto)?.cantidad !== item.cantidad);
-    if (cambiado) filasRef.current.get(cambiado.id_producto)?.scrollIntoView?.({ block: 'nearest' });
+    const cambiado = [...items].reverse().find((item) => previos.find((anterior) => anterior.clave === item.clave)?.cantidad !== item.cantidad);
+    if (cambiado) filasRef.current.get(cambiado.clave)?.scrollIntoView?.({ block: 'nearest' });
     itemsPreviosRef.current = items;
   }, [items]);
 
@@ -403,22 +413,35 @@ export default function Carrito({
           ) : (
             <ul className="divide-y divide-line">
               {items.map((i) => (
-                <li ref={(elemento) => elemento ? filasRef.current.set(i.id_producto, elemento) : filasRef.current.delete(i.id_producto)} key={i.id_producto} className="flex items-center justify-between gap-2 py-2.5">
+                <li ref={(elemento) => elemento ? filasRef.current.set(i.clave, elemento) : filasRef.current.delete(i.clave)} key={i.clave} className="flex items-center justify-between gap-2 py-2.5">
                   <div className="min-w-0 flex-1 pr-2">
                     <p className="line-clamp-2 text-label text-fg">{i.nombre}</p>
-                    <p className="text-label-sm tabular-nums text-fg-muted">{formatoMoneda(i.precio)} c/u</p>
+                    <p className="text-label-sm tabular-nums text-fg-muted">{formatoMoneda(precioLinea(i))} c/u</p>
+                    {i.extras?.length > 0 && (
+                      <ul className="mt-0.5 text-label-sm text-fg-muted">
+                        {i.extras.map((e) => <li key={e.id_producto} className="tabular-nums">+ {e.nombre.replace(/^Extra:\s*/i, '')} ({formatoMoneda(e.precio)})</li>)}
+                      </ul>
+                    )}
+                    {i.nota && <p className="mt-0.5 line-clamp-2 text-label-sm italic text-primary-text">“{i.nota}”</p>}
+                    {personalizable(i) && (
+                      <button type="button" className="mt-1 inline-flex items-center gap-1 text-label-sm text-fg-muted underline-offset-2 hover:text-fg hover:underline"
+                        onClick={() => setLineaEditando(i)} aria-label={`Personalizar ${i.nombre}: observación y extras`}>
+                        <MessageSquarePlus size={14} strokeWidth={1.75} aria-hidden="true" />
+                        {i.nota || i.extras?.length ? 'Editar nota / extras' : 'Nota / extras'}
+                      </button>
+                    )}
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <div className="flex items-center gap-1">
                       <BotonIcono icono={Minus} className="size-control-sm justify-center" etiqueta={`Quitar una unidad de ${i.nombre}`}
-                        onClick={() => dispatch({ tipo: 'cambiarCantidad', id: i.id_producto, cantidad: i.cantidad - 1 })} />
+                        onClick={() => dispatch({ tipo: 'cambiarCantidad', id: i.clave, cantidad: i.cantidad - 1 })} />
                       <span className="w-6 text-center text-body-sm font-semibold tabular-nums" aria-live="polite">{i.cantidad}</span>
                       <BotonIcono icono={Plus} className="size-control-sm justify-center" etiqueta={`Agregar una unidad de ${i.nombre}`} disabled={i.cantidad >= i.stock}
-                        onClick={() => dispatch({ tipo: 'cambiarCantidad', id: i.id_producto, cantidad: i.cantidad + 1 })} />
+                        onClick={() => dispatch({ tipo: 'cambiarCantidad', id: i.clave, cantidad: i.cantidad + 1 })} />
                     </div>
-                    <p className="w-16 text-right text-body-sm font-semibold tabular-nums">{formatoMoneda(i.precio * i.cantidad)}</p>
+                    <p className="w-16 text-right text-body-sm font-semibold tabular-nums">{formatoMoneda(precioLinea(i) * i.cantidad)}</p>
                     <BotonIcono icono={ICONOS.eliminar} tono="peligro" className="size-control-sm justify-center" etiqueta={`Eliminar ${i.nombre}`}
-                      onClick={() => dispatch({ tipo: 'quitar', id: i.id_producto })} />
+                      onClick={() => dispatch({ tipo: 'quitar', id: i.clave })} />
                   </div>
                 </li>
               ))}
@@ -594,6 +617,19 @@ export default function Carrito({
             </div>
           </form>
         </Dialogo>
+      )}
+
+      {lineaEditando && (
+        <PersonalizarLineaDialogo
+          linea={lineaEditando}
+          ingredientes={productoDe(lineaEditando.id_producto)?.ingredientes ?? []}
+          extrasDisponibles={extrasDe(lineaEditando.id_producto)}
+          onCerrar={() => setLineaEditando(null)}
+          onGuardar={({ nota, extras }) => {
+            dispatch({ tipo: 'personalizar', id: lineaEditando.clave, nota, extras });
+            setLineaEditando(null);
+          }}
+        />
       )}
     </aside>
   );

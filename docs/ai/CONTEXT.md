@@ -29,6 +29,8 @@ Defensas desde el 2026-11-18. Entregables: sistema funcional en GitHub, IEEE (li
 - Rendimiento (2026-11-17): Table memoriza ordenamiento del cliente; KDS pausa polling en pestañas ocultas y agrupa cada cola en una pasada. Migración 015 / init 16 agrega índices de detalle por orden y cola POS activa; revisar EXPLAIN con datos reales antes de sumar más índices.
 
 
+- POS notas/extras (2026-11-19, mig. 023): observación por línea (nota, no toca inventario) visible en cola, ticket e historial; extras = productos `es_extra` con receta propia ligados por `producto_extras` y `id_detalle_padre`, cobrados y descontados por fn_registrar_venta. Barista ve recetas en solo lectura (catálogo y cola) con INV_VER_STOCK.
+
 ## Estado por módulo
 | Módulo | BD | Backend | Frontend |
 |---|---|---|---|

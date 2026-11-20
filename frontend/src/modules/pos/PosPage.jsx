@@ -11,7 +11,7 @@ import { useAlert } from '../../components/feedback/AlertProvider.jsx';
 import { traducirError } from '../../errors/traducirError.js';
 import { obtenerProductos } from './posApi.js';
 import { cajaApi } from '../../api/caja.api.js';
-import { carritoInicial, carritoReducer } from './carritoReducer.js';
+import { cantidadDeProducto, carritoInicial, carritoReducer } from './carritoReducer.js';
 import { agruparPorCategoria } from './categorias.js';
 import { calcularTotales, formatoMoneda } from './impuestos.js';
 import ProductoCard from './ProductoCard.jsx';
@@ -82,12 +82,12 @@ export default function PosPage() {
   useEffect(() => { if (puedeVerMenu) cargar(); }, [puedeVerMenu, cargar]);
 
   const texto = busqueda.trim().toLowerCase();
-  const coincidentes = useMemo(() => productos.filter((p) => p.nombre.toLowerCase().includes(texto)), [productos, texto]);
+  const coincidentes = useMemo(() => productos.filter((p) => !p.es_extra && p.nombre.toLowerCase().includes(texto)), [productos, texto]);
   const grupos = useMemo(() => agruparPorCategoria(coincidentes), [coincidentes]);
-  const todosLosGrupos = useMemo(() => agruparPorCategoria(productos), [productos]);
+  const todosLosGrupos = useMemo(() => agruparPorCategoria(productos.filter((p) => !p.es_extra)), [productos]);
   const visibles = categoria === 'Todas' ? grupos : grupos.filter((g) => g.nombre === categoria);
 
-  const cantidadEnCarrito = (id) => items.find((i) => i.id_producto === id)?.cantidad ?? 0;
+  const cantidadEnCarrito = (id) => cantidadDeProducto(items, id);
   const unidades = items.reduce((n, i) => n + i.cantidad, 0);
   const { total } = calcularTotales(items);
   // Sin POS_EMITIR_CCF el documento siempre es consumidor final, aunque el estado local diga otra cosa.
@@ -245,6 +245,7 @@ export default function PosPage() {
             onVaciar={vaciarPedido}
             etiquetaCobro={etiquetaCobro(items, total)}
           />
+            catalogo={productos}
         </div>
       </div>
 

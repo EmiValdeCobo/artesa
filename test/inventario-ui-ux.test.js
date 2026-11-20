@@ -35,10 +35,13 @@ test('UI/UX: CatalogoProductosPage implementa badge alineado, costo whitespace-n
   assert.match(codigo, /font-mono whitespace-nowrap[\s\S]*?p\.costo_teorico/, 'Columna costo usa whitespace-nowrap y formato 2 decimales');
 
   // 2. Modal de Previsualización Rápida
-  assert.match(codigo, /function ModalPrevisualizacionReceta/, 'Define componente ModalPrevisualizacionReceta');
-  assert.match(codigo, /Editar receta completa/, 'El modal ofrece botón para editar receta completa');
-  assert.match(codigo, /Cerrar/, 'El modal ofrece botón para cerrar');
-  assert.match(codigo, /calcularSubtotalLinea/, 'El modal calcula subtotales anti-float');
+  // El modal vive en su propio archivo (lo reutiliza la cola de preparación del barista).
+  assert.match(codigo, /import ModalPrevisualizacionReceta from '\.\/ModalPrevisualizacionReceta\.jsx'/, 'Importa el modal compartido');
+  const modal = await leer('frontend/src/modules/inventario/ModalPrevisualizacionReceta.jsx');
+  assert.match(modal, /export default function ModalPrevisualizacionReceta/, 'Define componente ModalPrevisualizacionReceta');
+  assert.match(modal, /Editar receta completa/, 'El modal ofrece botón para editar receta completa');
+  assert.match(modal, /Cerrar/, 'El modal ofrece botón para cerrar');
+  assert.match(modal, /calcularSubtotalLinea/, 'El modal calcula subtotales anti-float');
 
   // 3. Redirección automática tras crear producto elaborado
   assert.match(codigo, /navigate\(`\/catalogo\/productos\/\$\{idCreado\}\/receta`\)/, 'Redirige automáticamente al editor de recetas tras crear producto elaborado');

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MARCAS_TARJETA, validarPagoSimulado } from '../pagos/pasarelaSimulada.js';
 
 // ── Helper: string decimal "0.00" → no float ──────────────────────────────────
 const montoStr = z
@@ -9,25 +10,42 @@ const montoStr = z
 const itemVentaSchema = z.object({
   id_producto: z.number().int().positive(),
   cantidad:    z.number().int().min(1),
-  nota:        z.string().max(200).nullable().optional(),
+  nota:        z.string().trim().max(200).nullable().optional(),
+  // Posición (1-based) en items de la línea principal; solo para extras. La BD valida que sea anterior
+  // y que el extra esté permitido para ese producto.
+  extra_de:    z.number().int().positive().nullable().optional(),
 });
 
 // ── Comprobante por método (se guarda en pos.pagos.referencia) ────────────────
 export const REFERENCIA_POR_METODO = {
   TARJETA:       { nombre: 'el número de autorización del voucher', patron: /^\d{6,12}$/, mensaje: 'La autorización de tarjeta debe tener de 6 a 12 dígitos' },
-  TRANSFERENCIA: { nombre: 'la referencia bancaria', patron: /^[A-Z0-9-]{6,30}$/, mensaje: 'La referencia bancaria debe tener de 6 a 30 letras mayúsculas, números o guiones' },
+  TRANSFERENCIA: { nombre: 'la referencia bancaria', patron: /^[A-Z0-9]{6,20}$/, mensaje: 'La referencia bancaria debe tener de 6 a 20 letras mayúsculas o números, sin espacios' },
   BITCOIN_CHIVO: { nombre: 'el ID de transacción de Chivo/Lightning', patron: /^[A-Za-z0-9]{8,100}$/, mensaje: 'El ID de transacción Bitcoin/Chivo debe tener de 8 a 100 letras o números' },
 };
 
+// Objeto estricto: cualquier campo extra (numero, cvv, vencimiento…) se rechaza con 400 y nunca llega a la BD.
+const sinCamposExtra = (contexto) => ({
+  error: (issue) => (issue.code === 'unrecognized_keys'
+    ? `Campo no permitido en ${contexto}: ${issue.keys.join(', ')}. Nunca envíes número completo, CVV ni vencimiento de la tarjeta`
+    : undefined),
+});
+
 // ── Pago individual ───────────────────────────────────────────────────────────
-const pagoSchema = z.object({
+const pagoSchema = z.strictObject({
   metodo:         z.enum(['EFECTIVO', 'TARJETA', 'BITCOIN_CHIVO', 'TRANSFERENCIA'], {
     errorMap: () => ({ message: "metodo debe ser EFECTIVO, TARJETA, BITCOIN_CHIVO o TRANSFERENCIA" }),
   }),
   monto:          montoStr,
   monto_recibido: montoStr.nullable().optional(), // solo para EFECTIVO (vuelto)
   referencia:     z.string().trim().max(100).nullable().optional(),
-}).superRefine((pago, ctx) => {
+  // Pago simulado (pasarelaSimulada.js). De la tarjeta solo se aceptan marca y últimos 4 dígitos.
+  simulado:       z.boolean().optional().default(false),
+  tarjeta:        z.strictObject({
+    marca:    z.enum(MARCAS_TARJETA, { errorMap: () => ({ message: 'marca debe ser VISA, MASTERCARD o AMEX' }) }),
+    ultimos4: z.string().regex(/^\d{4}$/, 'ultimos4 debe tener exactamente 4 dígitos'),
+  }, sinCamposExtra('la tarjeta')).nullable().optional(),
+}, sinCamposExtra('el pago')).superRefine((pago, ctx) => {
+  for (const { path, message } of validarPagoSimulado(pago)) ctx.addIssue({ code: 'custom', path, message });
   // Comprobante obligatorio en pagos no en efectivo; el formato depende del método.
   // Debe coincidir con REFERENCIAS_PAGO de frontend/src/utils/mascaras.js.
   const regla = REFERENCIA_POR_METODO[pago.metodo];

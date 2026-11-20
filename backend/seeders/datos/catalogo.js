@@ -179,6 +179,15 @@ export const PRODUCTOS = [
   { clave: 'chocolate_barra', nombre: 'Chocolate artesanal 70 %', cat: 6, precio: '4.00', franja: 'reventa', peso: 0.2, reventa: 'chocolate_barra' },
 ];
 
+// Extras (complementos, mig. 023): productos es_extra con receta propia, ofrecidos solo junto a los productos de "para".
+// No se venden sueltos ni entran a la simulación histórica.
+export const EXTRAS = [
+  { clave: 'extra_shot', nombre: 'Extra: shot de espresso', cat: 1, precio: '0.75', receta: { cafe_grano: 18 }, para: ['americano', 'cappuccino', 'latte', 'mocha', 'frappe_cafe'] },
+  { clave: 'extra_almendra', nombre: 'Extra: cambio a bebida de almendra', cat: 1, precio: '0.60', receta: { leche_almendra: 240 }, para: ['cappuccino', 'latte', 'mocha', 'matcha_latte'] },
+  { clave: 'extra_mozzarella', nombre: 'Extra: queso mozzarella', cat: 4, precio: '0.50', receta: { mozzarella: 30 }, para: ['sandwich', 'panini'] },
+  { clave: 'extra_aguacate', nombre: 'Extra: aguacate', cat: 4, precio: '0.80', receta: { aguacate: 1 }, para: ['sandwich', 'panini', 'ensalada', 'desayuno'] },
+];
+
 // Cambios históricos que la bitácora registra y las ventas respetan (dia: días antes de hoy).
 export const CAMBIOS_PRECIO = [
   { producto: 'pupusa_revuelta', dia: 60, antes: '0.85', usuario: 'admin' },

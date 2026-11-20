@@ -123,6 +123,19 @@ export const eliminarProducto = (id, uid) => run(() => withTransaction(async (t)
   await repo.eliminarProducto(id, t);
 }, uid));
 export const desactivarProducto = (id, uid) => withTransaction(async (t) => { if (!(await repo.desactivarProducto(id, t))) throw new AppError('Producto no encontrado', 404); }, uid);
+export const guardarExtras = (id, d, uid) => run(() => withTransaction(async (t) => {
+  const p = await repo.buscarProducto(id, t);
+  if (!p) throw new AppError('Producto no encontrado', 404);
+  if (p.es_extra) throw new AppError('Un extra no puede tener extras propios', 400);
+  const ids = d.extras.map(Number);
+  if (ids.includes(Number(id))) throw new AppError('Un producto no puede ser extra de sí mismo', 400);
+  const encontrados = await repo.productosPorIds(ids, t);
+  if (encontrados.length !== ids.length || encontrados.some((x) => !x.es_extra)) {
+    throw new AppError('Solo se pueden asignar productos marcados como extra', 400);
+  }
+  await repo.reemplazarExtras(id, ids, t);
+  return { id_producto: Number(id), extras: await repo.listarExtras(id, t) };
+}, uid));
 export const listarRecetas = () => repo.listarTodasLasRecetas();
 export const obtenerReceta = async (id, uid) => { const p = await repo.buscarProducto(id); if (!p) throw new AppError('Producto no encontrado', 404); if (!p.es_elaborado) throw new AppError('Los productos de reventa no usan receta', 400); return repo.recetaActual(id, await repo.usuarioTienePermiso(uid, 'INV_VER_COSTOS')); };
 export const guardarReceta = (id, d, uid) => run(() => withTransaction(async (t) => {

@@ -64,12 +64,16 @@ export async function obtenerProductos(idSucursal = null) {
       categoria: p.categoria ?? 'Sin categoría',
       id_categoria: p.id_categoria ?? null,
       precio: num(p.precio_venta),
+      es_extra: Boolean(p.es_extra),
+      extras: (p.extras ?? []).map(Number),
     };
     if (p.es_elaborado) {
       const receta = mapaRecetas.get(Number(p.id_producto)) || [];
       return {
         ...base,
         tipo: 'elaborado',
+        // Ingredientes visibles para los atajos "Sin X" (excluye empaques: vasos, servilletas...).
+        ingredientes: receta.filter((c) => c.tipo_insumo === 'INGREDIENTE' && c.insumo).map((c) => c.insumo),
         stock: unidadesPreparables(receta, stockPorInsumo),
         stock_minimo: STOCK_BAJO_ELABORADOS,
       };

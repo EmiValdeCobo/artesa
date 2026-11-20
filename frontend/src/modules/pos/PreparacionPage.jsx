@@ -14,6 +14,7 @@ import {
   GripVertical,
   Ban,
   Wallet,
+  BookOpen,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useAlert } from '../../components/feedback/AlertProvider.jsx';
@@ -21,6 +22,7 @@ import EncabezadoPagina from '../../components/display/EncabezadoPagina.jsx';
 import EstadoVacio from '../../components/feedback/EstadoVacio.jsx';
 import { Button, Select } from '../../components/ui/index.js';
 import CancelarPedidoDialogo from './CancelarPedidoDialogo.jsx';
+import ModalPrevisualizacionReceta from '../inventario/ModalPrevisualizacionReceta.jsx';
 import Insignia from '../../components/branding/Insignia.jsx';
 import Skeleton, { PuntosCarga } from '../../components/feedback/Skeleton.jsx';
 import Metrica from '../../components/display/Metrica.jsx';
@@ -83,6 +85,7 @@ function TarjetaOrden({
   enProgreso,
   onAvanzar,
   onCancelar,
+  onVerReceta,
   onPointerDown,
   estaSiendoArrastrada = false,
   regresando = false,
@@ -157,17 +160,36 @@ function TarjetaOrden({
 
       {/* Ítems */}
       <ul className="space-y-1">
-        {orden.items.map((item) => (
-          <li key={item.id_detalle} className="flex items-start gap-2 text-body text-fg">
-            <Package size={16} strokeWidth={1.75} className="mt-0.5 shrink-0 text-fg-subtle" aria-hidden="true" />
-            <span className="flex-1">
-              <span className="font-semibold tabular-nums">{item.cantidad}×</span> {item.producto}
-              {item.nota && (
-                <span className="ml-1 text-body-sm text-fg-muted">— {item.nota}</span>
+        {orden.items.filter((item) => !item.id_detalle_padre).map((item) => {
+          const extras = orden.items.filter((x) => x.id_detalle_padre === item.id_detalle);
+          return (
+            <li key={item.id_detalle} className="flex items-start gap-2 text-body text-fg">
+              <Package size={16} strokeWidth={1.75} className="mt-0.5 shrink-0 text-fg-subtle" aria-hidden="true" />
+              <div className="min-w-0 flex-1">
+                <span className="font-semibold tabular-nums">{item.cantidad}×</span> {item.producto}
+                {extras.length > 0 && (
+                  <ul className="text-body-sm text-fg-muted">
+                    {extras.map((x) => <li key={x.id_detalle}>+ {x.producto.replace(/^Extra:\s*/i, '')}</li>)}
+                  </ul>
+                )}
+                {/* Observación destacada: el barista no debe pasarla por alto ("sin mayonesa") */}
+                {item.nota && (
+                  <p className="mt-0.5 rounded-sm bg-warning-soft px-1.5 py-0.5 text-body-sm font-medium text-warning-text">{item.nota}</p>
+                )}
+              </div>
+              {onVerReceta && item.es_elaborado && !esClonFlotante && (
+                <button type="button"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); onVerReceta(item); }}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 text-label-sm text-fg-muted hover:bg-muted hover:text-fg"
+                  aria-label={`Ver receta de ${item.producto}`}>
+                  <BookOpen size={14} strokeWidth={1.75} aria-hidden="true" />
+                  Receta
+                </button>
               )}
-            </span>
-          </li>
-        ))}
+            </li>
+          );
+        })}
         {orden.items.length === 0 && (
           <li className="text-body-sm text-fg-muted">Sin productos registrados</li>
         )}
@@ -221,6 +243,7 @@ function Columna({
   enProgreso,
   onAvanzar,
   onCancelar,
+  onVerReceta,
   onPointerDown,
   idArrastrado,
   regresandoId,
@@ -262,6 +285,7 @@ function Columna({
             enProgreso={enProgreso.has(o.id_orden)}
             onAvanzar={onAvanzar}
             onCancelar={onCancelar}
+            onVerReceta={onVerReceta}
             onPointerDown={onPointerDown}
             estaSiendoArrastrada={idArrastrado === o.id_orden}
             regresando={regresandoId === o.id_orden}
@@ -292,6 +316,9 @@ export default function PreparacionPage() {
   const [ultimaActualizacion, setUltimaActualizacion] = useState(null);
   const [actualizando, setActualizando] = useState(false);
   const [ordenACancelar, setOrdenACancelar] = useState(null);
+  // Receta de solo lectura para el barista (INV_VER_STOCK basta; sin costos ni edición).
+  const [recetaAbierta, setRecetaAbierta] = useState(null);
+  const puedeVerReceta = tiene('INV_VER_STOCK') || tiene('INV_GESTIONAR_RECETAS');
   // Reloj de la pantalla: hace que "Actualizado hace…" avance aunque no llegue una respuesta nueva.
   const [ahora, setAhora] = useState(() => Date.now());
 
@@ -588,6 +615,7 @@ export default function PreparacionPage() {
               onAvanzar={avanzar}
               onCancelar={setOrdenACancelar}
               onPointerDown={iniciarArrastre}
+              onVerReceta={puedeVerReceta ? setRecetaAbierta : undefined}
               idArrastrado={arrastre.orden?.id_orden}
               regresandoId={arrastre.regresandoId}
               esColumnaDestino={arrastre.columnaSobre === estado}
@@ -598,6 +626,18 @@ export default function PreparacionPage() {
       )}
 
       {ordenACancelar && (
+      {recetaAbierta && (
+        <ModalPrevisualizacionReceta
+          producto={{ id_producto: recetaAbierta.id_producto, nombre: recetaAbierta.producto, precio_venta: '0.00' }}
+          categoriaNombre={null}
+          onCerrar={() => setRecetaAbierta(null)}
+          onEditarReceta={() => {}}
+          tienePermisoRecetas={false}
+          tienePermisoCostos={false}
+          soloPreparacion
+        />
+      )}
+
         <CancelarPedidoDialogo
           orden={ordenACancelar}
           onCerrar={() => setOrdenACancelar(null)}

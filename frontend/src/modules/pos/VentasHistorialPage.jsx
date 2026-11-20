@@ -363,10 +363,12 @@ export default function VentasHistorialPage() {
               <div className="divide-y divide-line rounded-md border border-line">
                 {detalleVenta.detalles?.length > 0 ? (
                   detalleVenta.detalles.map((d) => (
-                    <div key={d.id_detalle} className="flex items-center justify-between gap-3 px-4 py-2.5 text-body text-fg">
+                    <div key={d.id_detalle} className={`flex items-center justify-between gap-3 px-4 text-body text-fg ${d.id_detalle_padre ? 'border-t-0 pb-2.5 pl-10 pt-0 text-body-sm text-fg-muted' : 'py-2.5'}`}>
                       <div>
-                        <span className="font-medium tabular-nums">{d.cantidad}x</span> {d.nombre_producto}
-                        {d.nota && <span className="ml-2 text-body-sm text-fg-muted">({d.nota})</span>}
+                        {d.id_detalle_padre
+                          ? <span>+ {d.nombre_producto.replace(/^Extra:\s*/i, '')}</span>
+                          : <><span className="font-medium tabular-nums">{d.cantidad}x</span> {d.nombre_producto}</>}
+                        {d.nota && <span className="ml-2 text-body-sm italic text-primary-text">“{d.nota}”</span>}
                       </div>
                       <span className="font-medium tabular-nums">${d.subtotal_linea}</span>
                     </div>

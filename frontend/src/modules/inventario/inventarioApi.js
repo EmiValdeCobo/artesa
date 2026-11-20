@@ -26,6 +26,8 @@ export const createProducto    = (body)     => api.post('/inventario/productos',
 export const updateProducto    = (id, body) => api.put(`/inventario/productos/${id}`, body);
 export const cambiarEstadoProducto = (id, activo) => api.patch(`/inventario/productos/${id}/estado`, activo !== undefined ? { activo } : {});
 export const patchProductoEstado = cambiarEstadoProducto;
+// Extras permitidos del producto (reemplaza la lista completa)
+export const saveExtrasProducto = (id, extras) => api.put(`/inventario/productos/${id}/extras`, { extras });
 export const deleteProducto    = (id)       => api.delete(`/inventario/productos/${id}`);
 
 // ── Recetas (BOM) ─────────────────────────────────────────────────────────────

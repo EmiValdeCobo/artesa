@@ -1,6 +1,7 @@
 import { withTransaction } from '../../../config/db.js';
 import { AppError } from '../../../utils/AppError.js';
 import * as repo from './ventas.repository.js';
+import { aPagoVenta, guardarMetadatosSimulacion } from '../pagos/pasarelaSimulada.js';
 
 // ── Mapeo de errores PostgreSQL P0001 → AppError HTTP ────────────────────────
 function mapearErrorPG(err) {
@@ -30,18 +31,15 @@ function mapearErrorPG(err) {
 
 // ── Registrar venta ───────────────────────────────────────────────────────────
 export async function registrarVenta(body, userId) {
-  const items = body.items.map(({ id_producto, cantidad, nota }) => ({
+  const items = body.items.map(({ id_producto, cantidad, nota, extra_de }) => ({
     id_producto,
     cantidad,
-    nota: nota ?? null,
+    nota: nota || null,
+    extra_de: extra_de ?? null,
   }));
 
-  const pagos = body.pagos.map(({ metodo, monto, monto_recibido, referencia }) => ({
-    metodo,
-    monto,
-    monto_recibido: monto_recibido ?? null,
-     referencia: referencia ?? null,
-  }));
+  // Solo columnas originales de pos.pagos; los metadatos simulados se guardan después (pasarelaSimulada).
+  const pagos = body.pagos.map(aPagoVenta);
 
   try {
     return await withTransaction(async (tx) => {
@@ -81,6 +79,9 @@ export async function registrarVenta(body, userId) {
         descuento: body.descuento ?? '0.00',
         idOrden: body.id_orden ?? null,
       });
+
+      // 4. Marcar pagos simulados (marca y últimos 4 de tarjeta; nada sensible) en la misma transacción
+      await guardarMetadatosSimulacion(tx, repo.sequelize, idVenta, body.pagos);
 
       return repo.obtenerVenta(idVenta, tx);
     }, userId);
