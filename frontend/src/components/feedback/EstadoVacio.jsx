@@ -1,6 +1,9 @@
 // Mensaje para listas vacías o sin resultados: qué pasa + qué hacer. Sobrio, sin ilustraciones.
 //   <EstadoVacio icono={Search} titulo="Sin resultados">Prueba con otro término.</EstadoVacio>
 export default function EstadoVacio({ icono: Icono, titulo, tono = 'text-fg-muted', className = '', accion = null, children }) {
+  if (import.meta.env.DEV && !titulo) {
+    console.warn('EstadoVacio: falta la prop "titulo"');
+  }
   return (
     <div className={`flex flex-col items-center px-6 py-12 text-center ${className}`}>
       {Icono && (

@@ -341,13 +341,12 @@ export default function PuestosPage() {
           vacio={
             <EstadoVacio
               icono={Briefcase}
-              mensaje="No se encontraron puestos"
-              descripcion={
-                filtroTexto || filtroEstado !== 'TODOS'
-                  ? 'Intenta ajustar los filtros de búsqueda.'
-                  : 'Registra el primer puesto laboral de la empresa.'
-              }
-            />
+              titulo="No se encontraron puestos"
+            >
+              {filtroTexto || filtroEstado !== 'TODOS'
+                ? 'Intenta ajustar los filtros de búsqueda.'
+                : 'Registra el primer puesto laboral de la empresa.'}
+            </EstadoVacio>
           }
         />
       </Card>
